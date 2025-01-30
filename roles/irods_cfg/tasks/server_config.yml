@@ -1,0 +1,53 @@
+---
+- name: Server config | include variables
+  ansible.builtin.include_vars: server_config.yml
+
+- name: Server config | validate ICAT vars if requested
+  when: irods_cfg_validate | bool and _database is mapping
+  ansible.builtin.assert:
+    that:
+      - _database.db_port|int >= 1 and _database.db_port|int <= 65535
+      - _database.db_type in ('mysql', 'oracle', 'postgres')
+
+- name: Server config | validate rest if requested
+  when: irods_cfg_validate | bool
+  block:
+    - name: Validate federation
+      loop: "{{ irods_cfg_federation }}"
+      ansible.builtin.assert:
+        that:
+          - item.zone_name != irods_cfg_zone_name
+          - item.negotiation_key|length == 32
+
+    - name: Validate parameters
+      ansible.builtin.assert:
+        that:
+          - irods_cfg_catalog_provider_hosts|length >= 1
+          - irods_cfg_catalog_service_role in ['consumer', 'provider']
+          - irods_cfg_default_number_of_transfer_threads|int > 0
+          - irods_cfg_default_temporary_password_lifetime|int > 0
+          - irods_cfg_maximum_temporary_password_lifetime|int >= irods_cfg_default_temporary_password_lifetime|int
+          - irods_cfg_maximum_size_for_single_buffer|int >= 0
+          - irods_cfg_transfer_buffer_size_for_parallel_transfer|int > 0
+          - irods_cfg_transfer_chunk_size_for_parallel_transfer|int > 0
+          - irods_cfg_default_hash_scheme in ['MD5', 'SHA256']
+          - irods_cfg_match_hash_policy in ['compatible', 'strict']
+          - irods_cfg_negotiation_key|length == 32
+          - irods_cfg_server_control_plane_encryption_num_hash_rounds|int >= 0
+          - not irods_cfg_server_control_plane_key or irods_cfg_server_control_plane_key|length == 32
+          - not irods_cfg_server_control_plane_port or (irods_cfg_server_control_plane_port|int >= 1 and irods_cfg_server_control_plane_port|int <= 65535)
+          - irods_cfg_server_control_plane_timeout|int > 0
+          - irods_cfg_server_port_range_end|int >= 1 and irods_cfg_server_port_range_end|int <= 65535
+          - irods_cfg_server_port_range_start|int >= 1 and irods_cfg_server_port_range_start|int <= irods_cfg_server_port_range_end|int
+          - irods_cfg_server_control_plane_port|int < irods_cfg_server_port_range_start|int or irods_cfg_server_control_plane_port|int > irods_cfg_server_port_range_end|int
+          - irods_cfg_zone_auth_scheme in ['native', 'pam_password']
+          - not irods_cfg_zone_key is match('.*-.*')
+          - irods_cfg_zone_port|int >= 1 and irods_cfg_zone_port|int <= 65535 and irods_cfg_zone_port != irods_cfg_server_control_plane_port and (irods_cfg_zone_port|int < irods_cfg_server_port_range_start|int or irods_cfg_zone_port|int > irods_cfg_server_port_range_end|int)
+
+- name: Server config | generate file
+  ansible.builtin.include_tasks: _cfg_template.yml
+  vars:
+    _cfg_template_dest_file: etc/irods/server_config.json
+
+- name: Server config | ensure known that changes were made
+  ansible.builtin.meta: flush_handlers

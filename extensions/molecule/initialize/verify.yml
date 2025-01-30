@@ -1,0 +1,58 @@
+---
+- name: Verify | irods
+  hosts: all
+  become: true
+  become_user: irods
+  become_flags: '-i'
+  tasks:
+    - name: Validate deposition of server_config.json
+      ansible.builtin.include_tasks: ../_shared/tasks/validate_deposition.yml
+      vars:
+        cfg_path: /etc/irods/server_config.json
+        schema_path: /var/lib/irods/configuration_schemas/v4/server_config.json
+
+    - name: Verify old config not deposited
+      ansible.builtin.stat:
+        path: /etc/irods/{{ item }}
+      register: response
+      failed_when: response.stat.exists
+      loop:
+        - host_access_control_config.json
+        - hosts_config.json
+
+    - name: Validate deposition of irods_environment.json
+      ansible.builtin.include_tasks: ../_shared/tasks/validate_deposition.yml
+      vars:
+        cfg_path: /var/lib/irods/.irods/irods_environment.json
+        schema_path: /var/lib/irods/configuration_schemas/v4/service_account_environment.json
+
+    - name: Check service_account.config deposition
+      ansible.builtin.stat:
+        path: /etc/irods/service_account.config
+      register: response
+      failed_when: >
+        not response.stat.exists or
+        response.stat.pw_name != 'irods' or
+        response.stat.gr_name != 'irods'
+
+    - name: Verify ICAT schema version
+      community.postgresql.postgresql_query:
+        db: ICAT
+        login_user: irods
+        login_password: testpassword
+        query: >
+          SELECT option_value
+          FROM r_grid_configuration
+          WHERE namespace = 'database' AND option_name = 'schema_version'
+      register: response
+      failed_when: response.failed or response.query_result[0]['option_value'] != '11'
+
+    - name: Verify admin password set
+      community.postgresql.postgresql_query:
+        db: ICAT
+        login_user: irods
+        login_password: testpassword
+        query: >
+          SELECT rcat_password
+          FROM r_user_password
+          WHERE user_id = (SELECT user_id FROM r_user_main WHERE user_name = 'rods')

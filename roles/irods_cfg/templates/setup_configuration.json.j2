@@ -1,0 +1,14 @@
+{% import 'macros.j2' as m with context %}
+{
+    "admin_password": "{{ irods_cfg_zone_password }}",
+{% if irods_cfg_default_resource_directory %}
+    "default_resource_directory": "{{ irods_cfg_default_resource_directory }}",
+{% endif %}
+    "default_resource_name": "{{ irods_cfg_default_resource_name }}",
+    "host_system_information": {
+        "service_account_user_name": "{{ irods_cfg_system_account_name }}",
+        "service_account_group_name": "{{ irods_cfg_system_group_name }}"
+    },
+    "server_config": {{ m.server_config() | string | indent }},
+    "service_account_environment": {{ m.irods_environment() | string | indent }}
+}

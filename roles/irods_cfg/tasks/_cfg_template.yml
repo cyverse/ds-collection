@@ -1,0 +1,30 @@
+---
+#  _cfg_template_dest_file  The path of the generated config file relative to
+#                           then root directory.
+#  _cfg_template_name       (OPTIONAL) The name of the source template. The
+#                           default is {{ _cfg_template_dest_name }}.j2.
+
+- name: Cfg_template | ensure parent directory exists exists
+  ansible.builtin.file:
+    dest: "{{ (_root_dir ~ '/' ~ _cfg_template_dest_file) | dirname }}"
+    state: directory
+    mode: u+rx
+
+- name: Cfg_template | ensure system account owns parent directory
+  ansible.builtin.include_tasks: _system_account_own.yml
+  vars:
+    _system_account_own_path: "{{ (_root_dir ~ '/' ~ _cfg_template_dest_file) | dirname }}"
+
+- name: Cfg_template | generate {{ _cfg_template_dest_file }}
+  ansible.builtin.template:
+    src: "{{ _cfg_template_name | default((_cfg_template_dest_file | basename) ~ '.j2') }}"
+    dest: "{{ _root_dir }}/{{ _cfg_template_dest_file }}"
+    mode: u+r
+    backup: true
+  notify:
+    - Changed config
+
+- name: Cfg_template | ensure system account owns file
+  ansible.builtin.include_tasks: _system_account_own.yml
+  vars:
+    _system_account_own_path: "{{ _root_dir }}/{{ _cfg_template_dest_file }}"

@@ -1,0 +1,7 @@
+ansible-core<2.17
+ansible-lint
+docker
+jsonschema
+molecule
+molecule-plugins
+tox-ansible

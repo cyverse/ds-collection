@@ -1,0 +1,15 @@
+---
+# These are the config file specific defaults for the server_config.json
+
+_default_number_of_transfer_threads_default: 4
+
+_match_hash_policy_default: compatible
+
+_maximum_size_for_single_buffer_default: 32
+
+_transfer_buffer_size_for_parallel_transfer_default: 4
+
+_server_control_plane_encryption_algorithm_default: AES-256-CBC
+_server_control_plane_encryption_num_hash_rounds_default: 16
+_server_control_plane_key_default: 32_byte_server_control_plane_key
+_server_control_plane_port_default: 1248

@@ -1,0 +1,467 @@
+{% macro mk_string_list(members) -%}
+{%   if members | length == 0 %}
+[]
+{%-  else %}
+[
+{%     for m in members %}
+    "{{ m }}"{% if not loop.last %},{% endif +%}
+{%     endfor %}
+]
+{%-  endif %}
+{%- endmacro %}
+
+
+{% macro mk_cache(cache) -%}
+{%   if cache %}
+{
+{%     if cache.clearer_sleep_time %}
+    "cache_clearer_sleep_time_in_seconds": {{ cache.clearer_sleep_time }}{% if cache.eviction_age or cache.shared_memory_size %},{% endif %}
+{%-    endif %}
+{%     if cache.eviction_age %}
+    "eviction_age_in_seconds": {{ cache.eviction_age }}{% if cache.shared_memory_size %},{% endif %}
+{%-    endif %}
+{%     if cache.shared_memory_size %}
+    "shared_memory_size_in_bytes": {{ cache.shared_memory_size }}
+{%-    endif %}
+}
+{%-  else %}
+{}
+{%- endif %}
+{% endmacro %}
+
+
+{% macro mk_user(user) -%}
+{%   if user.find('#') == -1 %}
+"{{ user }}#{{ irods_cfg_zone_name }}"
+{%-  else %}
+"{{ user }}"
+{%-  endif %}
+{%- endmacro %}
+
+
+{% macro mk_user_list(users) -%}
+{%   if users | length == 0 %}
+[]
+{%-  elif users | length == 1 %}
+[ {{ mk_user(users[0]) }} ]
+{%-  else %}
+[
+{%     for u in users %}
+    {{ mk_user(u) }}{% if not loop.last %},{% endif +%}
+{%     endfor %}
+]
+{%-  endif %}
+{%- endmacro %}
+
+
+{% macro mk_controlled_user_connection_list(policy) -%}
+{
+    "control_type": "{{ policy.control_type }}",
+    "users": {{ mk_user_list(policy.users) | string | indent(4) }}
+}
+{%- endmacro %}
+
+
+{% macro mk_object(field_map) -%}
+{%   if field_map | length == 0 %}
+{}
+{%-  elif field_map | length == 1 %}
+{%     set key, value = field_map.items() | first %}
+{ "{{ key }}": "{{ value }}" }
+{%-  else %}
+{
+{%     for key, value in field_map.items() %}
+    "{{ key }}": "{{ value }}"{% if not loop.last %},{% endif +%}
+{%     endfor %}
+}
+{%-  endif %}
+{%- endmacro %}
+
+
+{% macro mk_federate(def) -%}
+{
+    "catalog_provider_hosts": {{ mk_string_list(def.catalog_provider_hosts) | string | indent(4) }},
+    "negotiation_key": "{{ def.negotiation_key }}",
+    "zone_key": "{{ def.zone_key }}",
+    "zone_name": "{{ def.zone_name }}"{% if def.zone_port is defined %},{% endif +%}
+{%   if def.zone_port is defined %}
+    "zone_port": {{ def.zone_port }}
+{%-  endif %}
+}
+{%- endmacro %}
+
+
+{% macro mk_federation(fed_list) -%}
+{%   if fed_list %}
+[
+{%     for f in fed_list %}
+    {{ mk_federate(f) | string | indent(4) }}{% if not loop.last %},{% endif +%}
+{%     endfor %}
+]
+{%-  else %}
+[]
+{%-  endif %}
+{%- endmacro %}
+
+
+{% macro mk_access_entry(entry) -%}
+{
+    "address": "{{ entry.address }}",
+    "group": "{{ entry.group }}",
+    "mask": "{{ entry.mask }}",
+    "user": "{{ entry.user }}"
+}
+{%- endmacro %}
+
+
+{% macro mk_access_entries(entries) -%}
+{%   if entries %}
+[
+{%     for e in entries %}
+    {{ mk_access_entry(e) | string | indent(4) }}{% if not loop.last %},{% endif +%}
+{%     endfor %}
+]
+{%-  else %}
+[]
+{%-  endif %}
+{%- endmacro %}
+
+
+{% macro mk_host_access_control(entries) -%}
+{
+    "access_entries": {{ mk_access_entries(entries) | string | indent(4) }}
+}
+{%- endmacro %}
+
+
+{% macro mk_host_entry(entry) -%}
+{
+    "address_type": "{{ entry.address_type }}",
+    "addresses": {{ mk_string_list(entry.addresses) | string | indent(4) }}
+}
+{%- endmacro %}
+
+
+{% macro mk_host_entries(entries) -%}
+{%   if entries %}
+[
+{%     for e in entries %}
+    {{ mk_host_entry(e) | string | indent(4) }}{% if not loop.last %},{% endif +%}
+{%     endfor %}
+]
+{%-  else %}
+[]
+{%-  endif %}
+{% endmacro %}
+
+
+{% macro mk_host_resolution(entries) -%}
+{
+    "host_entries": {{ mk_host_entries(entries) | string | indent(4) }}
+}
+{%- endmacro %}
+
+
+{% macro mk_log_level(levels) -%}
+{%   if levels | length == 0 %}
+{}
+{%-  elif levels | length == 1 %}
+{%     set log, lvl = levels | items | first %}
+{ "{{ log }}": "{{ lvl }}" }
+{%-  else %}
+{
+{%     for log, lvl in levels | items %}
+    "{{ log }}": "{{ lvl }}"{% if not loop.last %},{% endif +%}
+{%-    endfor %}
+}
+{%- endif %}
+{%- endmacro %}
+
+
+{% macro mk_database_config(cfg) -%}
+{
+    "db_host": "{{ cfg.db_host }}",
+    "db_name": "{{ cfg.db_name }}",
+{%   if cfg.db_odbc_driver %}
+    "db_odbc_driver": "{{ cfg.db_odbc_driver }}",
+{%   endif %}
+    "db_password": "{{ cfg.db_password }}",
+    "db_port": {{ cfg.db_port }},
+    "db_username": "{{ cfg.db_username }}"
+}
+{%- endmacro %}
+
+
+{% macro mk_database(db) -%}
+{
+    "{{ db.db_type }}": {{ mk_database_config(db) | string | indent(4) }}
+}
+{%- endmacro %}
+
+
+{% macro mk_rule_lang_config(extra_dvm, extra_fnm, extra_rulebases) -%}
+{
+    "re_data_variable_mapping_set": {{ mk_string_list(extra_dvm + [ 'core' ]) | string | indent(4) }},
+    "re_function_name_mapping_set": {{ mk_string_list(extra_fnm + [ 'core' ]) | string | indent(4) }},
+    "re_rulebase_set": {{ mk_string_list(extra_rulebases + [ 'core' ]) | string | indent(4) }},
+    "regexes_for_supported_peps": [
+        "ac[^ ]*",
+        "msi[^ ]*",
+        "[^ ]*pep_[^ ]*_(pre|post|except|finally)"
+    ]
+}
+{%- endmacro %}
+
+
+{% macro mk_rule_engine(instance_name, plugin_name, cfg_json, shm) -%}
+{
+    "instance_name": "{{ instance_name }}",
+    "plugin_name": "{{ plugin_name }}",
+    "plugin_specific_configuration": {{ cfg_json | string | indent(4) }}{% if shm %},{% endif +%}
+{%   if shm %}
+    "shared_memory_instance": "{{ shm }}"
+{%   endif %}
+}
+{%- endmacro %}
+
+
+{% macro mk_rule_engines(re) -%}
+{%   if re %}
+{%     set rule_lang_cfg = mk_rule_lang_config(
+         re.additional_data_variable_mappings, re.additional_function_name_mappings,
+         re.additional_rulebases) %}
+[
+    {{ mk_rule_engine(
+        'irods_rule_engine_plugin-irods_rule_language-instance',
+        'irods_rule_engine_plugin-irods_rule_language',
+        rule_lang_cfg,
+        'irods_rule_language_rule_engine' )
+      | string
+      | indent(4) }},
+    {{ mk_rule_engine(
+        'irods_rule_engine_plugin-cpp_default_policy-instance',
+        'irods_rule_engine_plugin-cpp_default_policy',
+        {},
+        none )
+      | string
+      | indent(4) }}
+]
+{%-  else %}
+[]
+{%-  endif %}
+{%- endmacro %}
+
+
+{% macro advanced_settings() -%}
+{
+{%   if irods_cfg_agent_factory_watcher_sleep_time %}
+    "agent_factory_watcher_sleep_time_in_seconds": {{ irods_cfg_agent_factory_watcher_sleep_time }},
+{%-  endif %}
+    "default_number_of_transfer_threads": {{ irods_cfg_default_number_of_transfer_threads }},
+    "default_temporary_password_lifetime_in_seconds": {{ irods_cfg_default_temporary_password_lifetime }},
+{%   if irods_cfg_delay_rule_executors is not none %}
+    "delay_rule_executors": {{ mk_string_list(irods_cfg_delay_rule_executors) | string | indent(4) }},
+{%-  endif %}
+{%   if irods_cfg_delay_server_sleep_time %}
+    "delay_server_sleep_time_in_seconds": {{ irods_cfg_delay_server_sleep_time }},
+{%-  endif %}
+    "maximum_size_for_single_buffer_in_megabytes": {{ irods_cfg_maximum_size_for_single_buffer }},
+{%   if irods_cfg_maximum_size_of_delay_queue %}
+    "maximum_size_of_delay_queue_in_bytes": {{ irods_cfg_maximum_size_of_delay_queue }},
+{%-  endif %}
+    "maximum_temporary_password_lifetime_in_seconds": {{ irods_cfg_maximum_temporary_password_lifetime }},
+{%   if irods_cfg_migrate_delay_server_sleep_time %}
+    "migrate_delay_server_sleep_time_in_seconds": {{ irods_cfg_migrate_delay_server_sleep_time }},
+{%-  endif %}
+{%   if irods_cfg_number_of_concurrent_delay_rule_executors %}
+    "number_of_concurrent_delay_rule_executors": {{ irods_cfg_number_of_concurrent_delay_rule_executors }},
+{%-  endif %}
+    "rule_engine_server_sleep_time_in_seconds": {{ irods_cfg_rule_engine_server_sleep_time }},
+{%   if irods_cfg_stacktrace_file_processor_sleep_time %}
+    "stacktrace_file_processor_sleep_time_in_seconds": {{ irods_cfg_stacktrace_file_processor_sleep_time }},
+{%-  endif %}
+    "transfer_buffer_size_for_parallel_transfer_in_megabytes": {{ irods_cfg_transfer_buffer_size_for_parallel_transfer }},
+    "transfer_chunk_size_for_parallel_transfer_in_megabytes": {{ irods_cfg_transfer_chunk_size_for_parallel_transfer }}
+}
+{%- endmacro %}
+
+
+{% macro environment_variables() -%}
+{%   if irods_cfg_database_user_password_salt %}
+{{ mk_object(
+  irods_cfg_environment_variables
+    | combine({'IRODS_DATABASE_USER_PASSWORD_SALT': irods_cfg_database_user_password_salt})) }}
+{%-  else %}
+{{ mk_object(irods_cfg_environment_variables) }}
+{%-  endif %}
+{%- endmacro %}
+
+
+{% macro plugin_configuration() -%}
+{
+    "authentication": {},
+{%   if _database %}
+    "database": {{ mk_database(_database) | string | indent(4) }},
+{%   endif %}
+    "network": {},
+    "resource": {},
+    "rule_engines": {{ mk_rule_engines(_re) | string | indent(4) }}
+}
+{%- endmacro %}
+
+
+{% macro server_config() -%}
+{
+    "advanced_settings": {{ advanced_settings() | string | indent }},
+    "catalog_provider_hosts": {{ mk_string_list(irods_cfg_catalog_provider_hosts) | string | indent }},
+    "catalog_service_role": "{{ irods_cfg_catalog_service_role }}",
+    "client_api_allowlist_policy": "{{ irods_cfg_client_api_allowlist_policy }}",
+    "controlled_user_connection_list": {{ mk_controlled_user_connection_list(irods_cfg_controlled_user_connection_list) | string | indent }},
+    "default_dir_mode": "{{ irods_cfg_default_dir_mode }}",
+    "default_file_mode": "{{ irods_cfg_default_file_mode }}",
+    "default_hash_scheme": "{{ irods_cfg_default_hash_scheme }}",
+    "environment_variables": {{ environment_variables() | string | indent }},
+    "federation": {{ mk_federation(irods_cfg_federation) | string | indent }},
+    "host_access_control": {{ mk_host_access_control(irods_cfg_access_entries) | string | indent }},
+    "host_resolution": {{ mk_host_resolution(irods_cfg_host_entries) | string | indent }},
+    "log_level": {{ mk_log_level(irods_cfg_log_level) | string | indent }},
+    "match_hash_policy": "{{ irods_cfg_match_hash_policy }}",
+{% if irods_cfg_maximum_connections %}
+    "maximum_connections": {{ irods_cfg_maximum_connections }},
+{% endif %}
+    "negotiation_key": "{{ irods_cfg_negotiation_key }}",
+    "plugin_configuration": {{ plugin_configuration() | string | indent }},
+    "rule_engine_namespaces": {{ mk_string_list(irods_cfg_rule_engine_namespaces) | string | indent }},
+    "schema_name": "server_config",
+    "schema_validation_base_uri": "{{ irods_cfg_schema_validation_base_uri }}",
+    "schema_version": "{{ _schema_version }}",
+    "server_control_plane_encryption_algorithm": "{{ irods_cfg_server_control_plane_encryption_algorithm }}",
+    "server_control_plane_encryption_num_hash_rounds": {{ irods_cfg_server_control_plane_encryption_num_hash_rounds }},
+    "server_control_plane_key": "{{ irods_cfg_server_control_plane_key }}",
+    "server_control_plane_port": {{ irods_cfg_server_control_plane_port }},
+    "server_control_plane_timeout_milliseconds": {{ irods_cfg_server_control_plane_timeout }},
+    "server_port_range_end": {{ irods_cfg_server_port_range_end }},
+    "server_port_range_start": {{ irods_cfg_server_port_range_start }},
+    "zone_auth_scheme": "{{ irods_cfg_zone_auth_scheme }}",
+    "zone_key": "{{ irods_cfg_zone_key }}",
+    "zone_name": "{{ irods_cfg_zone_name }}",
+    "zone_port": {{ irods_cfg_zone_port }},
+    "zone_user": "{{ irods_cfg_zone_user }}"
+}
+{%- endmacro %}
+
+
+{% macro irods_environment() -%}
+{
+{% if irods_cfg_authentication_file %}
+    "irods_authentication_file": "{{ irods_cfg_authentication_file }}",
+{% endif %}
+{% if irods_cfg_client_authentication_scheme %}
+    "irods_authentication_scheme": "{{ irods_cfg_client_authentication_scheme }}",
+{% endif %}
+{% if irods_cfg_client_server_negotiation %}
+    "irods_client_server_negotiation": "{{ irods_cfg_client_server_negotiation }}",
+{% endif %}
+{% if irods_cfg_client_server_policy %}
+    "irods_client_server_policy": "{{ irods_cfg_client_server_policy }}",
+{% endif %}
+{% if irods_cfg_connection_pool_refresh_time %}
+    "irods_connection_pool_refresh_time_in_seconds": {{ irods_cfg_connection_pool_refresh_time }},
+{% endif %}
+{% if not irods_cfg_cwd.startswith('__omit_place_holder__') %}
+    "irods_cwd": "{{ irods_cfg_cwd }}",
+{% endif %}
+{% if irods_cfg_debug %}
+    "irods_debug": "{{ irods_cfg_debug }}",
+{% endif %}
+{% if irods_cfg_client_default_hash_scheme %}
+    "irods_default_hash_scheme": "{{ irods_cfg_client_default_hash_scheme }}",
+{% endif %}
+{% if irods_cfg_default_number_of_transfer_threads %}
+    "irods_default_number_of_transfer_threads": {{ irods_cfg_default_number_of_transfer_threads }},
+{% endif %}
+{% if irods_cfg_client_default_resource %}
+    "irods_default_resource": "{{ irods_cfg_client_default_resource }}",
+{% endif %}
+{% if irods_cfg_client_encryption_algorithm %}
+    "irods_encryption_algorithm": "{{ irods_cfg_client_encryption_algorithm }}",
+{% endif %}
+{% if irods_cfg_client_encryption_key_size %}
+    "irods_encryption_key_size": {{ irods_cfg_client_encryption_key_size }},
+{% endif %}
+{% if irods_cfg_client_encryption_num_hash_rounds %}
+    "irods_encryption_num_hash_rounds": {{ irods_cfg_client_encryption_num_hash_rounds }},
+{% endif %}
+{% if irods_cfg_client_encryption_salt_size %}
+    "irods_encryption_salt_size": {{ irods_cfg_client_encryption_salt_size }},
+{% endif %}
+{% if irods_cfg_gsi_server_dn %}
+    "irods_gsi_server_dn": "{{ irods_cfg_gsi_server_dn }}",
+{% endif %}
+{% if not irods_cfg_home.startswith('__omit_place_holder__') %}
+    "irods_home": "{{ irods_cfg_home }}",
+{% endif %}
+    "irods_host": "{{ irods_cfg_host }}",
+{% if irods_cfg_client_log_level %}
+    "irods_log_level": {{ irods_cfg_client_log_level }},
+{% endif %}
+{% if irods_cfg_match_hash_policy %}
+    "irods_match_hash_policy": "{{ irods_cfg_match_hash_policy }}",
+{% endif %}
+{% if irods_cfg_maximum_size_for_single_buffer %}
+    "irods_maximum_size_for_single_buffer_in_megabytes": {{ irods_cfg_maximum_size_for_single_buffer }},
+{% endif %}
+{% if irods_cfg_plugins_home %}
+    "irods_plugins_home": "{{ irods_cfg_plugins_home }}",
+{% endif %}
+    "irods_port": {{ irods_cfg_zone_port }},
+{% if irods_cfg_server_control_plane_encryption_algorithm %}
+    "irods_server_control_plane_encryption_algorithm": "{{ irods_cfg_server_control_plane_encryption_algorithm }}",
+{% endif %}
+{% if irods_cfg_server_control_plane_encryption_num_hash_rounds %}
+    "irods_server_control_plane_encryption_num_hash_rounds": {{ irods_cfg_server_control_plane_encryption_num_hash_rounds }},
+{% endif %}
+{% if irods_cfg_server_control_plane_key %}
+    "irods_server_control_plane_key": "{{ irods_cfg_server_control_plane_key }}",
+{% endif %}
+{% if irods_cfg_server_control_plane_port %}
+    "irods_server_control_plane_port": {{ irods_cfg_server_control_plane_port }},
+{% endif %}
+{% if irods_cfg_ssl_ca_certificate_file %}
+    "irods_ssl_ca_certificate_file": "{{ irods_cfg_ssl_ca_certificate_file }}",
+{% endif %}
+{% if irods_cfg_ssl_ca_certificate_path %}
+    "irods_ssl_ca_certificate_path": "{{ irods_cfg_ssl_ca_certificate_path }}",
+{% endif %}
+{% if irods_cfg_ssl_certificate_chain_file %}
+    "irods_ssl_certificate_chain_file": "{{ irods_cfg_ssl_certificate_chain_file }}",
+{% endif %}
+{% if irods_cfg_ssl_certificate_key_file %}
+    "irods_ssl_certificate_key_file": "{{ irods_cfg_ssl_certificate_key_file }}",
+{% endif %}
+{% if irods_cfg_ssl_dh_params_file %}
+    "irods_ssl_dh_params_file": "{{ irods_cfg_ssl_dh_params_file }}",
+{% endif %}
+{% if irods_cfg_ssl_verify_server %}
+    "irods_ssl_verify_server": "{{ irods_cfg_ssl_verify_server }}",
+{% endif %}
+{% if irods_cfg_tcp_keepalive_intvl %}
+    "irods_tcp_keepalive_intvl_in_seconds": {{ irods_cfg_tcp_keepalive_intvl }},
+{% endif %}
+{% if irods_cfg_tcp_keepalive_probes %}
+    "irods_tcp_keepalive_probes": {{ irods_cfg_tcp_keepalive_probes }},
+{% endif %}
+{% if irods_cfg_tcp_keepalive_time %}
+    "irods_tcp_keepalive_time_in_seconds": {{ irods_cfg_tcp_keepalive_time }},
+{% endif %}
+{% if irods_cfg_transfer_buffer_size_for_parallel_transfer %}
+    "irods_transfer_buffer_size_for_parallel_transfer_in_megabytes": {{ irods_cfg_transfer_buffer_size_for_parallel_transfer }},
+{% endif %}
+    "irods_user_name": "{{ irods_cfg_zone_user }}",
+    "irods_zone_name": "{{ irods_cfg_zone_name }}"{% if irods_cfg_for_server %},{% endif %}
+{% if irods_cfg_for_server +%}
+    "schema_name": "service_account_environment",
+    "schema_version": "{{ _schema_version }}"
+{% endif %}
+}
+{%- endmacro %}

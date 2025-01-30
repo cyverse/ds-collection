@@ -1,0 +1,31 @@
+---
+- name: Verify | client configuration file placement
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check irods_environment.json deposition
+      ansible.builtin.stat:
+        path: /home/irods/.irods/irods_environment.json
+      register: response
+      failed_when: >-
+        not response.stat.exists
+        or response.stat.pw_name != 'irods'
+        or response.stat.gr_name != 'irods'
+
+    - name: Validate irods_environment.json with schema
+      ansible.builtin.command: >
+        jsonschema --instance /home/irods/.irods/irods_environment.json /client_environment.json.in
+      changed_when: false
+
+    - name: Check ie.json deposition
+      ansible.builtin.stat:
+        path: /tmp/ie.json
+      register: response
+      failed_when: >-
+        not response.stat.exists
+        or response.stat.pw_name == 'irods'
+        or response.stat.gr_name == 'irods'
+
+    - name: Validate ie.json with schema
+      ansible.builtin.command: jsonschema --instance /tmp/ie.json /client_environment.json.in
+      changed_when: false

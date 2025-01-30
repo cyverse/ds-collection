@@ -1,0 +1,27 @@
+---
+_database: "{{ __database_guess if irods_cfg_catalog_service_role == 'provider' else none }}"
+
+_re: "{{ __re_guess if irods_cfg_catalog_service_role == 'provider' else none }}"
+
+_root_dir: "{{ irods_cfg_root_dir | regex_replace('\\/$', '') if irods_cfg_root_dir else '' }}"
+
+_schema_version: v4
+
+
+# This is the value of _database if the server being configured is a catalog provider
+__database_guess:
+  db_type: "{{ irods_cfg_database.catalog_database_type | d('postgres') }}"
+  db_host: "{{ irods_cfg_database.db_host | d('localhost') }}"
+  db_name: "{{ irods_cfg_database.db_name | d('ICAT') }}"
+  db_odbc_driver: "{{ irods_cfg_database.db_odbc_driver | d('PostgreSQL ANSI') }}"
+  db_password: "{{ irods_cfg_database.db_password | d('testpassword') }}"
+  db_port: "{{ irods_cfg_database.db_port | d(5432) }}"
+  db_username: "{{ irods_cfg_database.db_username | d('irods') }}"
+
+# This is the value of _re if a iRODS rule language rule engine is being configured
+__re_guess:
+  additional_data_variable_mappings: >-
+    {{ irods_cfg_re.additional_data_variable_mappings if irods_cfg_re is mapping else [] }}
+  additional_function_name_mappings: >-
+    {{ irods_cfg_re.additional_function_name_mappings if irods_cfg_re is mapping else [] }}
+  additional_rulebases: "{{ irods_cfg_re.additional_rulebases if irods_cfg_re is mapping else [] }}"

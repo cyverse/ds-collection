@@ -1,0 +1,11 @@
+---
+- name: Server | generate server version of irods_environment.json
+  ansible.builtin.include_tasks: irods_environment.yml
+  vars:
+    irods_cfg_for_server: true
+
+- name: Server | generate server_config.json
+  ansible.builtin.import_tasks: server_config.yml
+
+- name: Server | generate service_account.config
+  ansible.builtin.import_tasks: service_account.yml

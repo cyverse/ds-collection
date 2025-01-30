@@ -1,0 +1,44 @@
+---
+- name: IRODS environment | load variable values
+  when: irods_cfg_for_server | bool
+  ansible.builtin.include_vars: 'irods_environment_server.yml'
+
+- name: IRODS environment | validate if required
+  when: irods_cfg_validate | bool
+  block:
+    - name: Validate core variables
+      ansible.builtin.assert:
+        that:
+          - irods_cfg_zone_port|int >= 1 and irods_cfg_zone_port|int <= 65535
+
+    - name: Validate variables
+      when: irods_cfg_for_server | bool
+      ansible.builtin.assert:
+        that:
+          - irods_cfg_client_server_negotiation in ['off', 'request_server_negotiation']
+          - irods_cfg_client_server_policy in ['CS_NEG_DONT_CARE', 'CS_NEG_REFUSE', 'CS_NEG_REQUIRE']
+          - irods_cfg_client_default_hash_scheme in ['MD5', 'SHA256']
+          - irods_cfg_client_encryption_key_size|int >= 0
+          - irods_cfg_client_encryption_num_hash_rounds|int >= 0
+          - irods_cfg_client_encryption_salt_size|int >= 0
+          - not irods_cfg_client_log_level or (_client_log_level|int >= 1 and irods_cfg_client_log_level|int <= 10)
+          - irods_cfg_match_hash_policy in ['compatible', 'strict']
+          - irods_cfg_server_control_plane_encryption_algorithm != ''
+          - irods_cfg_server_control_plane_encryption_num_hash_rounds|int >= 0
+          - irods_cfg_server_control_plane_key | length == 32
+          - >
+            irods_cfg_server_control_plane_port|int >= 1 and irods_cfg_server_control_plane_port|int <= 65535
+            and irods_cfg_server_control_plane_port|int != irods_cfg_zone_port|int
+          - not irods_cfg_ssl_verify_server or irods_cfg_ssl_verify_server in ['cert', 'hostname', 'none']
+          - >
+            not irods_cfg_client_authentication_scheme
+            or irods_cfg_client_authentication_scheme in ['gsi', 'krb', 'native', 'pam']
+
+- name: IRODS environment | generate file
+  ansible.builtin.include_tasks: _cfg_template.yml
+  vars:
+    _cfg_template_dest_file: "{{ irods_cfg_environment_file }}"
+    _cfg_template_name: irods_environment.json.j2
+
+- name: IRODS environment | ensure known that changes were made
+  ansible.builtin.meta: flush_handlers

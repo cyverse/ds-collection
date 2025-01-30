@@ -1,0 +1,8 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: Update
+      ansible.builtin.include_role:
+        name: cyverse.ds.irods_cfg
+        tasks_from: main.yml

@@ -1,0 +1,134 @@
+---
+irods_cfg_access_entries: []
+
+irods_cfg_agent_factory_watcher_sleep_time: null
+
+irods_cfg_authentication_file: null
+
+irods_cfg_catalog_provider_hosts:
+  - "{{ inventory_hostname }}"
+
+irods_cfg_catalog_service_role: provider
+
+irods_cfg_client_api_allowlist_policy: enforce
+irods_cfg_client_authentication_scheme: null
+irods_cfg_client_default_hash_scheme: "{{ _client_default_hash_scheme_default | d(none) }}"
+irods_cfg_client_default_resource: "{{ _client_default_resource_default | d(none) }}"
+irods_cfg_client_encryption_algorithm: "{{ _client_encryption_algorithm_default | d(none) }}"
+irods_cfg_client_encryption_key_size: "{{ _client_encryption_key_size_default | d(none) }}"
+irods_cfg_client_encryption_num_hash_rounds: >-
+  {{ _client_encryption_num_hash_rounds_default | d(none) }}
+irods_cfg_client_encryption_salt_size: "{{ _client_encryption_salt_size_default | d(none) }}"
+irods_cfg_client_log_level: null
+irods_cfg_client_server_negotiation: "{{ _client_server_negotiation_default | d(none) }}"
+irods_cfg_client_server_policy: "{{ _client_server_policy_default | d(none) }}"
+
+irods_cfg_chown: true
+
+irods_cfg_connection_pool_refresh_time: "{{ _connection_pool_refresh_time_default | d(none) }}"
+
+irods_cfg_controlled_user_connection_list:
+  control_type: denylist
+  users: []
+
+irods_cfg_cwd: "{{ _cwd_default | d(omit) }}"
+
+irods_cfg_database: null
+irods_cfg_database_user_password_salt: null
+
+irods_cfg_debug: null
+
+irods_cfg_default_dir_mode: '0750'
+irods_cfg_default_file_mode: '0600'
+irods_cfg_default_hash_scheme: SHA256
+irods_cfg_default_number_of_transfer_threads: >-
+  {{ _default_number_of_transfer_threads_default | d(none) }}
+irods_cfg_default_resource_directory: null
+irods_cfg_default_resource_name: demoResc
+irods_cfg_default_temporary_password_lifetime: 120
+
+irods_cfg_delay_rule_executors: null
+irods_cfg_delay_server_sleep_time: null
+
+irods_cfg_environment_file: >-
+  {{ _environment_file_default
+    | d('home/' ~ irods_cfg_system_account_name ~ '/.irods/irods_environment.json') }}
+irods_cfg_environment_variables: {}
+
+irods_cfg_federation: []
+
+irods_cfg_for_server: "{{ _for_server_default | d(false) }}"
+
+irods_cfg_gsi_server_dn: null
+
+irods_cfg_home: "{{ _home_default | d(omit) }}"
+
+irods_cfg_host: "{{ inventory_hostname }}"
+irods_cfg_host_entries: []
+
+irods_cfg_log_level: {}
+
+irods_cfg_match_hash_policy: "{{ _match_hash_policy_default | d(none) }}"
+
+irods_cfg_maximum_connections: null
+irods_cfg_maximum_size_of_delay_queue: null
+irods_cfg_maximum_size_for_single_buffer: "{{ _maximum_size_for_single_buffer_default | d(none) }}"
+irods_cfg_maximum_temporary_password_lifetime: 1000
+
+irods_cfg_migrate_delay_server_sleep_time: null
+
+irods_cfg_negotiation_key: 32_byte_server_negotiation_key__
+
+irods_cfg_number_of_concurrent_delay_rule_executors: null
+
+irods_cfg_plugins_home: null
+
+irods_cfg_re: null
+
+irods_cfg_root_dir: /
+
+irods_cfg_rule_engine_namespaces:
+  - ''
+
+irods_cfg_rule_engine_server_sleep_time: 30
+
+irods_cfg_schema_validation_base_uri: file:///var/lib/irods/configuration_schemas
+
+irods_cfg_server_control_plane_encryption_algorithm: >-
+  {{ _server_control_plane_encryption_algorithm_default | d(none) }}
+irods_cfg_server_control_plane_encryption_num_hash_rounds: >-
+  {{ _server_control_plane_encryption_num_hash_rounds_default | d(none) }}
+irods_cfg_server_control_plane_key: "{{ _server_control_plane_key_default | d(none) }}"
+irods_cfg_server_control_plane_port: "{{ _server_control_plane_port_default | d(none) }}"
+irods_cfg_server_control_plane_timeout: 10000
+irods_cfg_server_port_range_end: 20199
+irods_cfg_server_port_range_start: 20000
+
+irods_cfg_ssl_ca_certificate_file: null
+irods_cfg_ssl_ca_certificate_path: null
+irods_cfg_ssl_certificate_chain_file: null
+irods_cfg_ssl_certificate_key_file: null
+irods_cfg_ssl_dh_params_file: null
+irods_cfg_ssl_verify_server: null
+
+irods_cfg_stacktrace_file_processor_sleep_time: null
+
+irods_cfg_system_account_name: irods
+irods_cfg_system_group_name: "{{ irods_cfg_system_account_name }}"
+
+irods_cfg_tcp_keepalive_intvl: null
+irods_cfg_tcp_keepalive_probes: null
+irods_cfg_tcp_keepalive_time: null
+
+irods_cfg_transfer_buffer_size_for_parallel_transfer: >-
+  {{ _transfer_buffer_size_for_parallel_transfer_default | d(none) }}
+irods_cfg_transfer_chunk_size_for_parallel_transfer: 40
+
+irods_cfg_validate: false
+
+irods_cfg_zone_auth_scheme: native
+irods_cfg_zone_key: TEMPORARY_ZONE_KEY
+irods_cfg_zone_name: tempZone
+irods_cfg_zone_password: rods
+irods_cfg_zone_port: 1247
+irods_cfg_zone_user: rods

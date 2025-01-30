@@ -1,0 +1,10 @@
+---
+# Variables:
+#  _system_account_own_path  the path to give the system account ownership to.
+
+- name: System_account_own | ensure account owns {{ _system_account_own_path }}
+  when: irods_cfg_chown | bool
+  ansible.builtin.file:
+    dest: "{{ _system_account_own_path }}"
+    owner: "{{ irods_cfg_system_account_name }}"
+    group: "{{ irods_cfg_system_group_name }}"

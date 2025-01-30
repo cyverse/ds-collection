@@ -1,0 +1,21 @@
+---
+- name: Prepare | Ubuntu base
+  hosts: ubuntu.localdomain
+  tasks:
+    - name: Ubuntu | update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+
+- name: Prepare | base
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Install pip
+      ansible.builtin.package:
+        name: python3-pip
+        state: present
+
+    - name: Install jsonschema
+      ansible.builtin.pip:
+        name: jsonschema

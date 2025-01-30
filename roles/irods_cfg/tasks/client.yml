@@ -1,0 +1,5 @@
+---
+- name: Client | create client version of irods_environment.json
+  ansible.builtin.include_tasks: irods_environment.yml
+  vars:
+    irods_cfg_for_server: false
