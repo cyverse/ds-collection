@@ -1,0 +1,173 @@
+#!/usr/bin/env python3
+# pylint: disable=invalid-name
+# -*- coding: utf-8 -*-
+"""
+Usage:
+    test_plugin <plugin_type> <plugin_name>
+
+Positional Arguments:
+    <plugin_type>  the folder holding this type of plugin is in
+    <plugin_name>  the name of the plugin file
+
+Optional Arguments:
+    -I, --inventory <hosts>  the name of the inventory hosts file to use
+    -h, --help               show help and exit
+    -i, --inspect            after running the playbook, open shell that allows manual inspection of
+                             the configuration files, vaults, and logs
+    -p, --pretty             more information will be output and newlines will be expanded in that
+                             output.
+    -v, --verbose            lots of information will be written to output.
+
+Example:
+    ./test_plugin --inspect ../irods/library irods_group
+"""
+
+import os
+from os import path
+import shutil
+import sys
+from subprocess import Popen
+import argparse
+
+_INSPECT_HELP = (
+    "after running the playbook, open shell that allows manual inspection of the configuration"
+    " files, vaults, and logs")
+_INVENTORY_HELP = "the name of the inventory hosts file to use"
+_PRETTY_HELP = "more information will be output and newlines will be expanded in that output."
+_VERBOSE_HELP = "lots of information will be written to output"
+
+_DEFAULT_HOSTS = "hosts-all"
+
+_TEST_CMD_FORM = """
+    source {0} && \
+    (docker run --interactive --rm --tty \
+            --env IRODS_HOST="$IRODS_PROVIDER_CONF_HOST" \
+            --env IRODS_ZONE_NAME="$IRODS_ZONE_NAME" \
+            --env PGHOST="$DBMS_HOST" \
+            --network "$DOMAIN" \
+            --volume "{1}":/playbooks-under-test:ro \
+            --volume "{2}":/playbooks-under-test/{3}:ro \
+            ansible-tester "{4}" "{5}" "{6}" "{7}" '' "{8}")
+    """
+
+_TESTING_DIR = path.dirname(path.abspath(sys.argv[0]))
+_PLUGINS_DIR = path.join(path.dirname(_TESTING_DIR), "plugins")
+_CFG = path.join(_TESTING_DIR, "config.inc")
+
+
+def _main():
+    test = _PluginTest(_parse_args())
+
+    if not _verify_existence(test.plugin_file, test.test_file):
+        return
+
+    if _controller("start") == 0:
+        _run_tester(test)
+
+    _controller("stop")
+
+
+def _parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("plugin_type", help="the folder holding this type of plugin is in")
+    parser.add_argument("plugin_name", help="name of the plugin without a file extension")
+    parser.add_argument(
+        "-I", "--inventory", dest="inventory", default=_DEFAULT_HOSTS, help=_INVENTORY_HELP)
+    parser.add_argument(
+        "-i", "--inspect",
+        dest="inspect", action="store_const", const="inspect", default="", help=_INSPECT_HELP)
+    parser.add_argument(
+        "-p", "--pretty",
+        dest="pretty", action="store_const", const="pretty", default="", help=_PRETTY_HELP)
+    parser.add_argument(
+        "-v", "--verbose",
+        dest="verbose", action="store_const", const="verbose", default="", help=_VERBOSE_HELP)
+    return parser.parse_args()
+
+
+class _PluginTest:
+
+    def __init__(self, args):
+        self._plugin_name = args.plugin_name
+        self._plugin_type = args.plugin_type
+        self._inspect = args.inspect
+        self._pretty = args.pretty
+        self._verbose = args.verbose
+        self._inventory = args.inventory
+
+    @property
+    def _plugin_dir(self):
+        return path.join(_PLUGINS_DIR, self._plugin_type + "s")
+
+    @property
+    def plugin_file(self):
+        """ the absolute path the plugin source file """
+        return path.join(self._plugin_dir, self._plugin_name) + ".py"
+
+    @property
+    def test_dir(self):
+        """ the absolute path to the directory containing the testing playbook """
+        return path.join(self._plugin_dir, "tests")
+
+    @property
+    def test_plugin_dir_name(self):
+        """ the name of the directory where the plugin is mounted in the testing container """
+        if self._plugin_type == "module":
+            return "library"
+        else:
+            return self._plugin_type + "s"
+
+    @property
+    def _test_file_name(self):
+        return self._plugin_name + ".yml"
+
+    @property
+    def test_file(self):
+        """ the absolute path to the testing playbook """
+        return path.join(self.test_dir, self._test_file_name)
+
+    def mk_test_cmd(self):
+        """ constructs the shell command to perform the test """
+        return _TEST_CMD_FORM.format(
+            _CFG,
+            self.test_dir,
+            self._plugin_dir,
+            self.test_plugin_dir_name,
+            self._inspect,
+            self._pretty,
+            self._verbose,
+            self._inventory,
+            self._test_file_name)
+
+
+def _verify_existence(plugin_file, test_file):
+    if not path.isfile(plugin_file):
+        print(f"plugin {plugin_file} not found")
+        return False
+
+    if not path.isfile(test_file):
+        print(f"test playbook {test_file} not found")
+        return False
+
+    return True
+
+
+def _controller(action):
+    cmd = ' '.join([_TESTING_DIR+"/env/controller", _CFG, action])
+
+    with Popen(cmd, shell=True, executable="/bin/bash") as proc:
+        return proc.wait()
+
+
+def _run_tester(test):
+    test_plugin_dir = path.join(test.test_dir, test.test_plugin_dir_name)
+    os.makedirs(test_plugin_dir, exist_ok=True)
+    try:
+        with Popen(test.mk_test_cmd(), shell=True, executable="/bin/bash") as proc:
+            return proc.wait()
+    finally:
+        shutil.rmtree(test_plugin_dir)
+
+
+if __name__ == "__main__":
+    _main()

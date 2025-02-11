@@ -9,7 +9,7 @@
 #            access to the volumes in the env containers.
 #  PLAYBOOK  the name of the playbook being tested.
 #  PRETTY    if this is set to any value, more info is dumped and newlines in
-#            ouput are expanded.
+#            output are expanded.
 #  SETUP     the name of a playbook that prepares the environment for testing
 #            PLAYBOOK
 #  VERBOSE   if this is set to any value, ansible will be passed the verbose
@@ -154,7 +154,7 @@ run_idempotency() {
 	local modPath="$2"
 	local playbook="$3"
 
-   ansible-playbook \
+	ansible-playbook \
 			--inventory-file="$inventory" \
 			--module-path="$modPath" \
 			--skip-tags='no_testing, non_idempotent' \

@@ -39,6 +39,137 @@
 
 set -o errexit -o nounset -o pipefail
 
+# TODO: After the 4.3 upgrade, everything with the "_4_2" suffix can be removed
+
+readonly HOME_DIR_4_2=/var/lib/irods
+
+main_4_2() {
+	readonly CFG_DIR=/etc/irods
+	readonly HOST_ACCESS_CTRL_CFG="$CFG_DIR"/host_access_control_config.json
+	readonly HOSTS_CFG="$CFG_DIR"/hosts_config.json
+	readonly SERVER_CFG="$CFG_DIR"/server_config.json
+	readonly SVC_ACNT="$CFG_DIR"/service_account.config
+
+	readonly VERSION="$HOME_DIR_4_2"/VERSION.json
+
+	readonly ENV_DIR="$HOME_DIR_4_2"/.irods
+	readonly ENV_CFG="$ENV_DIR"/irods_environment.json
+
+	mk_svc_account_4_2
+	mk_svc_account_cfg_4_2 > "$SVC_ACNT"
+
+	mk_server_cfg_4_2 > "$SERVER_CFG"
+	cat "$HOME_DIR_4_2"/packaging/host_access_control_config.json.template > "$HOST_ACCESS_CTRL_CFG"
+	cat "$HOME_DIR_4_2"/packaging/hosts_config.json.template > "$HOSTS_CFG"
+
+	update_odbc_def
+
+	mk_version_4_2 "$(date +%FT%T.000000)" > "$VERSION"
+
+	mkdir --parents "$ENV_DIR"
+	mk_irods_env_4_2 > "$ENV_CFG"
+
+	ensure_ownership_4_2 "$HOME_DIR_4_2"
+	ensure_ownership_4_2 "$CFG_DIR"
+}
+
+mk_svc_account_4_2() {
+	groupadd --force --system "$IRODS_SYSTEM_GROUP"
+
+	local err
+	if ! err="$(
+		adduser --system --gid "$IRODS_SYSTEM_GROUP" --home-dir "$HOME_DIR_4_2" "$IRODS_SYSTEM_USER" \
+		2>&1 )"
+	then
+		local rc=$?
+		if (( rc != 9 )); then
+			echo "$err" >&2
+			return $rc
+		fi
+	fi
+}
+
+mk_svc_account_cfg_4_2()
+{
+	cat <<EOF
+IRODS_SERVICE_ACCOUNT_NAME=$IRODS_SYSTEM_USER
+IRODS_SERVICE_GROUP_NAME=$IRODS_SYSTEM_GROUP
+EOF
+}
+
+mk_server_cfg_4_2() {
+	jq --sort-keys --from-file /dev/stdin "$HOME_DIR_4_2"/packaging/server_config.json.template <<JQ
+.catalog_provider_hosts |= [ "localhost" ] |
+.catalog_service_role |= "provider" |
+.default_resource_name |= "$IRODS_DEFAULT_RESOURCE" |
+.negotiation_key |= "$IRODS_NEGOTIATION_KEY" |
+.schema_validation_base_uri |= "$IRODS_SCHEMA_VALIDATION" |
+.server_control_plane_key |= "$IRODS_CONTROL_PLANE_KEY" |
+.server_control_plane_port |= $IRODS_CONTROL_PLANE_PORT |
+.server_port_range_end |= $IRODS_LAST_EPHEMERAL_PORT |
+.server_port_range_start |= $IRODS_FIRST_EPHEMERAL_PORT |
+.zone_key |= "$IRODS_ZONE_KEY" |
+.zone_name |= "$IRODS_ZONE_NAME" |
+.zone_port |= $IRODS_ZONE_PORT |
+.zone_user |= "$IRODS_ZONE_USER" |
+.plugin_configuration.database.postgres |= {
+	"db_host": "$DBMS_HOST",
+	"db_name": "$DB_NAME",
+	"db_odbc_driver": "PostgreSQL",
+	"db_password": "$DB_PASSWORD",
+	"db_port": $DBMS_PORT,
+	"db_username": "$DB_USER"
+} |
+# Add stub version of cyverse_housekeeping contents so tests work
+.plugin_configuration.rule_engines |= map_values(
+	if .instance_name == "irods_rule_engine_plugin-irods_rule_language-instance" then
+		.plugin_specific_configuration.re_rulebase_set =
+			[ "pre_config" ] + .plugin_specific_configuration.re_rulebase_set
+	else
+		.
+	end )
+JQ
+}
+
+mk_version_4_2() {
+	local installTime="$1"
+
+	jq --sort-keys --from-file /dev/stdin "$HOME_DIR_4_2"/VERSION.json.dist <<JQ
+.installation_time |= "$installTime"
+JQ
+}
+
+mk_irods_env_4_2() {
+	jq --sort-keys --from-file /dev/stdin <(echo '{}') <<JQ
+.irods_host = "$IRODS_HOST" |
+.irods_port = $IRODS_ZONE_PORT |
+.irods_user_name = "$IRODS_ZONE_USER" |
+.irods_zone_name = "$IRODS_ZONE_NAME" |
+.irods_client_server_negotiation = "request_server_negotiation" |
+.irods_client_server_policy = "CS_NEG_REFUSE" |
+.irods_control_plane_key = "$IRODS_CONTROL_PLANE_KEY" |
+.irods_control_plane_port = $IRODS_CONTROL_PLANE_PORT |
+.irods_cwd = "/$IRODS_ZONE_NAME/home/$IRODS_ZONE_USER" |
+.irods_default_hash_scheme = "SHA256" |
+.irods_default_resource = "$IRODS_DEFAULT_RESOURCE" |
+.irods_encryption_algorithm = "AES-256-CBC" |
+.irods_encryption_key_size = 32 |
+.irods_encryption_num_hash_rounds = 16 |
+.irods_encryption_salt_size = 8 |
+.irods_home = "/$IRODS_ZONE_NAME/home/$IRODS_ZONE_USER" |
+.irods_match_hash_policy = "compatible" |
+.schema_name = "service_account_environment" |
+.schema_version = "v3"
+JQ
+}
+
+ensure_ownership_4_2() {
+	local fsEntity="$1"
+
+	chown --recursive "$IRODS_SYSTEM_USER":"$IRODS_SYSTEM_GROUP" "$fsEntity"
+	chmod --recursive u+rw,go= "$fsEntity"
+}
+
 main() {
 	update_odbc_def
 	setup_irods
@@ -223,4 +354,4 @@ Setup = /usr/pgsql-12/lib/psqlodbcw.so
 EOF
 }
 
-main "$@"
+main_4_2 "$@"
