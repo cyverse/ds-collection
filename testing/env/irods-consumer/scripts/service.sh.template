@@ -8,8 +8,7 @@
 
 set -o errexit -o nounset -o pipefail
 
-main()
-{
+main() {
   if [ "$#" -lt 1 ]
   then
     printf 'Requires either "start" or "stop" as its first parameter\n' >&2
@@ -32,8 +31,7 @@ main()
   esac
 }
 
-start()
-{
+start() {
   # Ensure that the correct user owns everything in /var/lib/irods and /etc/irods
   # If this isn't done, some of the ansible ownership tests will fail.
   if [ -e /var/lib/irods/.irods/irods_environment.json ]
@@ -49,20 +47,31 @@ start()
     exec 3<&-
     exec 3>&-
 
-    printf 'Starting iRODS catalog consumer service\n'
-    if ! sudo --login --user "$IRODS_SYSTEM_USER" /var/lib/irods/irodsctl --test start
+# TODO: After 4.3 upgrade remove this
+    # printf 'Starting iRODS catalog consumer service\n'
+    # if ! sudo --login --user "$IRODS_SYSTEM_USER" /var/lib/irods/irodsctl --test start
+    # then
+    #   printf 'Failed to start service\n'
+    #   cat /var/lib/irods/log/control_log.txt
+    #   return 1
+    # fi
+    printf 'Authenticating clerver user\n'
+    su \
+      --command "IRODS_HOST='$IRODS_CATALOG_PROVIDER' iinit '$IRODS_ZONE_PASSWORD'" \
+      --login "$IRODS_SYSTEM_USER"
+
+    if ! su --command '/var/lib/irods/irodsctl start' --login "$IRODS_SYSTEM_USER"
     then
-      printf 'Failed to start service\n'
-      cat /var/lib/irods/log/control_log.txt
+      cat /var/lib/irods/log/rodsLog* >&2
       return 1
     fi
+# TODO: ^^^
 
     touch /var/lock/subsys/irods
   fi
 }
 
-stop()
-{
+stop() {
   if sudo --login --user  "$IRODS_SYSTEM_USER"  imiscsvrinfo >& /dev/null
   then
     sudo  --login --user  "$IRODS_SYSTEM_USER" /var/lib/irods/irodsctl stop

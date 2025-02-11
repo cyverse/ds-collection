@@ -42,6 +42,7 @@ RUN \
 
 ### Configure iRODS
 	# NOTE: For 4.2.8
+	apt install --yes unixodbc
 	python3 -m pip install psutil
 	# ^^^ 4.2.8
 	/tmp/config-irods
