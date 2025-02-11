@@ -25,11 +25,54 @@ RUN \
 
 ### Install inspection support
 	apt-get install --yes ca-certificates
-	printf 'deb [arch=amd64] https://packages.irods.org/apt/ %s main\n' \
-			"$(lsb_release --codename --short)" \
+### TODO: Remove this after upgrading to 4.3
+	# printf 'deb [arch=amd64] https://packages.irods.org/apt/ %s main\n' \
+	# 		"$(lsb_release --codename --short)" \
+	# 	> /etc/apt/sources.list.d/renci-irods.list
+	# apt-get update
+	# apt-get install --yes irods-icommands postgresql-client
+	echo 'deb [arch=amd64] https://packages.irods.org/apt/ bionic main' \
 		> /etc/apt/sources.list.d/renci-irods.list
+
+	python3 -m pip install dnspython jinja2 netaddr requests urllib3 wheel
+	echo deb http://security.ubuntu.com/ubuntu focal-security main \
+		> /etc/apt/sources.list.d/focal-security.list
 	apt-get update
-	apt-get install --yes irods-icommands postgresql
+	apt-get --yes install libssl1.1
+	mkdir irods-runtime
+EOF
+WORKDIR /irods-runtime
+RUN <<EOF
+	set -o errexit
+	wget \
+		https://packages.irods.org/apt/pool/bionic/main/i/irods-runtime/irods-runtime_4.2.8_amd64.deb
+	ar x irods-runtime_4.2.8_amd64.deb
+	tar xzf control.tar.gz
+	sed --in-place '/^Depends:/s/ libssl1.0.0,/ libssl1.1,/' control
+	sed --in-place '/^Depends:/s/ python/ python3/g' control
+	tar c control md5sums | gzip -c > control.tar.gz
+	ar rcs irods-runtime_hack.deb debian-binary control.tar.gz data.tar.gz
+	apt-get install --yes ./irods-runtime_hack.deb
+EOF
+WORKDIR /
+RUN mkdir irods-icommands
+WORKDIR /irods-icommands
+RUN <<EOF
+	set -o errexit
+	wget \
+		https://packages.irods.org/apt/pool/bionic/main/i/irods-icommands/irods-icommands_4.2.8_amd64.deb
+	ar x irods-icommands_4.2.8_amd64.deb
+	tar xzf control.tar.gz
+	sed --in-place '/^Depends:/s/ libssl1.0.0$/ libssl1.1/' control
+	tar c control md5sums | gzip -c > control.tar.gz
+	ar rcs irods-icommands_hack.deb debian-binary control.tar.gz data.tar.gz
+	apt-get install --yes ./irods-icommands_hack.deb
+EOF
+WORKDIR /
+RUN <<EOF
+	set -o errexit
+	apt-get install --yes postgresql-client
+### TODO: ^^^
 
 # XXX - Due to a bug in iCommands 4.3.1, irods_environment.json needs to exist prior to `iinit`
 #       execution. See https://github.com/irods/irods_client_icommands/issues/493
