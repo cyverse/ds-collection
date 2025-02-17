@@ -4,5 +4,5 @@ docker
 jsonschema
 molecule<25       # molecule 25 breaks collection path determination
 molecule-plugins
-python-irodsclient<2  # version 2 doesn't work well with iRODS 4.2.8
+python-irodsclient
 tox-ansible
