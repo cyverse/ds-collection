@@ -51,7 +51,7 @@ options:
 
   entity_name:
     description: >
-      The AVU will be attached or reomved to this entity. If it is a data
+      The AVU will be attached or removed to this entity. If it is a data
       object, this should be its absolute path.
     required: true
     type: str
@@ -65,7 +65,7 @@ options:
 
   state:
     description: >
-      This is the desired state to achieve. 
+      This is the desired state to achieve.
         - "set" means a single AVU is attached with this attribute.
         - "present" means that an AVU will be added as long as there isn't already one with the same attribute.
         - "absent" means that an AVU with the provided attribute and value will be removed.
