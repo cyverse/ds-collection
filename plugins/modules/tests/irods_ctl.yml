@@ -16,8 +16,10 @@
       tags: non_idempotent
       block:
         - name: Restart stopped service
-          irods_ctl:
+          cyverse.ds.irods_ctl:
             state: restarted
+          register: resp
+          failed_when: resp is not changed
 
         - name: Verify service started
           ansible.builtin.shell:
@@ -28,15 +30,30 @@
           changed_when: false
 
         - name: Stop service again
-          irods_ctl:
-            state: stopped
+          ansible.builtin.shell:
+            executable:  /bin/bash
+            cmd: /var/lib/irods/irodsctl stop
+          changed_when: true
 
-    - name: Test restarted_if_running state
-      ansible.builtin.debug:
-        msg: TODO implement
+    - name: Test restarted_if_running when not running
+      tags: non_idempotent
+      block:
+        - name: Restart if running stopped service
+          cyverse.ds.irods_ctl:
+            state: restarted_if_running
+          register: resp
+          failed_when: resp is failed or resp is changed
+
+        - name: Verify service not started
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o pipefail
+              /var/lib/irods/irodsctl status | grep --quiet 'No iRODS servers running'
+          changed_when: false
 
     - name: Start stopped service
-      irods_ctl:
+      cyverse.ds.irods_ctl:
         state: started
 
     - name: Verify service is started
@@ -48,23 +65,38 @@
       changed_when: false
 
     - name: Restart service
-      irods_ctl:
-        state: restarted
-      register: resp
-      failed_when: resp is not changed
       tags: non_idempotent
+      block:
+        - name: Restart service
+          cyverse.ds.irods_ctl:
+            state: restarted
+          register: resp
+          failed_when: resp is not changed
 
-    - name: Verify service is started
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: |
-          set -o pipefail
-          /var/lib/irods/irodsctl status | grep --quiet irodsServer
-      changed_when: false
+        - name: Verify service is started
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o pipefail
+              /var/lib/irods/irodsctl status | grep --quiet irodsServer
+          changed_when: false
 
-    - name: Start started service
-      ansible.builtin.debug:
-        msg: TODO implement
+    - name: Test restarted_if_running when running
+      tags: non_idempotent
+      block:
+        - name: Restart service if running
+          cyverse.ds.irods_ctl:
+            state: restarted_if_running
+          register: resp
+          failed_when: resp is not changed
+
+        - name: Verify service is running
+          ansible.builtin.shell:
+            executable:  /bin/bash
+            cmd: |
+              set -o pipefail
+              /var/lib/irods/irodsctl status | grep --quiet irodsServer
+          changed_when: false
 
 
 - name: Test irods_ctl stop
@@ -72,12 +104,8 @@
   become: true
   become_user: irods
   tasks:
-    - name: Verify stop stopped service
-      ansible.builtin.debug:
-        msg: TODO implement
-
     - name: Stop service
-      irods_ctl:
+      cyverse.ds.irods_ctl:
         state: stopped
 
     - name: Verify service is stopped

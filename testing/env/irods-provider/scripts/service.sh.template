@@ -58,26 +58,14 @@ start() {
     exec 3>&-
 
     printf 'Starting iRODS catalog provider service\n'
-# TODO: After the iRODS 4.3 upgrade, revert this change
-    # if ! sudo --login --user "$IRODS_SYSTEM_USER" /var/lib/irods/irodsctl --test start
-    # then
-    #   printf 'Failed to start service\n'
-    #   cat /var/lib/irods/log/control_log.txt
-    #   return 1
-    # fi
-    #
-    # touch /var/lock/subsys/irods
-    if ! su --command '/var/lib/irods/irodsctl start' --login "$IRODS_SYSTEM_USER"
+    if ! sudo --login --user "$IRODS_SYSTEM_USER" /var/lib/irods/irodsctl --test start
     then
-      cat /var/lib/irods/log/rodsLog* >&2
+      printf 'Failed to start service\n'
+      cat /var/lib/irods/log/control_log.txt
       return 1
     fi
 
     touch /var/lock/subsys/irods
-
-    printf 'Authenticating clerver user\n'
-    su --command "iinit '$IRODS_ZONE_PASSWORD'" --login "$IRODS_SYSTEM_USER"
-# TODO: ^^^
   fi
 }
 

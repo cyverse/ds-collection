@@ -29,7 +29,7 @@ RUN \
 
 ### Install iRODS
 	rpm --import https://packages.irods.org/irods-signing-key.asc
-	yum --assumeyes versionlock add irods-icommands-4.2.8 irods-runtime-4.2.8 irods-server-4.2.8
+	yum --assumeyes versionlock add irods-icommands-4.3.1 irods-runtime-4.3.1 irods-server-4.3.1
 	yum --assumeyes install irods-server
 # XXX - irods-icommands required by irods-server but not installed by dependency resolution in
 #       CentOS 7, for iRODS 4.3.1.
@@ -38,10 +38,6 @@ RUN \
 	python3 -m pip install python-irodsclient
 
 ### Configure iRODS
-	# NOTE: For 4.2.8
-	yum --assumeyes install gcc python3-devel
-	python3 -m pip install psutil
-	# ^^^ 4.2.8
 	/tmp/config-irods
 
 ### Create service script

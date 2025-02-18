@@ -36,155 +36,16 @@
 
 set -o errexit -o nounset -o pipefail
 
-# TODO: After the 4.3 upgrade, everything with the "_4_2" suffix can be removed
-
-main_4_2() {
-  readonly CFG_DIR=/etc/irods
-  readonly HOST_ACCESS_CTRL_CFG="$CFG_DIR"/host_access_control_config.json
-  readonly HOSTS_CFG="$CFG_DIR"/hosts_config.json
-  readonly SERVER_CFG="$CFG_DIR"/server_config.json
-  readonly SVC_ACNT="$CFG_DIR"/service_account.config
-
-  readonly HOME_DIR=/var/lib/irods
-  readonly VERSION="$HOME_DIR"/VERSION.json
-
-  readonly ENV_DIR="$HOME_DIR"/.irods
-  readonly ENV_CFG="$ENV_DIR"/irods_environment.json
-
-  mkdir --parents "$IRODS_DEFAULT_VAULT"
-
-  mk_svc_account_4_2
-  mk_svc_account_cfg_4_2 > "$SVC_ACNT"
-
-  mk_server_cfg_4_2 > "$SERVER_CFG"
-  cat "$HOME_DIR"/packaging/host_access_control_config.json.template > "$HOST_ACCESS_CTRL_CFG"
-  cat "$HOME_DIR"/packaging/hosts_config.json.template > "$HOSTS_CFG"
-
-  mk_version_4_2 "$(date +%FT%T.000000)" > "$VERSION"
-
-  mkdir "$ENV_DIR"
-  mk_irods_env_4_2 > "$ENV_CFG"
-
-  ensure_ownership_4_2 "$HOME_DIR"
-  ensure_ownership_4_2 "$CFG_DIR"
-  ensure_ownership_4_2 "$IRODS_DEFAULT_VAULT"
-
-  usermod --append --groups "$IRODS_SYSTEM_GROUP" root
-}
-
-# define service account for this installation
-mk_svc_account_4_2() {
-  groupadd --force --system "$IRODS_SYSTEM_GROUP"
-
-  local gid homeParam
-  if [[ -e /etc/centos-release ]]
-  then
-    gid="$IRODS_SYSTEM_GROUP"
-    homeParam=--home-dir
-  else
-    if ! gid="$(sed --quiet 's/^'"$IRODS_SYSTEM_GROUP"':[^:]*:\([0-9]\+\).*/\1/p' /etc/group)"
-    then
-      return 1
-    fi
-
-    homeParam=--home
-  fi
-
-  local err
-  if ! \
-    err="$(
-      adduser --system --gid="$gid" "$homeParam"=/var/lib/irods --shell=/bin/bash \
-          "$IRODS_SYSTEM_USER" \
-        2>&1 )"
-  then
-    local rc=$?
-    if (( rc != 9 ))
-    then
-      echo "$err" >&2
-      return $rc
-    fi
-  fi
-}
-
-mk_svc_account_cfg_4_2() {
-  cat <<EOF
-IRODS_SERVICE_ACCOUNT_NAME=$IRODS_SYSTEM_USER
-IRODS_SERVICE_GROUP_NAME=$IRODS_SYSTEM_GROUP
-EOF
-}
-
-mk_server_cfg_4_2() {
-  jq --sort-keys --from-file /dev/stdin /var/lib/irods/packaging/server_config.json.template <<JQ
-.catalog_provider_hosts |= [ "$IRODS_CATALOG_PROVIDER" ] |
-.catalog_service_role |= "consumer" |
-.default_resource_name |= "$IRODS_DEFAULT_RESOURCE" |
-.default_resource_directory |= "$IRODS_DEFAULT_VAULT" |
-.negotiation_key |= "$IRODS_NEGOTIATION_KEY" |
-.schema_validation_base_uri |= "$IRODS_SCHEMA_VALIDATION" |
-.server_control_plane_key |= "$IRODS_CONTROL_PLANE_KEY" |
-.server_control_plane_port |= $IRODS_CONTROL_PLANE_PORT |
-.server_port_range_end |= $IRODS_LAST_EPHEMERAL_PORT |
-.server_port_range_start |= $IRODS_FIRST_EPHEMERAL_PORT |
-.zone_key |= "$IRODS_ZONE_KEY" |
-.zone_name |= "$IRODS_ZONE_NAME" |
-.zone_port |= $IRODS_ZONE_PORT |
-.zone_user |= "$IRODS_ZONE_USER"
-JQ
-}
-
-mk_version_4_2() {
-  local installTime="$1"
-
-  jq --sort-keys --from-file /dev/stdin /var/lib/irods/VERSION.json.dist <<JQ
-.installation_time |= "$installTime"
-JQ
-}
-
-mk_irods_env_4_2() {
-  jq --sort-keys --from-file /dev/stdin <(echo '{}') <<JQ
-.irods_host = "$IRODS_HOST" |
-.irods_port = $IRODS_ZONE_PORT |
-.irods_user_name = "$IRODS_ZONE_USER" |
-.irods_zone_name = "$IRODS_ZONE_NAME" |
-.irods_client_server_negotiation = "request_server_negotiation" |
-.irods_client_server_policy = "CS_NEG_REFUSE" |
-.irods_control_plane_key = "$IRODS_CONTROL_PLANE_KEY" |
-.irods_control_plane_port = $IRODS_CONTROL_PLANE_PORT |
-.irods_cwd = "/$IRODS_ZONE_NAME/home/$IRODS_ZONE_USER" |
-.irods_default_hash_scheme = "SHA256" |
-.irods_default_resource = "$IRODS_DEFAULT_RESOURCE" |
-.irods_encryption_algorithm = "AES-256-CBC" |
-.irods_encryption_key_size = 32 |
-.irods_encryption_num_hash_rounds = 16 |
-.irods_encryption_salt_size = 8 |
-.irods_home = "/$IRODS_ZONE_NAME/home/$IRODS_ZONE_USER" |
-.irods_match_hash_policy = "compatible" |
-.schema_name = "service_account_environment" |
-.schema_version = "v3"
-JQ
-}
-
-ensure_ownership_4_2() {
-  local fsEntity="$1"
-
-  chown --recursive "$IRODS_SYSTEM_USER":"$IRODS_SYSTEM_GROUP" "$fsEntity"
-  chmod --recursive u+rw,go= "$fsEntity"
-}
-
 main() {
   mkdir --parents "$IRODS_DEFAULT_VAULT"
-
   setup_irods
-
-  # chown --recursive "$IRODS_SYSTEM_USER":"$IRODS_SYSTEM_GROUP" "$IRODS_DEFAULT_VAULT"
-  # chmod --recursive u+rw,go= "$IRODS_DEFAULT_VAULT"
   usermod --append --groups "$IRODS_SYSTEM_GROUP" root
 }
 
 setup_irods() {
   mk_unattended_install > /tmp/resolved_installation.json
 
-  # NOTE: This will fail, because there is not catalog provider
+  # NOTE: This will fail, because there is not a catalog provider
   if ! \
     python3 /var/lib/irods/scripts/setup_irods.py --verbose \
       --json_configuration_file=/tmp/resolved_installation.json
@@ -340,4 +201,4 @@ mk_unattended_install() {
 EOF
 }
 
-main_4_2 "$@"
+main "$@"

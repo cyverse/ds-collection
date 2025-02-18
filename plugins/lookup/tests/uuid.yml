@@ -5,16 +5,17 @@
   tasks:
     - name: Generate a time-based UUID
       ansible.builtin.debug:
-        msg: "{{ lookup('uuid', 1) }}"
+        msg: "{{ lookup('cyverse.ds.uuid', 1) }}"
 
     - name: Generate a random UUID
       ansible.builtin.debug:
-        msg: "{{ lookup('uuid', 4) }}"
+        msg: "{{ lookup('cyverse.ds.uuid', 4) }}"
 
     - name: Generate a name-based UUID with DNS namespace
       ansible.builtin.debug:
-        msg: "{{ lookup('uuid', 3, '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'example.com') }}"
+        msg: >-
+          {{ lookup('cyverse.ds.uuid', 3, '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'example.com') }}
 
     - name: Generate a name-based UUID with custom namespace
       ansible.builtin.debug:
-        msg: "{{ lookup('uuid', 5, '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'example') }}"
+        msg: "{{ lookup('cyverse.ds.uuid', 5, '6ba7b810-9dad-11d1-80b4-00c04fd430c8', 'example') }}"

@@ -104,21 +104,16 @@ do_test() {
 	verboseOpt="$(verbosity "$verbose")"
 
 	printf 'checking playbook syntax\n'
-	if \
-		! \
-			ansible-playbook --syntax-check --inventory-file "$inventory" --module-path="$modPath" \
-				"$playbook"
+	if ! ansible-playbook --syntax-check --inventory-file "$inventory" --module-path="$modPath" \
+		"$playbook"
 	then
 		return 1
 	fi
 
 	printf 'running playbook\n'
 	# shellcheck disable=SC2086
-	if \
-		! \
-			ansible-playbook $verboseOpt \
-				--inventory-file="$inventory" --module-path="$modPath" --skip-tags=no_testing \
-				"$playbook"
+	if ! ansible-playbook $verboseOpt \
+		--inventory-file="$inventory" --module-path="$modPath" --skip-tags=no_testing "$playbook"
 	then
 		return 1
 	fi
@@ -126,10 +121,8 @@ do_test() {
 	if [[ -e "$test" ]]; then
 		printf 'testing configuration\n'
 		# shellcheck disable=SC2086
-		if \
-			! \
-				ansible-playbook $verboseOpt --module-path="$modPath" --inventory-file="$inventory" \
-					"$test"
+		if ! ansible-playbook $verboseOpt --module-path="$modPath" --inventory-file="$inventory" \
+			"$test"
 		then
 			return 1
 		fi
@@ -174,8 +167,7 @@ setup_env() {
 	printf 'preparing environment for testing playbook\n'
 	# shellcheck disable=SC2086
 	ansible-playbook $verboseOpt \
-		--inventory-file="$inventory" --module-path="$modPath" --skip-tags=no_testing \
-		"$setup"
+		--inventory-file="$inventory" --module-path="$modPath" --skip-tags=no_testing "$setup"
 }
 
 wait_for_env() {

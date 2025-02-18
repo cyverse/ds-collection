@@ -27,13 +27,9 @@ COPY --chown=postgres:postgres postgresql/config/* /etc/postgresql/12/main/
 
 USER postgres
 
-# TODO: after the 4.3 upgrade, remove anything with an "_4_2" suffix
 RUN \
 	--mount=target=/tmp/icat.sql.template,source=postgresql/scripts/icat.sql.template \
 	--mount=target=/tmp/config,source=postgresql/scripts/config.sh \
-	--mount=target=/tmp/sys-values.sql,source=postgresql/scripts/sys-values.sql_4_2 \
-	--mount=target=/tmp/config-values.sql.template,source=postgresql/scripts/config-values.sql.template_4_2 \
-	--mount=target=/tmp/tables.sql,source=postgresql/scripts/tables.sql_4_2 \
 	/tmp/config
 
 USER root
