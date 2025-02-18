@@ -47,6 +47,7 @@ COPY inventory /inventory
 COPY wait-for-ready.yml /
 COPY --chmod=100 test-playbook.sh /test-playbook
 
+VOLUME /root/.ansible/collections/ansible_collections/cyverse/ds
 VOLUME /playbooks-under-test
 
 ENV IRODS_HOST=localhost

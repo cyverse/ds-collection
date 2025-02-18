@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 # pylint: disable=invalid-name
 # -*- coding: utf-8 -*-
+
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
 """
 Usage:
     test_plugin <plugin_type> <plugin_name>
@@ -22,9 +26,7 @@ Example:
     ./test_plugin --inspect ../irods/library irods_group
 """
 
-import os
 from os import path
-import shutil
 import sys
 from subprocess import Popen
 import argparse
@@ -45,12 +47,13 @@ _TEST_CMD_FORM = """
             --env IRODS_ZONE_NAME="$IRODS_ZONE_NAME" \
             --env PGHOST="$DBMS_HOST" \
             --network "$DOMAIN" \
-            --volume "{1}":/playbooks-under-test:ro \
-            --volume "{2}":/playbooks-under-test/{3}:ro \
-            ansible-tester "{4}" "{5}" "{6}" "{7}" '' "{8}")
+            --volume "{1}":/root/.ansible/collections/ansible_collections/cyverse/ds:ro \
+            --volume "{2}":/playbooks-under-test:ro \
+            ansible-tester "{3}" "{4}" "{5}" "{6}" '' "{7}")
     """
 
 _TESTING_DIR = path.dirname(path.abspath(sys.argv[0]))
+_COLLECTION_DIR = path.dirname(_TESTING_DIR)
 _PLUGINS_DIR = path.join(path.dirname(_TESTING_DIR), "plugins")
 _CFG = path.join(_TESTING_DIR, "config.inc")
 
@@ -105,17 +108,9 @@ class _PluginTest:
         return path.join(self._plugin_dir, self._plugin_name) + ".py"
 
     @property
-    def test_dir(self):
+    def _test_dir(self):
         """ the absolute path to the directory containing the testing playbook """
         return path.join(self._plugin_dir, "tests")
-
-    @property
-    def test_plugin_dir_name(self):
-        """ the name of the directory where the plugin is mounted in the testing container """
-        if self._plugin_type == "module":
-            return "library"
-        else:
-            return self._plugin_type + "s"
 
     @property
     def _test_file_name(self):
@@ -124,15 +119,14 @@ class _PluginTest:
     @property
     def test_file(self):
         """ the absolute path to the testing playbook """
-        return path.join(self.test_dir, self._test_file_name)
+        return path.join(self._test_dir, self._test_file_name)
 
     def mk_test_cmd(self):
         """ constructs the shell command to perform the test """
         return _TEST_CMD_FORM.format(
             _CFG,
-            self.test_dir,
-            self._plugin_dir,
-            self.test_plugin_dir_name,
+            _COLLECTION_DIR,
+            self._test_dir,
             self._inspect,
             self._pretty,
             self._verbose,
@@ -160,13 +154,8 @@ def _controller(action):
 
 
 def _run_tester(test):
-    test_plugin_dir = path.join(test.test_dir, test.test_plugin_dir_name)
-    os.makedirs(test_plugin_dir, exist_ok=True)
-    try:
-        with Popen(test.mk_test_cmd(), shell=True, executable="/bin/bash") as proc:
-            return proc.wait()
-    finally:
-        shutil.rmtree(test_plugin_dir)
+    with Popen(test.mk_test_cmd(), shell=True, executable="/bin/bash") as proc:
+        return proc.wait()
 
 
 if __name__ == "__main__":

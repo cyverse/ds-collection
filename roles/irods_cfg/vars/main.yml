@@ -1,7 +1,17 @@
 ---
 _database: "{{ __database_guess if irods_cfg_catalog_service_role == 'provider' else none }}"
 
-_re: "{{ __re_guess if irods_cfg_catalog_service_role == 'provider' else none }}"
+_re:
+  additional_data_variable_mappings: >-
+    {{ irods_cfg_re.additional_data_variable_mappings
+        if irods_cfg_re.additional_data_variable_mappings is defined else
+      [] }}
+  additional_function_name_mappings: >-
+    {{ irods_cfg_re.additional_function_name_mappings
+        if irods_cfg_re.additional_function_name_mappings is defined else
+      [] }}
+  additional_rulebases: >-
+    {{ irods_cfg_re.additional_rulebases if irods_cfg_re.additional_rulebases is defined else [] }}
 
 _root_dir: "{{ irods_cfg_root_dir | regex_replace('\\/$', '') if irods_cfg_root_dir else '' }}"
 
@@ -17,11 +27,3 @@ __database_guess:
   db_password: "{{ irods_cfg_database.db_password | d('testpassword') }}"
   db_port: "{{ irods_cfg_database.db_port | d(5432) }}"
   db_username: "{{ irods_cfg_database.db_username | d('irods') }}"
-
-# This is the value of _re if a iRODS rule language rule engine is being configured
-__re_guess:
-  additional_data_variable_mappings: >-
-    {{ irods_cfg_re.additional_data_variable_mappings if irods_cfg_re is mapping else [] }}
-  additional_function_name_mappings: >-
-    {{ irods_cfg_re.additional_function_name_mappings if irods_cfg_re is mapping else [] }}
-  additional_rulebases: "{{ irods_cfg_re.additional_rulebases if irods_cfg_re is mapping else [] }}"

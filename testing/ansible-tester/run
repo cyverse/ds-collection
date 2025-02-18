@@ -1,19 +1,20 @@
 #!/usr/bin/env bash
 #
 # Usage:
-#  run INSPECT PRETTY VERBOSE INVENTORY PLAYBOOKS SETUP [PLAYBOOK]
+#  run INSPECT PRETTY VERBOSE INVENTORY COLLECTION SETUP
 #
 # Parameters:
-#  HOSTS      the inventory hosts to test against
-#  INSPECT    if this is set to any value, a shell will be opened that allows
-#             access to the volumes in the env containers.
-#  PLAYBOOK   (OPTIONAL) the name of the playbook being tested.
-#  PLAYBOOKS  the base directory for the set of playbooks containing PLAYBOOK.
-#  PRETTY     if this is set to any value, more info is dumped and newlines in
-#             output are expanded.
-#  SETUP      the name of a playbook that prepares the environment for testing
-#             PLAYBOOK
-#  VERBOSE    if this is set to any value, ansible will generate verbose output
+#  COLLECTION  the absolute path to the collection whose playbook is being
+#              tested
+#  INSPECT     if this is set to any value, a shell will be opened that allows
+#              access to the volumes in the env containers.
+#  INVENTORY   the inventory to test against
+#  PLAYBOOK    (OPTIONAL) the name of the playbook being tested.
+#  PRETTY      if this is set to any value, more info is dumped and newlines in
+#              output are expanded.
+#  SETUP       the name of a playbook that prepares the environment for testing
+#              PLAYBOOK
+#  VERBOSE     if this is set to any value, ansible will generate verbose output
 #
 # Environment Variables:
 #  DBMS_HOST                 The hostname of the PostgreSQL server to connect to
@@ -29,24 +30,25 @@ main() {
 	local inspect="$1"
 	local pretty="$2"
 	local verbose="$3"
-	local hosts="$4"
-	local playbooks="$5"
+	local inventory="$4"
+	local collection="$5"
 	local setup="$6"
 
 	local playbook
-	if (( $# >= 7 ))
-	then
+	if (( $# >= 7 )); then
 		playbook="$7"
 	fi
+
+	collection="$(realpath "$collection")"
 
 	docker run --interactive --rm --tty \
 		--env IRODS_HOST="$IRODS_PROVIDER_CONF_HOST" \
 		--env IRODS_ZONE_NAME="$IRODS_ZONE_NAME" \
 		--env PGHOST="$DBMS_HOST" \
 		--network "$DOMAIN" \
-		--volume "$playbooks":/playbooks-under-test:ro \
-		ansible-tester "$inspect" "$pretty" "$verbose" "$hosts" "$setup" "$playbook"
+		--volume "$collection":/root/.ansible/collections/ansible_collections/cyverse/ds:ro \
+		--volume "$collection"/playbooks:/playbooks-under-test:ro \
+		ansible-tester "$inspect" "$pretty" "$verbose" "$inventory" "$setup" "$playbook"
 }
-		#--entrypoint bash \
 
 main "$@"

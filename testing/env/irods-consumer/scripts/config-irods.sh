@@ -25,7 +25,7 @@
 #                             configuration files or 'off'
 # IRODS_SYSTEM_GROUP          the system group for the iRODS process
 # IRODS_SYSTEM_USER           the system user for the iRODS process
-# IRODS_ZONE_KEY              the shared secred used for authentication during
+# IRODS_ZONE_KEY              the shared secret used for authentication during
 #                             server-to-server communication
 # IRODS_ZONE_NAME             the name of the iRODS zone.
 # IRODS_ZONE_PASSWORD         the password used to authenticate the
@@ -36,22 +36,16 @@
 
 set -o errexit -o nounset -o pipefail
 
-main()
-{
+main() {
   mkdir --parents "$IRODS_DEFAULT_VAULT"
-
   setup_irods
-
-  # chown --recursive "$IRODS_SYSTEM_USER":"$IRODS_SYSTEM_GROUP" "$IRODS_DEFAULT_VAULT"
-  # chmod --recursive u+rw,go= "$IRODS_DEFAULT_VAULT"
   usermod --append --groups "$IRODS_SYSTEM_GROUP" root
 }
 
-setup_irods()
-{
+setup_irods() {
   mk_unattended_install > /tmp/resolved_installation.json
 
-  # NOTE: This will fail, because there is not catalog provider
+  # NOTE: This will fail, because there is not a catalog provider
   if ! \
     python3 /var/lib/irods/scripts/setup_irods.py --verbose \
       --json_configuration_file=/tmp/resolved_installation.json

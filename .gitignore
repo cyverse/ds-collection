@@ -1,3 +1,4 @@
 *.retry
 .venv*
 .vscode
+**/__pycache__

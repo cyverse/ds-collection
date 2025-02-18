@@ -21,12 +21,9 @@ cereus_resource_hierarchy:
 irods_amqp_host: "{{ groups['amqp'][0] }}"
 irods_amqp_user: amqp_admin
 irods_amqp_password: password
-
 irods_clerver_password: password
-
 irods_default_number_of_transfer_threads: 4
 irods_default_repl_resource: replRes
-
 irods_federation:
   - catalog_provider_hosts:
       - 128.196.65.155
@@ -39,13 +36,11 @@ irods_federation:
     negotiation_key: FAKE___32_byte_negotiation_key_2
     zone_key: FAKE_zone_key_2
     zone_name: cyverse
-
+irods_negotiation_key: TEMPORARY_32byte_negotiation_key
 irods_parallel_transfer_buffer_size: 4
-
 irods_resource_hierarchies:
   - name: ingestRes
   - name: replRes
-
 irods_s3_cred:
   - name: cred-1
     access_key: access-1
@@ -53,8 +48,9 @@ irods_s3_cred:
   - name: cred-2
     access_key: access-2
     secret_key: secret-2
-
+irods_server_control_plane_key: TEMPORARY__32byte_ctrl_plane_key
 irods_server_port_range_end: 20009
+irods_zone_key: TEMPORARY_zone_key
 
 mdrepo_cli_account: md-cli
 mdrepo_landing_colls:
