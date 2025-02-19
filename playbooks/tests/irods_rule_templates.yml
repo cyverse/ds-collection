@@ -5,9 +5,9 @@
   vars_files:
     - ../group_vars/all/irods.yml
   vars:
-    avra_env: "{{ lookup('template', '../templates/irods/rule-bases/avra-env.re.j2') }}"
-    cyverse_env: "{{ lookup('template', '../templates/irods/rule-bases/cyverse-env.re.j2') }}"
-    pire_env: "{{ lookup('template', '../templates/irods/rule-bases/pire-env.re.j2') }}"
+    avra_env: "{{ lookup('template', '../templates/irods/etc/irods/avra-env.re.j2') }}"
+    cyverse_env: "{{ lookup('template', '../templates/irods/etc/irods/cyverse-env.re.j2') }}"
+    pire_env: "{{ lookup('template', '../templates/irods/etc/irods/pire-env.re.j2') }}"
   tasks:
     - name: Verify constants expand correctly in cyverse-env.re.j2
       ansible.builtin.assert:
@@ -48,7 +48,7 @@
     irods_report_email_addr: bob@reports
     irods_service_account_name: balloon
     irods_zone_name: zoner
-    cyverse_env: "{{ lookup('template', '../templates/irods/rule-bases/cyverse-env.re.j2') }}"
+    cyverse_env: "{{ lookup('template', '../templates/irods/etc/irods/cyverse-env.re.j2') }}"
   tasks:
     - name: Verify custom values
       ansible.builtin.assert:
@@ -69,7 +69,7 @@
     - ../group_vars/all/irods.yml
   vars:
     irods_default_resource: custom
-    cyverse_env: "{{ lookup('template', '../templates/irods/rule-bases/cyverse-env.re.j2') }}"
+    cyverse_env: "{{ lookup('template', '../templates/irods/etc/irods/cyverse-env.re.j2') }}"
   tasks:
     - name: Verify resource constants
       ansible.builtin.assert:
@@ -85,7 +85,7 @@
     - ../group_vars/all/irods.yml
   vars:
     irods_default_repl_resource: custom
-    cyverse_env: "{{ lookup('template', '../templates/irods/rule-bases/cyverse-env.re.j2') }}"
+    cyverse_env: "{{ lookup('template', '../templates/irods/etc/irods/cyverse-env.re.j2') }}"
   tasks:
     - name: Verify resource constants
       ansible.builtin.assert:
@@ -103,7 +103,7 @@
     avra_base_collection: base
     avra_resource_hierarchy:
       name: avraRes
-    avra_env: "{{ lookup('template', '../templates/irods/rule-bases/avra-env.re.j2') }}"
+    avra_env: "{{ lookup('template', '../templates/irods/etc/irods/avra-env.re.j2') }}"
   tasks:
     - name: Verify params
       ansible.builtin.assert:
@@ -119,7 +119,7 @@
   vars:
     pire_resource_hierarchy:
       name: pireRes
-    pire_env: "{{ lookup('template', '../templates/irods/rule-bases/pire-env.re.j2') }}"
+    pire_env: "{{ lookup('template', '../templates/irods/etc/irods/pire-env.re.j2') }}"
   tasks:
     - name: Verify params
       ansible.builtin.assert:
