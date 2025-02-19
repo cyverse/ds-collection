@@ -29,15 +29,15 @@ authors:
     - Tony Edgin
 
 options:
-    password:
-        description: the clerver user's password
-        type: str
-        required: true
-    provider:
+    host:
         description: the FQDN of the iRODS server the clerver will use for authentication
         type: str
         required: false
         default: localhost
+    password:
+        description: the clerver user's password
+        type: str
+        required: true
 '''
 
 EXAMPLES = r'''
