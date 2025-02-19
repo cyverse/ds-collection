@@ -1,0 +1,9 @@
+---
+namespace: cyverse
+name: ds
+version: 0.1.0
+readme: README.md
+authors:
+  - Tony Edgin
+description: the ansible deployment logic for the CyVerse Data Store
+repository: https://github.com/cyverse/ds-collection

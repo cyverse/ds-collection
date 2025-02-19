@@ -3,11 +3,10 @@
   hosts: localhost
   connection: local
   vars_files:
-    - ../../../roles/irods_cfg/defaults/main.yml
-    - ../../../roles/irods_cfg/vars/main.yml
+    - ../../roles/irods_cfg/defaults/main.yml
+    - ../../roles/irods_cfg/vars/main.yml
   vars:
-    irods_environment: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/irods_environment.json.j2') }}
+    irods_environment: "{{ lookup('template', '../../roles/irods_cfg/templates/irods_environment.json.j2') }}"
   tasks:
     - name: Verify irods_environment.json expands correctly
       ansible.builtin.assert:
@@ -60,12 +59,11 @@
   gather_facts: false
   vars_files:
     - vars/irods_environment_server.yml
-    - ../../../roles/irods_cfg/defaults/main.yml
-    - ../../../roles/irods_cfg/vars/main.yml
-    - ../../../roles/irods_cfg/vars/irods_environment_server.yml
+    - ../../roles/irods_cfg/defaults/main.yml
+    - ../../roles/irods_cfg/vars/main.yml
+    - ../../roles/irods_cfg/vars/irods_environment_server.yml
   vars:
-    irods_environment: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/irods_environment.json.j2') }}
+    irods_environment: "{{ lookup('template', '../../roles/irods_cfg/templates/irods_environment.json.j2') }}"
   tasks:
     - name: Verify irods_environment.json expands correctly
       ansible.builtin.assert:
@@ -117,12 +115,11 @@
   connection: local
   gather_facts: false
   vars_files:
-    - ../../../roles/irods_cfg/defaults/main.yml
-    - ../../../roles/irods_cfg/vars/main.yml
-    - ../../../roles/irods_cfg/vars/server_config.yml
+    - ../../roles/irods_cfg/defaults/main.yml
+    - ../../roles/irods_cfg/vars/main.yml
+    - ../../roles/irods_cfg/vars/server_config.yml
   vars:
-    server_config: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/server_config.json.j2') }}
+    server_config: "{{ lookup('template', '../../roles/irods_cfg/templates/server_config.json.j2') }}"
   tasks:
     - name: Verify server_config.json is correct
       ansible.builtin.assert:
@@ -217,11 +214,10 @@
   connection: local
   gather_facts: false
   vars_files:
-    - ../../../roles/irods_cfg/defaults/main.yml
-    - ../../../roles/irods_cfg/vars/main.yml
+    - ../../roles/irods_cfg/defaults/main.yml
+    - ../../roles/irods_cfg/vars/main.yml
   vars:
-    service_account: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/service_account.config.j2') }}
+    service_account: "{{ lookup('template', '../../roles/irods_cfg/templates/service_account.config.j2') }}"
   tasks:
     - name: Verify service_account.config is correct
       ansible.builtin.assert:
@@ -235,14 +231,13 @@
   connection: local
   gather_facts: false
   vars_files:
-    - ../../../roles/irods_cfg/defaults/main.yml
+    - ../../roles/irods_cfg/defaults/main.yml
     - vars/irods_environment_opts.yml
     - vars/irods_environment_server.yml
-    - ../../../roles/irods_cfg/vars/main.yml
-    - ../../../roles/irods_cfg/vars/irods_environment_server.yml
+    - ../../roles/irods_cfg/vars/main.yml
+    - ../../roles/irods_cfg/vars/irods_environment_server.yml
   vars:
-    irods_environment: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/irods_environment.json.j2') }}
+    irods_environment: "{{ lookup('template', '../../roles/irods_cfg/templates/irods_environment.json.j2') }}"
   tasks:
     - name: Verify irods_environment
       ansible.builtin.assert:
@@ -292,13 +287,12 @@
   connection: local
   gather_facts: false
   vars_files:
-    - ../../../roles/irods_cfg/defaults/main.yml
+    - ../../roles/irods_cfg/defaults/main.yml
     - vars/server_config_opts.yml
-    - ../../../roles/irods_cfg/vars/main.yml
-    - ../../../roles/irods_cfg/vars/server_config.yml
+    - ../../roles/irods_cfg/vars/main.yml
+    - ../../roles/irods_cfg/vars/server_config.yml
   vars:
-    server_config: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/server_config.json.j2') }}
+    server_config: "{{ lookup('template', '../../roles/irods_cfg/templates/server_config.json.j2') }}"
   tasks:
     - name: Verify optional fields
       ansible.builtin.assert:
@@ -375,7 +369,6 @@
           - server_config.plugin_configuration.database is not defined
           - server_config.plugin_configuration.network == {}
           - server_config.plugin_configuration.resource == {}
-          - server_config.plugin_configuration.rule_engines == []
           - server_config.rule_engine_namespaces | length == 2
           - server_config.rule_engine_namespaces[0] == 'ns1'
           - server_config.rule_engine_namespaces[1] == 'ns2'
@@ -399,13 +392,12 @@
   connection: local
   gather_facts: false
   vars_files:
-    - ../../../roles/irods_cfg/defaults/main.yml
+    - ../../roles/irods_cfg/defaults/main.yml
     - vars/database_plugin_opts.yml
-    - ../../../roles/irods_cfg/vars/main.yml
-    - ../../../roles/irods_cfg/vars/server_config.yml
+    - ../../roles/irods_cfg/vars/main.yml
+    - ../../roles/irods_cfg/vars/server_config.yml
   vars:
-    server_config: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/server_config.json.j2') }}
+    server_config: "{{ lookup('template', '../../roles/irods_cfg/templates/server_config.json.j2') }}"
   tasks:
     - name: Verify server_config.plugin_configuration.database is correct
       ansible.builtin.assert:
@@ -423,13 +415,12 @@
   connection: local
   gather_facts: false
   vars_files:
-    - ../../../roles/irods_cfg/defaults/main.yml
+    - ../../roles/irods_cfg/defaults/main.yml
     - vars/rule_engine_plugin_opts.yml
-    - ../../../roles/irods_cfg/vars/main.yml
-    - ../../../roles/irods_cfg/vars/server_config.yml
+    - ../../roles/irods_cfg/vars/main.yml
+    - ../../roles/irods_cfg/vars/server_config.yml
   vars:
-    server_config: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/server_config.json.j2') }}
+    server_config: "{{ lookup('template', '../../roles/irods_cfg/templates/server_config.json.j2') }}"
   tasks:
     - name: Verify server_config.plugin_configuration.rule_engines is correct
       ansible.builtin.assert:
@@ -462,12 +453,11 @@
   connection: local
   gather_facts: false
   vars_files:
-    - ../../../roles/irods_cfg/defaults/main.yml
+    - ../../roles/irods_cfg/defaults/main.yml
     - vars/system_account_name.yml
-    - ../../../roles/irods_cfg/vars/main.yml
+    - ../../roles/irods_cfg/vars/main.yml
   vars:
-    service_account: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/service_account.config.j2') }}
+    service_account: "{{ lookup('template', '../../roles/irods_cfg/templates/service_account.config.j2') }}"
   tasks:
     - name: Verify service_account.config is correct
       ansible.builtin.assert:
@@ -481,12 +471,11 @@
   connection: local
   gather_facts: false
   vars_files:
-    - ../../../roles/irods_cfg/defaults/main.yml
+    - ../../roles/irods_cfg/defaults/main.yml
     - vars/system_group_name.yml
-    - ../../../roles/irods_cfg/vars/main.yml
+    - ../../roles/irods_cfg/vars/main.yml
   vars:
-    service_account: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/service_account.config.j2') }}
+    service_account: "{{ lookup('template', '../../roles/irods_cfg/templates/service_account.config.j2') }}"
   tasks:
     - name: Verify service_account.config is correct
       ansible.builtin.assert:
@@ -500,16 +489,13 @@
   connection: local
   gather_facts: false
   vars_files:
-    - ../../../roles/irods_cfg/defaults/main.yml
-    - ../../../roles/irods_cfg/vars/main.yml
-    - ../../../roles/irods_cfg/vars/irods_environment_server.yml
+    - ../../roles/irods_cfg/defaults/main.yml
+    - ../../roles/irods_cfg/vars/main.yml
+    - ../../roles/irods_cfg/vars/irods_environment_server.yml
   vars:
-    irods_environment: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/irods_environment.json.j2') }}
-    server_config: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/server_config.json.j2') }}
-    setup_configuration: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/setup_configuration.json.j2') }}
+    irods_environment: "{{ lookup('template', '../../roles/irods_cfg/templates/irods_environment.json.j2') }}"
+    server_config: "{{ lookup('template', '../../roles/irods_cfg/templates/server_config.json.j2') }}"
+    setup_configuration: "{{ lookup('template', '../../roles/irods_cfg/templates/setup_configuration.json.j2') }}"
   tasks:
     - name: Verify contents
       ansible.builtin.assert:
@@ -528,13 +514,14 @@
   connection: local
   gather_facts: false
   vars_files:
-    - ../../../roles/irods_cfg/defaults/main.yml
+    - ../../roles/irods_cfg/defaults/main.yml
     - vars/setup_configuration_opts.yml
-    - ../../../roles/irods_cfg/vars/main.yml
-    - ../../../roles/irods_cfg/vars/irods_environment_server.yml
+    - ../../roles/irods_cfg/vars/main.yml
+    - ../../roles/irods_cfg/vars/irods_environment_server.yml
   vars:
-    setup_configuration: >-
-      {{ lookup('template', '../../../roles/irods_cfg/templates/setup_configuration.json.j2') }}
+    irods_environment: "{{ lookup('template', '../../roles/irods_cfg/templates/irods_environment.json.j2') }}"
+    server_config: "{{ lookup('template', '../../roles/irods_cfg/templates/server_config.json.j2') }}"
+    setup_configuration: "{{ lookup('template', '../../roles/irods_cfg/templates/setup_configuration.json.j2') }}"
   tasks:
     - name: Verify contents
       ansible.builtin.assert:

@@ -94,8 +94,6 @@ irods_cfg_negotiation_key: TEMPORARY_32byte_negotiation_ke3
 
 irods_cfg_number_of_concurrent_delay_rule_executors: 5
 
-irods_cfg_re: null
-
 irods_cfg_rule_engine_namespaces:
   - ns1
   - ns2
