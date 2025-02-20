@@ -108,26 +108,6 @@
       vars:
         restart_op: if running
 
-  post_tasks:
-    - name: Remove old rule files
-      ansible.builtin.file:
-        path: /etc/irods/"{{ item }}"
-        state: absent
-      with_items:
-        - ipc-logic.re
-        - sernec.re
-        - sernec-env.re
-
-    - name: Remove defunct command scripts
-      ansible.builtin.file:
-        path: /var/lib/irods/msiExecCmd_bin/{{ item }}
-        state: absent
-      loop:
-        - amqptopicsend.py
-        - generateuuid
-        - README.md
-        - send_mail.py
-
   handlers:
     - name: Reload rules
       ansible.builtin.file:
