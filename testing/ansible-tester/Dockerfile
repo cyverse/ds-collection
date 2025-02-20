@@ -12,6 +12,7 @@ COPY apt-preferences-irods /etc/apt/preferences.d/irods
 RUN \
 	--mount=source=requirements.txt,target=/requirements.txt \
 	--mount=source=requirements.yml,target=/requirements.yml \
+	--mount=source=requirements-testing.txt,target=/requirements-testing.txt \
 <<EOF
 	set -o errexit
 
@@ -20,7 +21,8 @@ RUN \
 	apt-get --yes upgrade
 	apt-get install --yes \
 		dmidecode gpg-agent lsb-release python-is-python3 python3 python3-pip openssh-client rpm wget
-	python3 -m pip install -r /requirements.txt
+	pip install --requirement=/requirements.txt
+	pip install --requirement=/requirements-testing.txt
 	ansible-galaxy collection install --requirements-file=/requirements.yml
 
 ### Install inspection support
@@ -28,6 +30,8 @@ RUN \
 	printf 'deb [arch=amd64] https://packages.irods.org/apt/ %s main\n' \
 			"$(lsb_release --codename --short)" \
 		> /etc/apt/sources.list.d/renci-irods.list
+	printf 'Package: irods-*\nPin: version 4.3.1\nPin-Priority: 1001\n' \
+		> /etc/apt/preferences.d/irods
 	apt-get update
 	apt-get install --yes irods-icommands postgresql
 
