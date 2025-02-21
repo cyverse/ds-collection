@@ -30,8 +30,6 @@ RUN \
 	printf 'deb [arch=amd64] https://packages.irods.org/apt/ %s main\n' \
 			"$(lsb_release --codename --short)" \
 		> /etc/apt/sources.list.d/renci-irods.list
-	printf 'Package: irods-*\nPin: version 4.3.1\nPin-Priority: 1001\n' \
-		> /etc/apt/preferences.d/irods
 	apt-get update
 	apt-get install --yes irods-icommands postgresql
 
