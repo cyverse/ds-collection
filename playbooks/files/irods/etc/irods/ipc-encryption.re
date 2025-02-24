@@ -87,26 +87,75 @@ _ipcEncryptionCopyAVUFromParent(*Path) {
     }
 }
 
+# This verifies that an object is encrypted if it is being created in a
+# collection that requires encryption.
+#
+#  Instance    (string) unknown
+#  Comm        (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp  (`KeyValuePair_PI`) information related to the created data
+#              object
+#
 ipcEncryption_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
     _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjInp.obj_path);
 }
 
+# This verifies that an object is encrypted if it is being created and stat'ed
+# in a collection that requires encryption.
+#
+#  Instance    (string) unknown
+#  Comm        (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp  (`KeyValuePair_PI`) information related to the created data
+#              object
+#
 ipcEncryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp) {
     _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjInp.obj_path);
 }
 
+# This verifies that an object is encrypted if it is being opened for
+# modification in a collection that requires encryption.
+#
+#  Instance    (string) unknown
+#  Comm        (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp  (`KeyValuePair_PI`) information related to the data object
+#
 ipcEncryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
     _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjInp.obj_path);
 }
 
+# This verifies that an object is encrypted if it is being uploaded into a
+# collection that requires encryption.
+#
+#  Instance        (string) unknown
+#  Comm            (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp      (`KeyValuePair_PI`) information related to the data object
+#  DataObjInpBBuf  (unknown) may contain the contents of the file being uploaded
+#  PORTAL_OPR_OUT  unknown
+#
 ipcEncryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp) {
     _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjInp.obj_path);
 }
 
+# This verifies that an object is encrypted if it is being copied into a
+# collection that requires encryption.
+#
+#  Instance        (string) unknown
+#  Comm            (`KeyValuePair_PI`) user connection and auth information
+#  DataObjCopyInp  (`KeyValuePair_PI`) information related to copy operation
+#  TransStat       unknown
+#
 ipcEncryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp) {
     _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjCopyInp.dst_obj_path);
 }
 
+# This verifies that an object is encrypted if it is being moved into a
+# collection that requires encryption. If `DataObjRenameInp` refers to a
+# collection, then it verifies that every object in the collection is encrypted.
+#
+#  Instance          (string) unknown
+#  Comm              (`KeyValuePair_PI`) user connection and auth information
+#  DataObjRenameInp  (`KeyValuePair_PI`) information about the collection or
+#                    data object and its new path
+#
 ipcEncryption_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp) {
     if (int(*DataObjRenameInp.src_opr_type) == 11) {
         # data object
@@ -117,6 +166,14 @@ ipcEncryption_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp) {
     }
 }
 
+# This ensures that a collection that is moved into a collection that requires
+# encryption will also require encryption.
+#
+#  Instance          (string) unknown
+#  Comm              (`KeyValuePair_PI`) user connection and auth information
+#  DataObjRenameInp  (`KeyValuePair_PI`) information about the collection or
+#                    data object and its old path
+#
 ipcEncryption_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
     if (int(*DataObjRenameInp.src_opr_type) == 12) {
         # collection
@@ -124,10 +181,25 @@ ipcEncryption_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
     }
 }
 
+# This verifies that when a bundle file is unbundled in a collection that
+# requires encryption, that every file in the bundle is encrypted.
+#
+#  Instance                (string) unknown
+#  Comm                    (`KeyValuePair_PI`) user connection and auth
+#                          information
+#  StructFileExtAndRegInp  (`KeyValuePair_PI`) information about the struct file
+#
 ipcEncryption_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp) {
     _ipcEncryptionRejectBulkRegIfEncryptionRequired(*StructFileExtAndRegInp.collection_path);
 }
 
+# If a subcollection is created in a collection that requires encryption, this
+# ensures that the subcollection also requires encryption.
+#
+#  Instance       (string) unknown
+#  Comm           (`KeyValuePair_PI`) user connection and auth information
+#  CollCreateInp  (`KeyValuePair_PI`) information related to the new collection
+#
 ipcEncryption_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
     _ipcEncryptionCopyAVUFromParent(*CollCreateInp.coll_name);
 }
