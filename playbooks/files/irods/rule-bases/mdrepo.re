@@ -66,21 +66,59 @@ _mdrepo_ensureMdRepoObjExists(*DataObj, *Ticket) {
 	}
 }
 
+# This pre-creates a data object so that it can be uploaded using a ticket for a
+# DATA_OBJ_CREATE request.
+#
+#  Instance    (string) unused
+#  Comm        (`KeyValuePair_PI`) unused
+#  DataObjInp  (`KeyValuePair_PI`) information related to the created data
+#              object
+#
+# Temporary Storage:
+#   mdrepo_ticket  is used to determine the ticket being used
+#
 mdrepo_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
 	_mdrepo_ensureMdRepoObjExists(
 		*DataObjInp.obj_path, _mdrepo_getValue(temporaryStorage, 'mdrepo_ticket') );
 }
 
+# This pre-creates a data object so that it can be uploaded using a ticket for a
+# DATA_OBJ_OPEN request.
+#
+#  Instance    (string) unused
+#  Comm        (`KeyValuePair_PI`) unused
+#  DataObjInp  (`KeyValuePair_PI`) information related to the data object
+#
 mdrepo_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
 	_mdrepo_ensureMdRepoObjExists(
 		*DataObjInp.obj_path, _mdrepo_getValue(temporaryStorage, 'mdrepo_ticket') );
 }
 
+# This pre-creates a data object so that it can be uploaded using a ticket for a
+# DATA_OBJ_PUT request.
+#
+#  Instance        (string) unused
+#  Comm            (`KeyValuePair_PI`) unused
+#  DataObjInp      (`KeyValuePair_PI`) information related to the data object
+#  DataObjInpBBuf  (unknown) unused
+#  PORTAL_OPR_OUT  (unknown) unused
+#
 mdrepo_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PortalOprOut) {
 	_mdrepo_ensureMdRepoObjExists(
 		*DataObjInp.obj_path, _mdrepo_getValue(temporaryStorage, 'mdrepo_ticket') );
 }
 
+# This stores the a ticket for later use in the session.
+#
+#  Instance      (string) unused
+#  Context       (`KeyValuePair_PI`) unused
+#  OUT           (`KeyValuePair_PI`) unused
+#  OpName        (unknown) unused
+#  TicketString  (string) the ticket label
+#  Arg3          (unknown) unused
+#  Arg4          (unknown) unused
+#  Arg5          (unknown) unused
+#
 mdrepo_database_mod_ticket_post(
 	*Instance, *Context, *OUT, *OpName, *TicketString, *Arg3, *Arg4, *Arg5
 ) {
