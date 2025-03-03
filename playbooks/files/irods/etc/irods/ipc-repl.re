@@ -75,6 +75,9 @@
 #   Example:
 #     project_replReplResc : string * boolean
 #     project_replReplResc = ('projectReplRes', false)
+#
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
 
 
 # DEFERRED FUNCTIONS AND RULES
@@ -618,9 +621,9 @@ _repl_findReplResc(*Resc) {
 # been moved
 #
 # Parameters:
-#  SourceObject  the absolute path to the collection or data object before it
-#                was moved
-#  DestObject    the absolute path after it was moved
+#  SourceObject  (path) the absolute path to the collection or data object
+#                before it was moved
+#  DestObject    (path) the absolute path after it was moved
 
 # DEPRECATED
 _old_replEntityRename(*SourceObject, *DestObject) {
@@ -663,6 +666,9 @@ replEntityRename(*SourceObject, *DestObject) {
 
 # This rule ensures that the correct resource is chosen for first replica of a
 # newly created data object.
+#
+# Session Variables:
+#   objPath
 
 # DEPRECATED
 _ipcRepl_acSetRescSchemeForCreate {
@@ -687,6 +693,9 @@ ipcRepl_acSetRescSchemeForCreate {
 
 # This rule ensures that the correct resource is chosen for the second and
 # subsequent replicas of a data object.
+#
+# Session Variables:
+#   objPath
 
 # DEPRECATED
 _ipcRepl_acSetRescSchemeForRepl {
@@ -715,7 +724,6 @@ ipcRepl_acSetRescSchemeForRepl {
 }
 
 
-# This rule ensures that uploaded files are replicated.
 
 # DEPRECATED
 _ipcRepl_put_old(*ObjPath, *DestResc, *New) {
@@ -737,16 +745,52 @@ _ipcRepl_put(*ObjPath, *DestResc, *New) {
 }
 
 
-ipcRepl_dataObjCreated(*_, *_, *DATA_OBJ_INFO) {
+# This rule ensures that uploaded files are replicated.
+#
+# Parameters:
+#   User           (string) unused
+#   Zone           (string) unused
+#   DATA_OBJ_INFO  (`KeyValuePair_PI`) information related to the created data
+#                  object
+#
+ipcRepl_dataObjCreated(*User, *Zone, *DATA_OBJ_INFO) {
   _ipcRepl_put(*DATA_OBJ_INFO.logical_path, hd(split(*DATA_OBJ_INFO.resc_hier, ';')), true);
 }
 
 
-ipcRepl_dataObjModified(*_, *_, *DATA_OBJ_INFO) {
+# This rule ensures that modifications to a file are synced to all replicas.
+#
+# Parameters:
+#   User           (string) unused
+#   Zone           (string) unused
+#   DATA_OBJ_INFO  (`KeyValuePair_PI`) information related to the created data
+#                  object
+#
+ipcRepl_dataObjModified(*User, *Zone, *DATA_OBJ_INFO) {
   _ipcRepl_put(*DATA_OBJ_INFO.logical_path, hd(split(*DATA_OBJ_INFO.resc_hier, ';')), false);
 }
 
 
+# This rule is provides the preprocessing logic for determine which  storage
+# resource to choose for a replica. It is meant for project specific
+# implementations where a project implementation is within an `on` block that
+# restricts the resource resolution to entities relevant to the project.post
+#
+# Parameters:
+#  INSTANCE   (string) the resource being considered
+#  CONTEXT    (`KeyValuePair_PI`) the resource plugin context
+#  OUT        (`KeyValuePair_PI`) unused
+#  OPERATION  (string) the operation that will be performed on the replica,
+#             "CREATE" for creating the replica, "OPEN" for reading the replica,
+#             and "WRITE" for overwriting an existing replica.
+#  HOST       (string) the host executing this policy
+#  PARSER     (`KeyValuePair_PI`) unused
+#  VOTE       (float) unused
+#
+# temporaryStorage:
+#  repl_replicate  this value is read to see if replication is forced to a
+#                  specific resource
+#
 pep_resource_resolve_hierarchy_pre(*INSTANCE, *CONTEXT, *OUT, *OPERATION, *HOST, *PARSER, *VOTE) {
   on (
     if errorcode(temporaryStorage.repl_replicate) == 0
