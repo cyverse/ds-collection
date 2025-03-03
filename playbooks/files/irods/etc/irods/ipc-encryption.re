@@ -1,4 +1,7 @@
 # Encryption enforcement policy
+#
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
 
 
 # Checks if encryption is required for the collection entity
