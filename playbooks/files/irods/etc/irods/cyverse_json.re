@@ -36,8 +36,11 @@ _cyverse_json_mkField(*Label, *SerialVal) = '"' ++ *Label ++ '":' ++ *SerialVal
 # construct a serialized JSON object field from a Boolean value
 #
 # Parameters:
-#   *Label - the name of the object field
-#   *Val - the Boolean value of the field.
+#  Label  the name of the object field
+#  Val    the Boolean value of the field.
+#
+# Returns:
+#  the serialized boolean
 #
 cyverse_json_boolean: string * boolean -> string
 cyverse_json_boolean(*Label, *Val) = _cyverse_json_mkField(*Label, if *Val then 'true' else 'false')
@@ -45,7 +48,10 @@ cyverse_json_boolean(*Label, *Val) = _cyverse_json_mkField(*Label, if *Val then 
 # construct a serialized JSON document from its serialized fields
 #
 # Parameters:
-#   *SerialFields - A list of pre-serialized fields to include in the document
+#  SerialFields  A list of pre-serialized fields to include in the document
+#
+# Returns:
+#  the serialized document
 #
 cyverse_json_document: list string -> string
 cyverse_json_document(*SerialFields) = _cyverse_json_encodeObject(*SerialFields)
@@ -53,8 +59,11 @@ cyverse_json_document(*SerialFields) = _cyverse_json_encodeObject(*SerialFields)
 # construct a serialized JSON number field. This version performs no error checking.
 #
 # Parameters:
-#   *Label - the name of the field
-#   *Val - the value of the field
+#   Label  the name of the field
+#   Val    the value of the field
+#
+# Returns:
+#  the serialized number
 #
 cyverse_json_number: forall V in {double string}, string * f V -> string
 cyverse_json_number(*Label, *Val) = _cyverse_json_mkField(*Label, '*Val')
@@ -62,8 +71,11 @@ cyverse_json_number(*Label, *Val) = _cyverse_json_mkField(*Label, '*Val')
 # construct a serialized JSON object field from its serialized fields
 #
 # Parameters:
-#   *Label - the name of the object field
-#   *SerialFields - the list of pre-serialized fields ot include in the object
+#  Label         the name of the object field
+#  SerialFields  the list of pre-serialized fields ot include in the object
+#
+# Returns:
+#  the serialized object
 #
 cyverse_json_object: string * list string -> string
 cyverse_json_object(*Label, *SerialFields) =
@@ -72,8 +84,11 @@ cyverse_json_object(*Label, *SerialFields) =
 # construct a serialized JSON string field
 #
 # Parameters:
-#   *Label - the name of the field
-#   *Val - the value of the field
+#   Label  the name of the field
+#   Val    the value of the field
+#
+# Returns:
+#  the serialized string
 #
 cyverse_json_string: forall V in {path string time}, string * V -> string
 cyverse_json_string(*Label, *Val) = _cyverse_json_mkField(*Label, _cyverse_json_encodeString(*Val))
