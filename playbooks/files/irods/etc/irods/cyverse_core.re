@@ -466,6 +466,7 @@ acPostProcForRmColl {
 # This is the post processing logic for when a collection is created through the
 # API using a COLL_CREATE request.
 #
+# Parameters:
 #  Instance       (string) unknown
 #  Comm           (`KeyValuePair_PI`) user connection and auth information
 #  CollCreateInp  (`KeyValuePair_PI`) information related to the new collection
@@ -481,6 +482,7 @@ pep_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
 # This is the pre processing logic for when an attempt is made to copy a data
 # object through the API using a DATA_OBJ_COPY request.
 #
+# Parameters:
 #  Instance        (string) unknown
 #  Comm            (`KeyValuePair_PI`) user connection and auth information
 #  DataObjCopyInp  (`KeyValuePair_PI`) information related to copy operation
@@ -493,6 +495,7 @@ pep_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 # This is the post processing logic for when a data object is copied through the
 # API using a DATA_OBJ_COPY request.
 #
+# Parameters:
 #  Instance        (string) unknown
 #  Comm            (`KeyValuePair_PI`) user connection and auth information
 #  DataObjCopyInp  (`KeyValuePair_PI`) information related to copy operation
@@ -508,6 +511,7 @@ pep_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 # This is the pre processing logic for when an attempt is made to create a data
 # object through the API using a DATA_OBJ_CREATE request.
 #
+# Parameters:
 #  Instance    (string) unknown
 #  Comm        (`KeyValuePair_PI`) user connection and auth information
 #  DataObjInp  (`KeyValuePair_PI`) information related to the created data
@@ -521,6 +525,7 @@ pep_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
 # This is the post processing logic for when a data object is created through
 # API using a DATA_OBJ_CREATE request.
 #
+# Parameters:
 #  Instance    (string) unknown
 #  Comm        (`KeyValuePair_PI`) user connection and auth information
 #  DataObjInp  (`KeyValuePair_PI`) information related to the created data
@@ -537,6 +542,7 @@ pep_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 # object and stat its replica through the API using a DATA_OBJ_CREATE_AND_STAT
 # request.
 #
+# Parameters:
 #  Instance    (string) unknown
 #  Comm        (`KeyValuePair_PI`) user connection and auth information
 #  DataObjInp  (`KeyValuePair_PI`) information related to the created data
@@ -552,6 +558,7 @@ pep_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 # This is the pre processing logic for when an attempt is made to open a data
 # object through the API using a DATA_OBJ_OPEN request.
 #
+# Parameters:
 #  Instance    (string) unknown
 #  Comm        (`KeyValuePair_PI`) user connection and auth information
 #  DataObjInp  (`KeyValuePair_PI`) information related to the data object
@@ -561,6 +568,18 @@ pep_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
 	mdrepo_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp);
 }
 
+
+# DATA_OBJ_OPEN_AND_STAT
+
+# This is the pre processing logic for when an attempt is made to open a data
+# object through the API using a DATA_OBJ_OPEN_AND_STAT request.
+#
+# Parameters:
+#  Instance    (string) unknown
+#  Comm        (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp  (`KeyValuePair_PI`) information related to the data object
+#  OpenStat    (unknown) unused
+#
 pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 	ipcEncryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp)
 }
@@ -571,6 +590,7 @@ pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 # This is the pre processing logic for when an attempt is made to upload a data
 # object through the API using a DATA_OBJ_PUT request.
 #
+# Parameters:
 #  Instance        (string) unknown
 #  Comm            (`KeyValuePair_PI`) user connection and auth information
 #  DataObjInp      (`KeyValuePair_PI`) information related to the data object
@@ -585,6 +605,7 @@ pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL
 # This is the post processing logic for when a data object is uploaded through
 # the API using a DATA_OBJ_PUT request.
 #
+# Parameters:
 #  Instance        (string) unknown
 #  Comm            (`KeyValuePair_PI`) user connection and auth information
 #  DataObjInp      (`KeyValuePair_PI`) information related to the data object
@@ -601,6 +622,7 @@ pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTA
 # This is the pre processing logic for when an attempt is made to rename a data
 # object through the API using a DATA_OBJ_RENAME request.
 #
+# Parameters:
 #  Instance          (string) unknown
 #  Comm              (`KeyValuePair_PI`) user connection and auth information
 #  DataObjRenameInp  (`KeyValuePair_PI`) information about the data object and
@@ -614,6 +636,7 @@ pep_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp) {
 # This is the post processing logic for when a data object is renamed through
 # the API using a DATA_OBJ_RENAME request.
 #
+# Parameters:
 #  Instance          (string) unknown
 #  Comm              (`KeyValuePair_PI`) user connection and auth information
 #  DataObjRenameInp  (`KeyValuePair_PI`) information about the data object and
@@ -630,6 +653,7 @@ pep_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
 # This is the pre processing logic for when an attempt is made to delete a data
 # object through the API using a DATA_OBJ_UNLINK request.
 #
+# Parameters:
 #  Instance          (string) unknown
 #  Comm              (`KeyValuePair_PI`) user connection and auth information
 #  DataObjUnlinkInp  (`KeyValuePair_PI`) information about the data object being
@@ -642,6 +666,7 @@ pep_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp) {
 # This is the post processing logic for when a data object is deleted through
 # the API using a DATA_OBJ_UNLINK request.
 #
+# Parameters:
 #  Instance          (string) unknown
 #  Comm              (`KeyValuePair_PI`) user connection and auth information
 #  DataObjUnlinkInp  (`KeyValuePair_PI`) information about the data object being
@@ -653,6 +678,7 @@ pep_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp) {
 
 # This is the exception logic for when an API DATA_OBJ_UNLINK request fails.
 #
+# Parameters:
 #  Instance          (string) unknown
 #  Comm              (`KeyValuePair_PI`) user connection and auth information
 #  DataObjUnlinkInp  (`KeyValuePair_PI`) information about the data object being
@@ -668,6 +694,7 @@ pep_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp) {
 # This is the pre processing logic for when an attempt is made to delete a
 # collection through the API using a RM_COLL request.
 #
+# Parameters:
 #  Instance     (string) unknown
 #  Comm         (`KeyValuePair_PI`) user connection and auth information
 #  RmCollInp    (`KeyValuePair_PI`) information about the collection being
@@ -680,6 +707,7 @@ pep_api_rm_coll_pre(*Instance, *Comm, *RmCollInp, *CollOprStat) {
 
 # This is the exception logic for when an API RM_COLL request fails.
 #
+# Parameters:
 #  Instance     (string) unknown
 #  Comm         (`KeyValuePair_PI`) user connection and auth information
 #  RmCollInp    (`KeyValuePair_PI`) information about the collection being
@@ -697,9 +725,11 @@ pep_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat) {
 # struct file and register files in it through the API using a
 # STRUCT_FILE_EXT_AND_REG request.
 #
-#  Instance                  (string) unknown
-#  Comm                      (`KeyValuePair_PI`) user connection and auth information
-#  StructFileExtAndRegInp    (`KeyValuePair_PI`) information about the struct file
+# Parameters:
+#  Instance                (string) unknown
+#  Comm                    (`KeyValuePair_PI`) user connection and auth
+#                          information
+#  StructFileExtAndRegInp  (`KeyValuePair_PI`) information about the struct file
 #
 pep_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp) {
 	# we need to comment out this block
