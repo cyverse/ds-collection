@@ -3,18 +3,18 @@
 # Replication is controlled by AVUs attached to relevant root resources.
 #
 # ipc::hosted-collection COLL (forced|preferred)
-#   When attached to a resource RESC, this AVU indicates that data objects that
-#   belong to the collection COLL are to have their primary replica stored on
-#   RESC. When the unit is 'preferred', the user may override this. COLL is the
-#   absolute path to the base collection. If a resource is determined by both
-#   the iRODS server a client connects to and an ipc::hosted-collection AVU, the
-#   AVU takes precedence. If two or more AVUs match, the resource whose COLL has
-#   the specific match is used.
+#  When attached to a resource RESC, this AVU indicates that data objects that
+#  belong to the collection COLL are to have their primary replica stored on
+#  RESC. When the unit is 'preferred', the user may override this. COLL is the
+#  absolute path to the base collection. If a resource is determined by both the
+#  iRODS server a client connects to and an ipc::hosted-collection AVU, the AVU
+#  takes precedence. If two or more AVUs match, the resource whose COLL has the
+#  specific match is used.
 #
 # ipc::replica-resource REPL-RESC (forced|preferred)
-#   When attached to a resource RESC, this AVU indicates that the resource
-#   REPL-RESC is to asynchronously replicate the contents of RESC. When the unit
-#   is 'preferred', the user may override this.
+#  When attached to a resource RESC, this AVU indicates that the resource
+#  REPL-RESC is to asynchronously replicate the contents of RESC. When the unit
+#  is 'preferred', the user may override this.
 #
 # DEPRECATED FUNCTIONALITY
 #
@@ -31,50 +31,44 @@
 # logic file.
 #
 # <file_name>_replBelongsTo(*Entity)
-#   Determines if the provided collection or data object belongs to the project
+#  Determines if the provided collection or data object belongs to the project
 #
-#   Parameters:
-#     Entity  the absolute iRODS path to the collection or data object
+#  Parameters:
+#   Entity  the absolute iRODS path to the collection or data object
 #
-#   Return:
-#     a Boolean indicating whether or not the collection or data object belongs
-#     to the project
+#  Returns:
+#   a Boolean indicating whether or not the collection or data object belongs to
+#   the project
 #
-#   Example:
-#     project_replBelongsTo : path -> boolean
-#     project_replBelongsTo(*Entity) =
-#        str(*Entity) like '/' ++ cyverse_ZONE ++ '/home/shared/project/*'
+#  Example:
+#   project_replBelongsTo : path -> boolean
+#   project_replBelongsTo(*Entity) =
+#      str(*Entity) like '/' ++ cyverse_ZONE ++ '/home/shared/project/*'
 #
 # <file_name>_replIngestResc
-#   Returns the resource where newly ingested files for the project should be
-#   stored.
+#  Returns the resource where newly ingested files for the project should be
+#  stored.
 #
-#   Parameters:
-#     none
+#  Returns:
+#   a tuple where the first value is the name of the resource and the second is
+#   a flag indicating whether or not this resource choice may be overridden by
+#   the user.
 #
-#   Return:
-#     a tuple where the first value is the name of the resource and the second
-#     is a flag indicating whether or not this resource choice may be overridden
-#     by the user.
-#
-#   Example:
-#     project_replIngestResc : string * boolean
-#     project_replIngestResc = ('projectIngestRes', true)
+#  Example:
+#   project_replIngestResc : string * boolean
+#   project_replIngestResc = ('projectIngestRes', true)
 #
 # <file_name>_replReplResc
-#   Returns the resource where a replica of a data object should be stored.
+#  Returns the resource where a replica of a data object should be stored.
 #
-#   Parameters:
-#     none
+#  Return:
+#   a tuple where the first value is the name of the resource and the second is
+#   a flag indicating whether or not this resource choice may be overridden by
+#   the user.
 #
-#   Return:
-#     a tuple where the first value is the name of the resource and the second
-#     is a flag indicating whether or not this resource choice may be overridden
-#     by the user.
-#
-#   Example:
-#     project_replReplResc : string * boolean
-#     project_replReplResc = ('projectReplRes', false)
+#  Examples:
+#   project_replReplResc : string * boolean
+#   project_replReplResc = ('projectReplRes', false)
 #
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
@@ -668,7 +662,7 @@ replEntityRename(*SourceObject, *DestObject) {
 # newly created data object.
 #
 # Session Variables:
-#   objPath
+#  objPath
 
 # DEPRECATED
 _ipcRepl_acSetRescSchemeForCreate {
@@ -695,7 +689,7 @@ ipcRepl_acSetRescSchemeForCreate {
 # subsequent replicas of a data object.
 #
 # Session Variables:
-#   objPath
+#  objPath
 
 # DEPRECATED
 _ipcRepl_acSetRescSchemeForRepl {
@@ -748,10 +742,10 @@ _ipcRepl_put(*ObjPath, *DestResc, *New) {
 # This rule ensures that uploaded files are replicated.
 #
 # Parameters:
-#   User           (string) unused
-#   Zone           (string) unused
-#   DATA_OBJ_INFO  (`KeyValuePair_PI`) information related to the created data
-#                  object
+#  User           (string) unused
+#  Zone           (string) unused
+#  DATA_OBJ_INFO  (`KeyValuePair_PI`) information related to the created data
+#                 object
 #
 ipcRepl_dataObjCreated(*User, *Zone, *DATA_OBJ_INFO) {
   _ipcRepl_put(*DATA_OBJ_INFO.logical_path, hd(split(*DATA_OBJ_INFO.resc_hier, ';')), true);
@@ -761,10 +755,10 @@ ipcRepl_dataObjCreated(*User, *Zone, *DATA_OBJ_INFO) {
 # This rule ensures that modifications to a file are synced to all replicas.
 #
 # Parameters:
-#   User           (string) unused
-#   Zone           (string) unused
-#   DATA_OBJ_INFO  (`KeyValuePair_PI`) information related to the created data
-#                  object
+#  User           (string) unused
+#  Zone           (string) unused
+#  DATA_OBJ_INFO  (`KeyValuePair_PI`) information related to the created data
+#                 object
 #
 ipcRepl_dataObjModified(*User, *Zone, *DATA_OBJ_INFO) {
   _ipcRepl_put(*DATA_OBJ_INFO.logical_path, hd(split(*DATA_OBJ_INFO.resc_hier, ';')), false);
