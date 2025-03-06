@@ -1,7 +1,10 @@
 # Trash management policy
+#
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
 
-# generates a unique variable name for a data object or collection based on its absolute path,
-# the variable name is prefixed with "trash_timestamp_".
+# generates a unique variable name for a data object or collection based on its
+# absolute path, the variable name is prefixed with "trash_timestamp_".
 #
 # Parameters:
 #  *Path:  the absolute path to the data object or collection
@@ -40,6 +43,22 @@ _ipcTrash_manageTimeAVU(*action, *type, *path, *avuValue) {
   }
 }
 
+
+# If a data object is being moved to trash, this sets the trash_timestamp avu on
+# the object, and records the object's Id for later use in the session.
+#
+# Parameters:
+#   INSTANCE          (string) unused
+#   COMM              (`KeyValuePair_PI`) unused
+#   DATAOBJUNLINKINP  (`KeyValuePair_PI`) information about the data object
+#                     being deleted
+#
+# temporaryStorage:
+#  data_id_<PATH>          records the ID of the data object with absolute path
+#                          PATH
+#  trash_timestamp_<PATH>  records the timestamp when the data object with
+#                          absolute path PATH is moved to trash
+#
 ipcTrash_api_data_obj_unlink_pre(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
   if (errorcode(*DATAOBJUNLINKINP.forceFlag) != 0) {
     msiGetSystemTime(*timestamp, "");
@@ -56,6 +75,22 @@ ipcTrash_api_data_obj_unlink_pre(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
   }
 }
 
+
+# If a data object was moved to trash, this sets the trash timestamp on any newly
+# created collections in trash.
+#
+# Parameters:
+#  INSTANCE          (string) unused
+#  COMM              (`KeyValuePair_PI`) unused
+#  DATAOBJUNLINKINP  (`KeyValuePair_PI`) information about the data object being
+#                    deleted
+#
+# temporaryStorage:
+#  data_id_<PATH>          provides the ID of the data object with absolute
+#                          path PATH
+#  trash_timestamp_<PATH>  provides the timestamp when the data object with
+#                          absolute path PATH is moved to trash
+#
 ipcTrash_api_data_obj_unlink_post(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
   *dataObjPath = *DATAOBJUNLINKINP.obj_path;
   *timestampVar = _ipcTrash_mkTimestampVar(/*dataObjPath);
@@ -72,13 +107,26 @@ ipcTrash_api_data_obj_unlink_post(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
         for (*i = 0; *i < 5; *i = *i + 1) {
           *parentCollPath = *parentCollPath ++ "/" ++ elem(*collNameList, *i);
         }
-        msiGetSystemTime(*timestamp, "");
         _ipcTrash_manageTimeAVU("set", cyverse_COLL, *parentCollPath, *timestamp);
       }
     }
   }
 }
 
+
+# If an error occurs while moving a data object to trash, any trash timestamp
+# AVUs created during is deleted.
+#
+# Parameters:
+#  INSTANCE          (string) unused
+#  COMM              (`KeyValuePair_PI`) unused
+#  DATAOBJUNLINKINP  (`KeyValuePair_PI`) information about the data object being
+#                    deleted
+#
+# temporaryStorage:
+#  trash_timestamp_<PATH>  provides the timestamp for object with path PATH to
+#                          be removed
+#
 ipcTrash_api_data_obj_unlink_except(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
   *dataObjPath = *DATAOBJUNLINKINP.obj_path;
   *timestampVar = _ipcTrash_mkTimestampVar(/*dataObjPath);
@@ -90,6 +138,17 @@ ipcTrash_api_data_obj_unlink_except(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
   }
 }
 
+
+# If a data object was uploaded to trash, this sets its trash trash timestamp.
+# created collections in trash.
+#
+# Parameters:
+#  INSTANCE        (string) unused
+#  COMM            (`KeyValuePair_PI`) unused
+#  DATAOBJINP      (`KeyValuePair_PI`) information related to the data object
+#  DATAOBJINPBBUF  (unknown) unused
+#  PORTAL_OPR_OUT  (unknown) unused
+#
 ipcTrash_api_data_obj_put_post(*INSTANCE, *COMM, *DATAOBJINP, *DATAOBJINPBBUF, *PORTALOPROUT) {
   *zone = cyverse_ZONE;
   if (*DATAOBJINP.obj_path like '/*zone/trash/*') {
@@ -98,6 +157,20 @@ ipcTrash_api_data_obj_put_post(*INSTANCE, *COMM, *DATAOBJINP, *DATAOBJINPBBUF, *
   }
 }
 
+# When a collection is being moved to trash, this sets a trash timestamp on the
+# collection.
+#
+# Parameters:
+#  INSTANCE     (string) unused
+#  COMM         (`KeyValuePair_PI`) unused
+#  RMCOLLINP    (`KeyValuePair_PI`) information about the collection being
+#               deleted
+#  COLLOPRSTAT  (unknown) unused
+#
+# temporaryStorage:
+#  trash_timestamp_<PATH>  records the timestamp when the collection with
+#                          absolute path PATH is moved to trash
+#
 ipcTrash_api_rm_coll_pre(*INSTANCE, *COMM, *RMCOLLINP, *COLLOPRSTAT) {
   if (errorcode(*RMCOLLINP.forceFlag) != 0) {
     msiGetSystemTime(*timestamp, "");
@@ -108,6 +181,20 @@ ipcTrash_api_rm_coll_pre(*INSTANCE, *COMM, *RMCOLLINP, *COLLOPRSTAT) {
   }
 }
 
+
+# If moving a collection to trash fails, this removes the trash timestamp.
+#
+# Parameters:
+#  INSTANCE     (string) unused
+#  COMM         (`KeyValuePair_PI`) unused
+#  RMCOLLINP    (`KeyValuePair_PI`) information about the collection being
+#               deleted
+#  COLLOPRSTAT  (unknown) unused
+#
+# temporaryStorage:
+#  trash_timestamp_<PATH>  records the timestamp when the collection with
+#                          absolute path PATH is moved to trash
+#
 ipcTrash_api_rm_coll_except(*INSTANCE, *COMM, *RMCOLLINP, *COLLOPRSTAT) {
   *collNamePath = *RMCOLLINP.coll_name;
   *timestampVar = _ipcTrash_mkTimestampVar(/*collNamePath);
@@ -117,6 +204,13 @@ ipcTrash_api_rm_coll_except(*INSTANCE, *COMM, *RMCOLLINP, *COLLOPRSTAT) {
   }
 }
 
+# When a collection is created in trash, this sets a trash timestamp on it.
+#
+# Parameters:
+#  INSTANCE       (string) unused
+#  COMM           (`KeyValuePair_PI`) unused
+#  COLLCREATEINP  (`KeyValuePair_PI`) information related to the new collection
+#
 ipcTrash_api_coll_create_post(*INSTANCE, *COMM, *COLLCREATEINP) {
   *zone = cyverse_ZONE;
   *collNamePath = *COLLCREATEINP.coll_name;
@@ -126,6 +220,22 @@ ipcTrash_api_coll_create_post(*INSTANCE, *COMM, *COLLCREATEINP) {
   }
 }
 
+
+# When a collection or data object is being moved to trash, this records a trash
+# timestamp for it, and if it is a collection, recursively for everything in it.
+#
+# Parameters:
+#  INSTANCE          (string) unused
+#  COMM              (`KeyValuePair_PI`) unused
+#  DATAOBJRENAMEINP  (`KeyValuePair_PI`) information about the data object and
+#                    its new path
+#
+# temporaryStorage:
+#  trash_timestamp_<PATH*>  records the timestamp for the collection or data
+#                           object with absolute path PATH is moved to trash,
+#                           there is one for each deleted collection or data
+#                           object
+#
 ipcTrash_api_data_obj_rename_pre(*INSTANCE, *COMM, *DATAOBJRENAMEINP) {
   *zone = cyverse_ZONE;
   if (
@@ -154,6 +264,23 @@ ipcTrash_api_data_obj_rename_pre(*INSTANCE, *COMM, *DATAOBJRENAMEINP) {
   }
 }
 
+
+# After a collection or data object is moved to trash, this sets a trash
+# timestamp on it. If is a collection, it recursively sets a trash timestamp on
+# everything in it.
+#
+# Parameters:
+#  INSTANCE          (string) unused
+#  COMM              (`KeyValuePair_PI`) unused
+#  DATAOBJRENAMEINP  (`KeyValuePair_PI`) information about the data object and
+#                    its old path
+#
+# temporaryStorage:
+#  trash_timestamp_<PATH*>  records the timestamp for the collection or data
+#                           object with absolute path PATH is moved to trash,
+#                           there is one for each deleted collection or data
+#                           object
+#
 ipcTrash_api_data_obj_rename_post(*INSTANCE, *COMM, *DATAOBJRENAMEINP) {
   *zone = cyverse_ZONE;
   *destObjPath = *DATAOBJRENAMEINP.dst_obj_path;
@@ -174,6 +301,15 @@ ipcTrash_api_data_obj_rename_post(*INSTANCE, *COMM, *DATAOBJRENAMEINP) {
   }
 }
 
+
+# If a data object is copied into trash this sets a trash timestamp on it.
+#
+# Parameters:
+#  INSTANCE        (string) unused
+#  COMM            (`KeyValuePair_PI`) unused
+#  DATAOBJCOPYINP  (`KeyValuePair_PI`) information related to copy operation
+#  TRANSSTAT       (unknown) unused
+#
 ipcTrash_api_data_obj_copy_post(*INSTANCE, *COMM, *DATAOBJCOPYINP, *TRANSSTAT) {
   *zone = cyverse_ZONE;
   *destObjPath = *DATAOBJCOPYINP.dst_obj_path;
@@ -183,6 +319,15 @@ ipcTrash_api_data_obj_copy_post(*INSTANCE, *COMM, *DATAOBJCOPYINP, *TRANSSTAT) {
   }
 }
 
+
+# When a data object is created in trash, this sets a trash timestamp on it.
+#
+# Parameters:
+#  INSTANCE    (string) unused
+#  COMM        (`KeyValuePair_PI`) unused
+#  DATAOBJINP  (`KeyValuePair_PI`) information related to the created data
+#              object
+#
 ipcTrash_api_data_obj_create_post(*INSTANCE, *COMM, *DATAOBJINP) {
   *zone = cyverse_ZONE;
   *objPath = *DATAOBJINP.obj_path;
