@@ -20,8 +20,7 @@
 
 set -o errexit -o nounset -o pipefail
 
-main()
-{
+main() {
   if [ "$#" -lt 1 ]
   then
     printf 'Requires either "start" or "stop" as its first parameter\n' >&2
@@ -44,8 +43,7 @@ main()
   esac
 }
 
-start()
-{
+start() {
   # Ensure that the correct user owns everything in /var/lib/irods and /etc/irods
   # If this isn't done, some of the ansible ownership tests will fail.
   if [ -e /var/lib/irods/.irods/irods_environment.json ]
@@ -71,8 +69,7 @@ start()
   fi
 }
 
-stop()
-{
+stop() {
   if sudo --login --user  "$IRODS_SYSTEM_USER"  imiscsvrinfo >& /dev/null
   then
     sudo  --login --user  "$IRODS_SYSTEM_USER" /var/lib/irods/irodsctl stop

@@ -29,7 +29,7 @@ RUN \
 			"$(lsb_release --codename --short)" \
 		> /etc/apt/sources.list.d/renci-irods.list
 	apt-get update
-	apt-get install --yes irods-icommands postgresql
+	apt-get install --yes irods-icommands postgresql-client
 
 # XXX - Due to a bug in iCommands 4.3.1, irods_environment.json needs to exist prior to `iinit`
 #       execution. See https://github.com/irods/irods_client_icommands/issues/493

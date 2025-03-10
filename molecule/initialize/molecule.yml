@@ -1,0 +1,18 @@
+---
+platforms:
+  - name: ubuntu.localdomain
+    image: ubuntu:bionic
+    hostname: ubuntu.localdomain
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        irods_cfg_validate: true
+    host_vars:
+      ubuntu.localdomain:
+        irods_cfg_database:
+          db_odbc_driver: PostgreSQL Unicode
+          db_password: testpassword
+          db_username: irods
+        pg_hba_path: /etc/postgresql/10/main/pg_hba.conf

@@ -1,0 +1,31 @@
+---
+platforms:
+  - name: centos.localdomain
+    image: centos-archive
+    pre_build_image: false
+    dockerfile: ../_shared/centos.dockerfile
+    hostname: centos.localdomain
+  - name: ubuntu.localdomain
+    image: ubuntu:bionic
+    hostname: ubuntu.localdomain
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        irods_cfg_validate: true
+    host_vars:
+      centos.localdomain:
+        ansible_python_interpreter: /usr/bin/python3
+        irods_cfg_database:
+          db_host: 127.0.0.1
+          db_odbc_driver: PostgreSQL
+          db_password: testpassword
+          db_username: irods
+        pg_hba_path: /var/lib/pgsql/data/pg_hba.conf
+      ubuntu.localdomain:
+        irods_cfg_database:
+          db_odbc_driver: PostgreSQL Unicode
+          db_password: testpassword
+          db_username: irods
+        pg_hba_path: /etc/postgresql/10/main/pg_hba.conf

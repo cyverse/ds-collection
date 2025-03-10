@@ -27,6 +27,7 @@ Example:
 """
 
 from os import path
+from pathlib import Path
 import sys
 from subprocess import Popen
 import argparse
@@ -73,7 +74,7 @@ def _main():
 def _parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("plugin_type", help="the folder holding this type of plugin is in")
-    parser.add_argument("plugin_name", help="name of the plugin without a file extension")
+    parser.add_argument("plugin_name", help="name of the plugin if Python, `.py` is optional")
     parser.add_argument(
         "-I", "--inventory", dest="inventory", default=_DEFAULT_HOSTS, help=_INVENTORY_HELP)
     parser.add_argument(
@@ -91,7 +92,12 @@ def _parse_args():
 class _PluginTest:
 
     def __init__(self, args):
-        self._plugin_name = args.plugin_name
+        plugin_base_name = Path(args.plugin_name).stem
+        if plugin_base_name == args.plugin_name:
+            self._plugin_file_name = plugin_base_name + ".py"
+        else:
+            self._plugin_file_name = args.plugin_name
+        self._plugin_name = plugin_base_name
         self._plugin_type = args.plugin_type
         self._inspect = args.inspect
         self._pretty = args.pretty
@@ -100,12 +106,16 @@ class _PluginTest:
 
     @property
     def _plugin_dir(self):
-        return path.join(_PLUGINS_DIR, self._plugin_type + "s")
+        if self._plugin_type == "module":
+            dir_name = "modules"
+        else:
+            dir_name = self._plugin_type
+        return path.join(_PLUGINS_DIR, dir_name)
 
     @property
     def plugin_file(self):
         """ the absolute path the plugin source file """
-        return path.join(self._plugin_dir, self._plugin_name) + ".py"
+        return path.join(self._plugin_dir, self._plugin_file_name)
 
     @property
     def _test_dir(self):
