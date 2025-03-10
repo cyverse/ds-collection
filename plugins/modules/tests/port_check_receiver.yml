@@ -1,0 +1,44 @@
+---
+- name: Test port_check_receiver module
+  hosts: localhost
+  tags:
+    - non_idempotent
+  tasks:
+    - name: Start receiver
+      port_check_receiver:
+        tcp_ports:
+          - 1100
+      async: 120
+      poll: 0
+      register: receiver
+
+    - name: Stop receiver
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          if ! exec 3<>/dev/tcp/localhost/1100; then
+            printf 'no receiver' >&2
+            exit 1
+          fi
+          rc=0
+          if ! printf finished >&3; then
+            printf 'failed to send stop message' >&2
+            rc=1
+          fi
+          exec 3<&-
+          exec 3>&-
+          exit $rc
+      changed_when: false
+
+    - name: Wait for receiver to stop
+      ansible.builtin.async_status:
+        jid: "{{ receiver.ansible_job_id }}"
+      register: job_result
+      until: job_result.finished
+      retries: 1
+      failed_when: not job_result.finished
+
+    - name: Check receiver failure
+      when: job_result.msg is defined
+      ansible.builtin.fail:
+        msg: "{{ job_result.msg }}"
