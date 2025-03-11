@@ -1,6 +1,34 @@
 ---
+- name: Verify | ICAT
+  hosts: irods_catalog
+  become: true
+  become_user: irods
+  tasks:
+    - name: Verify ICAT schema version
+      community.postgresql.postgresql_query:
+        db: ICAT
+        login_user: irods
+        login_password: testpassword
+        query: >
+          SELECT option_value
+          FROM r_grid_configuration
+          WHERE namespace = 'database' AND option_name = 'schema_version'
+      register: response
+      failed_when: response.failed or response.query_result[0]['option_value'] != '11'
+
+    - name: Verify admin password set
+      community.postgresql.postgresql_query:
+        db: ICAT
+        login_user: irods
+        login_password: testpassword
+        query: >
+          SELECT rcat_password
+          FROM r_user_password
+          WHERE user_id = (SELECT user_id FROM r_user_main WHERE user_name = 'rods')
+
+
 - name: Verify | irods
-  hosts: all
+  hosts: all:!provider-cfg
   become: true
   become_user: irods
   become_flags: '-i'
@@ -34,25 +62,3 @@
         not response.stat.exists or
         response.stat.pw_name != 'irods' or
         response.stat.gr_name != 'irods'
-
-    - name: Verify ICAT schema version
-      community.postgresql.postgresql_query:
-        db: ICAT
-        login_user: irods
-        login_password: testpassword
-        query: >
-          SELECT option_value
-          FROM r_grid_configuration
-          WHERE namespace = 'database' AND option_name = 'schema_version'
-      register: response
-      failed_when: response.failed or response.query_result[0]['option_value'] != '11'
-
-    - name: Verify admin password set
-      community.postgresql.postgresql_query:
-        db: ICAT
-        login_user: irods
-        login_password: testpassword
-        query: >
-          SELECT rcat_password
-          FROM r_user_password
-          WHERE user_id = (SELECT user_id FROM r_user_main WHERE user_name = 'rods')

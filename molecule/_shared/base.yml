@@ -3,7 +3,6 @@ dependency:
   name: galaxy
   options:
     requirements-file: molecule/_shared/requirements.yml
-    role-file: molecule/_shared/requirements.yml
 driver:
   name: docker
 verifier:

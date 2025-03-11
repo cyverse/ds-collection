@@ -1,6 +1,6 @@
 ---
 - name: Converge | initialize
-  hosts: all
+  hosts: all:!provider-cfg
   tasks:
     - name: Place setup_configuration.json
       ansible.builtin.include_role:

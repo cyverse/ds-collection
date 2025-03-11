@@ -3,8 +3,8 @@
   ansible.builtin.import_playbook: prepare.yml
 
 
-- name: Prepare | CentOS initialize
-  hosts: centos.localdomain
+- name: Prepare | CentOS prepare for iRODS
+  hosts: CentOS
   tasks:
     - name: CentOS | install epel repo
       ansible.builtin.package:
@@ -53,6 +53,10 @@
           - irods-server-4.3.1
         state: present
 
+
+- name: Prepare | CentOS install DBMS
+  hosts: irods_catalog:&CentOS
+  tasks:
     - name: CentOS | install PostgreSQL server
       ansible.builtin.package:
         name:
@@ -82,7 +86,7 @@
 
 
 - name: Prepare | CentOS initialize DBMS
-  hosts: centos.localdomain
+  hosts: irods_catalog:&CentOS
   become: true
   become_user: postgres
   become_flags: '-i'
@@ -117,8 +121,8 @@
       changed_when: response.stdout == 'changed'
 
 
-- name: Prepare | Ubuntu initialize
-  hosts: ubuntu.localdomain
+- name: Prepare | Ubuntu prepare for iRODS
+  hosts: Ubuntu
   tasks:
     - name: Ubuntu | install iRODS package repository signing key
       ansible.builtin.apt_key:
@@ -137,13 +141,17 @@
         mode: u+rw
         content: |
           Package: irods-*
-          Pin: version 4.3.1
+          Pin: version 4.3.1-*
           Pin-Priority: 1001
 
     - name: Ubuntu | update apt cache
       ansible.builtin.apt:
         update_cache: true
 
+
+- name: Prepare | Ubuntu install DBMS
+  hosts: irods_catalog:&Ubuntu
+  tasks:
     - name: Ubuntu | install PostgreSQL server
       ansible.builtin.package:
         name: postgresql
@@ -161,8 +169,16 @@
         state: present
 
 
-- name: Prepare | initialize
+- name: Prepare | install iRODS
   hosts: all
+  tasks:
+    - name: Install irods-server
+      ansible.builtin.package:
+        name: irods-server
+
+
+- name: Prepare | initialize irods DB plugin
+  hosts: irods_catalog
   gather_facts: false
   tasks:
     - name: Install postgresql module prerequisites
@@ -173,14 +189,12 @@
 
     - name: Install iRODS server
       ansible.builtin.package:
-        name:
-          - irods-database-plugin-postgres
-          - irods-server
+        name: irods-database-plugin-postgres
         state: present
 
 
 - name: Prepare | initialize DBMS
-  hosts: all
+  hosts: irods_catalog
   become: true
   become_user: postgres
   become_flags: '-i'
@@ -212,7 +226,7 @@
         databases: ICAT
         method: md5
         state: present
-      notify: Reload postgres, {{ inventory_hostname }}
+      notify: Reload postgres, {{ ansible_distribution }}
 
     - name: Remove ident access to DBMS
       community.postgresql.postgresql_pg_hba:
@@ -226,14 +240,14 @@
       loop:
         - 127.0.0.1/32
         - ::1/128
-      notify: Reload postgres, {{ inventory_hostname }}
+      notify: Reload postgres, {{ ansible_distribution }}
 
   handlers:
-    - name: Reload postgres, centos.localdomain
+    - name: Reload postgres, CentOS
       ansible.builtin.command: pg_ctl reload
       changed_when: true
 
-    - name: Reload postgres, ubuntu.localdomain
+    - name: Reload postgres, Ubuntu
       ansible.builtin.service:
         name: postgresql
         state: reloaded

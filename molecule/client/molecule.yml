@@ -11,9 +11,10 @@ platforms:
 provisioner:
   name: ansible
   inventory:
-    group_vars:
+    hosts:
       all:
-        irods_cfg_validate: true
-    host_vars:
-      centos.localdomain:
-        ansible_python_interpreter: /usr/bin/python3
+        vars:
+          irods_cfg_validate: true
+        hosts:
+          centos.localdomain:
+            ansible_python_interpreter: /usr/bin/python3

@@ -1,28 +1,25 @@
 ---
-- name: Setup iRODS | Initialize ICAT schema if needed
-  when: irods_cfg_catalog_service_role == 'provider'
-  block:
-    - name: Determine if ICAT schema initialized
-      ansible.builtin.stat:
-        path: "{{ _root_dir }}/var/lib/irods/.odbc.ini"
-      register: odbc
+- name: Determine if already initialized
+  ansible.builtin.stat:
+    path: "{{ _root_dir }}/var/lib/irods/version.json"
+  register: version
 
+- name: Setup iRODS | Initialize ICAT schema if needed
+  when: not version.stat.exists
+  block:
     - name: Load variable values
-      when: not odbc.stat.exists
       ansible.builtin.include_vars: "{{ item }}"
       loop:
         - server_config.yml
         - irods_environment_server.yml
 
     - name: Create setup configuration file
-      when: not odbc.stat.exists
       ansible.builtin.template:
         src: setup_configuration.json.j2
         dest: /tmp/setup_configuration.json
         mode: u+rw
 
-    - name: Initialize ICAT schema
-      when: not odbc.stat.exists
+    - name: Setup iRODS
       ansible.builtin.shell:
         executable: /bin/bash
         cmd: |
@@ -30,12 +27,13 @@
           python3 /var/lib/irods/scripts/setup_irods.py --stdout --test --verbose \
             --json_configuration_file=/tmp/setup_configuration.json
           rm --force /var/lib/irods/log/test_mode_output.log /tmp/setup_configuration.json || true
-      register: response
-      changed_when: response.stdout is search('Updating to schema version')
+      register: resp
+      changed_when: resp.stdout is search('Updating /var/lib/irods/version.json')
+
   rescue:
-    - name: Ensure .odbc.ini missing on failure
+    - name: Ensure version is missing on failure
       ansible.builtin.file:
-        path: "{{ _root_dir }}/var/lib/irods/.odbc.ini"
+        path: "{{ _root_dir }}/var/lib/irods/version.json"
         state: absent
 
     - name: Fail
