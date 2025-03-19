@@ -159,19 +159,6 @@
     - name: Ensure iRODS ownership
       ansible.builtin.import_tasks: tasks/irods/ensure_irods_ownership.yml
 
-    - name: Ensure default policy files are up-to-date
-      ansible.builtin.copy:
-        dest: /etc/irods/{{ item }}
-        src: /var/lib/irods/packaging/{{ item }}.template
-        remote_src: true
-        owner: "{{ _irods_service_account_name }}"
-        group: "{{ _irods_service_group_name }}"
-        mode: u+r
-      loop:
-        - core.dvm
-        - core.fnm
-        - core.re
-
   handlers:
     - name: Restart iRODS if needed
       when: _irods_restart

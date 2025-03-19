@@ -18,6 +18,10 @@
         src: setup_configuration.json.j2
         dest: /tmp/setup_configuration.json
         mode: u+rw
+# XXX - Workaround for https://github.com/irods/irods/issues/8297
+      vars:
+        irods_cfg_default_resource_name: tmp-{{ inventory_hostname_short }}
+# XXX - ^^^
 
     - name: Setup iRODS
       ansible.builtin.shell:
@@ -26,9 +30,38 @@
           set -o errexit
           python3 /var/lib/irods/scripts/setup_irods.py --stdout --test --verbose \
             --json_configuration_file=/tmp/setup_configuration.json
+          printf '\n' >> /var/lib/irods/.irods/irods_environment.json
           rm --force /var/lib/irods/log/test_mode_output.log /tmp/setup_configuration.json || true
       register: resp
       changed_when: resp.stdout is search('Updating /var/lib/irods/version.json')
+
+# XXX - Workaround for https://github.com/irods/irods/issues/8297
+    - name: Fix core.re
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          if grep --quiet 'tmp-{{ inventory_hostname_short }}' /etc/irods/core.re; then
+            sed --in-place \
+              's/tmp-{{ inventory_hostname_short }}/{{ irods_cfg_default_resource_name }}/g' \
+              /etc/irods/core.re
+            echo changed
+          fi
+      register: resp
+      changed_when: resp.stdout == 'changed'
+
+    - name: Delete newly create stub resource
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit
+          export IRODS_HOST='{{ irods_cfg_catalog_provider_hosts[0] }}'
+          if ilsresc 'tmp-{{ inventory_hostname_short }}'; then
+            iadmin rmresc 'tmp-{{ inventory_hostname_short }}'
+            echo changed
+          fi
+      register: resp
+      changed_when: resp.stdout == 'changed'
+# XXX - ^^^
 
   rescue:
     - name: Ensure version is missing on failure

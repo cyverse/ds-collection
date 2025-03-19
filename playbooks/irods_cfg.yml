@@ -102,11 +102,13 @@
         irods_cfg_zone_port: "{{ _irods_zone_port }}"
         irods_cfg_zone_user: "{{ _irods_clerver_user }}"
 
+
     - name: Restart iRODS
       when: _irods_restart and irods_cfg_made_changes
       ansible.builtin.include_tasks: tasks/irods/restart.yml
       vars:
         restart_op: if running
+
 
   handlers:
     - name: Reload rules

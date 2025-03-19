@@ -1,0 +1,87 @@
+---
+- name: Test provisioning
+  ansible.builtin.import_playbook: irods_provision.yml
+
+
+- name: Test ensure irods owns what it is supposed to
+  hosts: irods_resource:!unmanaged_systems
+  become: true
+  tasks:
+    - name: Test iRODS ownership of /etc/irods
+      ansible.builtin.include_tasks: tasks/irods/test_irods_ownership.yml
+      vars:
+        dir: /etc/irods
+
+    - name: Test iRODS ownership of /var/lib/irods
+      ansible.builtin.include_tasks: tasks/irods/test_irods_ownership.yml
+      vars:
+        dir: /var/lib/irods
+
+
+- name: Test iRODS configuration
+  ansible.builtin.import_playbook: irods_cfg.yml
+
+
+- name: Test bootstrap iRODS start
+  hosts: dstesting-consumer_unconfigured-1.dstesting_default
+  become: true
+  become_user: irods
+  tasks:
+    - name: Test create clerver user
+      delegate_to: "{{ groups['irods_catalog'][0] }}"
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          csp='{{ groups['irods_catalog'][0] }}'
+          userType="$(iquest '%s' "select USER_TYPE where USER_NAME = 'rs7_admin'")"
+          if (( $? != 0 )); then
+            printf 'Catalog service provider appears to be down on %s \n' "$csp" >&2
+            exit 1
+          fi
+          if [[ "$userType" =~ ^CAT_NO_ROWS_FOUND ]]; then
+            printf 'rs7_admin does not exist\n' >&2
+            exit 1
+          fi
+          if [[ "$userType" != rodsadmin ]]; then
+            printf 'rs7_admin is not a rodsadmin user\n' >&2
+            exit 1
+          fi
+          IRODS_HOST="$csp" \
+          IRODS_USER_NAME=rs7_admin \
+          IRODS_AUTHENTICATION_FILE="$(mktemp)" \
+          iinit <<< rs7_password
+          if (( $? != 0 )); then
+            printf 'rs7_admin has incorrect password\n' >&2
+            exit 1
+          fi
+      changed_when: false
+
+    - name: Test clerver user is in group rodsadmin
+      delegate_to: localhost
+      become: false
+      cyverse.ds.irods_group_member:
+        group: rodsadmin
+        users:
+          - rods
+        state: present
+        host: "{{ groups['irods_catalog'][0] }}"
+        port: 1247
+        admin_user: rods
+        admin_password: rods
+        zone: testing
+      register: resp
+      failed_when: resp.changed
+
+
+    - name: Test initialize resource server connection to catalog service providers
+      ansible.builtin.stat:
+        path: /var/lib/irods/.irods/.irodsA
+      register: response
+      failed_when: not response.stat.exists or response.stat.pw_name != 'irods'
+
+    - name: Verify iRODS running
+      ansible.builtin.import_tasks: tasks/irods/test_running.yml
+
+
+- name: Test storage resource creation
+  ansible.builtin.import_playbook: irods_storage_resources.yml

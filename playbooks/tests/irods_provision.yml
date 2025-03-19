@@ -138,23 +138,3 @@
         - /var/lib/irods
       loop_control:
         loop_var: dir
-
-    - name: Verify default policy files are up-to-date
-      ansible.builtin.command:
-        cmd: cmp --quiet /var/lib/irods/packaging/{{ item }}.template /etc/irods/{{ item }}
-      changed_when: false
-      loop:
-        - core.dvm
-        - core.fnm
-        - core.re
-
-    - name: Verify default policy files ownership and permission
-      ansible.builtin.stat:
-        path: /etc/irods/{{ item }}
-      register: resp
-      failed_when: >-
-        resp.stat.pw_name != 'irods' or resp.stat.gr_name != group_name or not resp.stat.rusr
-      loop:
-        - core.dvm
-        - core.fnm
-        - core.re
