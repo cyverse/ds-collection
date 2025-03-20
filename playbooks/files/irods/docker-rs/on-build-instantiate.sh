@@ -24,7 +24,6 @@
 
 set -o errexit -o nounset -o pipefail
 
-
 main()
 {
   jq_in_place \
@@ -36,11 +35,7 @@ main()
      ) |= \"$IRODS_RES_SERVER\"" \
     /etc/irods/hosts_config.json
 
-  jq_in_place \
-    ".default_resource_directory |= sub(\"_IRODS_STORAGE_RESOURCE_\"; \"$IRODS_STORAGE_RES\") |
-     .default_resource_name      |= \"$IRODS_DEFAULT_RES\" |
-     .zone_user                  |= \"$IRODS_CLERVER_USER\"" \
-    /etc/irods/server_config.json
+  jq_in_place ".zone_user |= \"$IRODS_CLERVER_USER\"" /etc/irods/server_config.json
 
   jq_in_place \
     ".irods_cwd              |= sub(\"_IRODS_USER_NAME_\"; \"$IRODS_CLERVER_USER\") |
@@ -72,7 +67,6 @@ main()
   chown irods:irods /irods_vault/"$IRODS_STORAGE_RES"
 }
 
-
 jq_in_place()
 {
   local filter="$1"
@@ -81,6 +75,5 @@ jq_in_place()
   jq "$filter" "$file" | sponge "$file"
   chown irods:irods "$file"
 }
-
 
 main "$@"
