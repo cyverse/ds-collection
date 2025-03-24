@@ -10,15 +10,6 @@
     - name: Configure iRODS for PIRE
       delegate_to: localhost
       block:
-        - name: Make PIRE resource hierarchy
-          cyverse.ds.irods_resource_hierarchy:
-            hierarchy: "{{ _pire_resource_hierarchy }}"
-            host: "{{ groups['irods_catalog'][0] }}"
-            port: "{{ _irods_zone_port }}"
-            zone: "{{ _irods_zone_name }}"
-            admin_username: "{{ _irods_clerver_user }}"
-            admin_password: "{{ _irods_clerver_password }}"
-
         - name: Create group for PIRE members
           cyverse.ds.irods_group:
             group: pire
@@ -75,3 +66,22 @@
             admin_user: "{{ _irods_clerver_user }}"
             admin_password: "{{ _irods_clerver_password }}"
             zone: "{{ _irods_zone_name }}"
+
+        - name: Make PIRE resource hierarchy
+          cyverse.ds.irods_resource_hierarchy:
+            hierarchy: "{{ _pire_resource_hierarchy }}"
+            host: "{{ groups['irods_catalog'][0] }}"
+            port: "{{ _irods_zone_port }}"
+            zone: "{{ _irods_zone_name }}"
+            admin_username: "{{ _irods_clerver_user }}"
+            admin_password: "{{ _irods_clerver_password }}"
+
+        - name: Bring up PIRE resource
+          cyverse.ds.irods_resource_up:
+            resource: "{{ item.name }}"
+            host: "{{ groups['irods_catalog'][0] }}"
+            port: "{{ _irods_zone_port }}"
+            zone: "{{ _irods_zone_name }}"
+            admin_user: "{{ _irods_clerver_user }}"
+            admin_password: "{{ _irods_clerver_password }}"
+          loop: "{{ _pire_resource_hierarchy.children }}"

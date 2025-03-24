@@ -59,3 +59,19 @@
           set -o pipefail
           ils -A /testing/home/shared/bhpire | sed --quiet 2p | grep --quiet pire_mgr#testing:own
       changed_when: false
+
+    - name: Test bring up pire resource
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit
+          test up = "$(iquest %s "select RESC_STATUS where RESC_NAME = 'pire'")"
+      changed_when: false
+
+    - name: Test bring up pireRes resource
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit
+          test up = "$(iquest %s "select RESC_STATUS where RESC_NAME = 'pireRes'")"
+      changed_when: false
