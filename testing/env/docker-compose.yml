@@ -115,3 +115,4 @@ services:
     hostname: "${ENV_NAME}-consumer_unconfigured-1.${DOMAIN}"
     privileged: true
     tty: true
+    shm_size: 128mb

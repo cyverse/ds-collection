@@ -6,7 +6,7 @@ irods_cfg_agent_factory_watcher_sleep_time: null
 irods_cfg_authentication_file: null
 
 irods_cfg_catalog_provider_hosts:
-  - "{{ inventory_hostname }}"
+  - "{{ irods_cfg_host }}"
 
 irods_cfg_catalog_service_role: provider
 

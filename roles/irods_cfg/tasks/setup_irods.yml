@@ -1,41 +1,72 @@
 ---
-- name: Setup iRODS | Initialize ICAT schema if needed
-  when: irods_cfg_catalog_service_role == 'provider'
-  block:
-    - name: Determine if ICAT schema initialized
-      ansible.builtin.stat:
-        path: "{{ _root_dir }}/var/lib/irods/.odbc.ini"
-      register: odbc
+- name: Determine if already initialized
+  ansible.builtin.stat:
+    path: "{{ _root_dir }}/var/lib/irods/version.json"
+  register: version
 
+- name: Setup iRODS | Initialize ICAT schema if needed
+  when: not version.stat.exists
+  block:
     - name: Load variable values
-      when: not odbc.stat.exists
       ansible.builtin.include_vars: "{{ item }}"
       loop:
         - server_config.yml
         - irods_environment_server.yml
 
     - name: Create setup configuration file
-      when: not odbc.stat.exists
       ansible.builtin.template:
         src: setup_configuration.json.j2
         dest: /tmp/setup_configuration.json
         mode: u+rw
+# XXX - Workaround for https://github.com/irods/irods/issues/8297
+      vars:
+        irods_cfg_default_resource_name: tmp-{{ inventory_hostname_short }}
+# XXX - ^^^
 
-    - name: Initialize ICAT schema
-      when: not odbc.stat.exists
+    - name: Setup iRODS
       ansible.builtin.shell:
         executable: /bin/bash
         cmd: |
           set -o errexit
           python3 /var/lib/irods/scripts/setup_irods.py --stdout --test --verbose \
             --json_configuration_file=/tmp/setup_configuration.json
+          printf '\n' >> /var/lib/irods/.irods/irods_environment.json
           rm --force /var/lib/irods/log/test_mode_output.log /tmp/setup_configuration.json || true
-      register: response
-      changed_when: response.stdout is search('Updating to schema version')
+      register: resp
+      changed_when: resp.stdout is search('Updating /var/lib/irods/version.json')
+
+# XXX - Workaround for https://github.com/irods/irods/issues/8297
+    - name: Fix core.re
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          if grep --quiet 'tmp-{{ inventory_hostname_short }}' /etc/irods/core.re; then
+            sed --in-place \
+              's/tmp-{{ inventory_hostname_short }}/{{ irods_cfg_default_resource_name }}/g' \
+              /etc/irods/core.re
+            echo changed
+          fi
+      register: resp
+      changed_when: resp.stdout == 'changed'
+
+    - name: Delete newly create stub resource
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit
+          export IRODS_HOST='{{ irods_cfg_catalog_provider_hosts[0] }}'
+          if ilsresc 'tmp-{{ inventory_hostname_short }}'; then
+            iadmin rmresc 'tmp-{{ inventory_hostname_short }}'
+            echo changed
+          fi
+      register: resp
+      changed_when: resp.stdout == 'changed'
+# XXX - ^^^
+
   rescue:
-    - name: Ensure .odbc.ini missing on failure
+    - name: Ensure version is missing on failure
       ansible.builtin.file:
-        path: "{{ _root_dir }}/var/lib/irods/.odbc.ini"
+        path: "{{ _root_dir }}/var/lib/irods/version.json"
         state: absent
 
     - name: Fail

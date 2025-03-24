@@ -55,7 +55,7 @@ setup_irods() {
 		echo Ignoring expected failure >&2
 	fi
 
-	rm --force /tmp/resolved_installation.json
+	printf '\n' >> /var/lib/irods/.irods/irods_environment.json
 }
 
 mk_unattended_install() {
@@ -104,7 +104,9 @@ mk_unattended_install() {
 		"default_file_mode": "0600",
 		"default_hash_scheme": "SHA256",
 		"default_resource_name": "$IRODS_DEFAULT_RESOURCE",
-		"environment_variables": {},
+		"environment_variables": {
+			"IRODS_DATABASE_USER_PASSWORD_SALT": "salt"
+		},
 		"federation": [],
 		"host_access_control": { "access_entries": [] },
 		"host_resolution": { "host_entries": [] },

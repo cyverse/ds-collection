@@ -1,0 +1,20 @@
+---
+platforms:
+  - name: centos.localdomain
+    image: centos-archive
+    pre_build_image: false
+    dockerfile: ../_shared/centos.dockerfile
+    hostname: centos.localdomain
+  - name: ubuntu.localdomain
+    image: ubuntu:bionic
+    hostname: ubuntu.localdomain
+provisioner:
+  name: ansible
+  inventory:
+    hosts:
+      all:
+        vars:
+          irods_cfg_validate: true
+        hosts:
+          centos.localdomain:
+            ansible_python_interpreter: /usr/bin/python3

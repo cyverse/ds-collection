@@ -1,0 +1,9 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: molecule/_shared/requirements.yml
+driver:
+  name: docker
+verifier:
+  name: ansible
