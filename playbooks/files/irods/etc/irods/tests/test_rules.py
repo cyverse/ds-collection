@@ -15,52 +15,17 @@ from unittest import TestCase
 
 from paramiko import AutoAddPolicy, SSHClient
 
+from irods.exception import CAT_NO_ROWS_FOUND
 from irods.message import RErrorStack
 from irods.rule import Rule
 from irods.session import iRODSSession
 
 
-#
-# SSH
-#
-
-_ssh: SSHClient
-
-
-def open_ssh(remote_host):
-    """
-    This establishes a global, shared SSH connection.
-
-    Args:
-        remote_host  the catalog provider to connect to
-    """
-    global _ssh  # pylint: disable=[global-statement]
-    _ssh = SSHClient()
-    _ssh.set_missing_host_key_policy(AutoAddPolicy())
-    _ssh.connect(remote_host, password='')
-
-
-def close_ssh():
-    """This closes the global, shared SSH connection."""
-    _ssh.close()  # noqa: F821
-
-
-def tail_rods_log(num_lines: int = 0) -> list[str]:
-    """
-    Reads the last part of the rodsLog on the connected iRODS server.
-
-    Parameters:
-        num_lines  the number of lines to read
-
-    Returns:
-        the last num_lines of the log file
-    """
-    if num_lines <= 0:
-        lines = "+1"
-    else:
-        lines = f"{num_lines}"
-    _, stdout, _ = _ssh.exec_command(f'tail --lines={lines} /var/lib/irods/log/rodsLog.*')  # noqa: E501, F821  # pylint: disable=[line-too-long]
-    return stdout.read().decode().splitlines()
+_IRODS_HOST = environ.get("IRODS_HOST")
+_IRODS_PORT = int(environ.get("IRODS_PORT"))
+_IRODS_ZONE_NAME = environ.get("IRODS_ZONE_NAME")
+_IRODS_USER_NAME = environ.get("IRODS_USER_NAME")
+_IRODS_PASSWORD = environ.get("IRODS_PASSWORD")
 
 
 class IrodsType(Enum):
@@ -218,21 +183,48 @@ class IrodsTestCase(TestCase):
 
     def setUp(self):
         super().setUp()
-        self._irods = iRODSSession(
-            host=environ.get("IRODS_HOST"),
-            port=int(environ.get("IRODS_PORT")),
-            zone=environ.get("IRODS_ZONE_NAME"),
-            user=environ.get("IRODS_USER_NAME"),
-            password=environ.get("IRODS_PASSWORD"))
+        self._irods: iRODSSession = None
+        self._ssh: SSHClient = None
 
     def tearDown(self):
-        self._irods.cleanup()
+        if self._ssh:
+            self._ssh.close()
+        if self._irods:
+            self._irods.cleanup()
         return super().tearDown()
 
     @property
     def irods(self) -> iRODSSession:
         """provides access to an open iRODS session"""
+        if not self._irods:
+            self._irods = iRODSSession(
+                host=_IRODS_HOST,
+                port=_IRODS_PORT,
+                zone=_IRODS_ZONE_NAME,
+                user=_IRODS_USER_NAME,
+                password=_IRODS_PASSWORD)
         return self._irods
+
+    @property
+    def ssh(self) -> SSHClient:
+        """provides access to an open SSH session"""
+        if not self._ssh:
+            self._ssh = SSHClient()
+            self._ssh.set_missing_host_key_policy(AutoAddPolicy())
+            self._ssh.connect(_IRODS_HOST, password='')
+        return self._ssh
+
+    def ensure_obj_absent(self, obj_path: str) -> None:
+        """
+        Ensures that a data object is not in iRODS
+
+        Parameters:
+            obj_path  the absolute path to the data object
+        """
+        try:
+            self.irods.data_objects.unlink(obj_path, force=True)
+        except CAT_NO_ROWS_FOUND:
+            pass
 
     def fn_test(self, fn: str, args: List[IrodsVal], exp_res: IrodsVal) -> None:
         """
@@ -251,7 +243,7 @@ class IrodsTestCase(TestCase):
 
     def _mk_rule(self, logic):
         return Rule(
-            session=self._irods,
+            session=self.irods,
             instance_name='irods_rule_engine_plugin-irods_rule_language-instance',
             body=logic,
             output='ruleExecOut')
@@ -267,3 +259,20 @@ class IrodsTestCase(TestCase):
             raise _RuleExecFailure(err_buf.rstrip(b'\0').decode('utf-8'))
         buf = output.MsParam_PI[0].inOutStruct.stdoutBuf.buf
         return IrodsVal(res_type, buf.rstrip(b'\0').decode('utf-8').rstrip("\n"))
+
+    def tail_rods_log(self, num_lines: int = 0) -> list[str]:
+        """
+        Reads the last part of the rodsLog on the connected iRODS server.
+
+        Parameters:
+            num_lines  the number of lines to read
+
+        Returns:
+            the last num_lines of the log file
+        """
+        if num_lines <= 0:
+            lines = "+1"
+        else:
+            lines = f"{num_lines}"
+        _, stdout, _ = self.ssh.exec_command(f'tail --lines={lines} /var/lib/irods/log/rodsLog.*')
+        return stdout.read().decode().splitlines()

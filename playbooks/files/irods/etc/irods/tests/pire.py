@@ -8,14 +8,12 @@
 
 import unittest
 
-from irods.exception import SYS_INVALID_RESC_INPUT
+from irods.exception import CUT_ACTION_PROCESSED_ERR
 from scp import SCPClient
 
-import test_rules
 from test_rules import IrodsTestCase, IrodsVal
 
 
-@test_rules.unimplemented
 class TestPireIsforpire(IrodsTestCase):
     """Test _pire_isForPIRE"""
 
@@ -38,7 +36,6 @@ class TestPireIsforpire(IrodsTestCase):
                 self.fn_test("_pire_isForPIRE", [p], IrodsVal.boolean(False))
 
 
-@test_rules.unimplemented
 class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
     """
     Test PIRE instance of pep_resource_resolve_hierarchy_pre when the PIRE resource is the same as
@@ -71,8 +68,8 @@ class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
         collection.
         """
         try:
-            self.irods.data_objects.create("/testing/home/shared/bhpire/pire")
-        except SYS_INVALID_RESC_INPUT:
+            self.irods.data_objects.create("/testing/home/shared/bhpire/pire", resource="ingestRes")
+        except CUT_ACTION_PROCESSED_ERR:
             self.fail()
 
     def test_pire_res_not_coll(self):
@@ -81,8 +78,8 @@ class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
         collection.
         """
         try:
-            self.irods.data_objects.create("/testing/home/rods/pire")
-        except SYS_INVALID_RESC_INPUT:
+            self.irods.data_objects.create("/testing/home/rods/pire", resource="ingestRes")
+        except CUT_ACTION_PROCESSED_ERR:
             self.fail()
 
     def test_not_res_pire_coll(self):
@@ -92,7 +89,7 @@ class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
         """
         try:
             self.irods.data_objects.create("/testing/home/rods/other", resource="replRes")
-        except SYS_INVALID_RESC_INPUT:
+        except CUT_ACTION_PROCESSED_ERR:
             self.fail()
 
     def test_not_res_nor_coll(self):
@@ -102,7 +99,7 @@ class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
         """
         try:
             self.irods.data_objects.create("/testing/home/shared/bhpire/other", resource="replRes")
-        except SYS_INVALID_RESC_INPUT:
+        except CUT_ACTION_PROCESSED_ERR:
             self.fail()
 
 
@@ -113,7 +110,13 @@ class TestPepResourceResolveHierarchyPrePireResNotDefault(IrodsTestCase):
     """
 
     def tearDown(self):
-        self.ensure_obj_absent("/testing/home/shared/bhpire/pire")
+        for obj in [
+            "/testing/home/rods/other",
+            "/testing/home/rods/pire",
+            "/testing/home/shared/bhpire/other",
+            "/testing/home/shared/bhpire/pire",
+        ]:
+            self.ensure_obj_absent(obj)
         super().tearDown()
 
     def test_pire_res_and_coll(self):
@@ -123,29 +126,40 @@ class TestPepResourceResolveHierarchyPrePireResNotDefault(IrodsTestCase):
         """
         try:
             self.irods.data_objects.create("/testing/home/shared/bhpire/pire", resource="pireRes")
-        except SYS_INVALID_RESC_INPUT:
+        except CUT_ACTION_PROCESSED_ERR:
             self.fail()
 
-    @unittest.skip
     def test_pire_res_not_coll(self):
         """
         Verify that it forbids upload when PIRE resource is chosen and destination is not a PIRE
         collection.
         """
+        try:
+            self.irods.data_objects.create("/testing/home/rods/pire", resource="pireRes")
+            self.fail()
+        except CUT_ACTION_PROCESSED_ERR:
+            pass
 
-    @unittest.skip
     def test_not_res_pire_coll(self):
         """
         Verify that it allows upload when PIRE resource is not chosen and destination is a PIRE
         collection.
         """
+        try:
+            self.irods.data_objects.create(
+                "/testing/home/shared/bhpire/other", resource="ingestRes")
+        except CUT_ACTION_PROCESSED_ERR:
+            self.fail()
 
-    @unittest.skip
     def test_not_res_nor_coll(self):
         """
         Verify that it allows upload when PIRE resource is not chosen and destination is not a PIRE
         collection.
         """
+        try:
+            self.irods.data_objects.create("/testing/home/rods/other", resource="ingestRes")
+        except CUT_ACTION_PROCESSED_ERR:
+            self.fail()
 
 
 if __name__ == "__main__":
