@@ -75,6 +75,7 @@ install_centos_packages() {
 		iptables-services \
 		jq \
 		libselinux-python \
+		openssh-clients \
 		openssh-server \
 		python3 \
 		python3-dns \
@@ -99,6 +100,7 @@ install_ubuntu_packages() {
 		dmidecode \
 		iproute2 \
 		jq \
+		openssh-client \
 		openssh-server \
 		python3 \
 		python3-apt \
@@ -115,28 +117,6 @@ install_ubuntu_packages() {
 
 	apt-get clean autoclean
 	rm --force --recursive /var/lib/apt/lists/*
-}
-
-update_centos_repo() {
-	cat <<'EOF' > /etc/yum.repos.d/CentOS-Base.repo
-[base]
-name=CentOS-$releasever - Base
-baseurl=http://vault.centos.org/7.9.2009/os/$basearch/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-
-[updates]
-name=CentOS-$releasever - Updates
-baseurl=http://vault.centos.org/7.9.2009/updates/$basearch/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-
-[extras]
-name=CentOS-$releasever - Extras
-baseurl=http://vault.centos.org/7.9.2009/extras/$basearch/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-EOF
 }
 
 update_centos_repo() {
