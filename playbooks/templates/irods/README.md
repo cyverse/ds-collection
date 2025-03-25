@@ -8,5 +8,5 @@ Here are the environment-specific iRODS rule files.
 
 * [cyverse-env.re.j2](etc/irods/cyverse-env.re.j2) is for rules common to CyVerse as a whole.
 * [avra-env.re.j2](etc/irods/avra-env.re.j2) is for the AVRA project.
-* [pire-env.re.j2](etc/irods/pire-env.re.j2) is for the BH-PIRE and EHT projects.
 * [mdrepo-env.re.j2](etc/irods/mdrepo-env.re.j2) is for the MD-Repo service.
+* [pire-env.re.j2](etc/irods/pire-env.re.j2) is for the BH-PIRE and EHT projects.
