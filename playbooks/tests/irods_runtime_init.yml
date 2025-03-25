@@ -5,18 +5,6 @@
   become_user: irods
   run_once: true
   tasks:
-    - name: Test ensure service user type exists
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: |
-          resp = "$(iquest \
-            "select TOKEN_ID
-              where TOKEN_NAMESPACE = 'user_type'
-                and TOKEN_NAME = 'ds-service'
-                and TOKEN_VALUE2 = 'a Data Store service'" )"
-          ! [[ "$resp" =~ ^CAT_NO_ROWS_FOUND ]]
-      changed_when: false
-
     - name: Verify /zone/home/public doesn't exist
       ansible.builtin.shell:
         executable: /bin/bash
@@ -172,3 +160,23 @@
         path: /var/lib/irods/.irods/.a-adm
       register: resp
       failed_when: resp.stat.exists
+
+    - name: Verify that there are no ds-service users
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit
+          resp="$(iquest %s "select count(USER_ID) where USER_TYPE = 'ds-service'" )"
+          (( resp == 0 ))
+      changed_when: false
+
+    - name: Test ensure service user type exists
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit
+          resp="$(iquest %s \
+            "select count(TOKEN_ID)
+             where TOKEN_NAMESPACE = 'user_type' and TOKEN_NAME = 'ds-service'" )"
+          (( resp == 0 ))
+      changed_when: false

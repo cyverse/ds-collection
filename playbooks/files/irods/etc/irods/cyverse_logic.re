@@ -1189,16 +1189,6 @@ cyverse_logic_acSetReServerNumProc {
 	msiSetReServerNumProc(str(cyverse_MAX_NUM_RE_PROCS));
 }
 
-# Create a user for a Data Store service
-#
-# Session Variables:
-#  authFlag
-#
-cyverse_logic_acCreateUser {
-	msiCreateUser ::: msiRollback;
-	msiCommit;
-}
-
 
 #
 # DYNAMIC PEPS
