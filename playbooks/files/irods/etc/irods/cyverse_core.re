@@ -71,17 +71,6 @@ acCreateCollByAdmin(*ParColl, *ChildColl) {
 	cyverse_logic_acCreateCollByAdmin(*ParColl, *ChildColl);
 }
 
-# This rule handles the creation of a ds-service type user.
-#
-# Session Variables:
-#  otherUserType
-#
-acCreateUser {
-	on ($otherUserType == 'ds-service') {
-		cyverse_logic_acCreateUser;
-	}
-}
-
 # This rule applies the project specific data delete policies.
 #
 acDataDeletePolicy {
