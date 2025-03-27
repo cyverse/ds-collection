@@ -4,8 +4,7 @@ These folder contains all of the playbooks used to deploy and configure a CyVers
 
 ## Deployed Artifacts
 
-This section outlines the set of custom logic and configuration files that are deployed by these
-playbooks.
+This section outlines the set of custom logic and configuration files that are deployed by these playbooks.
 
 ### iRODS
 
