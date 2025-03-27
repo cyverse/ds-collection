@@ -6,7 +6,7 @@
 @include 'pire-env'
 
 
-_pire_isForPIRE(*Path) =
+_pire_isForPire(*Path) =
 	let *strPath = str(*Path)
 	in *strPath like str(pire_PROJECT_BASE_COLL) ++ '/*' ||
 		*strPath like str(pire_PUBLIC_BASE_COLL) ++ '/*'
@@ -22,7 +22,7 @@ _pire_isForPIRE(*Path) =
 #  true if the collection or data object belongs to the project, otherwise false
 #
 pire_replBelongsTo : path -> boolean
-pire_replBelongsTo(*Entity) = _pire_isForPIRE(*Entity)
+pire_replBelongsTo(*Entity) = _pire_isForPire(*Entity)
 
 
 # Returns the resource where newly ingested files will be stored
@@ -51,24 +51,24 @@ pire_replReplResc = pire_replIngestResc
 # Restrict the PIRE resource to files in the PIRE collection
 #
 # Parameters:
-#  INSTANCE   (string) unused
-#  CONTEXT    (`KeyValuePair_PI`) the resource plugin context
-#  OUT        (`KeyValuePair_PI`) unused
-#  OPERATION  (string) unused
-#  HOST       (string) unused
-#  PARSER     (`KeyValuePair_PI`) unused
-#  VOTE       (float) unused
+#  Instance  (string) unused
+#  Context   (`KeyValuePair_PI`) the resource plugin Context
+#  OUT       (`KeyValuePair_PI`) unused
+#  Op        (string) unused
+#  Host      (string) unused
+#  PARSER    (`KeyValuePair_PI`) unused
+#  VOTE      (float) unused
 #
 # Error Codes:
 #  -32000 (SYS_INVALID_RESC_INPUT)  this is returned when an attempt is made to
 #                                   store an unauthorized file on the PIRE
 #                                   resource.
 #
-pep_resource_resolve_hierarchy_pre(*INSTANCE, *CONTEXT, *OUT, *OPERATION, *HOST, *PARSER, *VOTE) {
+pep_resource_resolve_hierarchy_pre(*Instance, *Context, *OUT, *Op, *Host, *PARSER, *VOTE) {
 	on (
 		pire_RESC != cyverse_DEFAULT_RESC
-		&& *CONTEXT.resc_hier == pire_RESC
-		&& !_pire_isForPIRE(*CONTEXT.logical_path)
+		&& *Context.resc_hier == pire_RESC
+		&& !_pire_isForPire(*Context.logical_path)
 	) {
 		*msg = 'CYVERSE ERROR: ' ++ pire_RESC ++ ' usage is limited to the EHT collection, '
 			++ str(pire_PUBLIC_BASE_COLL);
