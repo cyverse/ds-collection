@@ -1,12 +1,17 @@
 # Data Store Deployment
 
-<!-- TODO: introduce this file -->
+These folder contains all of the playbooks used to deploy and configure a CyVerse Data Store.
 
-## iRODS
+## Deployed Artifacts
+
+This section outlines the set of custom logic and configuration files that are deployed by these
+playbooks.
+
+### iRODS
 
 Here are the files used to configure iRODS.
 
-### Command Scripts
+#### Command Scripts
 
 Here are the command scripts executable through the `msiExecCmd` microservice. Only the general purpose ones are here. The ones used by optional components of the Data Store are stored elsewhere.
 
@@ -17,7 +22,7 @@ Here are the command scripts executable through the `msiExecCmd` microservice. O
 * [imeta-exec](files/irods/var/lib/irods/msiExecCmd_bin/imeta-exec) calls imeta.
 * [send-mail](files/irods/var/lib/irods/msiExecCmd_bin/send-mail) sends an email message.
 
-### Rule Bases
+#### Rule Bases
 
 Here are the iRODS rule files.
 
