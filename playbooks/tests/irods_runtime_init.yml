@@ -170,7 +170,7 @@
           (( resp == 0 ))
       changed_when: false
 
-    - name: Test ensure service user type exists
+    - name: Test ensure service user type doesn't exist
       ansible.builtin.shell:
         executable: /bin/bash
         cmd: |
