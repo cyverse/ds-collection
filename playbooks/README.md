@@ -1,86 +1,45 @@
-# CyVerse DS Playbooks
+# Data Store Deployment
 
-This is a collection of playbooks for maintaining CyVerse's Data Store.
+These folder contains all of the playbooks used to deploy and configure a CyVerse Data Store.
 
-## Prerequisites
+## Deployed Artifacts
 
-Only Ubuntu 22.04 is supported at this time.
+This section outlines the set of custom logic and configuration files that are deployed by these
+playbooks.
 
-The following actions need to be performed once for the admin host.
+### iRODS
 
-1. The Docker package repository needs to be configured on development machines and Ansible control nodes. Do the following.
+Here are the files used to configure iRODS.
 
-   ```shell
-   sudo apt install ca-certificates curl gnupg lsb-release
-   sudo mkdir --parents /etc/apt/keyrings
-   curl --fail --location --silent --show-error https://download.docker.com/linux/ubuntu/gpg \
-      | sudo gpg --dearmor --output /etc/apt/keyrings/docker.gpg
-   echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] \
-         https://download.docker.com/linux/ubuntu \
-         $(lsb_release --codename --short) stable" \
-      | sudo tee /etc/apt/sources.list.d/docker.list
-   sudo apt update
-   ```
+#### Command Scripts
 
-1. The following system packages need to be installed on development machines and Ansible control nodes.
+Here are the command scripts executable through the `msiExecCmd` microservice. Only the general purpose ones are here. The ones used by optional components of the Data Store are stored elsewhere.
 
-   * dmidecode
-   * docker-ce
-   * docker-compose-plugin
-   * git
-   * jq
-   * python-is-python3
-   * python3
-   * python3-pip
-   * rpm
+* [amqp-topic-send](files/irods/var/lib/irods/msiExecCmd_bin/amqp-topic-send) publishes audit messages to a RabbitMQ broker.
+* [correct-size](files/irods/var/lib/irods/msiExecCmd_bin/correct-size) fixes data object replica sizes as a workaround for <https://github.com/irods/irods/issues/5160>. _Once this issue is fixed, this should be removed._
+* [delete-scheduled-rule](files/irods/var/lib/irods/msiExecCmd_bin/delete-scheduled-rule) removes a rule execution from the rule queue.
+* [generate-uuid](files/irods/var/lib/irods/msiExecCmd_bin/generate-uuid) generates a time-based UUID.
+* [imeta-exec](files/irods/var/lib/irods/msiExecCmd_bin/imeta-exec) calls imeta.
+* [send-mail](files/irods/var/lib/irods/msiExecCmd_bin/send-mail) sends an email message.
 
-   ```shell
-   sudo apt install \
-      dmidecode docker-ce docker-compose-plugin git jq python-is-python3 python3 python3-pip rpm
-   ```
+#### Rule Bases
 
-1. The docker service needs to be started.
+Here are the iRODS rule files.
 
-   ```shell
-   sudo systemctl enable docker
-   sudo systemctl start docker
-   ```
-
-The following actions need to be performed for each person who will be developing or deploying the Data Store.
-
-1. The person needs to be added to the `docker` group. The following assumes the person's username is `DEVELOPER`.
-
-   ```shell
-   sudo usermod --append --groups docker DEVELOPER
-   ```
-
-1. The following python packages need to be installed on the development machines and Ansible control nodes using `pip`.
-
-   * ansible-core!=2.17.0
-   * ansible-lint
-   * dnspython
-   * docker
-   * molecule
-   * molecule-plugins\[podman\]
-   * netaddr
-   * pika>1.2
-   * python-irodsclient<2
-   * wheel
-
-   This is encapsulated in the file [requirements-python.txt](./requirements-python.txt).
-
-   ```shell
-   pip install --requirement requirements-python.txt
-   ```
-
-   > [!NOTE]
-   > Due to a bug in the version of `crun` that ships with Ubuntu 22.04, `podman` can't start systemd containers. See <https://noobient.com/2023/11/15/fixing-ubuntu-containers-failing-to-start-with-systemd/> for the work around.
-
-1. Finally, the required ansible collections and roles need to be installed. This can be done by running the [init-ansible](./init-ansible) script.
-
-   ```shell
-   ./init-ansible
-   ```
-
-> [!IMPORTANT]
-> All VMs (including the Ansible Control Node, if that is a VM) shall install `rng-tools` using the playbook in `admin` directory called `install_rng_tools.yml`. This ensures that ansible tasks have efficient entropy in generating random numbers, preventing unexpected pauses in deployment.
+* [cyverse.re](files/irods/etc/irods/cyverse.re) hold shared logic callable from other rule bases.
+* [cyverse-env.re](templates/irods/etc/irods/cyverse-env.re.j2) is for environment-dependent constants common to CyVerse as a whole.
+* [cyverse_core.re](files/irods/etc/irods/cyverse_core.re) acts as a switchyard for PEPs, deferring to other rule bases for actual implementations.
+* [ipc-encryption.re](files/irods/etc/irods/ipc-encryption.re) has the encryption enforcement logic.
+* [cyverse_json.re](files/irods/etc/irods/cyverse_json.re) provides the logic for creating JSON documents.
+* [ipc-repl.re](files/irods/etc/irods/ipc-repl.re) has the resource determination and asynchronous replication logic.
+* [ipc-trash.re](files/irods/etc/irods/ipc-trash.re) has the trash timestamp management logic.
+* [cyverse_logic.re](files/irods/etc/irods/cyverse_logic.re) has the CyVerse policy logic not implemented in another rule base.
+* [cyverse_housekeeping.re](files/irods/etc/irods/cyverse_housekeeping.re) provides the logic for the periodically run asynchronous tasks.
+* [cve.re](files/irods/etc/irods/cve.re) are workarounds for iRODS CVEs.
+* [avra.re](files/irods/etc/irods/avra.re) is for the AVRA project.
+* [avra-env.re](templates/irods/etc/irods/avra-env.re.j2) is environment dependent AVRA constants.
+* [coge.re](files/irods/etc/irods/coge.re) is for the CoGe service.
+* [mdrepo.re](files/irods/etc/irods/mdrepo.re) is for the MD-Repo service.
+* [mdrepo-env.re](templates/irods/etc/irods/mdrepo-env.re.j2) is for environment dependent MD-Repo constants.
+* [pire.re](files/irods/etc/irods/pire.re) is for the BH-PIRE and EHT projects.
+* [pire-env.re](templates/irods/etc/irods/pire-env.re.j2) is for the environment dependent constants for the BH-PIRE and EHT projects.

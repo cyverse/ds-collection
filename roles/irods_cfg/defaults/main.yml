@@ -66,7 +66,19 @@ irods_cfg_home: "{{ _home_default | d(omit) }}"
 irods_cfg_host: "{{ inventory_hostname }}"
 irods_cfg_host_entries: []
 
-irods_cfg_log_level: {}
+irods_cfg_log_level:
+  agent: info
+  agent_factory: info
+  api: info
+  authentication: info
+  database: info
+  delay_server: info
+  legacy: info
+  microservice: info
+  network: info
+  resource: info
+  rule_engine: info
+  server: info
 
 irods_cfg_match_hash_policy: "{{ _match_hash_policy_default | d(none) }}"
 
