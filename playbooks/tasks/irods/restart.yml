@@ -1,5 +1,17 @@
 ---
 # restart_op  the type of restart to perform, either `always` or `if running`
+
+- name: Initialized test logging
+  ansible.builtin.set_fact:
+    _test_log: true
+
+- name: Disable test logging when not testing
+  ansible.builtin.set_fact:
+    _test_log: false
+  tags:
+    - no_testing
+
+
 - name: Restart iRODS | determine is iRODS configured
   when: restart_op != 'always'
   ansible.builtin.stat:
@@ -23,6 +35,7 @@
       become_user: "{{ _irods_service_account_name }}"
       cyverse.ds.irods_ctl:
         state: "{{ 'restarted' if restart_op == 'always' else 'restarted_if_running' }}"
+        test_log: "{{ _test_log }}"
 
     - name: Start catalog service consumers
       when: >-
@@ -32,3 +45,4 @@
       become_user: "{{ _irods_service_account_name }}"
       cyverse.ds.irods_ctl:
         state: started
+        test_log: "{{ _test_log }}"

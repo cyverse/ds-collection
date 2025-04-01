@@ -73,4 +73,6 @@ RUN \
 	rm --force --recursive /var/cache/yum
 EOF
 
+COPY irods-provider/config/profile-irods.sh /etc/profile.d/irods.sh
+
 CMD [ "/service.sh" ]
