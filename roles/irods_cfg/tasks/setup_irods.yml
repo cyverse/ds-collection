@@ -28,12 +28,13 @@
         executable: /bin/bash
         cmd: |
           set -o errexit
-          python3 /var/lib/irods/scripts/setup_irods.py --stdout --test --verbose \
+          python3 /var/lib/irods/scripts/setup_irods.py --stdout --verbose \
             --json_configuration_file=/tmp/setup_configuration.json
           printf '\n' >> /var/lib/irods/.irods/irods_environment.json
           rm --force /var/lib/irods/log/test_mode_output.log /tmp/setup_configuration.json || true
       register: resp
       changed_when: resp.stdout is search('Updating /var/lib/irods/version.json')
+      failed_when: resp is failed and resp.stderr is not search ('Post-install test failed')
 
 # XXX - Workaround for https://github.com/irods/irods/issues/8297
     - name: Fix core.re
