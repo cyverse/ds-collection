@@ -12,4 +12,6 @@ RUN \
 	--mount=target=/tmp/prep-svc-script,source=irods-consumer/scripts/prep-svc-script.sh \
 	/tmp/prep-svc-script
 
+COPY irods-provider/config/profile-irods.sh /etc/profile.d/irods.sh
+
 CMD [ "/service.sh" ]

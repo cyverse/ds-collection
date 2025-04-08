@@ -5,11 +5,6 @@
   become_user: "{{ _irods_service_account_name }}"
   run_once: true
   tasks:
-    - name: Ensure service user type exists
-      cyverse.ds.irods_user_type:
-        type: ds-service
-        description: a Data Store service
-
     - name: Ensure public group's home is correct
       become: false
       delegate_to: localhost
@@ -185,3 +180,39 @@
             executable: /bin/bash
             cmd: iexit -f
           changed_when: false
+
+    - name: Find ds-service type users
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit
+          resp="$(iquest --no-page %s "select USER_NAME where USER_TYPE = 'ds-service'" )" || true
+          if [[ "$resp" =~ ^CAT_NO_ROWS_FOUND ]]; then
+            exit 0
+          fi
+          readarray -t users <<< "$resp"
+          for user in "${users[@]}"; do
+            iadmin moduser "$user" type rodsuser
+            pubResp="$(iquest %s \
+              "select count(USER_ID) where USER_GROUP_NAME = 'public' and USER_NAME ='$user'" )"
+            if (( pubResp == 0 )); then
+              iadmin atg public "$user"
+            fi
+            for coll \
+              in "/{{ _irods_zone_name }}/home/$user" "/{{ _irods_zone_name }}/trash/home/$user"
+            do
+              if ! ils "$coll"; then
+                imkdir "$coll"
+                ichmod -M own "$user" "$coll"
+                ichmod -M null '{{ _irods_clerver_user }}' "$coll"
+              fi
+            done
+          done > /dev/null
+          echo changed
+      register: resp
+      changed_when: resp.stdout == 'changed'
+
+    - name: Ensure service user type doesn't exist
+      cyverse.ds.irods_user_type:
+        type: ds-service
+        state: absent

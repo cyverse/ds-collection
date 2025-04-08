@@ -22,7 +22,7 @@
     mode: u+r
     backup: true
   notify:
-    - Changed config
+    - Restart iRODS
 
 - name: Cfg_template | ensure system account owns file
   ansible.builtin.include_tasks: _system_account_own.yml

@@ -21,60 +21,61 @@
 set -o errexit -o nounset -o pipefail
 
 main() {
-  if [ "$#" -lt 1 ]
-  then
-    printf 'Requires either "start" or "stop" as its first parameter\n' >&2
-    return 1
-  fi
+	if [ "$#" -lt 1 ]
+	then
+		printf 'Requires either "start" or "stop" as its first parameter\n' >&2
+		return 1
+	fi
 
-  local action="$1"
+	local action="$1"
 
-  case "$action" in
-    start)
-      start
-      ;;
-    stop)
-      stop
-      ;;
-    *)
-      printf 'Unknown command "%s"\n' "$action" >&2
-      return 1
-      ;;
-  esac
+	case "$action" in
+		start)
+			start
+			;;
+		stop)
+			stop
+			;;
+		*)
+			printf 'Unknown command "%s"\n' "$action" >&2
+			return 1
+			;;
+	esac
 }
 
 start() {
-  # Ensure that the correct user owns everything in /var/lib/irods and /etc/irods
-  # If this isn't done, some of the ansible ownership tests will fail.
-  if [ -e /var/lib/irods/.irods/irods_environment.json ]
-  then
-    until exec 3<> /dev/tcp/"$DBMS_HOST"/"$DBMS_PORT"
-    do
-      printf 'Waiting for DBMS\n'
-      sleep 1
-    done 2> /dev/null
+	# Ensure that the correct user owns everything in /var/lib/irods and
+	# /etc/irods. If this isn't done, some of the ansible ownership tests will
+	# fail.
+	if [ -e /var/lib/irods/.irods/irods_environment.json ]
+	then
+		until exec 3<> /dev/tcp/"$DBMS_HOST"/"$DBMS_PORT"
+		do
+			printf 'Waiting for DBMS\n'
+			sleep 1
+		done 2> /dev/null
 
-    exec 3<&-
-    exec 3>&-
+		exec 3<&-
+		exec 3>&-
 
-    printf 'Starting iRODS catalog provider service\n'
-    if ! sudo --login --user "$IRODS_SYSTEM_USER" /var/lib/irods/irodsctl --test start
-    then
-      printf 'Failed to start service\n'
-      cat /var/lib/irods/log/control_log.txt
-      return 1
-    fi
+		printf 'Starting iRODS catalog provider service\n'
+		if ! sudo --login --user "$IRODS_SYSTEM_USER" /var/lib/irods/irodsctl --test start
+		then
+			printf 'Failed to start service\n'
+			cat /var/lib/irods/log/control_log.txt
+			return 1
+		fi
 
-    touch /var/lock/subsys/irods
-  fi
+		touch /var/lock/subsys/irods
+	fi
 }
 
 stop() {
-  if sudo --login --user  "$IRODS_SYSTEM_USER"  imiscsvrinfo >& /dev/null
-  then
-    sudo  --login --user  "$IRODS_SYSTEM_USER" /var/lib/irods/irodsctl stop
-    rm /var/lock/subsys/irods
-  fi
+	if sudo --login --user  "$IRODS_SYSTEM_USER"  imiscsvrinfo >& /dev/null
+	then
+		sudo  --login --user  "$IRODS_SYSTEM_USER" /var/lib/irods/irodsctl stop
+		rm /var/lock/subsys/irods
+	fi
 }
 
 main "$@"

@@ -4,7 +4,10 @@
 {% if irods_cfg_default_resource_directory %}
     "default_resource_directory": "{{ irods_cfg_default_resource_directory }}",
 {% endif %}
-    "default_resource_name": "{{ irods_cfg_default_resource_name }}",
+{# XXX - Workaround for  https://github.com/irods/irods/issues/8297
+    "default_resource_name": "{{ irods_cfg_default_resource_name }}", #}
+    "default_resource_name": "tmp-{{ inventory_hostname_short }}",
+{# XXX - ^^^ #}
     "host_system_information": {
         "service_account_user_name": "{{ irods_cfg_system_account_name }}",
         "service_account_group_name": "{{ irods_cfg_system_group_name }}"
