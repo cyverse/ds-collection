@@ -236,56 +236,53 @@
           - irods_environment.irods_default_hash_scheme == 'MD5'
           - irods_environment.irods_default_resource == 'ingestRes'
 
-    - name: Test catalog provider specific configuration
-      when: inventory_hostname in groups['irods_catalog']
-      block:
-        - name: Retrieve encoded server_config.json
-          ansible.builtin.slurp:
-            src: /etc/irods/server_config.json
-          register: sc_encoded
+    - name: Retrieve encoded server_config.json
+      ansible.builtin.slurp:
+        src: /etc/irods/server_config.json
+      register: sc_encoded
 
-        - name: Decode server_config.json
-          ansible.builtin.set_fact:
-            server_config: "{{ sc_encoded.content | b64decode }}"
+    - name: Decode server_config.json
+      ansible.builtin.set_fact:
+        server_config: "{{ sc_encoded.content | b64decode }}"
 
-        - name: Verify server_config.json has correct contents
-          ansible.builtin.assert:
-            that:
-              - server_config.advanced_settings.default_number_of_transfer_threads == 4
-              - server_config.advanced_settings.number_of_concurrent_delay_rule_executors == 4
-              - server_config.advanced_settings.transfer_buffer_size_for_parallel_transfer_in_megabytes == 4
-              - server_config.catalog_provider_hosts | length == 1
-              - server_config.catalog_provider_hosts[0] == inventory_hostname
-              - server_config.catalog_service_role == 'provider'
-              - server_config.default_dir_mode == '0750'
-              - server_config.default_file_mode == '0600'
-              - server_config.default_hash_scheme == 'MD5'
-              - server_config.environment_variables.IRODS_DATABASE_USER_PASSWORD_SALT == 'salt'
-              - server_config.environment_variables.IRODS_AMQP_URI == "amqp://amqp_admin:password@dstesting-amqp-1.dstesting_default:5672/%2F"
-              - server_config.federation | length == 2
-              - server_config.federation[0].catalog_provider_hosts | length == 2
-              - server_config.federation[0].catalog_provider_hosts[0] == '128.196.65.155'
-              - server_config.federation[0].negotiation_key == 'FAKE___32_byte_negotiation_key_1'
-              - server_config.federation[0].zone_key == 'FAKE_zone_key_1'
-              - server_config.federation[0].zone_name == 'cyverse.dev'
-              - server_config.negotiation_key == 'TEMPORARY_32byte_negotiation_key'
-              - server_config.plugin_configuration.database.postgres.db_host == 'dstesting-dbms_configured-1.dstesting_default'
-              - server_config.plugin_configuration.database.postgres.db_password == 'testpassword'
-              - server_config.plugin_configuration.database.postgres.db_port == 5432
-              - server_config.plugin_configuration.database.postgres.db_username == 'irods'
-              - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set | length == 4
-              - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[0] == 'cve'
-              - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[1] == 'cyverse_core'
-              - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[2] == 'cyverse_housekeeping'
-              - server_config.schema_validation_base_uri == 'file:///var/lib/irods/configuration_schemas'
-              - server_config.server_control_plane_key == 'TEMPORARY__32byte_ctrl_plane_key'
-              - server_config.server_control_plane_port == 1248
-              - server_config.server_port_range_end == 19999
-              - server_config.server_port_range_start == 19990
-              - server_config.zone_key == 'TEMPORARY_zone_key'
-              - server_config.zone_name == 'testing'
-              - server_config.zone_port == 1247
-              - server_config.zone_user == 'rods'
+    - name: Verify server_config.json has correct contents
+      ansible.builtin.assert:
+        that:
+          - server_config.advanced_settings.default_number_of_transfer_threads == 4
+          - server_config.advanced_settings.number_of_concurrent_delay_rule_executors == 4
+          - server_config.advanced_settings.transfer_buffer_size_for_parallel_transfer_in_megabytes == 4
+          - server_config.catalog_provider_hosts | length == 1
+          - server_config.catalog_provider_hosts[0] == inventory_hostname
+          - server_config.catalog_service_role == 'provider'
+          - server_config.default_dir_mode == '0750'
+          - server_config.default_file_mode == '0600'
+          - server_config.default_hash_scheme == 'MD5'
+          - server_config.environment_variables.IRODS_DATABASE_USER_PASSWORD_SALT == 'salt'
+          - server_config.environment_variables.IRODS_AMQP_URI == "amqp://amqp_admin:password@dstesting-amqp-1.dstesting_default:5672/%2F"
+          - server_config.federation | length == 2
+          - server_config.federation[0].catalog_provider_hosts | length == 2
+          - server_config.federation[0].catalog_provider_hosts[0] == '128.196.65.155'
+          - server_config.federation[0].negotiation_key == 'FAKE___32_byte_negotiation_key_1'
+          - server_config.federation[0].zone_key == 'FAKE_zone_key_1'
+          - server_config.federation[0].zone_name == 'cyverse.dev'
+          - server_config.negotiation_key == 'TEMPORARY_32byte_negotiation_key'
+          - server_config.plugin_configuration.database.postgres.db_host == 'dstesting-dbms_configured-1.dstesting_default'
+          - server_config.plugin_configuration.database.postgres.db_password == 'testpassword'
+          - server_config.plugin_configuration.database.postgres.db_port == 5432
+          - server_config.plugin_configuration.database.postgres.db_username == 'irods'
+          - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set | length == 4
+          - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[0] == 'cve'
+          - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[1] == 'cyverse_core'
+          - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[2] == 'cyverse_housekeeping'
+          - server_config.schema_validation_base_uri == 'file:///var/lib/irods/configuration_schemas'
+          - server_config.server_control_plane_key == 'TEMPORARY__32byte_ctrl_plane_key'
+          - server_config.server_control_plane_port == 1248
+          - server_config.server_port_range_end == 19999
+          - server_config.server_port_range_start == 19990
+          - server_config.zone_key == 'TEMPORARY_zone_key'
+          - server_config.zone_name == 'testing'
+          - server_config.zone_port == 1247
+          - server_config.zone_user == 'rods'
 
     - name: Test iRODS running
       ansible.builtin.import_tasks: tasks/irods/test_running.yml
