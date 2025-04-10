@@ -1,5 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+#
+# Copyright: © 2025, The Arizona Board of Regents
+# Standard BSD License | CyVerse (see https://cyverse.org/license)
 
 """
 Provides an ansible module for adding and removing users from an iRODS group.
@@ -16,7 +19,7 @@ ANSIBLE_METADATA = {
 
 DOCUMENTATION = """
 ---
-module: irods_group_member
+module: cyverse.ds.irods_group_member
 
 short_description: Add/Remove user from iRODS group
 

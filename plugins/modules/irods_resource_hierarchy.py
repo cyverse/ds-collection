@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+#
 # © 2024 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
@@ -21,7 +21,7 @@ from irods.session import iRODSSession
 
 DOCUMENTATION = r'''
 ---
-module: irods_resource_hierarchy
+module: cyverse.ds.irods_resource_hierarchy
 
 short_description: This module modifies an iRODS resource hierarchy.
 
