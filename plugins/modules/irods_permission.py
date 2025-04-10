@@ -21,9 +21,10 @@ from irods.models import Collection, CollectionAccess, DataObject, DataAccess, U
 from irods.query import SpecificQuery
 from irods.session import iRODSSession
 
+
 DOCUMENTATION = r'''
 ---
-module: irods_permission
+module: cyverse.ds.irods_permission
 
 short_description: This module modifies iRODS ACLs.
 

@@ -15,9 +15,10 @@ from irods.exception import CAT_INVALID_AUTHENTICATION, ResourceDoesNotExist
 from irods.resource import iRODSResource
 from irods.session import iRODSSession
 
+
 DOCUMENTATION = r'''
 ---
-module: irods_resource_up
+module: cyverse.ds.irods_resource_up
 
 short_description: Change status of resource and parents to "up"
 

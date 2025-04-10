@@ -11,9 +11,10 @@ from subprocess import CalledProcessError
 
 from ansible.module_utils.basic import AnsibleModule
 
+
 DOCUMENTATION = r'''
 ---
-module: irods_ctl
+module: cyverse.ds.irods_ctl
 
 short_description: an ansible module for controlling the iRODS server processes
 

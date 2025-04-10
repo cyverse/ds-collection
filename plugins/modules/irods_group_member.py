@@ -1,5 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
+#
+# Copyright: © 2025, The Arizona Board of Regents
+# Standard BSD License | CyVerse (see https://cyverse.org/license)
 
 """
 Provides an ansible module for adding and removing users from an iRODS group.
@@ -8,15 +11,10 @@ Provides an ansible module for adding and removing users from an iRODS group.
 import ssl
 from ansible.module_utils.basic import AnsibleModule
 
-ANSIBLE_METADATA = {
-    "metadata_version": "1.1",
-    "status": ["preview"],
-    "supported_by": "community"
-}
 
 DOCUMENTATION = """
 ---
-module: irods_group_member
+module: cyverse.ds.irods_group_member
 
 short_description: Add/Remove user from iRODS group
 
@@ -334,7 +332,7 @@ class IRODSGroupModule:
             # A broad catch on all exception type that could be raised by the
             # call to irods module, since the possible exception types are
             # not well documented.
-            self._fail("Unable to query user memebership in irods group {}".format(group_name), exc)
+            self._fail("Unable to query user membership in irods group {}".format(group_name), exc)
 
     def _group_exist(self, group_name):
         """
@@ -353,12 +351,14 @@ class IRODSGroupModule:
             # not well documented.
             self._fail("Unable to query irods group {}".format(group_name), exc)
 
+
 def main():
     """
     Entrypoint for the ansible module
     """
     module = IRODSGroupModule()
     module.run()
+
 
 if __name__ == "__main__":
     main()

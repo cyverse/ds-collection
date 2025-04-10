@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-
+#
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
@@ -19,7 +19,7 @@ from ansible.module_utils.basic import AnsibleModule
 
 DOCUMENTATION = r'''
 ---
-module: irods_user
+module: cyverse.ds.irods_user
 
 short_description: This module manages iRODS users.
 
