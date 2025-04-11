@@ -11,8 +11,13 @@
       changed_when: true
       tags: non_idempotent
 
+    - name: Remove test log
+      ansible.builtin.command: rm --force /var/lib/irods/log/test_mode_output.log
+      changed_when: true
+      tags: non_idempotent
+
   tasks:
-    - name: Verify restart starts stopped service
+    - name: Verify restart starts stopped service without test log
       tags: non_idempotent
       block:
         - name: Restart stopped service
@@ -29,10 +34,50 @@
               /var/lib/irods/irodsctl status | grep --quiet irodsServer
           changed_when: false
 
+        - name: Verify there is no test log
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: test ! -f /var/lib/irods/log/test_mode_output.log
+          changed_when: false
+
         - name: Stop service again
           ansible.builtin.shell:
             executable:  /bin/bash
             cmd: /var/lib/irods/irodsctl stop
+          changed_when: true
+
+    - name: Verify restart starts stopped service with test log
+      tags: non_idempotent
+      block:
+        - name: Restart stopped service
+          cyverse.ds.irods_ctl:
+            state: restarted
+            test_log: true
+          register: resp
+          failed_when: resp is not changed
+
+        - name: Verify service started
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o pipefail
+              /var/lib/irods/irodsctl status | grep --quiet irodsServer
+          changed_when: false
+
+        - name: Verify there is a test log
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: test -f /var/lib/irods/log/test_mode_output.log
+          changed_when: false
+
+        - name: Stop service again
+          ansible.builtin.shell:
+            executable:  /bin/bash
+            cmd: /var/lib/irods/irodsctl stop
+          changed_when: true
+
+        - name: Remove test log
+          ansible.builtin.command: rm --force /var/lib/irods/log/test_mode_output.log
           changed_when: true
 
     - name: Test restarted_if_running when not running
@@ -52,7 +97,7 @@
               /var/lib/irods/irodsctl status | grep --quiet 'No iRODS servers running'
           changed_when: false
 
-    - name: Start stopped service
+    - name: Start stopped service without test log
       cyverse.ds.irods_ctl:
         state: started
 
@@ -64,7 +109,15 @@
           /var/lib/irods/irodsctl status | grep --quiet irodsServer
       changed_when: false
 
-    - name: Restart service
+    - name: Verify there is no test log
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: test ! -f /var/lib/irods/log/test_mode_output.log
+      changed_when: false
+
+    # TODO: test start stopped service with test log
+
+    - name: Restart service without test log
       tags: non_idempotent
       block:
         - name: Restart service
@@ -81,7 +134,49 @@
               /var/lib/irods/irodsctl status | grep --quiet irodsServer
           changed_when: false
 
-    - name: Test restarted_if_running when running
+        - name: Verify there is no test log
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: test ! -f /var/lib/irods/log/test_mode_output.log
+          changed_when: false
+
+    - name: Restart service with test log
+      tags: non_idempotent
+      block:
+        - name: Restart service
+          cyverse.ds.irods_ctl:
+            state: restarted
+            test_log: true
+          register: resp
+          failed_when: resp is not changed
+
+        - name: Verify service is started
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o pipefail
+              /var/lib/irods/irodsctl status | grep --quiet irodsServer
+          changed_when: false
+
+        - name: Verify there is a test log
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: test -f /var/lib/irods/log/test_mode_output.log
+          changed_when: false
+
+        - name: Restart service again without test log
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o pipefail
+              /var/lib/irods/irodsctl restart
+          changed_when: true
+
+        - name: Remove test log
+          ansible.builtin.command: rm --force /var/lib/irods/log/test_mode_output.log
+          changed_when: true
+
+    - name: Test restarted_if_running when running without test log
       tags: non_idempotent
       block:
         - name: Restart service if running
@@ -98,9 +193,89 @@
               /var/lib/irods/irodsctl status | grep --quiet irodsServer
           changed_when: false
 
+        - name: Verify there is no test log
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: test ! -f /var/lib/irods/log/test_mode_output.log
+          changed_when: false
+
+    - name: Test restarted_if_running when running with test log
+      tags: non_idempotent
+      block:
+        - name: Restart service if running
+          cyverse.ds.irods_ctl:
+            state: restarted_if_running
+            test_log: true
+          register: resp
+          failed_when: resp is not changed
+
+        - name: Verify service is running
+          ansible.builtin.shell:
+            executable:  /bin/bash
+            cmd: |
+              set -o pipefail
+              /var/lib/irods/irodsctl status | grep --quiet irodsServer
+          changed_when: false
+
+        - name: Verify there is a test log
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: test -f /var/lib/irods/log/test_mode_output.log
+          changed_when: false
+
+        - name: Restart service again without test log
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o pipefail
+              /var/lib/irods/irodsctl restart
+          changed_when: true
+
+        - name: Remove test log
+          ansible.builtin.command: rm --force /var/lib/irods/log/test_mode_output.log
+          changed_when: true
+
+
+- name: Test irods_ctl start with test log
+  hosts: dstesting-consumer_configured_centos-1.dstesting_default
+  become: true
+  become_user: irods
+  pre_tasks:
+    - name: Ensure stopped
+      ansible.builtin.shell:
+        executable:  /bin/bash
+        cmd: /var/lib/irods/irodsctl stop
+      changed_when: true
+      tags: non_idempotent
+
+    - name: Remove test log
+      ansible.builtin.command: rm --force /var/lib/irods/log/test_mode_output.log
+      changed_when: true
+      tags: non_idempotent
+
+  tasks:
+    - name: Start service with test log
+      cyverse.ds.irods_ctl:
+        state: started
+        test_log: true
+
+    - name: Verify service is started
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          /var/lib/irods/irodsctl status | grep --quiet irodsServer
+      changed_when: false
+
+    - name: Verify there is a test log
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: test -f /var/lib/irods/log/test_mode_output.log
+      changed_when: false
+
 
 - name: Test irods_ctl stop
-  hosts: irods_resource
+  hosts: dstesting-consumer_configured_ubuntu-1.dstesting_default
   become: true
   become_user: irods
   tasks:

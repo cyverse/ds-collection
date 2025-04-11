@@ -1,11 +1,40 @@
 ---
-- name: Server | generate server version of irods_environment.json
-  ansible.builtin.include_tasks: irods_environment.yml
-  vars:
-    irods_cfg_for_server: true
+- name: Server | generate service_account.config
+  ansible.builtin.import_tasks: service_account.yml
+
+- name: Server | install command scripts
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ _root_dir }}/var/lib/irods/msiExecCmd_bin/{{ item | basename }}"
+    owner: "{{ irods_cfg_system_account_name }}"
+    group: "{{ irods_cfg_system_group_name }}"
+    mode: u+rx
+  with_fileglob: "{{ irods_cfg_cmd_scripts }}"
+
+- name: Server | install templated rule bases
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: "{{ _root_dir }}/etc/irods/{{ item | basename | regex_replace('.j2$') }}"
+    owner: "{{ irods_cfg_system_account_name }}"
+    group: "{{ irods_cfg_system_group_name }}"
+    mode: u+r
+  with_fileglob: "{{ irods_cfg_rulebases_templated }}"
+  notify: Reload rules
+
+- name: Server | install static rule bases
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "{{ _root_dir }}/etc/irods/{{ item | basename }}"
+    owner: "{{ irods_cfg_system_account_name }}"
+    group: "{{ irods_cfg_system_group_name }}"
+    mode: u+r
+  with_fileglob: "{{ irods_cfg_rulebases_static }}"
+  notify: Reload rules
 
 - name: Server | generate server_config.json
   ansible.builtin.import_tasks: server_config.yml
 
-- name: Server | generate service_account.config
-  ansible.builtin.import_tasks: service_account.yml
+- name: Server | generate server version of irods_environment.json
+  ansible.builtin.include_tasks: irods_environment.yml
+  vars:
+    irods_cfg_for_server: true

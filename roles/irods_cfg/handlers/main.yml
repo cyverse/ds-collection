@@ -1,4 +1,12 @@
 ---
-- name: Changed config
-  ansible.builtin.set_fact:
-    irods_cfg_made_changes: true
+- name: Reload rules
+  ansible.builtin.file:
+    path: "{{ _root_dir }}/etc/irods/core.re"
+    mode: u+r
+    state: touch
+
+- name: Restart iRODS
+  when: irods_cfg_restart_allowed
+  ansible.builtin.service:
+    name: irods
+    state: restarted

@@ -15,11 +15,3 @@ _cyverse_housekeeping_rmTrash {}
 cyverse_housekeeping_rescheduleTrashRemoval {
 	delay('<PLUSET>0s</PLUSET><EF>1h REPEAT FOR EVER</EF>') {_cyverse_housekeeping_rmTrash};
 }
-
-
-acCreateUser {
-	on ($otherUserType == 'ds-service') {
-		msiCreateUser ::: msiRollback;
-		msiCommit;
-	}
-}

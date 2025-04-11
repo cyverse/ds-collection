@@ -1,16 +1,39 @@
 ---
 - name: Test irods_user_type module
-  hosts: localhost
-  gather_facts: false
+  hosts: dstesting-provider_configured-1.dstesting_default
+  become: true
+  become_user: irods
   tasks:
-    - name: Test no description
-      ansible.builtin.debug:
-        msg: TODO implement
+    - name: Create user type with no description
+      cyverse.ds.irods_user_type:
+        type: unknown
 
-    - name: Test with description
+    - name: Test create with description
       ansible.builtin.debug:
         msg: TODO implement
 
     - name: Test update with different description
       ansible.builtin.debug:
         msg: TODO implement
+
+    - name: Test remove
+      ansible.builtin.debug:
+        msg: TODO implement
+
+  post_tasks:
+    - name: Verify that description-less user type was created
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          idQuery="select TOKEN_ID where TOKEN_NAMESPACE = 'user_type' and TOKEN_NAME = 'unknown'"
+          if ! iquest %s "$idQuery"; then
+            printf 'User type "unknown" not found\n' >&2
+            exit 1
+          fi
+          descQuery="select TOKEN_VALUE2 where TOKEN_NAMESPACE = 'user_type' and TOKEN_NAME = 'unknown'"
+          desc="$(iquest %s "$descQuery")"
+          if [[ -n "$desc" ]]; then
+            printf 'User type "unknown" has a description "%s"\n' "$desc" >&2
+            exit 1
+          fi
+      changed_when: false

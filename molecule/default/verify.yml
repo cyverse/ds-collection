@@ -151,7 +151,18 @@
           - server_config.federation == []
           - server_config.host_access_control.access_entries == []
           - server_config.host_resolution.host_entries == []
-          - server_config.log_level == {}
+          - server_config.log_level.agent == 'info'
+          - server_config.log_level.agent_factory == 'info'
+          - server_config.log_level.api == 'info'
+          - server_config.log_level.authentication == 'info'
+          - server_config.log_level.database == 'info'
+          - server_config.log_level.delay_server == 'info'
+          - server_config.log_level.legacy == 'info'
+          - server_config.log_level.microservice == 'info'
+          - server_config.log_level.network == 'info'
+          - server_config.log_level.resource == 'info'
+          - server_config.log_level.rule_engine == 'info'
+          - server_config.log_level.server == 'info'
           - server_config.kerberos_name is not defined
           - server_config.match_hash_policy == 'compatible'
           - server_config.maximum_connections is not defined

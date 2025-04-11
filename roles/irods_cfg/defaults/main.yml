@@ -25,6 +25,8 @@ irods_cfg_client_server_policy: "{{ _client_server_policy_default | d(none) }}"
 
 irods_cfg_chown: true
 
+irods_cfg_cmd_scripts: []
+
 irods_cfg_connection_pool_refresh_time: "{{ _connection_pool_refresh_time_default | d(none) }}"
 
 irods_cfg_controlled_user_connection_list:
@@ -66,7 +68,19 @@ irods_cfg_home: "{{ _home_default | d(omit) }}"
 irods_cfg_host: "{{ inventory_hostname }}"
 irods_cfg_host_entries: []
 
-irods_cfg_log_level: {}
+irods_cfg_log_level:
+  agent: info
+  agent_factory: info
+  api: info
+  authentication: info
+  database: info
+  delay_server: info
+  legacy: info
+  microservice: info
+  network: info
+  resource: info
+  rule_engine: info
+  server: info
 
 irods_cfg_match_hash_policy: "{{ _match_hash_policy_default | d(none) }}"
 
@@ -85,12 +99,17 @@ irods_cfg_plugins_home: null
 
 irods_cfg_re: null
 
+irods_cfg_restart_allowed: false
+
 irods_cfg_root_dir: /
 
 irods_cfg_rule_engine_namespaces:
   - ''
 
 irods_cfg_rule_engine_server_sleep_time: 30
+
+irods_cfg_rulebases_static: []
+irods_cfg_rulebases_templated: []
 
 irods_cfg_schema_validation_base_uri: file:///var/lib/irods/configuration_schemas
 

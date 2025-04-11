@@ -1,9 +1,11 @@
 ansible-core<2.17  # ansible-core 2.17+ no bueno on CentOS 7 and Ubuntu 18.04
 ansible-lint
+dnspython
 docker
 jsonschema
 molecule<25       # molecule 25 breaks collection path determination
 molecule-plugins
+netaddr
 paramiko
 python-irodsclient
 scp

@@ -1,0 +1,37 @@
+---
+- name: Verify | artifact deposition
+  hosts: all
+  tasks:
+    - name: Verify cmd script deposition
+      ansible.builtin.stat:
+        path: /var/lib/irods/msiExecCmd_bin/{{ item }}
+      register: resp
+      failed_when: >-
+        not resp.stat.exists
+        or resp.stat.pw_name != 'irods' or resp.stat.gr_name != 'irods'
+        or not resp.stat.rusr or not resp.stat.xusr
+      loop:
+        - cmd
+        - cmd-1
+        - cmd-2
+
+    - name: Verify rulebase deposition
+      ansible.builtin.stat:
+        path: /etc/irods/{{ item }}
+      register: resp
+      failed_when: >-
+        not resp.stat.exists
+        or resp.stat.pw_name != 'irods' or resp.stat.gr_name != 'irods'
+        or not resp.stat.rusr
+      loop:
+        - rulebase-1.re
+        - rulebase-2.re
+
+    - name: Verify rulebase template contents
+      ansible.builtin.slurp:
+        src: /etc/irods/rulebase-2.re
+      register: rb_encoded
+
+    - name: Verify rulebase contents
+      ansible.builtin.assert:
+        that: rb_encoded.content | b64decode == 'CONST = "const"\n'
