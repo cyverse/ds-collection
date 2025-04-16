@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
+# © 2024 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
 
 """
 Provides an ansible module for creating and removing an iRODS group.
@@ -16,7 +19,7 @@ ANSIBLE_METADATA = {
 
 DOCUMENTATION = """
 ---
-module: irods_group
+module: cyverse.ds.irods_group
 
 short_description: Create/Remove iRODS group
 

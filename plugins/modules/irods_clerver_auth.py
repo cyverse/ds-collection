@@ -16,28 +16,28 @@ from ansible.module_utils.basic import AnsibleModule
 
 DOCUMENTATION = r'''
 ---
-module: irods_clerver_auth
+module: cyverse.ds.irods_clerver_auth
 
 short_description: This module initializes the clerver connection.
 
 description: >
-    This module initializes the clerver's zone connection to iRODS.
+  This module initializes the clerver's zone connection to iRODS.
 
 version_added: "2.16.7"
 
 authors:
-    - Tony Edgin
+  - Tony Edgin
 
 options:
-    host:
-        description: the FQDN of the iRODS server the clerver will use for authentication
-        type: str
-        required: false
-        default: localhost
-    password:
-        description: the clerver user's password
-        type: str
-        required: true
+  host:
+    description: the FQDN of the iRODS server the clerver will use for authentication
+    type: str
+    required: false
+    default: localhost
+  password:
+    description: the clerver user's password
+    type: str
+    required: true
 '''
 
 EXAMPLES = r'''
