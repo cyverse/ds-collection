@@ -10,12 +10,20 @@ Here are the files used to configure iRODS.
 
 Here are the command scripts executable through the `msiExecCmd` microservice. Only the general purpose ones are here. The ones used by optional components of the Data Store are stored elsewhere.
 
+#### Common Command Scripts
+
+<!-- TODO: describe section -->
+
 * [amqp-topic-send](../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/amqp-topic-send) publishes audit messages to a RabbitMQ broker.
 * [correct-size](../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/correct-size) fixes data object replica sizes as a workaround for <https://github.com/irods/irods/issues/5160>. _Once this issue is fixed, this should be removed._
 * [delete-scheduled-rule](../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/delete-scheduled-rule) removes a rule execution from the rule queue.
 * [generate-uuid](../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/generate-uuid) generates a time-based UUID.
 * [imeta-exec](../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/imeta-exec) calls imeta.
 * [send-mail](../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/send-mail) sends an email message.
+
+#### MD-Repo Command Scripts
+
+The command script [md-repo-touch-obj](../playbooks/files/irods/mdrepo/var/lib/irods/msiExecCmd_bin/md-repo-touch-obj) is used to ensure that a data object being uploaded exists in the ICAT before it is uploaded by ticket.
 
 ### Rule Bases
 
