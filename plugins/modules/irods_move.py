@@ -13,29 +13,26 @@ from irods.session import iRODSSession
 
 DOCUMENTATION = r'''
 ---
-module: irods_move
+module: cyverse.ds.irods_move
 
 short_description: Rename data collection/object
 
 version_added: "2.11.11"
 
-description: An ansible module for renaming a data object or collection. To
-ensure idempotency, if the source doesn't exist, but the destination does, it
-is assumed that the move already happened and the module succeeds.
+description: >
+  An ansible module for renaming a data object or collection. To ensure idempotency, if the source
+  doesn't exist, but the destination does, it is assumed that the move already happened and the
+  module succeeds.
 
 options:
-    source:
-        description: the current absolute path to the collection or data object
-        type: str
-    destination:
-        description: the new absolute path to the collection or data object
-        type: str
+  source:
+    description: the current absolute path to the collection or data object
+    type: str
+  destination:
+    description: the new absolute path to the collection or data object
+    type: str
 
-extends_documentation_fragment:
-    - my_namespace.my_collection.my_doc_fragment_name
-
-author:
-    - Fenn Garnett (@Fennersteel)
+author: Fenn Garnett (@Fennersteel)
 '''
 
 EXAMPLES = '''

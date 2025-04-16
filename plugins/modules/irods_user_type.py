@@ -11,15 +11,10 @@ from subprocess import CalledProcessError
 
 from ansible.module_utils.basic import AnsibleModule
 
-ANSIBLE_METADATA = {
-    "metadata_version": "1.1",
-    "status": ["preview"],
-    "supported_by": "community"
-}
 
 DOCUMENTATION = r'''
 ---
-module: irods_user_type
+module: cyverse.ds.irods_user_type
 
 short_description: managed iRODS user types
 
