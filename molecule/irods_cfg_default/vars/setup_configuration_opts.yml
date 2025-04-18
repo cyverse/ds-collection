@@ -1,0 +1,7 @@
+---
+irods_cfg_default_resource_directory: /tmp
+
+irods_cfg_system_account_name: account
+irods_cfg_system_group_name: group
+
+irods_cfg_zone_password: password

@@ -1,0 +1,122 @@
+---
+- name: Converge | Stop iRODS
+  hosts: all
+  gather_facts: false
+  become: true
+  become_user: irods
+  tasks:
+    - name: Stop iRODS
+      ansible.builtin.command: /var/lib/irods/irodsctl stop
+      register: resp
+      changed_when: false
+      failed_when: false
+
+
+- name: Converge | CentOS update version lock
+  hosts: centos.localdomain
+  gather_facts: false
+  tasks:
+    - name: CentOS | remove 4.2.8 version lock
+# XXX - yum_versionlock version 10.0.1 will not remove packages
+#      community.general.yum_versionlock:
+#        name: irods-*-4.2.*
+#        state: absent
+      ansible.builtin.command: yum versionlock delete irods-*-4.2.*  # noqa: command-instead-of-module
+      register: resp
+      changed_when: resp.stdout is regex("Deleting ")
+      failed_when: >
+        resp.stderr | length > 0 and resp.stderr is not regex(".*versionlock delete: no matches")
+# XXX - ^^^
+
+    - name: CentOS | add 4.3.1 version lock
+      community.general.yum_versionlock:
+        name:
+          - irods-database-plugin-postgres-4.3.1
+          - irods-icommands-4.3.1
+          - irods-runtime-4.3.1
+          - irods-server-4.3.1
+        state: present
+# XXX - Due to https://github.com/ansible-collections/community.general/issues/4470, this isn't
+# idempotent.
+      tags: molecule-idempotence-notest
+# XXX - ^^^
+
+    - name: CentOS | install prerequisites for pyodbc
+      ansible.builtin.package:
+        name:
+          - gcc
+          - gcc-c++
+          - unixODBC-devel
+
+    - name: CentOS | install pyodbc
+      ansible.builtin.pip:
+        name: pyodbc
+
+
+- name: Converge | Ubuntu update version lock
+  hosts: ubuntu.localdomain
+  gather_facts: false
+  tasks:
+    - name: Ubuntu | update version in pin
+      ansible.builtin.lineinfile:
+        path: /etc/apt/preferences.d/irods
+        regexp: '^Pin: version '
+        line: 'Pin: version 4.3.1'
+
+    - name: Ubuntu | update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+
+
+- name: Converge | upgrade iRODS package
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Upgrade
+      ansible.builtin.package:
+        name: irods-server
+        state: latest  # noqa: package-latest
+
+
+- name: Converge | upgrade iRODS
+  hosts: all
+  become: true
+  become_user: irods
+  gather_facts: false
+  tasks:
+# XXX - manually update server_config.schema_validation_base_uri, see
+# https://github.com/irods/irods/issues/8052
+    - name: Ensure server_config.schema_validation_base_uri is correct
+      json_patch:
+        path: /etc/irods/server_config.json
+        updates:
+          - field: schema_validation_base_uri
+            value: file:///var/lib/irods/configuration_schemas
+            force: true
+# XXX - ^^^
+
+# XXX - manually set irods_environment.irods_default_number_of_transfer_threads, see
+# https://github.com/irods/irods/issues/8052
+    - name: Ensure irods_environment.irods_default_number_of_transfer_threads is present
+      json_patch:
+        path: /var/lib/irods/.irods/irods_environment.json
+        updates:
+          - field: irods_default_number_of_transfer_threads
+            type: number
+            value: 4
+          - field: irods_maximum_size_for_single_buffer_in_megabytes
+            type: number
+            value: 32
+          - field: irods_transfer_buffer_size_for_parallel_transfer_in_megabytes
+            type: number
+            value: 4
+# XXX - ^^^
+
+    - name: Restart iRODS
+      ansible.builtin.command: /var/lib/irods/irodsctl start
+      changed_when: false
+
+    - name: Ensure configuration is correct
+      ansible.builtin.include_role:
+        name: cyverse.ds.irods_cfg
+        tasks_from: main.yml

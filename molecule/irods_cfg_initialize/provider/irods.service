@@ -1,0 +1,21 @@
+[Unit]
+Description=iRODS 4.3.1
+Wants=postgresql.service
+After=local-fs.target network.target postgresql.service
+
+[Service]
+WorkingDirectory=/var/lib/irods
+User=irods
+Group=irods
+Environment="PATH=/bin:/usr/bin:/usr/sbin:/var/lib/irods"
+ExecStart=/bin/bash -c "irodsctl start"
+ExecReload=/usr/bin/touch /etc/irods/core.re
+ExecStop=/bin/bash -c "irodsctl stop"
+LimitNOFILE=131072
+KillMode=control-group
+Restart=on-failure
+RestartPreventExitStatus=255
+Type=forking
+
+[Install]
+WantedBy=multi-user.target

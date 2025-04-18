@@ -1,0 +1,17 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: Update
+      ansible.builtin.include_role:
+        name: cyverse.ds.irods_cfg
+        tasks_from: main.yml
+      vars:
+        irods_cfg_cmd_scripts:
+          - artifacts/cmd
+          - artifacts/cmd-*
+        irods_cfg_rulebases_static:
+          - artifacts/rulebase*.re
+        irods_cfg_rulebases_templated:
+          - artifacts/rulebase*.re.j2
+        _const: const

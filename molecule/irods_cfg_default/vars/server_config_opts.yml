@@ -1,0 +1,120 @@
+---
+irods_cfg_access_entries:
+  - address: '1.2.3.4'
+    group: group1
+    mask: '255.0.0.0'
+    user: rods
+  - address: '4.3.2.1'
+    group: group2
+    mask: '255.255.0.0'
+    user: user1
+
+irods_cfg_agent_factory_watcher_sleep_time: 4
+
+irods_cfg_catalog_provider_hosts:
+  - provider1
+  - provider2
+irods_cfg_catalog_service_role: consumer
+
+irods_cfg_client_api_allowlist_policy: disabled
+
+irods_cfg_controlled_user_connection_list:
+  control_type: allowlist
+  users:
+    - user1#zone
+    - user2
+
+irods_cfg_database_user_password_salt: salt
+
+irods_cfg_default_dir_mode: '700'
+irods_cfg_default_file_mode: '640'
+irods_cfg_default_hash_scheme: MD5
+irods_cfg_default_number_of_transfer_threads: 16
+irods_cfg_default_temporary_password_lifetime: 1
+
+irods_cfg_delay_rule_executors:
+  - executor1
+  - executor2
+irods_cfg_delay_server_sleep_time: 20
+
+irods_cfg_environment_variables:
+  var1: val1
+  var2: val2
+
+irods_cfg_federation:
+  - catalog_provider_hosts:
+      - icat1
+      - icat2
+      - icat3
+    negotiation_key: TEMPORARY_32byte_negotiation_ke1
+    zone_name: zone1
+    zone_key: key1
+  - catalog_provider_hosts:
+      - icat2
+    negotiation_key: TEMPORARY_32byte_negotiation_ke2
+    zone_name: zone2
+    zone_key: key2
+    zone_port: 1246
+
+irods_cfg_host_entries:
+  - address_type: local
+    addresses:
+      - address
+      - alias
+  - address_type: remote
+    addresses:
+      - remote1
+      - remote2
+      - remote3
+
+irods_cfg_log_level:
+  agent: trace
+  agent_factory: debug
+  api: warn
+  authentication: error
+  database: critical
+  delay_server: info
+  legacy: trace
+  microservice: debug
+  network: info
+  resource: warn
+  rule_engine: error
+  server: critical
+
+irods_cfg_match_hash_policy: strict
+
+irods_cfg_maximum_connections: 1
+irods_cfg_maximum_size_for_single_buffer: 3
+irods_cfg_maximum_size_of_delay_queue: 1
+irods_cfg_maximum_temporary_password_lifetime: 4
+
+irods_cfg_migrate_delay_server_sleep_time: 4
+
+irods_cfg_negotiation_key: TEMPORARY_32byte_negotiation_ke3
+
+irods_cfg_number_of_concurrent_delay_rule_executors: 5
+
+irods_cfg_rule_engine_namespaces:
+  - ns1
+  - ns2
+
+irods_cfg_schema_validation_base_uri: 'off'
+
+irods_cfg_server_control_plane_encryption_algorithm: encrypt
+irods_cfg_server_control_plane_encryption_num_hash_rounds: 17
+irods_cfg_server_control_plane_key: TEMPORARY_32byte_server_cont_key
+irods_cfg_server_control_plane_port: 1249
+irods_cfg_server_control_plane_timeout: 20000
+irods_cfg_server_port_range_end: 20399
+irods_cfg_server_port_range_start: 10000
+
+irods_cfg_stacktrace_file_processor_sleep_time: 9
+
+irods_cfg_transfer_buffer_size_for_parallel_transfer: 32
+irods_cfg_transfer_chunk_size_for_parallel_transfer: 5
+
+irods_cfg_zone_auth_scheme: pam_password
+irods_cfg_zone_key: zone_key
+irods_cfg_zone_name: cyverse
+irods_cfg_zone_port: 1245
+irods_cfg_zone_user: zoneuser
