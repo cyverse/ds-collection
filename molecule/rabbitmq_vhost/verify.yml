@@ -1,0 +1,59 @@
+---
+- name: Verify
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Verify user user has correct permissions
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          rabbitmqctl list_permissions --vhost /vhost1 \
+            | grep -q -e '^user[[:space:]]\+\^\$[[:space:]]\+\^\$[[:space:]]\+\^\$$'
+      changed_when: false
+
+    - name: Verify the vhost /vhost2 created
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          # XXX - RabbitMQ version 4.1.0: rabbitmqctl list_vhosts exits with
+          #       error code 70 when piped into grep -q even when grep finds a
+          #       match
+          # rabbitmqctl list_vhosts | grep -q -e '^/vhost2$'
+          rabbitmqctl list_vhosts | grep -e '^/vhost2$'
+          # XXX - ^^^
+      changed_when: false
+
+    - name: Verify user admin has correct permissions
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          rabbitmqctl list_permissions --vhost /vhost2 \
+            | grep -q -e '^admin[[:space:]]\+\.\*[[:space:]]\+\.\*[[:space:]]\+\.\*$'
+      changed_when: false
+
+    - name: Verify tags are unchanged
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          # XXX - RabbitMQ version 4.1.0: rabbitmqctl list_users exits with
+          #       error code 70 when piped into grep -q even when grep finds a
+          #       match
+          #rabbitmqctl list_users \
+          # | grep -q -e '^admin[[:space:]]\+\[administrator,[[:space:]]*monitoring\]$'
+          rabbitmqctl list_users \
+            | grep -e '^admin[[:space:]]\+\[administrator,[[:space:]]*monitoring\]$'
+          # XXX - ^^^
+      changed_when: false
+
+    - name: Verify topic-exchange exchange was created
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          rabbitmqctl list_exchanges --vhost /vhost2 \
+            | grep -q -e '^topic-exchange[[:space:]]\+topic$'
+      changed_when: false
