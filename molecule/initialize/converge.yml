@@ -1,8 +1,0 @@
----
-- name: Converge | initialize
-  hosts: all:!provider-cfg
-  tasks:
-    - name: Place setup_configuration.json
-      ansible.builtin.include_role:
-        name: cyverse.ds.irods_cfg
-        tasks_from: setup_irods.yml

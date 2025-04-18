@@ -1,9 +1,0 @@
----
-irods_cfg_re:
-  additional_data_variable_mappings:
-    - dvm
-  additional_function_name_mappings:
-    - fnm1
-    - fnm2
-  additional_rulebases:
-    - r

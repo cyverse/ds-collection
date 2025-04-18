@@ -1,1 +1,0 @@
-irods ALL=(postgres) NOPASSWD: ALL

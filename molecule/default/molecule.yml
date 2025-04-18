@@ -1,7 +1,0 @@
----
-platforms:
-  - name: ubuntu.localdomain
-    image: ubuntu:bionic
-    hostname: ubuntu.localdomain
-provisioner:
-  name: ansible
