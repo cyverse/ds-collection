@@ -261,7 +261,7 @@ _repl_syncReplicas(*Object) {
       if (*dataSize > 1048576) {  # 1 MiB
         *idArg = execCmdArg(*Object);
         *replNumArg = execCmdArg(str(*replNum));
-        *sizeArg = execCmdArg(trimr(str(*dataSize), '.'));
+        *sizeArg = execCmdArg(trimr(str(*dataSize), "."));
         *argv = "*idArg *replNumArg *sizeArg";
         *err = errormsg(msiExecCmd('correct-size', *argv, "", "", "", *out), *msg);
 
@@ -718,6 +718,7 @@ ipcRepl_acSetRescSchemeForRepl {
 }
 
 
+# This rule ensures that uploaded files are replicated.
 
 # DEPRECATED
 _ipcRepl_put_old(*ObjPath, *DestResc, *New) {
