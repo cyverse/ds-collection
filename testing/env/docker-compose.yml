@@ -8,7 +8,7 @@ services:
   apache:
     build:
       context: .
-      dockerfile: apache/Dockerfile
+      dockerfile: apache/Dockerfile.unconfigured
     privileged: true
     tty: true
 
