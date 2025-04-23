@@ -81,7 +81,7 @@
             - cve
             - cyverse_core
             - cyverse_housekeeping
-        irods_cfg_restart_allowed: "{{ _irods_restart }}"
+        irods_cfg_restart_allowed: "{{ _irods_restart_allowed }}"
         irods_cfg_rulebases_static:
           - files/irods/etc/irods/*.re
         irods_cfg_rulebases_templated:

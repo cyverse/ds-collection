@@ -13,17 +13,19 @@ RUN \
 	--mount=source=requirements.txt,target=/requirements.txt \
 	--mount=source=requirements.yml,target=/requirements.yml \
 	--mount=source=requirements-testing.txt,target=/requirements-testing.txt \
+	--mount=source=requirements-testing.yml,target=/requirements-testing.yml \
 <<EOF
 	set -o errexit
 
 ### Update system packages
 	apt-get update
 	apt-get --yes upgrade
-	apt-get install --yes \
+	apt-get --yes install \
 		dmidecode gpg-agent lsb-release python-is-python3 python3 python3-pip openssh-client rpm wget
 	pip install --requirement=/requirements.txt
 	pip install --requirement=/requirements-testing.txt
-	ansible-galaxy collection install --requirements-file=/requirements.yml
+	ansible-galaxy install -r /requirements.yml
+	ansible-galaxy install -r /requirements-testing.yml
 
 ### Install inspection support
 	apt-get install --yes ca-certificates

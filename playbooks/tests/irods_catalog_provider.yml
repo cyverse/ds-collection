@@ -31,7 +31,7 @@
   become_flags: '-i'
   tasks:
     - name: Verify parallel installed
-      ansible.builtin.include_tasks: tasks/irods/test_pkg_installed.yml
+      ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: parallel
 
@@ -47,7 +47,7 @@
       when: ansible_distribution == 'CentOS'
       block:
         - name: CentOS | verify correct packages installed
-          ansible.builtin.include_tasks: tasks/irods/test_pkg_installed.yml
+          ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
           with_items:
             - mailx
             - pgdg-redhat-repo
@@ -100,7 +100,7 @@
       when: ansible_distribution == 'Ubuntu'
       block:
         - name: Ubuntu | verify correct packages installed
-          ansible.builtin.include_tasks: tasks/irods/test_pkg_installed.yml
+          ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
           with_items:
             - bsd-mailx
             - odbc-postgresql
@@ -129,7 +129,7 @@
           changed_when: false
 
     - name: Verify PostgreSQL plugin installed
-      ansible.builtin.include_tasks: tasks/irods/test_pkg_installed.yml
+      ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: irods-database-plugin-postgres
         version: 4.3.1
