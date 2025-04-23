@@ -642,7 +642,6 @@ database	schema_version	11
 -- Data for Name: r_objt_access; Type: TABLE DATA; Schema: public; Owner: irods
 
 COPY public.r_objt_access (object_id, user_id, access_type_id, create_ts, modify_ts) FROM stdin;
-9020	9001	1130	1170000000	1170000000
 9020	9010	1200	1170000000	1170000000
 9021	9010	1200	1170000000	1170000000
 9022	9010	1200	1170000000	1170000000
@@ -892,11 +891,9 @@ access_type	1040	read_metadata					1170000000	1170000000
 -- Data for Name: r_user_group; Type: TABLE DATA; Schema: public; Owner: irods
 
 COPY public.r_user_group (group_user_id, user_id, create_ts, modify_ts) FROM stdin;
-9001	9010	1170000000	1170000000
 9002	9002	1170000000	1170000000
 9002	9010	1170000000	1170000000
 9010	9010	1170000000	1170000000
-9001	9001	01722280156	01722280156
 \.
 
 
@@ -905,7 +902,6 @@ COPY public.r_user_group (group_user_id, user_id, create_ts, modify_ts) FROM std
 COPY public.r_user_main (
     user_id, user_name, user_type_name, zone_name, user_info, r_comment, create_ts, modify_ts)
 FROM stdin;
-9001	rodsadmin	rodsgroup	ZONE_NAME_TEMPLATE			1170000000	1170000000
 9002	public	rodsgroup	ZONE_NAME_TEMPLATE			1170000000	1170000000
 9010	ADMIN_NAME_TEMPLATE	rodsadmin	ZONE_NAME_TEMPLATE			1170000000	1170000000
 10001	avra_mgr	rodsuser	ZONE_NAME_TEMPLATE		Avra project manager	1170000000	1170000000
