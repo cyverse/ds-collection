@@ -283,17 +283,6 @@
       register: response
       changed_when: response.stdout == 'changed'
 
-    - name: Lock irods-runtime to version 4.3.0
-# XXX - yum_versionlock version 10.6.0 will not lock packages that are not installed unlike the
-# `yum versionlock` command
-#           community.general.yum_versionlock:
-#             name: irods-runtime-4.3.0
-#             state: present
-      ansible.builtin.command: yum versionlock add irods-runtime-4.3.0
-      register: resp
-      changed_when: 'resp.stdout is not regex("versionlock added: 0")'
-# XXX - ^^^
-
     - name: Package_facts uses auto, setup for next task
       ansible.builtin.package_facts:
 

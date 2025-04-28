@@ -12,6 +12,13 @@ services:
     privileged: true
     tty: true
 
+  webdav_configured:
+    build:
+      context: .
+      dockerfile: webdav/Dockerfile.configured
+    privileged: true
+    tty: true
+
   webdav_unconfigured:
     build:
       context: .
