@@ -123,7 +123,7 @@ _cyverse_logic_assignUUID(*EntityType, *EntityPath, *Uuid, *ClientName, *ClientZ
 	if (_cyverse_logic_isAdm(*ClientName, *ClientZone)) {
 		*path = str(*EntityPath);
 		*status = errormsg(
-			msiModAVUMetadata(*EntityType, *path, 'set', _cyverse_logic_UUID_ATTR, *Uuid, ''), *msg );
+			msiModAVUMetadata(*EntityType, *path, 'adda', _cyverse_logic_UUID_ATTR, *Uuid, ''), *msg );
 
 		if (*status != 0) {
 			writeLine('serverLog', "DS: Failed to assign UUID to *path");
@@ -1018,6 +1018,17 @@ cyverse_logic_acPostProcForCollCreate {
 	*uuid = '';
 	_cyverse_logic_ensureUUID(cyverse_COLL, $collName, $userNameClient, $rodsZoneClient, *uuid);
 	_cyverse_logic_sendCollAdd(*uuid, $collName, $userNameClient, $rodsZoneClient);
+}
+
+# This prevents the default collections being created for newly created groups.
+#
+# Parameters:
+#  OtherUserType  (string) the type of user being created
+#
+cyverse_logic_acCreateDefaultCollections(*OtherUserType) {
+	if (*OtherUserType != 'rodsgroup') {
+		acCreateUserZoneCollections;
+	}
 }
 
 # This rule pushes a collection.rm message into the irods exchange.

@@ -71,6 +71,16 @@ acCreateCollByAdmin(*ParColl, *ChildColl) {
 	cyverse_logic_acCreateCollByAdmin(*ParColl, *ChildColl);
 }
 
+# This rule administratively creates the default collections for a newly created
+# user.
+#
+# Session Variables:
+#  otherUserType
+#
+acCreateDefaultCollections {
+	cyverse_logic_acCreateDefaultCollections($otherUserType);
+}
+
 # This rule applies the project specific data delete policies.
 #
 acDataDeletePolicy {
