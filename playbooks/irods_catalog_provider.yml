@@ -5,7 +5,8 @@
   tasks:
     - name: Enable notifications when not testing
       ansible.builtin.set_fact:
-        notifications_enabled: true
+        _notifications_enabled: true
+        _test_log: false
       tags:
         - no_testing
 
@@ -26,15 +27,13 @@
 
   handlers:
     - name: Reload postgresql
-      when: notifications_enabled | default(false)
+      when: _notifications_enabled | d(false)
       ansible.builtin.service:
         name: postgresql
         state: reloaded
 
-
 - name: Provision catalog service provider
   ansible.builtin.import_playbook: irods_provision.yml
-
 
 - name: Provision additional for catalog service providers
   hosts: irods_catalog
@@ -227,7 +226,6 @@
         irods_cfg_zone_port: "{{ _irods_zone_port }}"
         irods_cfg_zone_user: "{{ _irods_clerver_user }}"
 
-
 - name: Start iRODS on catalog service providers
   hosts: irods_catalog
   become: "{{ _irods_become_svc_acnt }}"
@@ -237,12 +235,12 @@
   tasks:
     - name: Start iRODS
       cyverse.ds.irods_ctl:
+        test_log: "{{ _test_log | d(true) }}"
 
     - name: Authenticate clerver
       cyverse.ds.irods_clerver_auth:
         host: "{{ inventory_hostname }}"
         password: "{{ _irods_clerver_password }}"
-
 
 - name: Perform run-time configuration
   ansible.builtin.import_playbook: irods_runtime_init.yml
