@@ -7,6 +7,5 @@
 
 - name: Restart iRODS
   when: irods_cfg_restart_allowed
-  ansible.builtin.service:
-    name: irods
-    state: restarted
+  cyverse.ds.irods_ctl:
+    state: restarted_if_running

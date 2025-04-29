@@ -14,49 +14,49 @@ from ansible.module_utils.basic import AnsibleModule
 
 DOCUMENTATION = r'''
 ---
-module: json_patch
+module: cyverse.ds.json_patch
 
 short_description: This modules modifies JSON files on a managed host.
 
 description: >
-    This module can update entries in a JSON file on a managed host. If a entry is missing, it will
-    be added. It only works with top level fields and only supports numbers and strings.
+  This module can update entries in a JSON file on a managed host. If a entry is missing, it will be
+  added. It only works with top level fields and only supports numbers and strings.
 
 version_added: "2.16"
 
 author: Tony Edgin
 
 options:
-    path:
-        description: This is the absolute path to the JSON file
+  path:
+    description: This is the absolute path to the JSON file
+    type: str
+    required: true
+  updates:
+    description: The set of updates to make
+    type: list
+    elements: dict
+    suboptions:
+      field:
+        description: The name of a field to change.
         type: str
         required: true
-    updates:
-        description: The set of updates to make
-        type: list
-        elements: dict
-        suboptions:
-            field:
-                description: The name of a field to change.
-                type: str
-                required: true
-            force:
-                description: Whether or not to overwrite an existing field
-                type: bool
-                required: false
-                default: false
-            type:
-                description: The JSON type of the field
-                choices:
-                    - number
-                    - string
-                required: false
-                default: string
-            value:
-                description: The new value of the field.
-                required: false
-                default: null
-        required: true
+      force:
+        description: Whether or not to overwrite an existing field
+        type: bool
+        required: false
+        default: false
+      type:
+        description: The JSON type of the field
+        choices:
+          - number
+          - string
+        required: false
+        default: string
+      value:
+        description: The new value of the field.
+        required: false
+        default: null
+    required: true
 '''
 
 EXAMPLES = r'''

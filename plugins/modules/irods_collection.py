@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
+# Copyright: © 2024, The Arizona Board of Regents
+# Standard BSD License | CyVerse (see https://cyverse.org/license)
 
 """
 Provides an ansible module for creating and removing iRODS collection.
@@ -16,7 +19,7 @@ ANSIBLE_METADATA = {
 
 DOCUMENTATION = """
 ---
-module: irods_collection
+module: cyverse.ds.irods_collection
 
 short_description: Create/Remove iRODS collection
 

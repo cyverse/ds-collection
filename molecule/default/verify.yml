@@ -513,7 +513,7 @@
         that:
           - setup_configuration.admin_password == 'rods'
           - setup_configuration.default_resource_directory is not defined
-          - setup_configuration.default_resource_name == 'demoResc'
+          - setup_configuration.default_resource_name == 'tmp-localhost'
           - setup_configuration.host_system_information.service_account_user_name == 'irods'
           - setup_configuration.host_system_information.service_account_group_name == 'irods'
           - setup_configuration.server_config == server_config

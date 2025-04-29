@@ -3,6 +3,7 @@
 #
 # Copyright: © 2021, The Arizona Board of Regents
 # Standard BSD License | CyVerse (see https://cyverse.org/license)
+
 """
 This defines the irods_avu ansible module.
 """
@@ -19,7 +20,7 @@ ANSIBLE_METADATA = {
 
 DOCUMENTATION = r'''
 ---
-module: irods_avu
+module: cyverse.ds.irods_avu
 
 short_description: Manage iRODS AVU
 

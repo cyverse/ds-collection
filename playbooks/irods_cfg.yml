@@ -22,8 +22,7 @@
         irods_cfg_cmd_scripts:
           - files/irods/var/lib/irods/msiExecCmd_bin/*
         irods_cfg_database: >-
-          {{
-            None if not is_provider | bool else
+          {{ None if not is_provider | bool else
             {
               'db_host': _irods_dbms_host,
               'db_odbc_driver': _irods_odbc_driver,
@@ -43,8 +42,7 @@
           {{ {'IRODS_AMQP_URI': amqp_uri} if is_provider | bool else {} }}
         irods_cfg_federation: "{{ _irods_federation }}"
         irods_cfg_host_entries: >-
-          {{
-            [] if _irods_host_aliases | count == 0 else
+          {{ [] if _irods_host_aliases | count == 0 else
             [
               {
                 'address_type': 'local',
