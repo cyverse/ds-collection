@@ -74,6 +74,27 @@ Variable                                   | Required | Default                 
 `mdrepo_landing_colls`                     | no       | []                                   |         | The set of paths to the base collections used my the MD Repo service for data ingest
 `pire_manager`                             | no       | null                                 |         | The username that owns the PIRE project collection, if `null`, the collection isn't created.
 `pire_resource_hierarchy`                  | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the PIRE project
+`sftp_admin_password`                      | yes      |                                      |         | The password of the SFTPGo admin user
+`sftp_admin_ui_port`                       | no       | 18023                                |         | The SFTPGo admin UI service port number
+`sftp_admin_username`                      | no       | admin                                |         | The SFTPGo admin account name
+`sftp_irods_admin_password`                | yes      |                                      |         | The password for the rodsadmin user that creates the iRODS user for SFTP
+`sftp_irods_admin_username`                | no       | rods                                 |         | The rodsadmin user that creates tbe iRODS user for SFTP
+`sftp_irods_auth_scheme`                   | no       | native                               |         | The auth scheme of irods. 'pam' and 'pam_for_users' are also available.
+`sftp_irods_host`                          | no       | localhost                            |         | The hostname of the iRODS server SFTP uses
+`sftp_irods_port`                          | no       | 1247                                 |         | The iRODS SFTP will use to connect to iRODS
+`sftp_irods_proxy_password`                | yes      |                                      |         | The password of the SFTPGo irods proxy user
+`sftp_irods_proxy_username`                | no       | sftp                                 |         | The irods user who provides proxy access to SFTPGo
+`sftp_irods_ssl_algorithm`                 | no       |                                      |         | The SSL encryption algorithm (required by PAM auth scheme)
+`sftp_irods_ssl_ca_cert_path`              | no       |                                      |         | The SSL CA certificate file path (required by PAM auth scheme)
+`sftp_irods_ssl_hash_rounds`               | no       |                                      |         | The SSL encryption hash rounds (required by PAM auth scheme)
+`sftp_irods_ssl_key_size`                  | no       |                                      |         | The SSL encryption key size (required by PAM auth scheme)
+`sftp_irods_ssl_salt_size`                 | no       |                                      |         | The SSL encryption salt size (required by PAM auth scheme)
+`sftp_irods_zone`                          | no       | tempZone                             |         | The iRODS zone that SFTP connects to
+`sftp_port`                                | no       | 2022                                 |         | The SFTP service port number
+`sftp_proxy_allowed`                       | no       | `[]`                                 |         | A list of network/masks for the proxy servers allowed access to the SFTP servers
+`sftp_user_host_allowed`                   | no       | `[]`                                 |         | A list of ip addresses of the user hosts allowed (whitelisted) for access to the SFTP servers
+`sftp_user_host_rejected`                  | no       | `[]`                                 |         | A list of ip addresses of the user hosts rejected (blacklisted) for access to the SFTP servers
+`sftp_vault_dir`                           | no       | /sftpgo_vault                        |         | The directory SFTPGo will use for saving state
 `webdav_access_limit`                      | no       |                                      |         | If defined, the upper limit on the number of simultaneous requests that will be served by webdav
 `webdav_allowed_src`                       | no       | `[ "0.0.0.0/0" ]`                    |         | A list of network/masks for the clients allowed direct access to the WebDAV servers
 `webdav_amqp_exchange`                     | no       | irods                                |         | The AMQP exchange used to publish events
