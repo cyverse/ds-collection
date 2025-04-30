@@ -9,6 +9,9 @@ collections:
     version: 10.6.0
   - name: community.postgresql
     version: 3.11.0
+  - name: community.rabbitmq
 
 roles:
+  - name: adfinis_sygroup.grub
+    src: adfinis-sygroup.grub
   - name: geerlingguy.apache

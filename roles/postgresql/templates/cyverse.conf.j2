@@ -1,0 +1,108 @@
+#------------------------------------------------------------------------------
+# CONNECTIONS AND AUTHENTICATION
+#------------------------------------------------------------------------------
+
+# - Connection Settings -
+
+listen_addresses = '{{ ([ 'localhost' ] + postgresql_extra_listen_addresses) | join(",") }}'
+port = {{ postgresql_listen_port }}
+max_connections = {{ postgresql_max_connections }}
+
+#------------------------------------------------------------------------------
+# RESOURCE USAGE (except WAL)
+#------------------------------------------------------------------------------
+
+# - Memory -
+
+shared_buffers = {{ postgresql_shared_buffers }}
+huge_pages = {{ postgresql_huge_pages }}
+work_mem = {{ postgresql_work_mem }}
+maintenance_work_mem = {{ postgresql_maintenance_work_mem }}
+
+# - Asynchronous Behavior -
+{% set mpw = [ postgresql_max_parallel_workers, postgresql_max_worker_processes ] | min %}
+
+effective_io_concurrency = {{ postgresql_effective_io_concurrency }}
+max_worker_processes = {{ postgresql_max_worker_processes }}
+max_parallel_maintenance_workers = {{ [ postgresql_max_parallel_maintenance_workers, mpw ] | min }}
+max_parallel_workers_per_gather = {{ [ postgresql_max_parallel_workers_per_gather, mpw ] | min }}
+max_parallel_workers = {{ mpw }}
+
+#------------------------------------------------------------------------------
+# WRITE-AHEAD LOG
+#------------------------------------------------------------------------------
+
+# - Settings -
+
+wal_buffers = {{ postgresql_wal_buffers }}
+
+# - Checkpoints -
+
+checkpoint_timeout = {{ postgresql_checkpoint_timeout }}
+max_wal_size = {{ postgresql_max_wal_size }}
+min_wal_size = {{ postgresql_min_wal_size }}
+checkpoint_completion_target = {{ postgresql_checkpoint_completion_target }}
+
+#------------------------------------------------------------------------------
+# REPLICATION
+#------------------------------------------------------------------------------
+
+# - Sending Servers -
+
+{% if postgresql_downstream_nodes|length > 0 %}
+max_wal_senders = {{ postgresql_max_wal_senders }}
+wal_keep_segments = {{ postgresql_wal_keep_segments }}
+{% endif %}
+
+# - Standby Servers -
+
+{% if postgresql_upstream_node %}
+hot_standby = on
+hot_standby_feedback = {{ postgresql_hot_standby_feedback }}
+{% endif %}
+
+#------------------------------------------------------------------------------
+# QUERY TUNING
+#------------------------------------------------------------------------------
+
+# - Planner Cost Constants -
+
+random_page_cost = {{ postgresql_random_page_cost }}
+effective_cache_size = {{ postgresql_effective_cache_size }}
+
+#- Other Planner Options -
+
+default_statistics_target = {{ postgresql_default_statistics_target }}
+
+#------------------------------------------------------------------------------
+# REPORTING AND LOGGING
+#------------------------------------------------------------------------------
+
+# - When to Log -
+
+log_min_duration_statement = {{ postgresql_log_min_duration_statement }}
+
+# - What to Log -
+
+log_line_prefix = '{{ postgresql_log_line_prefix }}'
+
+#------------------------------------------------------------------------------
+# PROMETHEUS MONITORING
+#------------------------------------------------------------------------------
+
+# - Enable Library -
+
+shared_preload_libraries = 'pg_stat_statements'
+
+# - Configure -
+
+pg_stat_statements.max = 10000
+pg_stat_statements.track = all
+
+#------------------------------------------------------------------------------
+# VERSION AND PLATFORM COMPATIBILITY
+#------------------------------------------------------------------------------
+
+# - Previous PostgreSQL Versions -
+
+standard_conforming_strings = {{ postgresql_standard_conforming_strings }}

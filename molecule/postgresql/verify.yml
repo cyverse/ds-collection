@@ -1,0 +1,15 @@
+---
+- name: Verify
+  hosts: all
+  tasks:
+    - name: Verify | templates
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
+    - name: Verify | tasks
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
+    - name: Verify | handlers
+      ansible.builtin.debug:
+        msg: "TODO: implement"

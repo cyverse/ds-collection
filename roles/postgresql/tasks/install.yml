@@ -1,0 +1,14 @@
+---
+- name: Install | apt install postgresql and postgresql client
+  ansible.builtin.apt:
+    update_cache: true
+    pkg:
+      - postgresql
+      - postgresql-client
+      - python3-psycopg2
+    state: present
+
+- name: Install | create en_US.UTF-8
+  community.general.locale_gen:
+    name: en_US.UTF-8
+    state: present
