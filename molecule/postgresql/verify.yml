@@ -1,8 +1,17 @@
 ---
 - name: Verify
-  hosts: all
+  hosts: localhost
+  gather_facts: false
   tasks:
-    - name: Verify | templates
+    - name: Verify | cyverse.conf default expansion
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
+    - name: Verify | .pgpass default expansion
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
+    - name: Verify | template custom values
       ansible.builtin.debug:
         msg: "TODO: implement"
 

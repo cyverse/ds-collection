@@ -1,6 +1,7 @@
 ---
 postgresql_destroy_default_db_on_init: false
 
+postgresql_reboot_allowed: false
 postgresql_restart_allowed: false
 
 postgresql_downstream_nodes: []

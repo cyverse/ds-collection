@@ -1,0 +1,21 @@
+---
+postgresql_extra_listen_addresses:
+  - one.localdomain
+  - two.localdomain
+
+postgresql_effective_io_concurrency: 2
+
+postgresql_huge_pages: 'on'
+
+postgresql_listen_port: 1
+
+postgresql_max_connections: 2
+
+postgresql_shared_buffers: 1GB
+postgresql_work_mem: 8MB
+postgresql_maintenance_work_mem: 16MB
+
+postgresql_max_worker_processes: 7
+postgresql_max_parallel_workers: 6
+postgresql_max_parallel_maintenance_workers: 3
+postgresql_max_parallel_workers_per_gather: 4

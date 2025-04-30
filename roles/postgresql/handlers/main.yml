@@ -3,19 +3,22 @@
   when:
     - _notifications_enabled | d(false)
     - >-
-      postgresql_restart_allowed is cyverse.ds.warn_if_false(
+      (postgresql_restart_allowed and postgresql_reboot_allowed) is cyverse.ds.warn_if_false(
         inventory_hostname + ' skipped, REBOOT REQUIRED FOR SETTINGS TO TAKE')
   ansible.builtin.reboot:
 
 - name: Reload postgres
+  when: _notifications_enabled | d(false)
   ansible.builtin.service:
     name: postgresql
     state: reloaded
 
 - name: Restart postgres
-  when: >-
-    postgresql_restart_allowed is cyverse.ds.warn_if_false(
-      inventory_hostname + ' skipped, POSTGRESQL RESTART REQUIRED FOR SETTINGS TO TAKE')
+  when:
+   - _notifications_enabled | d(false)
+   - >-
+     postgresql_restart_allowed is cyverse.ds.warn_if_false(
+       inventory_hostname + ' skipped, POSTGRESQL RESTART REQUIRED FOR SETTINGS TO TAKE')
   ansible.builtin.service:
     name: postgresql
     state: restarted

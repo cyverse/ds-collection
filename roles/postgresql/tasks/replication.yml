@@ -3,9 +3,9 @@
   community.postgresql.postgresql_user:
     db: "{{ postgresql_db }}"
     port: "{{ postgresql_listen_port }}"
-    name: "{{ postgresql_replication_user }}"
+    name: "{{ postgresql_replication_username }}"
     role_attr_flags: replication
-    password: '{{ postgresql_replication_pass }}'
+    password: '{{ postgresql_replication_password }}'
   when: postgresql_downstream_nodes|length > 0
   become: true
   become_user: postgres
@@ -35,7 +35,7 @@
         cmd: |
           pg_basebackup --progress --write-recovery-conf --no-password \
             --host={{ postgresql_upstream_node }} \
-            --user={{ postgresql_replication_user }} \
+            --user={{ postgresql_replication_username }} \
             --port={{ postgresql_listen_port }} \
             --pgdata={{ postgresql_db_path }} \
             --format=plain \
