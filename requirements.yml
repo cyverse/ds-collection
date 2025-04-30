@@ -1,0 +1,14 @@
+---
+collections:
+  - name: ansible.netcommon
+  - name: ansible.posix
+  - name: ansible.utils
+  - name: community.docker
+    version: 4.5.0
+  - name: community.general
+    version: 10.6.0
+  - name: community.postgresql
+    version: 3.11.0
+
+roles:
+  - name: geerlingguy.apache

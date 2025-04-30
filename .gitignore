@@ -1,4 +1,5 @@
 *.retry
+.ansible
 .venv*
 .vscode
 **/__pycache__

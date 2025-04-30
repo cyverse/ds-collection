@@ -1,0 +1,20 @@
+---
+vhost_exchanges_default: []
+vhost_parameters_default: []
+vhost_policies_default: []
+vhost_queues_default: []
+vhost_state_default: present
+vhost_users_default: []
+
+exchange_default:
+  bindings: []
+  state: present
+
+policy_default:
+  pattern: ^$
+  state: present
+  tags: {}
+
+queue_default:
+  bindings: []
+  state: present

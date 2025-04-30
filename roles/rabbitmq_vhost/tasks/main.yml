@@ -1,0 +1,62 @@
+---
+- name: Create or remove vhost
+  community.rabbitmq.rabbitmq_vhost:
+    node: "{{ rabbitmq_vhost_node | d(omit) }}"
+    name: "{{ rabbitmq_vhost_name }}"
+    state: "{{ rabbitmq_vhost_state }}"
+    tracing: "{{ rabbitmq_vhost_tracing | d(omit) }}"
+
+- name: Configure vhost
+  when: rabbitmq_vhost_state == "present"
+  block:
+    - name: Configure parameters
+      community.rabbitmq.rabbitmq_parameter:
+        node: "{{ rabbitmq_vhost_node | d(omit) }}"
+        vhost: "{{ rabbitmq_vhost_name }}"
+        component: "{{ item.component }}"
+        name: "{{ item.name }}"
+        state: "{{ item.state | d(omit) }}"
+        value: "{{ item.value | d(omit) }}"
+      loop: "{{ rabbitmq_vhost_parameters }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Configure policies
+      community.rabbitmq.rabbitmq_policy:
+        node: "{{ rabbitmq_vhost_node | d(omit) }}"
+        vhost: "{{ rabbitmq_vhost_name }}"
+        name: "{{ item.name }}"
+        state: "{{ item.state | d(policy_default.state) }}"
+        pattern: >-
+          {{ item.pattern |
+            d(policy_default.pattern if item.state|d(policy_default.state) == 'present' else
+              omit) }}
+        tags: >-
+          {{ item.tags |
+            d(policy_default.tags if item.state|d(policy_default.state) == 'present' else omit) }}
+        priority: "{{ item.priority | d(omit) }}"
+        apply_to: "{{ item.apply_to | d(omit) }}"
+      loop: "{{ rabbitmq_vhost_policies }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Permissions
+      ansible.builtin.include_tasks: permission.yml
+      loop: "{{ rabbitmq_vhost_users }}"
+      loop_control:
+        loop_var: user
+        label: "{{ user.name }}"
+
+    - name: Exchanges
+      ansible.builtin.include_tasks: exchange.yml
+      loop: "{{ rabbitmq_vhost_exchanges }}"
+      loop_control:
+        loop_var: exchange
+        label: "{{ exchange.name }}"
+
+    - name: Queues
+      ansible.builtin.include_tasks: queue.yml
+      loop: "{{ rabbitmq_vhost_queues }}"
+      loop_control:
+        loop_var: queue
+        label: "{{ queue.name }}"

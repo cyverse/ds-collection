@@ -206,7 +206,7 @@ None
     irods_cfg_home: /iplant
   tasks:
     - include_role:
-        name: cyverse-ansible.irods-cfg
+        name: cyverse.ds.irods_cfg
         tasks_from: "{{ item }}"
       with_items:
         - client.yml
@@ -215,7 +215,7 @@ None
 # Catalog Service Provider
 - hosts: irods_catalog_provider
   roles:
-    - role: cyverse-ansible.irods-cfg
+    - role: cyverse.ds.irods_cfg
       vars:
         irods_cfg_default_hash_scheme: MD5
         irods_cfg_default_number_of_transfer_threads: 16
@@ -251,7 +251,7 @@ None
 # Catalog Service Consumer Acting as a Resource Server
 - hosts: irods_resource_server
   roles:
-    - role: cyverse-ansible.irods-cfg
+    - role: cyverse.ds.irods_cfg
       vars:
         irods_cfg_default_hash_scheme: MD5
         irods_cfg_default_number_of_transfer_threads: 16
@@ -268,13 +268,3 @@ None
         irods_cfg_zone_name: iplant
         irods_cfg_zone_user: has_admin
 ```
-
-## License
-
-See [license](/LICENSE.txt).
-
-## Author Information
-
-Tony Edgin
-<tedgin@arizona.edu>
-[CyVerse](https://cyverse.org)

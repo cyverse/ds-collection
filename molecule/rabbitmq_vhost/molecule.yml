@@ -1,0 +1,16 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: molecule/rabbitmq_vhost/requirements.yml
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: docker.io/rabbitmq:management-alpine
+    pre_build_image: true
+    override_command: false
+provisioner:
+  name: ansible
+verifier:
+  name: ansible

@@ -8,5 +8,6 @@ molecule-plugins
 netaddr
 paramiko
 python-irodsclient
+requests
 scp
 tox-ansible

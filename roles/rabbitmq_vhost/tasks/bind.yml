@@ -1,0 +1,29 @@
+---
+# EXPECTED VARS:
+#
+# destination:       required
+# destination_type:  required
+# bindings:          required a list with zero or more binding objects
+#
+# A binding object is expected to have the following fields.
+# source:       required
+# arguments:    optional
+# routing_key:  optional
+# state:        optional
+
+- name: Bind | bind {{ destination_type ~ ' ' ~ destination }}
+  community.rabbitmq.rabbitmq_binding:
+    login_port: "{{ rabbitmq_vhost_mgmt_port | d(omit) }}"
+    login_user: "{{ rabbitmq_vhost_admin_user | d(omit) }}"
+    login_password: "{{ rabbitmq_vhost_admin_password | d(omit) }}"
+    vhost: "{{ rabbitmq_vhost_name }}"
+    destination: "{{ destination }}"
+    destination_type: "{{ destination_type }}"
+    name: "{{ item.source }}"
+    state: "{{ item.state | d(omit) }}"
+    routing_key: "{{ item.routing_key | d(omit) }}"
+    arguments: "{{ item.arguments | d(omit) }}"
+  no_log: true
+  loop: "{{ bindings }}"
+  loop_control:
+    label: "{{ item.source }}->{{ destination }}"

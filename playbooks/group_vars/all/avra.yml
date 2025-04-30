@@ -1,0 +1,4 @@
+---
+_avra_base_collection: "{{ avra_base_collection | d(None) }}"
+_avra_manager: "{{ avra_manager | d(_irods_clerver_user) }}"
+_avra_resource_hierarchy: "{{ avra_resource_hierarchy | d(_irods_resource_hierarchies[0]) }}"

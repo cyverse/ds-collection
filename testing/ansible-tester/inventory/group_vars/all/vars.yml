@@ -17,5 +17,3 @@ irods_icat_password: testpassword
 irods_zone_name: testing
 
 mail_domain_name: testing_default
-
-irods_restart: true
