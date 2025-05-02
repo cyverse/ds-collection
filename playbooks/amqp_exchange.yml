@@ -1,27 +1,23 @@
 ---
 - name: Create AMQP exchange
-  hosts: irods_catalog
+  hosts: amqp
   become: true
   run_once: true
   gather_facts: false
-  tasks:
-    - name: Create
-      ansible.builtin.import_role:
-        name: cyverse.ds.rabbitmq_vhost
+  roles:
+    - role: cyverse.ds.rabbitmq_vhost
       vars:
-        rabbitmq_vhost_mgmt_port: "{{ _amqp_mgmt_port }}"
-        rabbitmq_vhost_admin_user: "{{ _amqp_user }}"
-        rabbitmq_vhost_admin_password: "{{ _amqp_password }}"
-        rabbitmq_vhost_name: "{{ _amqp_vhost }}"
+        rabbitmq_vhost_mgmt_port: "{{ _amqp_management_port }}"
+        rabbitmq_vhost_admin_username: "{{ _amqp_admin_username }}"
+        rabbitmq_vhost_admin_password: "{{ _amqp_admin_password }}"
+        rabbitmq_vhost_name: "{{ _amqp_irods_vhost }}"
         rabbitmq_vhost_users:
-          - name: "{{ _amqp_user }}"
+          - name: "{{ _amqp_irods_username }}"
             configure_priv: .*
             read_priv: .*
             write_priv: .*
         rabbitmq_vhost_exchanges:
-          - name: "{{ _amqp_exchange }}"
+          - name: "{{ _amqp_irods_exchange }}"
             type: topic
-      delegate_to: "{{ _amqp_host }}"
-      delegate_facts: true
   tags:
     - no_testing

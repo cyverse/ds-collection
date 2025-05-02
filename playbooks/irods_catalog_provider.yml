@@ -189,7 +189,7 @@
         irods_cfg_default_resource_name: "{{ _irods_default_resource }}"
         irods_cfg_environment_variables:
           IRODS_AMQP_URI: >-
-            amqp://{{ _amqp_user }}:{{ _amqp_password }}@{{ _amqp_host }}:{{ _amqp_port }}/{{ _amqp_vhost | replace('/', '%2F') }}
+            amqp://{{ _irods_amqp_username }}:{{ _irods_amqp_password }}@{{ _irods_amqp_host }}:{{ _irods_amqp_port }}/{{ _irods_amqp_vhost | replace('/', '%2F') }}
         irods_cfg_federation: "{{ _irods_federation }}"
         irods_cfg_host_entries: >-
           {{ [] if _irods_host_aliases | count == 0 else

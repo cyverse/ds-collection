@@ -14,6 +14,10 @@ Variable                                   | Required | Default                 
 `amqp_admin_username`                      | no       | guest                                |         | The AMQP broker admin user
 `amqp_admin_password`                      | no       | guest                                |         | The password for `amqp_admin_username`
 `amqp_broker_port`                         | no       | 5672                                 |         | The port used by the broker
+`amqp_irods_exchange`                      | no       | irods                                |         | The AMQP exchange used by iRODS to publish events
+`amqp_irods_username`                      | no       | `amqp_admin_username`                |         | The user iRODS uses to connect to the AMQP vhost
+`amqp_irods_password`                      | no       | `amqp_admin_password`                |         | The password iRODS uses to connect to the AMQP vhost
+`amqp_irods_vhost`                         | no       | /                                    |         | The AMQP vhost iRODS connects to
 `amqp_management_port`                     | no       | 15672                                |         | The port used by the management interface
 `avra_base_collection`                     | no       |                                      |         | The base collection for the Avra project. If it isn't present no Avra rules will fire.
 `avra_manager`                             | no       | `irods_clerver_user`                 |         | The iRODS user who is responsible for Avra data.
@@ -50,10 +54,9 @@ Variable                                   | Required | Default                 
 `irods_admin_username`                     | no       | `irods_clerver_user`                 |         | The iRODS admin account name
 `irods_amqp_exchange`                      | no       | irods                                |         | The AMQP exchange used to publish events
 `irods_amqp_host`                          | no       | localhost                            |         | the FQDN or IP address of the server hosting the AMQP service
-`irods_amqp_mgmt_port`                     | no       | 15672                                |         | The TCP port used for management of the AMQP vhost
-`irods_amqp_password`                      | no       | guest                                |         | The password iRODS uses to connect to the AMQP vhost
 `irods_amqp_port`                          | no       | 5672                                 |         | The TCP port the RabbitMQ broker listens on
-`irods_amqp_user`                          | no       | guest                                |         | The user iRODS uses to connect to the AMQP vhost
+`irods_amqp_username`                      | no       | guest                                |         | The user iRODS uses to connect to the AMQP vhost
+`irods_amqp_password`                      | no       | guest                                |         | The password iRODS uses to connect to the AMQP vhost
 `irods_amqp_vhost`                         | no       | /                                    |         | The AMQP vhost iRODS connects to
 `irods_allowed_clients`                    | no       | 0.0.0.0/0                            |         | The network/mask for the clients allowed to access iRODS.
 `irods_become_svc_acnt`                    | no       | true                                 |         | Whether or not to perform actions normally performed by the service account as the service account

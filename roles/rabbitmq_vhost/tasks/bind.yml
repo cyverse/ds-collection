@@ -14,7 +14,7 @@
 - name: Bind | bind {{ destination_type ~ ' ' ~ destination }}
   community.rabbitmq.rabbitmq_binding:
     login_port: "{{ rabbitmq_vhost_mgmt_port | d(omit) }}"
-    login_user: "{{ rabbitmq_vhost_admin_user | d(omit) }}"
+    login_user: "{{ rabbitmq_vhost_admin_username | d(omit) }}"
     login_password: "{{ rabbitmq_vhost_admin_password | d(omit) }}"
     vhost: "{{ rabbitmq_vhost_name }}"
     destination: "{{ destination }}"
