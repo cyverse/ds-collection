@@ -9,7 +9,6 @@
 import unittest
 
 from irods.exception import CUT_ACTION_PROCESSED_ERR
-from scp import SCPClient
 
 from test_rules import IrodsTestCase, IrodsVal
 
@@ -52,10 +51,9 @@ class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
 
     def setUp(self):
         super().setUp()
-        self._scp = SCPClient(self.ssh.get_transport())
-        self._scp.get('/etc/irods/pire-env.re', '/tmp/pire-env.re')
+        self.scp.get('/etc/irods/pire-env.re', '/tmp/pire-env.re')
         self.ssh.exec_command("sed --in-place 's/pire_RESC = .*/pire_RESC = cyverse_DEFAULT_RESC/'")
-        self.ssh.exec_command("touch /etc/irods/core.re")
+        self.reload_rules()
 
     def tearDown(self):
         for obj in [
@@ -65,9 +63,7 @@ class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
             "/testing/home/shared/bhpire/pire",
         ]:
             self.ensure_obj_absent(obj)
-        self._scp.put('/tmp/pire-env.re', '/etc/irods/pire-env.re')
-        self._scp.close()
-        self.ssh.exec_command("touch /etc/irods/core.re")
+        self.update_rulebase('pire-env.re', '/tmp/pire-env.re')
         super().tearDown()
 
     def test_pire_res_and_coll(self):

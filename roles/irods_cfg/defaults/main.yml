@@ -50,7 +50,7 @@ irods_cfg_default_resource_name: demoResc
 irods_cfg_default_temporary_password_lifetime: 120
 
 irods_cfg_delay_rule_executors: null
-irods_cfg_delay_server_sleep_time: null
+irods_cfg_delay_server_sleep_time: 30
 
 irods_cfg_environment_file: >-
   {{ _environment_file_default
@@ -81,6 +81,7 @@ irods_cfg_log_level:
   resource: info
   rule_engine: info
   server: info
+  sql: info
 
 irods_cfg_match_hash_policy: "{{ _match_hash_policy_default | d(none) }}"
 
@@ -138,6 +139,8 @@ irods_cfg_system_group_name: "{{ irods_cfg_system_account_name }}"
 irods_cfg_tcp_keepalive_intvl: null
 irods_cfg_tcp_keepalive_probes: null
 irods_cfg_tcp_keepalive_time: null
+
+irods_cfg_test_log: false
 
 irods_cfg_transfer_buffer_size_for_parallel_transfer: >-
   {{ _transfer_buffer_size_for_parallel_transfer_default | d(none) }}

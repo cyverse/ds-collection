@@ -131,7 +131,7 @@
           - server_config.advanced_settings.default_number_of_transfer_threads == 4
           - server_config.advanced_settings.default_temporary_password_lifetime_in_seconds == 120
           - server_config.advanced_settings.delay_rule_executors is not defined
-          - server_config.advanced_settings.delay_server_sleep_time_in_seconds is not defined
+          - server_config.advanced_settings.delay_server_sleep_time_in_seconds == 30
           - server_config.advanced_settings.maximum_number_of_concurrent_rule_engine_server_processes is not defined
           - server_config.advanced_settings.maximum_size_of_delay_queue_in_bytes is not defined
           - server_config.advanced_settings.maximum_size_for_single_buffer_in_megabytes == 32
@@ -166,6 +166,7 @@
           - server_config.log_level.resource == 'info'
           - server_config.log_level.rule_engine == 'info'
           - server_config.log_level.server == 'info'
+          - server_config.log_level.sql == 'info'
           - server_config.kerberos_name is not defined
           - server_config.match_hash_policy == 'compatible'
           - server_config.maximum_connections is not defined
@@ -376,6 +377,7 @@
           - server_config.log_level.resource == 'warn'
           - server_config.log_level.rule_engine == 'error'
           - server_config.log_level.server == 'critical'
+          - server_config.log_level.sql == 'trace'
           - server_config.match_hash_policy == 'strict'
           - server_config.maximum_connections == 1
           - server_config.negotiation_key == 'TEMPORARY_32byte_negotiation_ke3'

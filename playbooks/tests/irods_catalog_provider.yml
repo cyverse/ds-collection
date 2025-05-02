@@ -48,7 +48,7 @@
       block:
         - name: CentOS | verify correct packages installed
           ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
-          with_items:
+          loop:
             - mailx
             - pgdg-redhat-repo
             - postgresql12
@@ -62,7 +62,7 @@
           register: resp
           failed_when: >-
             not resp.stat.exists or not resp.stat.rusr or not resp.stat.rgrp or not resp.stat.roth
-          with_items:
+          loop:
             - /etc/profile.d/postgres.csh
             - /etc/profile.d/postgres.sh
 
@@ -101,7 +101,7 @@
       block:
         - name: Ubuntu | verify correct packages installed
           ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
-          with_items:
+          loop:
             - bsd-mailx
             - odbc-postgresql
             - postgresql-client-12
@@ -136,7 +136,7 @@
 
     - name: Verify iRODS ownership
       ansible.builtin.include_tasks: tasks/irods/test_irods_ownership.yml
-      with_items:
+      loop:
         - /etc/irods
         - /var/lib/irods
       loop_control:
@@ -160,7 +160,7 @@
         not response.stat.exists
         or response.stat.pw_name != 'irods'
         or not response.stat.rusr
-      with_items:
+      loop:
         - avra.re
         - avra-env.re
         - coge.re
@@ -176,8 +176,6 @@
         - cyverse_logic.re
         - ipc-trash.re
         - ipc-encryption.re
-        - mdrepo.re
-        - mdrepo-env.re
         - pire.re
         - pire-env.re
         - server_config.json

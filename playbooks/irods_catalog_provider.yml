@@ -42,7 +42,6 @@
     odbc_description: >-
       {{ lookup('ini', 'Description file=files/postgresql-odbc-tmpl.ini section=PostgreSQL') }}
     odbc_driver: >-
-
       {{ lookup('ini', 'Driver file=files/postgresql-odbc-tmpl.ini section=PostgreSQL') }}
     odbc_setup: >-
       {{ lookup('ini', 'Setup file=files/postgresql-odbc-tmpl.ini section=PostgreSQL') }}

@@ -33,6 +33,9 @@
 # IRODS_ZONE_PORT             the main TCP port used by the zone for
 #                             communication
 # IRODS_ZONE_USER             the main rodsadmin user
+#
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
 
 set -o errexit -o nounset -o pipefail
 
@@ -47,7 +50,7 @@ setup_irods() {
 
   # NOTE: This will fail, because there is not a catalog provider
   if ! \
-    python3 /var/lib/irods/scripts/setup_irods.py --verbose \
+    python3 /var/lib/irods/scripts/setup_irods.py --stdout --verbose \
       --json_configuration_file=/tmp/resolved_installation.json
   then
     echo Ignoring expected failure >&2
@@ -134,10 +137,7 @@ mk_unattended_install() {
           "plugin_specific_configuration": {
              "re_data_variable_mapping_set": [ "core" ],
              "re_function_name_mapping_set": [ "core" ],
-             "re_rulebase_set": [
-               "pre_config",
-              "core"
-             ],
+             "re_rulebase_set": [ "core"],
              "regexes_for_supported_peps": [
                 "ac[^ ]*",
                 "msi[^ ]*",

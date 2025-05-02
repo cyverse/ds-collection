@@ -1,74 +1,18 @@
 ---
-- name: Test mdrepo-env default expansion
-  hosts: localhost
-  gather_facts: false
-  vars_files:
-    - ../group_vars/all/irods.yml
-  vars:
-    mdrepo_env: "{{ lookup('template', '../templates/irods/etc/irods/mdrepo-env.re.j2') }}"
-  tasks:
-    - name: Verify constants expand correctly on mdrepo-env.re.j2
-      ansible.builtin.assert:
-        that: mdrepo_env is search("mdrepo_LANDING_COLLS = list()" | regex_escape)
-
-
-- name: Test mdrepo-env one collection
-  hosts: localhost
-  gather_facts: false
-  vars_files:
-    - ../group_vars/all/irods.yml
-  vars:
-    mdrepo_landing_colls:
-      - /landing1
-    mdrepo_env: "{{ lookup('template', '../templates/irods/etc/irods/mdrepo-env.re.j2') }}"
-  tasks:
-    - name: Verify constants expand correctly on mdrepo-env.re.j2
-      ansible.builtin.assert:
-        that:
-          - mdrepo_env is search('mdrepo_LANDING_COLLS = list("/landing1")' | regex_escape)
-
-
-- name: Test mdrepo-env multiple collections
-  hosts: localhost
-  gather_facts: false
-  vars_files:
-    - ../group_vars/all/irods.yml
-  vars:
-    mdrepo_landing_colls:
-      - /landing1
-      - /landing2
-    mdrepo_env: "{{ lookup('template', '../templates/irods/etc/irods/mdrepo-env.re.j2') }}"
-  tasks:
-    - name: Verify constants expand correctly on mdrepo-env.re.j2
-      ansible.builtin.assert:
-        that:
-          - mdrepo_env is search('mdrepo_LANDING_COLLS = list("/landing1", "/landing2")' | regex_escape)
-
-
-- name: Test add MD Repo rule logic
+- name: Test remove MD Repo rule logic
   hosts: irods
   become: true
   become_user: irods
   tasks:
-    - name: Test install command script
+    - name: Test remove rule logic
       ansible.builtin.stat:
-        path: /var/lib/irods/msiExecCmd_bin/md-repo-touch-obj
+        path: "{{ item }}"
       register: response
-      failed_when: >-
-        not response.stat.exists or
-        response.stat.pw_name != 'irods' or
-        not response.stat.rusr or
-        not response.stat.xusr
-
-    - name: Test install of rule bases
-      ansible.builtin.stat:
-        path: /etc/irods/{{ item }}
-      register: response
-      failed_when: >-
-        not response.stat.exists or response.stat.pw_name != 'irods' or not response.stat.rusr
-      with_items:
-        - mdrepo-env.re
-        - mdrepo.re
+      failed_when: response.stat.exists
+      loop:
+        - /etc/irods/mdrepo.re
+        - /etc/irods/mdrepo-env.re
+        - /var/lib/irods/msiExecCmd_bin/md-repo-touch-obj
 
 
 - name: Test configure for MD Repo CLI
