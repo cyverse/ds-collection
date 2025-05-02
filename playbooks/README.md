@@ -20,6 +20,8 @@ Variable                                   | Required | Default                 
 `dbms_checkpoint_timeout`                  | no       | 15                                   |         | WAL checkpoint timeout in minutes
 `dbms_effective_cache_size`                | no       | _see comment_                        |         | the value the query planner uses to estimate the total size of data caches in GiB, the default in 50% of the total memory
 `dbms_effective_io_concurrency`            | no       | 200                                  |         | the number of concurrent disk I/O operations that can be executed simultaneously
+`dbms_irods_password`                      | yes      |                                      |         | the password used to authenticate the iRODS PostgreSQL account
+`dbms_irods_username`                      | no       | irods                                |         | the PostgreSQL account iRODS uses to connect to the ICAT DB
 `dbms_log_line_prefix`                     | no       | < %m %r >                            |         | PostgreSQL log message prefix (see PostgreSQL documentation for possible values)
 `dbms_log_min_duration`                    | no       | 1000                                 |         | the number of milliseconds a query should take before it is logged in the DBMS logs. `-1` disables query logging
 `dbms_maintenance_work_mem`                | no       | 2                                    |         | the amount of memory in gibibytes for maintenance operations
