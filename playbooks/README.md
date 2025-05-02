@@ -11,6 +11,10 @@ These folder contains all of the playbooks used to deploy and configure a CyVers
 
 Variable                                   | Required | Default                              | Choices | Comments
 ------------------------------------------ | -------- | ------------------------------------ | ------- | --------
+`amqp_admin_username`                      | no       | guest                                |         | The AMQP broker admin user
+`amqp_admin_password`                      | no       | guest                                |         | The password for `amqp_admin_username`
+`amqp_broker_port`                         | no       | 5672                                 |         | The port used by the broker
+`amqp_management_port`                     | no       | 15672                                |         | The port used by the management interface
 `avra_base_collection`                     | no       |                                      |         | The base collection for the Avra project. If it isn't present no Avra rules will fire.
 `avra_manager`                             | no       | `irods_clerver_user`                 |         | The iRODS user who is responsible for Avra data.
 `avra_resource_hierarchy`                  | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the Avra project

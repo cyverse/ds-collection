@@ -1,0 +1,7 @@
+---
+_amqp_admin_username: "{{ amqp_admin_username | d('guest') }}"
+_amqp_admin_password: "{{ amqp_admin_password | d('guest') }}"
+
+_amqp_broker_port: "{{ amqp_broker_port | d(5672) }}"
+
+_amqp_management_port: "{{ amqp_management_port | d(15672) }}"
