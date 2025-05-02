@@ -35,7 +35,7 @@
         not response.stat.exists
         or response.stat.pw_name != 'irods'
         or not response.stat.rusr
-      with_items:
+      loop:
         - avra.re
         - avra-env.re
         - coge.re
@@ -51,8 +51,6 @@
         - cyverse_logic.re
         - ipc-trash.re
         - ipc-encryption.re
-        - mdrepo.re
-        - mdrepo-env.re
         - pire.re
         - pire-env.re
         - server_config.json
@@ -214,7 +212,6 @@
         zone: testing
       register: resp
       failed_when: resp.changed
-
 
     - name: Test initialize resource server connection to catalog service providers
       ansible.builtin.stat:

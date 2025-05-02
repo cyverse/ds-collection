@@ -24,7 +24,7 @@
 
 ## Deployed Artifacts
 
-Information on the set of custom logic and configuration files that are deployed by these playbooks can be found in the [Deployed Artifacts](deployed-artifacts.md) document.
+Information on the set of custom logic and configuration files that are deployed by these playbooks can be found in the [Deployed Artifacts](deployment-artifacts/README.md) document.
 
 ## Testing
 

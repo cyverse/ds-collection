@@ -104,6 +104,7 @@ Variable                                                     | Default          
 `irods_cfg_tcp_keepalive_intvl`                              | -1                                                                                   |                                                  | the number of seconds between TCP keep-alive probes, if non-positive, leave socket opt unset
 `irods_cfg_tcp_keepalive_probe`                              | -1                                                                                   |                                                  | the maximum number of TCP keep-alive probes to send before giving up and killing the connection if no response is obtained from the other end, if non-positive, leave socket opt unset
 `irods_cfg_tcp_keepalive_time`                               | -1                                                                                   |                                                  | the number of seconds a connection needs to be idle before TCP begins sending out keep-alive probes, if non-positive, leave socket opt unset
+`irods_cfg_test_log`                                         | false                                                                                |                                                  | if the iRODS server process gets restarted, should log messages be written to /var/lib/irods/log/test_mode_output.log
 `irods_cfg_transfer_buffer_size_for_parallel_transfer`       | 4                                                                                    |                                                  | the buffer size in mebibytes for parallel transfer
 `irods_cfg_transfer_chunk_size_for_parallel_transfer`        | 40                                                                                   |                                                  | the chunk size in mebibytes for parallel transfer
 `irods_cfg_validate`                                         | true                                                                                 |                                                  | whether or not the configuration values should be validated when the configuration files are generated
@@ -178,6 +179,7 @@ Field            | Default | Choices
 `resource`       | ⋮       | ⋮
 `rule_engine`    | ⋮       | ⋮
 `server`         | ⋮       | ⋮
+`sql`            | ⋮       | ⋮
 
 The `irods_cfg_re` variable holds `null`, `core`, or an `re` object. `null` means that no rule engine will be used. `core` means the iRODS rule language rule engine will be used with its default configuration. An `re` object customizes an rule language rule engine. Here are the fields in an `re` object. None of them are required.
 

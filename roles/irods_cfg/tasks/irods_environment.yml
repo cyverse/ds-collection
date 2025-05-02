@@ -39,6 +39,3 @@
   vars:
     _cfg_template_dest_file: "{{ irods_cfg_environment_file }}"
     _cfg_template_name: irods_environment.json.j2
-
-- name: IRODS environment | ensure known that changes were made
-  ansible.builtin.meta: flush_handlers

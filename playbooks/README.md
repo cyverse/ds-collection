@@ -101,7 +101,6 @@ Variable                                   | Required | Default                 
 `irods_zone_key`                           | no       | TEMPORARY_zone_key                   |         | The zone key
 `irods_zone_name`                          | no       | tempZone                             |         | The name of the zone
 `mdrepo_cli_account`                       | no       | null                                 |         | The iRODS account used my the MD Repo CLI
-`mdrepo_landing_colls`                     | no       | []                                   |         | The set of paths to the base collections used my the MD Repo service for data ingest
 `pire_manager`                             | no       | null                                 |         | The username that owns the PIRE project collection, if `null`, the collection isn't created.
 `pire_resource_hierarchy`                  | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the PIRE project
 `sftp_admin_password`                      | yes      |                                      |         | The password of the SFTPGo admin user

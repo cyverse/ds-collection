@@ -26,7 +26,6 @@
 
 @include 'avra'
 @include 'coge'
-@include 'mdrepo'
 @include 'pire'
 
 
@@ -518,7 +517,6 @@ pep_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 #
 pep_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
 	ipcEncryption_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp);
-	mdrepo_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp);
 }
 
 # This is the post processing logic for when a data object is created through
@@ -563,8 +561,7 @@ pep_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 #  DataObjInp  (`KeyValuePair_PI`) information related to the data object
 #
 pep_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
-	ipcEncryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp)
-	mdrepo_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp);
+	ipcEncryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp);
 }
 
 
@@ -597,8 +594,7 @@ pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 #  PORTAL_OPR_OUT  unknown
 #
 pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
-	ipcEncryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp)
-	mdrepo_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT);
+	ipcEncryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp);
 }
 
 # This is the post processing logic for when a data object is uploaded through
@@ -966,28 +962,6 @@ pep_database_mod_data_obj_meta_post(*Instance, *Context, *OUT, *DataObjInfo, *Re
 			*Context.user_user_name, *Context.user_rods_zone, *logicalPath );
 	}
 # XXX - ^^^
-}
-
-
-# MOD TICKET
-
-# This is this post processing logic for when a ticket is added to the catalog
-# or modified with in the catalog.
-#
-#  Instance      (string) the type of DBMS being used
-#  Context       (`KeyValuePair_PI`) the database plugin context
-#  OUT           (`KeyValuePair_PI`) unknown
-#  OpName        unknown
-#  TicketString  (string) the ticket label
-#  Arg3          unknown
-#  Arg4          unknown
-#  Arg5          unknown
-#
-pep_database_mod_ticket_post(
-	*Instance, *Context, *OUT, *OpName, *TicketString, *Arg3, *Arg4, *Arg5
-) {
-	mdrepo_database_mod_ticket_post(
-		*Instance, *Context, *OUT, *OpName, *TicketString, *Arg3, *Arg4, *Arg5 );
 }
 
 

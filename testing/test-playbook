@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+#
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
 
 show_help() {
 	cat <<EOF
@@ -13,9 +16,8 @@ test Data Store playbooks
 Options:
  -I, --inventory <inventory>  the name of the inventory hosts file to use
  -P, --playbook <playbook>    the name of the playbook to test
- -S, --setup <playbook>       tne name of a playbook to run prior to the
-                              playbook under test
-
+ -S, --setup <playbooks>      a comma-separated list of playbook to be run, in
+                              order, prior to the playbook under test
  -h, --help                   show help and exit
  -i, --inspect                after running the playbook, open a shell that
                               allows manual inspection of the configuration
@@ -77,7 +79,21 @@ main() {
 	local setup
 	if [[ -n "${opts[setup]}" ]]
 	then
-		setup="$(resolve_playbook "${opts[setup]}")"
+		local books
+		IFS=, read -r -a books <<< "${opts[setup]}"
+
+		local book
+		for book in "${books[@]}"
+		do
+			book="$(resolve_playbook "$book")"
+
+			if [[ -n "${setup-}" ]]
+			then
+				setup="$setup","$book"
+			else
+				setup="$book"
+			fi
+		done
 	fi
 
 	do_run \

@@ -25,7 +25,10 @@
 # or IP address of the server managing the filesystem underlying the resource.
 # VAULT is the absolute path to the vault on the filesystem.
 #
-# TODO The current syntax of IRODS_RESOURCES doesn't allow spaces or colons in
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+#
+# TODO: The current syntax of IRODS_RESOURCES doesn't allow spaces or colons in
 # vault path names. Please change its syntax.
 
 set -o errexit -o nounset -o pipefail

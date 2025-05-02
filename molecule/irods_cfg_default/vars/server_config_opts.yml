@@ -80,6 +80,7 @@ irods_cfg_log_level:
   resource: warn
   rule_engine: error
   server: critical
+  sql: trace
 
 irods_cfg_match_hash_policy: strict
 
