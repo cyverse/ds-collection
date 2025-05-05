@@ -2,6 +2,16 @@
 
 These folder contains all of the playbooks used to deploy and configure a CyVerse Data Store.
 
+## Playbooks
+
+<!-- TODO: document remaining playbooks -->
+
+* `proxy.yml` completely deploys the proxies
+* `proxy_start.yml` starts HAProxy
+* `proxy_stop.yml` stops HAProxy
+* `proxy_block.yml` terminates all client connections to HAProxy and blocks new connections
+* `proxy_unblock.yml` allows client connections to be made
+
 ## Tags
 
 * `no_testing` for tasks that shouldn't be run within the containerized testing environment
@@ -106,6 +116,16 @@ Variable                                   | Required | Default                 
 `mdrepo_cli_account`                       | no       | null                                 |         | The iRODS account used my the MD Repo CLI
 `pire_manager`                             | no       | null                                 |         | The username that owns the PIRE project collection, if `null`, the collection isn't created.
 `pire_resource_hierarchy`                  | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the PIRE project
+`proxy_restart_allowed`                    | no       | false                                |         | Whether or not HAProxy can be restarted
+`proxy_rsyslog_conf`                       | no       | /etc/rsyslog.d/haproxy.conf          |         | the path to the rsyslog configuration file for HAProxy
+`proxy_stats_auth`                         | no       | null                                 |         | an object providing the authentication credentials for the HAProxy stats web interface _see below_
+`proxy_stats_tls_crt`                      | no       | null                                 |         | the absolute path to the TLS certificate chain used for securing the HAProxy stats web interface
+`proxy_stats_tls_crt_content`              | no       | null                                 |         | the content of the TLS certificate chain file
+`proxy_irods_direct_max_conn`              | no       | 200                                  |         | the maximum number of connections to iRODS
+`proxy_irods_reconn_ports`                 | no       | 20000-20399                          |         | the range of TCP range of ports that need to be forwarded to iRODS for reconnections
+`proxy_irods_vip_client_hosts`             | no       | []                                   |         | a list of host names, ip addresses, or CIDR blocks of clients allowed unlimited concurrent iRODS connections.
+`proxy_sftp_port`                          | no       | 22                                   |         | the TCP port hosting the SFTP service whose communication will be forwarded to SFTPGo
+`proxy_sftp_backend_port`                  | no       | 2022                                 |         | the TCP port that SFTPGo opens on the hosts
 `sftp_admin_password`                      | yes      |                                      |         | The password of the SFTPGo admin user
 `sftp_admin_ui_port`                       | no       | 18023                                |         | The SFTPGo admin UI service port number
 `sftp_admin_username`                      | no       | admin                                |         | The SFTPGo admin account name
@@ -208,6 +228,14 @@ Field    | Comments
 -------- | --------
 `name`   | The parameter name to modify
 `value`  | The new value to set
+
+`proxy_stats_auth` object fields
+
+Field      | Required | Default | Comments
+---------- | -------- | ------- | --------
+`username` | no       | ds      | the account authorized to access the stats web interface
+`password` | yes      |         | the password used to authenticate the account
+`realm`    | no       |         | the realm of the authentication system
 
 ## Command line variables
 
