@@ -15,9 +15,6 @@ postgresql_db: postgres
 # changing this requires adjusting the systemctl file.
 postgresql_db_path: /var/lib/postgresql/12/main
 
-postgresql_hba_insertafter: '# ----------------------------------'
-postgresql_hba_users: []
-
 # configuration defaults
 postgresql_checkpoint_completion_target: 0.5
 postgresql_checkpoint_timeout: 5min

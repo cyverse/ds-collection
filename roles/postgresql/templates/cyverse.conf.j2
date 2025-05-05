@@ -87,14 +87,14 @@ log_min_duration_statement = {{ postgresql_log_min_duration_statement }}
 log_line_prefix = '{{ postgresql_log_line_prefix }}'
 
 #------------------------------------------------------------------------------
-# PROMETHEUS MONITORING
+# CLIENT CONNECTION DEFAULTS
 #------------------------------------------------------------------------------
 
-# - Enable Library -
+# - Shared Library Preloading -
 
 shared_preload_libraries = 'pg_stat_statements'
 
-# - Configure -
+# - Configure pg_stat_statements -
 
 pg_stat_statements.max = 10000
 pg_stat_statements.track = all

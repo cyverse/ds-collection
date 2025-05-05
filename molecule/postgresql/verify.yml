@@ -1,11 +1,26 @@
 ---
 - name: Verify
   hosts: localhost
+  connection: local
   gather_facts: false
+  vars_files:
+    - ../../roles/postgresql/defaults/main.yml
   tasks:
+    - name: Verify | cyverse.conf default expansion of connections and authentication
+      ansible.builtin.debug:
+        msg: "TODO: implement for connection settings"
+
     - name: Verify | cyverse.conf default expansion
       ansible.builtin.debug:
-        msg: "TODO: implement"
+        msg: "TODO: implement for {{ item }} values"
+      loop:
+        - resource usage
+        - write-ahead log
+        - replication
+        - query tuning
+        - reporting and logging
+        - client connection defaults
+        - version and platform compatibility
 
     - name: Verify | .pgpass default expansion
       ansible.builtin.debug:
