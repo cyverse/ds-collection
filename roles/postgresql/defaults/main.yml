@@ -1,0 +1,61 @@
+---
+postgresql_destroy_default_db_on_init: false
+
+postgresql_reboot_allowed: false
+postgresql_restart_allowed: false
+
+postgresql_downstream_nodes: []
+
+postgresql_upstream_node: null
+
+postgresql_conf_path: /etc/postgresql/12/main
+
+postgresql_db: postgres
+
+# changing this requires adjusting the systemctl file.
+postgresql_db_path: /var/lib/postgresql/12/main
+
+postgresql_hba_insertafter: '# ----------------------------------'
+postgresql_hba_users: []
+
+# configuration defaults
+postgresql_checkpoint_completion_target: 0.5
+postgresql_checkpoint_timeout: 5min
+
+postgresql_effective_cache_size: 4GB
+
+postgresql_hot_standby_feedback: 'off'
+
+postgresql_effective_io_concurrency: 1
+
+postgresql_extra_listen_addresses: []
+postgresql_listen_port: 5432
+
+postgresql_log_line_prefix: '%m [%p] %q%u@%d '
+postgresql_log_min_duration_statement: -1
+
+postgresql_max_connections: 100
+
+postgresql_wal_keep_segments: 0
+postgresql_max_wal_senders: 10
+postgresql_min_wal_size: 80MB
+postgresql_max_wal_size: 1GB
+postgresql_wal_buffers: '-1'
+
+postgresql_random_page_cost: 4.0
+postgresql_default_statistics_target: 100
+
+postgresql_shared_buffers: 128MB
+
+postgresql_standard_conforming_strings: 'on'
+
+postgresql_work_mem: 4MB
+postgresql_maintenance_work_mem: 64MB
+
+postgresql_max_worker_processes: 8
+postgresql_max_parallel_workers: 8
+postgresql_max_parallel_maintenance_workers: 2
+postgresql_max_parallel_workers_per_gather: 2
+
+postgresql_huge_pages: try
+postgresql_num_huge_pages: 0

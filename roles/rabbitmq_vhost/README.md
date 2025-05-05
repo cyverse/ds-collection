@@ -10,8 +10,8 @@ The managed nodes must have RabbitMQ server installed with the management plugin
 
 Variable                         | Required | Default   | Choices         | Comments
 -------------------------------- | -------- | --------- | --------------- | --------
-`rabbitmq_vhost_admin_password`  | no       |           |                 | the password used to authenticate `rabbitmq_vhost_admin_user`
-`rabbitmq_vhost_admin_user`      | no       | guest     |                 | a user able to administer the vhost (doesn't need to have permission on it as long as `rabbitmq_vhost_users` list provides it)
+`rabbitmq_vhost_admin_password`  | yes      |           |                 | the password used to authenticate `rabbitmq_vhost_admin_username`
+`rabbitmq_vhost_admin_username`  | no       | guest     |                 | a user able to administer the vhost (doesn't need to have permission on it as long as `rabbitmq_vhost_users` list provides it)
 `rabbitmq_vhost_mgmt_port`       | no       | 15672     |                 | the port used to connect to the management plugin (UNTESTED)
 `rabbitmq_vhost_node`            | no       | rabbit    |                 | the erlang node of the rabbitmq server to configure
 `rabbitmq_vhost_exchanges`       | no       | []        |                 | the exchanges to add, modify, or remove from the vhost
@@ -102,7 +102,8 @@ Here's an example playbook that configures a vhost `/prod/data-store` with three
 - hosts: amqp_brokers
   roles:
     - role: cyverse.ds.rabbitmq_vhost
-      rabbitmq_vhost_admin_user: admin
+      rabbitmq_vhost_admin_username: admin
+      rabbitmq_vhost_admin_password: password
       rabbitmq_vhost_name: /prod/data-store
       rabbitmq_vhost_users:
         - name: admin

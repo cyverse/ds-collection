@@ -1,0 +1,17 @@
+---
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: postgresql
+    pre_build_image: false
+    dockerfile: Dockerfile
+    command: /lib/systemd/systemd
+    privileged: true
+provisioner:
+  name: ansible
+  inventory:
+    hosts:
+      all:
+        vars:
+          ansible_python_interpreter: /usr/bin/python3

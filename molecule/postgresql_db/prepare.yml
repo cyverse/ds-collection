@@ -1,0 +1,13 @@
+---
+- name: Prepare
+  hosts: all
+  tasks:
+    - name: Prepare | ensure pip is installed
+      ansible.builtin.package:
+        name: python3-pip
+        state: present
+
+    - name: Prepare | ensure the psycopg2 package is installed
+      ansible.builtin.pip:
+        name: psycopg2-binary
+        state: present

@@ -1,0 +1,7 @@
+---
+- name: Converge
+  hosts: all
+  become: true
+  become_user: postgres
+  roles:
+    - role: cyverse.ds.postgresql_db

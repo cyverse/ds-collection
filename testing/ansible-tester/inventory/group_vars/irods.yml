@@ -19,7 +19,7 @@ cereus_resource_hierarchy:
     - name: cereus
 
 irods_amqp_host: "{{ groups['amqp'][0] }}"
-irods_amqp_user: amqp_admin
+irods_amqp_username: amqp_admin
 irods_amqp_password: password
 irods_clerver_password: password
 irods_default_number_of_transfer_threads: 4

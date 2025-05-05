@@ -1,0 +1,25 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: postgresql_db
+    pre_build_image: false
+    dockerfile: Dockerfile
+    shm_size: 128M
+    command: >-
+      sudo --login --user postgres
+        /usr/lib/postgresql/12/bin/postgres --config-file=/etc/postgresql/12/main/postgresql.conf
+provisioner:
+  name: ansible
+  inventory:
+    hosts:
+      all:
+        vars:
+          ansible_python_interpreter: /usr/bin/python3
+          postgresql_db_admin_password: password
+          postgresql_db_admin_username: username

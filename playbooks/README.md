@@ -11,19 +11,52 @@ These folder contains all of the playbooks used to deploy and configure a CyVers
 
 Variable                                   | Required | Default                              | Choices | Comments
 ------------------------------------------ | -------- | ------------------------------------ | ------- | --------
+`amqp_admin_username`                      | no       | guest                                |         | The AMQP broker admin user
+`amqp_admin_password`                      | no       | guest                                |         | The password for `amqp_admin_username`
+`amqp_broker_port`                         | no       | 5672                                 |         | The port used by the broker
+`amqp_irods_exchange`                      | no       | irods                                |         | The AMQP exchange used by iRODS to publish events
+`amqp_irods_username`                      | no       | `amqp_admin_username`                |         | The user iRODS uses to connect to the AMQP vhost
+`amqp_irods_password`                      | no       | `amqp_admin_password`                |         | The password iRODS uses to connect to the AMQP vhost
+`amqp_irods_vhost`                         | no       | /                                    |         | The AMQP vhost iRODS connects to
+`amqp_management_port`                     | no       | 15672                                |         | The port used by the management interface
 `avra_base_collection`                     | no       |                                      |         | The base collection for the Avra project. If it isn't present no Avra rules will fire.
 `avra_manager`                             | no       | `irods_clerver_user`                 |         | The iRODS user who is responsible for Avra data.
 `avra_resource_hierarchy`                  | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the Avra project
 `cereus_collections`                       | no       | []                                   |         | A list of collections whose data belongs on the Cereus resource, each entry must be an absolute path
 `cereus_resource_hierarchy`                | no       | `irods_resource_hierarchies[0]`      |         | the Cereus resource used for hosting data for Cereus related projects
+`dbms_checkpoint_completion_target`        | no       | 0.9                                  |         | WAL checkpoint target duration fraction
+`dbms_checkpoint_timeout`                  | no       | 15                                   |         | WAL checkpoint timeout in minutes
+`dbms_effective_cache_size`                | no       | _see comment_                        |         | the value the query planner uses to estimate the total size of data caches in GiB, the default in 50% of the total memory
+`dbms_effective_io_concurrency`            | no       | 200                                  |         | the number of concurrent disk I/O operations that can be executed simultaneously
+`dbms_irods_password`                      | yes      |                                      |         | the password used to authenticate the iRODS PostgreSQL account
+`dbms_irods_username`                      | no       | irods                                |         | the PostgreSQL account iRODS uses to connect to the ICAT DB
+`dbms_log_line_prefix`                     | no       | < %m %r >                            |         | PostgreSQL log message prefix (see PostgreSQL documentation for possible values)
+`dbms_log_min_duration`                    | no       | 1000                                 |         | the number of milliseconds a query should take before it is logged in the DBMS logs. `-1` disables query logging
+`dbms_maintenance_work_mem`                | no       | 2                                    |         | the amount of memory in gibibytes for maintenance operations
+`dbms_max_connections`                     | no       | 1500                                 |         | the maximum number of connections allowed to the DBMS (change requires restart)
+`dbms_max_wal_senders`                     | no       | 120                                  |         | the maximum number of WAL sender processes (change requires restart)
+`dbms_max_wal_size`                        | no       | 8                                    |         | the maximum size of a WAL file in gibibytes
+`dbms_max_worker_processes`                | no       | _see comment_                        |         | the maximum number of concurrent worker processes, default is the number of processors (change requires restart)
+`dbms_max_parallel_maintenance_workers`    | no       | 2*                                   |         | the maximum number of parallel processes per maintenance operations, *must be no larger than `max_worker_processes`, so if that is 1, then the default is 1
+`dbms_max_parallel_workers_per_gather`     | no       | 2*                                   |         | the maximum number of parallel processes that can be started by a single gather or gather merge, *must be no larger than `max_worker_processes`, so if that is 1, then the default is 1
+`dbms_mem_num_huge_pages`                  | no       | 60000                                |         | the number of huge memory pages supported by the DBMS
+`dbms_min_wal_size`                        | no       | 2                                    |         | the minimum size of a WAL file in gibibytes
+`dbms_port`                                | no       | 5432                                 |         | the TCP port used by the DBMS (change requires restart)
+`dbms_random_page_cost`                    | no       | 1.1                                  |         | the query planning cost of a random page retrieval relative to other costs
+`dbms_reboot_allowed`                      | no       | false                                |         | whether or not the playbooks are allowed to reboot the DBMS server
+`dbms_replication_password`                | maybe*   |                                      |         | the password for authenticating `dbms_replication_username`, *this is required if replication is being set up
+`dbms_replication_start`                   | no       | false                                |         | whether or not the role should start replication. WARNING: THIS WILL DESTROY THE CURRENT REPLICA
+`dbms_replication_username`                | no       | postgres                             |         | the DBMS user authorized to replicate the master node
+`dbms_restart_allowed`                     | no       | false                                |         | whether or not the playbooks are allowed to restart PostgreSQL
+`dbms_wal_keep_segments`                   | no       | 4000                                 |         | the number of WAL files held by the primary server for its replica servers
+`dbms_work_mem`                            | no       | 32                                   |         | the allowed memory in mebibytes for each sort and hash operation
 `irods_admin_password`                     | no       | `irods_clerver_password`             |         | The iRODS admin account password
 `irods_admin_username`                     | no       | `irods_clerver_user`                 |         | The iRODS admin account name
 `irods_amqp_exchange`                      | no       | irods                                |         | The AMQP exchange used to publish events
 `irods_amqp_host`                          | no       | localhost                            |         | the FQDN or IP address of the server hosting the AMQP service
-`irods_amqp_mgmt_port`                     | no       | 15672                                |         | The TCP port used for management of the AMQP vhost
-`irods_amqp_password`                      | no       | guest                                |         | The password iRODS uses to connect to the AMQP vhost
 `irods_amqp_port`                          | no       | 5672                                 |         | The TCP port the RabbitMQ broker listens on
-`irods_amqp_user`                          | no       | guest                                |         | The user iRODS uses to connect to the AMQP vhost
+`irods_amqp_username`                      | no       | guest                                |         | The user iRODS uses to connect to the AMQP vhost
+`irods_amqp_password`                      | no       | guest                                |         | The password iRODS uses to connect to the AMQP vhost
 `irods_amqp_vhost`                         | no       | /                                    |         | The AMQP vhost iRODS connects to
 `irods_allowed_clients`                    | no       | 0.0.0.0/0                            |         | The network/mask for the clients allowed to access iRODS.
 `irods_become_svc_acnt`                    | no       | true                                 |         | Whether or not to perform actions normally performed by the service account as the service account

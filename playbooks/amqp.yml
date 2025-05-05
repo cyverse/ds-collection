@@ -1,0 +1,11 @@
+---
+- name: Set up RabbitMQ broker
+  hosts: amqp
+  become: true
+  roles:
+    - role: cyverse.ds.rabbitmq
+      vars:
+        rabbitmq_admin_username: "{{ _amqp_admin_username }}"
+        rabbitmq_admin_password: "{{ _amqp_admin_password }}"
+        rabbitmq_broker_port: "{{ _amqp_broker_port }}"
+        rabbitmq_mgmt_port: "{{ _amqp_management_port }}"

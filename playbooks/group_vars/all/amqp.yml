@@ -1,0 +1,12 @@
+---
+_amqp_admin_username: "{{ amqp_admin_username | d('guest') }}"
+_amqp_admin_password: "{{ amqp_admin_password | d('guest') }}"
+
+_amqp_broker_port: "{{ amqp_broker_port | d(5672) }}"
+
+_amqp_irods_exchange: "{{ amqp_irods_exchange | d('irods') }}"
+_amqp_irods_username: "{{ amqp_irods_username | d(_amqp_admin_username) }}"
+_amqp_irods_password: "{{ amqp_irods_password | d(_amqp_admin_password) }}"
+_amqp_irods_vhost: "{{ amqp_irods_vhost | d('/') }}"
+
+_amqp_management_port: "{{ amqp_management_port | d(15672) }}"

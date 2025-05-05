@@ -2,7 +2,7 @@
 dependency:
   name: galaxy
   options:
-    requirements-file: molecule/rabbitmq_vhost/requirements.yml
+    requirements-file: requirements.yml
 driver:
   name: docker
 platforms:

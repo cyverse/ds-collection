@@ -6,7 +6,7 @@
       ansible.builtin.include_role:
         name: cyverse.ds.rabbitmq_vhost
       vars:
-        rabbitmq_vhost_admin_user: admin
+        rabbitmq_vhost_admin_username: admin
         rabbitmq_vhost_admin_password: password
         rabbitmq_vhost_name: /vhost1
         rabbitmq_vhost_users:
@@ -16,7 +16,7 @@
       ansible.builtin.include_role:
         name: cyverse.ds.rabbitmq_vhost
       vars:
-        rabbitmq_vhost_admin_user: admin
+        rabbitmq_vhost_admin_username: admin
         rabbitmq_vhost_admin_password: password
         rabbitmq_vhost_name: /vhost2
         rabbitmq_vhost_users:

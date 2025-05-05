@@ -17,7 +17,7 @@
 - name: Queue | configure {{ queue.name }}
   community.rabbitmq.rabbitmq_queue:
     login_port: "{{ rabbitmq_vhost_mgmt_port | d(omit) }}"
-    login_user: "{{ rabbitmq_vhost_admin_user | d(omit) }}"
+    login_user: "{{ rabbitmq_vhost_admin_username | d(omit) }}"
     login_password: "{{ rabbitmq_vhost_admin_password | d(omit) }}"
     vhost: "{{ rabbitmq_vhost_name }}"
     name: "{{ queue.name }}"
