@@ -5,10 +5,20 @@
   gather_facts: false
   vars_files:
     - ../../roles/postgresql/defaults/main.yml
+  vars:
+    cyverse_conf: "{{ lookup('template', '../../roles/postgresql/templates/cyverse.conf.j2') }}"
   tasks:
+    - name: Verify | cyverse.conf default expansion
+      ansible.builtin.assert:
+        that:
+          - cyverse_conf is search("\nlisten_addresses *= *'localhost'\n")
+
     - name: Verify | cyverse.conf default expansion of connections and authentication
       ansible.builtin.debug:
-        msg: "TODO: implement for connection settings"
+        msg: "TODO: implement for {{ item }}"
+      loop:
+        - port
+        - max_connections
 
     - name: Verify | cyverse.conf default expansion
       ansible.builtin.debug:

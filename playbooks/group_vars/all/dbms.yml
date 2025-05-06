@@ -14,6 +14,8 @@ _dbms_maintenance_work_mem: "{{ dbms_maintenance_work_mem | d(2) }}"
 
 _dbms_max_connections: "{{ dbms_max_connections | d(500) }}"
 
+_dbms_pg_hba: "{{ dbms_pg_hba | d('/etc/postgresql/12/main/pg_hba.conf') }}"
+
 _dbms_port: "{{ dbms_port | d(5432) }}"
 
 _dbms_effective_cache_size: "{{ dbms_effective_cache_size | d(None) }}"

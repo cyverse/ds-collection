@@ -33,6 +33,8 @@ postgresql_log_min_duration_statement: -1
 
 postgresql_max_connections: 100
 
+postgresql_pg_hba: /etc/postgresql/12/main/pg_hba.conf
+
 postgresql_wal_keep_segments: 0
 postgresql_max_wal_senders: 10
 postgresql_min_wal_size: 80MB

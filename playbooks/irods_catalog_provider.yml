@@ -159,7 +159,7 @@
           db_odbc_driver: "{{ _irods_odbc_driver }}"
           db_password: "{{ _irods_db_password }}"
           db_port: "{{ _irods_dbms_port }}"
-          db_username': "{{ _irods_db_user }}"
+          db_username': "{{ _irods_db_username }}"
         irods_cfg_database_user_password_salt: "{{ _irods_user_password_salt }}"
         irods_cfg_default_dir_mode: "{{ _irods_default_dir_mode }}"
         irods_cfg_default_file_mode: "{{ _irods_default_file_mode }}"

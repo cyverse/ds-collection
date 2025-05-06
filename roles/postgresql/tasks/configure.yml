@@ -55,7 +55,7 @@
 
 - name: Configure | ensure replication access access
   community.postgresql.postgresql_pg_hba:
-    dest: /etc/postgresql/12/main/pg_hba.conf
+    dest: "{{ postgresql_pg_hba }}"
     contype: host
     databases: replication
     users: "{{ postgresql_replication_username }}"

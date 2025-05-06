@@ -51,6 +51,7 @@ Variable                                   | Required | Default                 
 `dbms_max_parallel_workers_per_gather`     | no       | 2*                                   |         | the maximum number of parallel processes that can be started by a single gather or gather merge, *must be no larger than `max_worker_processes`, so if that is 1, then the default is 1
 `dbms_mem_num_huge_pages`                  | no       | 60000                                |         | the number of huge memory pages supported by the DBMS
 `dbms_min_wal_size`                        | no       | 2                                    |         | the minimum size of a WAL file in gibibytes
+`dbms_pg_hba`                              | no       | /etc/postgresql/12/main/pg_hba.conf  |         | The absolute path to the pg_hba.conf file on the DBMS hosting the ICAT DB
 `dbms_port`                                | no       | 5432                                 |         | the TCP port used by the DBMS (change requires restart)
 `dbms_random_page_cost`                    | no       | 1.1                                  |         | the query planning cost of a random page retrieval relative to other costs
 `dbms_reboot_allowed`                      | no       | false                                |         | whether or not the playbooks are allowed to reboot the DBMS server
@@ -77,9 +78,8 @@ Variable                                   | Required | Default                 
 `irods_clerver_password`                   | no       | rods                                 |         | The password used to authenticate the clerver
 `irods_clerver_user`                       | no       | rods                                 |         | the rodsadmin user to be used by the server being configured
 `irods_db_password`                        | no       | testpassword                         |         | The password iRODS uses when connecting to the ICAT DB.
-`irods_db_user`                            | no       | irods                                |         | The user iRODS uses when connecting to the ICAT DB.
+`irods_db_username`                        | no       | irods                                |         | The user iRODS uses when connecting to the ICAT DB.
 `irods_dbms_host`                          | no       | `groups['irods_catalog'][0]`         |         | The host of the DBMS that provides the ICAT DB.
-`irods_dbms_pg_hba`                        | no       | /etc/postgresql/12/main/pg_hba.conf  |         | The absolute path to the pg_hba.conf file on the DBMS hosting the ICAT DB
 `irods_dbms_port`                          | no       | 5432                                 |         | The TCP port the DBMS listens on.
 `irods_default_dir_mode`                   | no       | 0750                                 |         | The default permissions assigned to newly created directories in the vault
 `irods_default_file_mode`                  | no       | 0600                                 |         | The default permissions assigned to newly created files in the vault
