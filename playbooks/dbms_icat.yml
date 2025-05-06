@@ -1,9 +1,19 @@
 ---
+- name: Enable testing configuration
+  hosts: dbms
+  tasks:
+    - name: Enable notifications when not testing
+      ansible.builtin.set_fact:
+        _notifications_enabled: true
+      tags:
+        - no_testing
+
 - name: Create ICAT DB
   hosts: dbms_primary
   run_once: true
   become: true
   become_user: postgres
+  gather_facts: false
   tasks:
     - name: Create DB on primary DBMS
       ansible.builtin.import_role:
@@ -13,3 +23,28 @@
         postgresql_db_name: ICAT
         postgresql_db_admin_user: "{{ _dbms_irods_username }}"
         postgresql_db_admin_password: "{{ _dbms_irods_password }}"
+
+- name: Allow catalog service providers to talk to DBMS
+  hosts: dbms
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Allow communication with Postgres DBMS
+      ansible.builtin.blockinfile:
+        path: "{{ _irods_dbms_pg_hba }}"
+        marker: "# {mark} DS IRODS MANAGED BLOCK"
+        block: |
+          {% for i in groups['irods_catalog'] %}
+          {%   set addr = i if i | ansible.utils.ipaddr else lookup('dig', i) %}
+          {{ '%-7s %-15s %-15s %-23s %s'
+            | format('host', 'ICAT', hostvars[i]._irods_db_user, addr ~ '/32', 'md5') }}
+          {% endfor %}
+      notify:
+        - Reload postgresql
+
+  handlers:
+    - name: Reload postgresql
+      when: _notifications_enabled | d(false)
+      ansible.builtin.service:
+        name: postgresql
+        state: reloaded

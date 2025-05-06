@@ -1,36 +1,16 @@
 ---
-- name: Allow catalog service providers to talk to DBMS
-  hosts: dbms
-  become: true
+- name: Enable testing configuration
+  hosts: irods
   tasks:
+    - name: Initialize test logging
+      ansible.builtin.set_fact:
+        _test_log: true
+
     - name: Enable notifications when not testing
       ansible.builtin.set_fact:
-        _notifications_enabled: true
         _test_log: false
       tags:
         - no_testing
-
-    - name: Allow communication with Postgres DBMS
-      ansible.builtin.blockinfile:
-        path: "{{ _irods_dbms_pg_hba }}"
-        marker: "# {mark} DS IRODS MANAGED BLOCK"
-        block: |
-          {% for i in groups['irods_catalog'] %}
-          {%   set addr = i if i | ansible.utils.ipaddr else lookup('dig', i) %}
-          {{ '%-7s %-15s %-15s %-23s %s'
-            | format('host', 'ICAT', hostvars[i]._irods_db_user, addr ~ '/32', 'md5') }}
-          {% endfor %}
-      notify:
-        - Reload postgresql
-      tags:
-        - postgres
-
-  handlers:
-    - name: Reload postgresql
-      when: _notifications_enabled | d(false)
-      ansible.builtin.service:
-        name: postgresql
-        state: reloaded
 
 - name: Provision catalog service provider
   ansible.builtin.import_playbook: irods_provision.yml
@@ -38,6 +18,7 @@
 - name: Provision additional for catalog service providers
   hosts: irods_catalog
   become: true
+  gather_facts: false
   vars:
     odbc_description: >-
       {{ lookup('ini', 'Description file=files/postgresql-odbc-tmpl.ini section=PostgreSQL') }}
