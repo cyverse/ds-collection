@@ -61,6 +61,15 @@ Variable                                   | Required | Default                 
 `dbms_restart_allowed`                     | no       | false                                |         | whether or not the playbooks are allowed to restart PostgreSQL
 `dbms_wal_keep_segments`                   | no       | 4000                                 |         | the number of WAL files held by the primary server for its replica servers
 `dbms_work_mem`                            | no       | 32                                   |         | the allowed memory in mebibytes for each sort and hash operation
+`infra_domain_name`                        | yes      |                                      |         | The public FQDN for the environment being configured. This is used for configuring services that require a public domain to work, like mail.
+`infra_maintainer_keys`                    | no       | []                                   |         | A list of public ssh keys allowed or disallowed to connect as the `ansible_user` on all of the managed hosts, __see below__
+`infra_mtu`                                | no       | 1500                                 |         | The MTU to set on the primary NIC
+`infra_package_manager`                    |          | no                                   | auto    | The package manager to use
+`infra_proxied_ssh`                        | no       | false                                |         | Whether or not the connection ansible uses to get to the managed node goes through a bastion host
+`infra_reboot_on_pkg_change`               | no       | false                                |         | Whether or not to automatically reboot the host if a system package was upgraded
+`infra_rebootable`                         | no       | true                                 |         | Whether or not the server being configured is rebootable
+`infra_sysctl_net`                         | no       | []                                   |         | a list of sysctl network parameters to set for the server being configured, __see below__
+`infra_txqueuelen`                         | no       | 1000                                 |         | The transmission queue length to set on the primary NIC
 `irods_admin_password`                     | no       | `irods_clerver_password`             |         | The iRODS admin account password
 `irods_admin_username`                     | no       | `irods_clerver_user`                 |         | The iRODS admin account name
 `irods_amqp_exchange`                      | no       | irods                                |         | The AMQP exchange used to publish events
@@ -179,6 +188,24 @@ Variable                                   | Required | Default                 
 `webdav_tls_key`                           | no       |                                      |         | The TLS key
 `webdav_tls_key_file`                      | no       | /etc/ssl/certs/dummy.key             |         | The TLS key file used for encrypted communication
 `webdav_varnish_service_port`              | no       | 6081                                 |         | The service port number for varnish-cache
+
+An element of `infra_maintainer_keys` is either a string or a mapping with the following fields.
+
+Field   | Required | Default | Choices        | Comments
+--------|----------|---------|----------------|---------
+`key`   | yes      |         |                | The public ssh key
+`state` | no       | present | absent,present | 'present' indicates that this can be used to authorize a connection and 'absent' indicates the opposite
+
+If it is a string, its value is assumed to be a public ssh key that can be used to authorized a connection.
+
+`infra_sysctl_net` entry fields
+
+Both of them are required.
+
+Field   | Comments
+--------|---------
+`name`  | The parameter name to modify
+`value` | The new value to set
 
 `irods_federation` entry fields
 

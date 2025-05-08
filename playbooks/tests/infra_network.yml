@@ -1,0 +1,11 @@
+---
+- name: Test infra_network
+  hosts: all
+  tasks:
+    - name: Test template expansions
+      ansible.builtin.debug:
+        msg: TODO implement
+
+    - name: Test plays
+      ansible.builtin.debug:
+        msg: TODO implement

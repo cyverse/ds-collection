@@ -9,6 +9,7 @@ RUN <<'EOF'
 	yum --assumeyes updateinfo
 	yum --assumeyes install \
 		https://github.com/UtrechtUniversity/davrods/releases/download/4.2.8_1.5.0/davrods-4.2.8_1.5.0-1.rpm
+	yum --assumeyes versionlock add irods-runtime-4.2.8
 	yum clean all
 	rm --force --recursive /var/cache/yum
 EOF

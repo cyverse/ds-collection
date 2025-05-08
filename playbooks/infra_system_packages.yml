@@ -1,0 +1,24 @@
+---
+- name: Upgrade system packages
+  hosts: all:!unmanaged_systems:!localhost
+  become: true
+  tags:
+    - non_idempotent
+  tasks:
+    - name: Update apt cache on Ubuntu machines
+      when: ansible_distribution == 'Ubuntu'
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Upgrade system packages
+      ansible.builtin.package:
+        name: '*'
+        state: latest  # noqa package-latest
+      register: result
+
+
+- name: Reboot changed nodes
+  when: result is changed and _infra_reboot_on_pkg_change
+  ansible.builtin.import_playbook: infra_reboot.yml
+  tags:
+    - non_idempotent
