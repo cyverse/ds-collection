@@ -1,0 +1,30 @@
+---
+- name: Start the WebDAV services
+  hosts: webdav
+  become: true
+  tags:
+    - no_testing
+  tasks:
+    - name: Start varnish
+      ansible.builtin.service:
+        name: varnish
+        state: started
+        enabled: true
+
+    - name: Start varnishncsa
+      ansible.builtin.service:
+        name: varnishncsa
+        state: started
+        enabled: true
+
+    - name: Start apache
+      ansible.builtin.service:
+        name: httpd
+        state: started
+        enabled: true
+
+    - name: Start purgeman
+      ansible.builtin.service:
+        name: purgeman
+        state: started
+        enabled: true
