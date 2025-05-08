@@ -1,0 +1,5 @@
+---
+- name: Reload
+  ansible.builtin.service:
+    name: postgresql
+    state: reloaded

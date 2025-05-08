@@ -138,9 +138,9 @@ Variable                                   | Required | Default                 
 `sftp_irods_proxy_username`                | no       | sftp                                 |         | The irods user who provides proxy access to SFTPGo
 `sftp_irods_ssl_algorithm`                 | no       |                                      |         | The SSL encryption algorithm (required by PAM auth scheme)
 `sftp_irods_ssl_ca_cert_path`              | no       |                                      |         | The SSL CA certificate file path (required by PAM auth scheme)
-`sftp_irods_ssl_hash_rounds`               | no       |                                      |         | The SSL encryption hash rounds (required by PAM auth scheme)
-`sftp_irods_ssl_key_size`                  | no       |                                      |         | The SSL encryption key size (required by PAM auth scheme)
-`sftp_irods_ssl_salt_size`                 | no       |                                      |         | The SSL encryption salt size (required by PAM auth scheme)
+`sftp_irods_ssl_hash_rounds`               | no       | 0                                    |         | The SSL encryption hash rounds (required by PAM auth scheme)
+`sftp_irods_ssl_key_size`                  | no       | 0                                    |         | The SSL encryption key size (required by PAM auth scheme)
+`sftp_irods_ssl_salt_size`                 | no       | 0                                    |         | The SSL encryption salt size (required by PAM auth scheme)
 `sftp_irods_zone`                          | no       | tempZone                             |         | The iRODS zone that SFTP connects to
 `sftp_port`                                | no       | 2022                                 |         | The SFTP service port number
 `sftp_proxy_allowed`                       | no       | `[]`                                 |         | A list of network/masks for the proxy servers allowed access to the SFTP servers
