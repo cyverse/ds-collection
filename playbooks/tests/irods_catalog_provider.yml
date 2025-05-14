@@ -149,11 +149,11 @@
         - cyverse.re
         - cyverse-env.re
         - cyverse_core.re
+        - cyverse_encryption.re
         - cyverse_housekeeping.re
         - cyverse_json.re
         - cyverse_logic.re
         - ipc-trash.re
-        - ipc-encryption.re
         - pire.re
         - pire-env.re
         - server_config.json

@@ -266,6 +266,9 @@ class IrodsTestCase(TestCase):
 
     def reload_rules(self) -> None:
         """Reloads the iRODS rule engine."""
+        if self._irods:
+            self._irods.cleanup()
+            self._irods = None
         self.ssh.exec_command("touch /etc/irods/core.re")
 
     def update_rulebase(self, rulebase: str, local_path: str) -> None:

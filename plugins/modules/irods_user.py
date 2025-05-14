@@ -17,6 +17,13 @@ from typing import Optional
 
 from ansible.module_utils.basic import AnsibleModule
 
+from irods.access import iRODSAccess
+from irods.collection import iRODSCollection
+from irods.exception import CAT_INVALID_USER, UserDoesNotExist
+from irods.session import iRODSSession
+from irods.user import iRODSUser
+
+
 DOCUMENTATION = r'''
 ---
 module: cyverse.ds.irods_user
@@ -160,18 +167,6 @@ user:
     type: str
     returned: always
 '''
-
-
-_IRODSCLIENT_PACK_ERR: Optional[Exception] = None
-
-try:
-    from irods.access import iRODSAccess
-    from irods.collection import iRODSCollection
-    from irods.exception import CAT_INVALID_USER, UserDoesNotExist
-    from irods.session import iRODSSession
-    from irods.user import iRODSUser
-except ImportError as e:
-    _IRODSCLIENT_PACK_ERR = e
 
 
 _ARG_SPEC = {
@@ -541,9 +536,6 @@ def irods_user(request: Request, irods: Irods) -> bool:
 def main() -> None:
     """Entrypoint of the Ansible module"""
     ansible = AnsibleModule(argument_spec=_ARG_SPEC, supports_check_mode=True)
-    if _IRODSCLIENT_PACK_ERR:
-        ansible.fail_json(msg=f"python-irodsclient issue: {_IRODSCLIENT_PACK_ERR}")
-        return
     result = {
         'user': ansible.params['name'],
         'changed': False
