@@ -123,11 +123,10 @@ _cyverse_logic_assignUUID(*EntityType, *EntityPath, *Uuid, *ClientName, *ClientZ
 	if (_cyverse_logic_isAdm(*ClientName, *ClientZone)) {
 		*path = str(*EntityPath);
 		*status = errormsg(
-			msiModAVUMetadata(*EntityType, *path, 'adda', _cyverse_logic_UUID_ATTR, *Uuid, ''), *msg );
+			msiModAVUMetadata(*EntityType, *path, 'set', _cyverse_logic_UUID_ATTR, *Uuid, ''), *msg );
 
 		if (*status != 0) {
-			writeLine('serverLog', "DS: Failed to assign UUID to *path");
-			writeLine('serverLog', "DS: *msg");
+			writeLine('serverLog', "DS: Failed to assign UUID to *path (*msg)");
 			fail;
 		}
 	} else {

@@ -1,8 +1,12 @@
 ---
-- name: Allow catalog service providers to talk to DBMS
-  hosts: dbms
-  become: true
+- name: Enable test effects
+  hosts: all
   tasks:
+    - name: Initialize facts
+      ansible.builtin.set_fact:
+        _notifications_enabled: false
+        _test_log: true
+
     - name: Enable notifications when not testing
       ansible.builtin.set_fact:
         _notifications_enabled: true
@@ -10,6 +14,11 @@
       tags:
         - no_testing
 
+- name: Allow catalog service providers to talk to DBMS
+  hosts: dbms
+  become: true
+  gather_facts: false
+  tasks:
     - name: Allow communication with Postgres DBMS
       ansible.builtin.blockinfile:
         path: "{{ _irods_dbms_pg_hba }}"
@@ -27,7 +36,7 @@
 
   handlers:
     - name: Reload postgresql
-      when: _notifications_enabled | d(false)
+      when: _notifications_enabled
       ansible.builtin.service:
         name: postgresql
         state: reloaded
@@ -38,13 +47,7 @@
 - name: Provision additional for catalog service providers
   hosts: irods_catalog
   become: true
-  vars:
-    odbc_description: >-
-      {{ lookup('ini', 'Description file=files/postgresql-odbc-tmpl.ini section=PostgreSQL') }}
-    odbc_driver: >-
-      {{ lookup('ini', 'Driver file=files/postgresql-odbc-tmpl.ini section=PostgreSQL') }}
-    odbc_setup: >-
-      {{ lookup('ini', 'Setup file=files/postgresql-odbc-tmpl.ini section=PostgreSQL') }}
+  gather_facts: false
   tasks:
     - name: Configure linux kernel
       ansible.posix.sysctl:
@@ -74,8 +77,7 @@
 
         - name: CentOS | install PostgreSQL 12 repository
           ansible.builtin.yum:
-            name: >-
-              https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+            name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
 
         - name: CentOS | install PostgreSQL 12 clients are installed
           ansible.builtin.package:
@@ -163,6 +165,13 @@
     - name: Ensure iRODS ownership
       ansible.builtin.import_tasks: tasks/irods/ensure_irods_ownership.yml
 
+- name: Configure iRODS on catalog service providers
+  hosts: irods_catalog
+  become: "{{ _irods_become_svc_acnt }}"
+  become_user: "{{ _irods_service_account_name }}"
+  become_flags: "-i"
+  gather_facts: false
+  tasks:
     - name: Set up iRODS
       ansible.builtin.include_role:
         name: cyverse.ds.irods_cfg
@@ -217,6 +226,7 @@
         irods_cfg_server_port_range_start: "{{ _irods_server_port_range_start }}"
         irods_cfg_system_account_name: "{{ _irods_service_account_name }}"
         irods_cfg_system_group_name: "{{ _irods_service_group_name }}"
+        irods_cfg_test_log: "{{ _test_log }}"
         irods_cfg_transfer_buffer_size_for_parallel_transfer: >-
           {{ _irods_parallel_transfer_buffer_size }}
         irods_cfg_zone_key: "{{ _irods_zone_key }}"
@@ -225,16 +235,9 @@
         irods_cfg_zone_port: "{{ _irods_zone_port }}"
         irods_cfg_zone_user: "{{ _irods_clerver_user }}"
 
-- name: Start iRODS on catalog service providers
-  hosts: irods_catalog
-  become: "{{ _irods_become_svc_acnt }}"
-  become_user: "{{ _irods_service_account_name }}"
-  become_flags: "-i"
-  gather_facts: false
-  tasks:
     - name: Start iRODS
       cyverse.ds.irods_ctl:
-        test_log: "{{ _test_log | d(true) }}"
+        test_log: "{{ _test_log }}"
 
     - name: Authenticate clerver
       cyverse.ds.irods_clerver_auth:

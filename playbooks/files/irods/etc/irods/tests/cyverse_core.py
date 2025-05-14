@@ -22,14 +22,14 @@ class TestPepApiDataObjCreatePre(IrodsTestCase):
     """Test pep_api_data_obj_create_pre"""
 
     def setUp(self):
-        """Add stubbed out version of ipc-encryption.re to the server."""
+        """Add stubbed out version of cyverse_encryption.re to the server."""
         super().setUp()
-        self.update_rulebase('ipc-encryption.re', 'mocks/ipc-encryption.re')
+        self.update_rulebase('cyverse_encryption.re', 'mocks/cyverse_encryption.re')
         self.irods.data_objects.create(_TEST_FILE)
 
     def tearDown(self):
-        """Remove stubbed out version of ipc-encryption.re from the server."""
-        self.update_rulebase('ipc-encryption.re', "../ipc-encryption.re")
+        """Remove stubbed out version of cyverse_encryption.re from the server."""
+        self.update_rulebase('cyverse_encryption.re', "../cyverse_encryption.re")
         self.ensure_obj_absent(_TEST_FILE)
         super().tearDown()
 
@@ -45,14 +45,14 @@ class TestPepApiDataObjOpenPre(IrodsTestCase):
     """Test pep_api_data_obj_open_pre"""
 
     def setUp(self):
-        """Add stubbed out version of ipc-encryption.re to the server."""
+        """Add stubbed out version of cyverse_encryption.re to the server."""
         super().setUp()
         self.irods.data_objects.create(_TEST_FILE)
-        self.update_rulebase('ipc-encryption.re', 'mocks/ipc-encryption.re')
+        self.update_rulebase('cyverse_encryption.re', 'mocks/cyverse_encryption.re')
 
     def tearDown(self):
-        """Remove stubbed out version of ipc-encryption.re from the server."""
-        self.update_rulebase('ipc-encryption.re', "../ipc-encryption.re")
+        """Remove stubbed out version of cyverse_encryption.re from the server."""
+        self.update_rulebase('cyverse_encryption.re', "../cyverse_encryption.re")
         self.ensure_obj_absent(_TEST_FILE)
         super().tearDown()
 
@@ -69,11 +69,11 @@ class TestPepApiDataObjPutPre(IrodsTestCase):
     """Test pep_api_data_obj_put_pre"""
 
     def setUp(self):
-        """Add stubbed out version of ipc-encryption.re to the server."""
+        """Add stubbed out version of cyverse_encryption.re to the server."""
         super().setUp()
         self._file = NamedTemporaryFile(delete=False)
         self._file.close()
-        self.update_rulebase('ipc-encryption.re', 'mocks/ipc-encryption.re')
+        self.update_rulebase('cyverse_encryption.re', 'mocks/cyverse_encryption.re')
         try:
             subprocess.run(
                 f"echo '{test_rules.IRODS_PASSWORD}' | iput '{self._file.name}' '{_TEST_FILE}'",
@@ -86,8 +86,8 @@ class TestPepApiDataObjPutPre(IrodsTestCase):
             raise RuntimeError(f"{e.stderr}") from e
 
     def tearDown(self):
-        """Remove stubbed out version of ipc-encryption.re from the server."""
-        self.update_rulebase('ipc-encryption.re', "../ipc-encryption.re")
+        """Remove stubbed out version of cyverse_encryption.re from the server."""
+        self.update_rulebase('cyverse_encryption.re', "../cyverse_encryption.re")
         self.ensure_obj_absent(_TEST_FILE)
         os.unlink(self._file.name)
         super().tearDown()
