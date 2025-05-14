@@ -25,7 +25,9 @@
           - sftpgo_json.command.commands[0].env[3] == 'IRODS_PORT=1247'
           - sftpgo_json.command.commands[0].env[4] == 'IRODS_ZONE=zone'
           - sftpgo_json.command.commands[0].env[5] == 'IRODS_AUTH_SCHEME=native'
+          - sftpgo_json.command.commands[0].env[6] == 'IRODS_SSL_CA_CERT_PATH='
           - sftpgo_json.command.commands[0].env[7] == 'IRODS_SSL_ALGORITHM='
+          - sftpgo_json.command.commands[0].env[10] == 'IRODS_SSL_HASH_ROUNDS=0'
           - sftpgo_json.command.commands[0].env[11] == 'IRODS_SHARED=/zone/home/shared'
           - sftpgo_json.common.proxy_allowed[0] == '127.0.0.1'
           - sftpgo_json.common.proxy_allowed[1] == '206.207.252.35'
@@ -38,8 +40,6 @@
       ansible.builtin.debug:
         msg: TODO implement for {{ item }}
       with_items:
-        - IRODS_SSL_CA_CERT_PATH
-        - IRODS_SSL_HASH_ROUNDS
         - IRODS_SSL_KEY_SIZE
         - IRODS_SSL_SALT_SIZE
         - SFTPGO_HOME_PATH

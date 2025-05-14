@@ -436,25 +436,17 @@
       register: resp
       failed_when: not resp.stat.exists
 
-    - name: Test purgeman.conf deployed
+    - name: Test purgeman configuration deployed
       ansible.builtin.stat:
         path: /etc/purgeman/purgeman.conf
       register: resp
-      failed_when: not resp.stat.exists
-
-    - name: Test purgeman.conf permissions
-      ansible.builtin.debug:
-        msg: TODO implement
+      failed_when: not resp.stat.exists or not resp.stat.rusr
 
     - name: Test purgeman.service deployed
       ansible.builtin.stat:
         path: /usr/lib/systemd/system/purgeman.service
       register: resp
-      failed_when: not resp.stat.exists
-
-    - name: Test purgeman service permissions
-      ansible.builtin.debug:
-        msg: TODO implement
+      failed_when: not resp.stat.exists or not resp.stat.rusr
 
     - name: Test ensure purgeman runs when varnish run
       ansible.builtin.stat:
