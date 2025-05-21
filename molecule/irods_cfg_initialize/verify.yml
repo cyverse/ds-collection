@@ -62,3 +62,20 @@
         not response.stat.exists or
         response.stat.pw_name != 'irods' or
         response.stat.gr_name != 'irods'
+
+    - name: Retrieve core.re
+      ansible.builtin.slurp:
+        src: /etc/irods/core.re
+      register: core_encoded
+
+    - name: Decode core.re
+      ansible.builtin.set_fact:
+        core: "{{ core_encoded.content | b64decode }}"
+
+    - name: Verify default resource in core.re
+      ansible.builtin.assert:
+        that:
+          - core is search(
+              'acSetRescSchemeForCreate {msiSetDefaultResc("ingestRes","null"); }' | regex_escape)
+          - core is search(
+              'acSetRescSchemeForRepl {msiSetDefaultResc("ingestRes","null"); }' | regex_escape)

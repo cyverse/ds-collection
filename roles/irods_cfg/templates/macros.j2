@@ -263,9 +263,7 @@
     "delay_server_sleep_time_in_seconds": {{ irods_cfg_delay_server_sleep_time }},
 {%   endif %}
     "maximum_size_for_single_buffer_in_megabytes": {{ irods_cfg_maximum_size_for_single_buffer }},
-{%   if irods_cfg_maximum_size_of_delay_queue %}
     "maximum_size_of_delay_queue_in_bytes": {{ irods_cfg_maximum_size_of_delay_queue }},
-{%   endif %}
     "maximum_temporary_password_lifetime_in_seconds": {{ irods_cfg_maximum_temporary_password_lifetime }},
 {%   if irods_cfg_migrate_delay_server_sleep_time %}
     "migrate_delay_server_sleep_time_in_seconds": {{ irods_cfg_migrate_delay_server_sleep_time }},
