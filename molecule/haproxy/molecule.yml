@@ -1,0 +1,14 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: haproxy
+    pre_build_image: false
+    dockerfile: Dockerfile
+    privileged: true
+    command: /lib/systemd/systemd

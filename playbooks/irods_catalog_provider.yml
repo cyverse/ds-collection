@@ -9,37 +9,9 @@
 
     - name: Enable notifications when not testing
       ansible.builtin.set_fact:
-        _notifications_enabled: true
         _test_log: false
       tags:
         - no_testing
-
-- name: Allow catalog service providers to talk to DBMS
-  hosts: dbms
-  become: true
-  gather_facts: false
-  tasks:
-    - name: Allow communication with Postgres DBMS
-      ansible.builtin.blockinfile:
-        path: "{{ _irods_dbms_pg_hba }}"
-        marker: "# {mark} DS IRODS MANAGED BLOCK"
-        block: |
-          {% for i in groups['irods_catalog'] %}
-          {%   set addr = i if i | ansible.utils.ipaddr else lookup('dig', i) %}
-          {{ '%-7s %-15s %-15s %-23s %s'
-            | format('host', 'ICAT', hostvars[i]._irods_db_user, addr ~ '/32', 'md5') }}
-          {% endfor %}
-      notify:
-        - Reload postgresql
-      tags:
-        - postgres
-
-  handlers:
-    - name: Reload postgresql
-      when: _notifications_enabled
-      ansible.builtin.service:
-        name: postgresql
-        state: reloaded
 
 - name: Provision catalog service provider
   ansible.builtin.import_playbook: irods_provision.yml
@@ -48,6 +20,13 @@
   hosts: irods_catalog
   become: true
   gather_facts: false
+  vars:
+    odbc_description: >-
+      {{ lookup('ini', 'Description file=files/postgresql-odbc-tmpl.ini section=PostgreSQL') }}
+    odbc_driver: >-
+      {{ lookup('ini', 'Driver file=files/postgresql-odbc-tmpl.ini section=PostgreSQL') }}
+    odbc_setup: >-
+      {{ lookup('ini', 'Setup file=files/postgresql-odbc-tmpl.ini section=PostgreSQL') }}
   tasks:
     - name: Configure linux kernel
       ansible.posix.sysctl:
@@ -187,7 +166,7 @@
           db_odbc_driver: "{{ _irods_odbc_driver }}"
           db_password: "{{ _irods_db_password }}"
           db_port: "{{ _irods_dbms_port }}"
-          db_username': "{{ _irods_db_user }}"
+          db_username': "{{ _irods_db_username }}"
         irods_cfg_database_user_password_salt: "{{ _irods_user_password_salt }}"
         irods_cfg_default_dir_mode: "{{ _irods_default_dir_mode }}"
         irods_cfg_default_file_mode: "{{ _irods_default_file_mode }}"

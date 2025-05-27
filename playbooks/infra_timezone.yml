@@ -1,0 +1,18 @@
+---
+- name: Ensure correct timezone
+  hosts: all:!unmanaged_systems:!localhost
+  become: true
+  tags:
+    - no_testing
+  tasks:
+    - name: Make Mountain Standard Time
+      community.general.timezone:
+        name: America/Phoenix
+      notify:
+        - Restart crond
+
+  handlers:
+    - name: Restart crond
+      ansible.builtin.service:
+        name: "{{ 'cron' if ansible_distribution == 'Ubuntu' else 'crond' }}"
+        state: restarted

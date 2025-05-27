@@ -33,6 +33,7 @@ provisioner:
     hosts:
       all:
         vars:
+          irods_cfg_default_resource_name: ingestRes
           irods_cfg_validate: true
       irods_resource:
         vars:

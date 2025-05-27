@@ -1,0 +1,7 @@
+---
+{{ ansible_managed | comment }}
+
+network:
+  ethernets:
+    {{ ansible_default_ipv4.alias }}:
+      mtu: "{{ _network_mtu }}"

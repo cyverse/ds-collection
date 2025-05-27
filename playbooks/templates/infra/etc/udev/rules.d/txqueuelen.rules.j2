@@ -1,0 +1,4 @@
+{{ ansible_managed | comment }}
+
+SUBSYSTEM=="net", KERNEL=="{{ ansible_default_ipv4.alias }}", ACTION=="add|change", \
+   ATTR{tx_queue_len}="{{ _network_txqueuelen }}"

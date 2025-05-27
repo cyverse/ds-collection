@@ -20,19 +20,27 @@ class TestMsisendmail(IrodsTestCase):
         Verify that an intercept message is logged when attempt is made to call the msiSendMail
         microservice.
         """
-        rule = self._mk_rule("msiSendMail('root@localhost', 'test', 'SSIA')")
+        rule = self._mk_rule("msiSendMail('', '', '')")
         self._exec_rule(rule, IrodsType.NONE)
         if 'intercepted msiSendMail call' not in self.tail_rods_log(1)[0]:
             self.fail()
 
 
-# TODO: implement below
-
-
-@test_rules.unimplemented
 class TestMsiservermonperf(IrodsTestCase):
     """Test the rule msiServerMonPerf"""
 
+    def test_log_msg(self):
+        """
+        Verify that an intercept message is logged when an attempt is made to call msiServerMonPerf
+        microservice
+        """
+        rule = self._mk_rule("msiServerMonPerf('', '')")
+        self._exec_rule(rule, IrodsType.NONE)
+        if 'intercepted msiServerMonPerf call' not in self.tail_rods_log(1)[0]:
+            self.fail()
+
+
+# TODO: implement below
 
 @test_rules.unimplemented
 class TestPepApiDataObjCopyPre(IrodsTestCase):

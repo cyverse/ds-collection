@@ -13,11 +13,11 @@ _coge_USER = 'coge'
 # This rule ensures the CoGe user has write access to a collection created in a
 # CoGe data collection.
 #
-# Session Variables:
-#  collName
+# Parameters:
+#  CollPath  (path) the path to the collection being created
 #
-coge_acPostProcForCollCreate {
-	cyverse_ensureAccessOnCreateColl(_coge_USER, _coge_COLL, _coge_PERM, $collName);
+coge_acPostProcForCollCreate(*CollPath) {
+	cyverse_ensureAccessOnCreateColl(_coge_USER, _coge_COLL, _coge_PERM, *CollPath);
 }
 
 # This rule ensures the CoGe user has write access to anything moved into a CoGe

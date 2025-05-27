@@ -86,7 +86,7 @@ irods_cfg_log_level:
 irods_cfg_match_hash_policy: "{{ _match_hash_policy_default | d(none) }}"
 
 irods_cfg_maximum_connections: null
-irods_cfg_maximum_size_of_delay_queue: null
+irods_cfg_maximum_size_of_delay_queue: 0
 irods_cfg_maximum_size_for_single_buffer: "{{ _maximum_size_for_single_buffer_default | d(none) }}"
 irods_cfg_maximum_temporary_password_lifetime: 1000
 

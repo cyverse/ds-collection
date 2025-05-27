@@ -2,6 +2,16 @@
 
 These folder contains all of the playbooks used to deploy and configure a CyVerse Data Store.
 
+## Playbooks
+
+<!-- TODO: document remaining playbooks -->
+
+* `proxy.yml` completely deploys the proxies
+* `proxy_start.yml` starts HAProxy
+* `proxy_stop.yml` stops HAProxy
+* `proxy_block.yml` terminates all client connections to HAProxy and blocks new connections
+* `proxy_unblock.yml` allows client connections to be made
+
 ## Tags
 
 * `no_testing` for tasks that shouldn't be run within the containerized testing environment
@@ -41,6 +51,7 @@ Variable                                   | Required | Default                 
 `dbms_max_parallel_workers_per_gather`     | no       | 2*                                   |         | the maximum number of parallel processes that can be started by a single gather or gather merge, *must be no larger than `max_worker_processes`, so if that is 1, then the default is 1
 `dbms_mem_num_huge_pages`                  | no       | 60000                                |         | the number of huge memory pages supported by the DBMS
 `dbms_min_wal_size`                        | no       | 2                                    |         | the minimum size of a WAL file in gibibytes
+`dbms_pg_hba`                              | no       | /etc/postgresql/12/main/pg_hba.conf  |         | The absolute path to the pg_hba.conf file on the DBMS hosting the ICAT DB
 `dbms_port`                                | no       | 5432                                 |         | the TCP port used by the DBMS (change requires restart)
 `dbms_random_page_cost`                    | no       | 1.1                                  |         | the query planning cost of a random page retrieval relative to other costs
 `dbms_reboot_allowed`                      | no       | false                                |         | whether or not the playbooks are allowed to reboot the DBMS server
@@ -50,6 +61,15 @@ Variable                                   | Required | Default                 
 `dbms_restart_allowed`                     | no       | false                                |         | whether or not the playbooks are allowed to restart PostgreSQL
 `dbms_wal_keep_segments`                   | no       | 4000                                 |         | the number of WAL files held by the primary server for its replica servers
 `dbms_work_mem`                            | no       | 32                                   |         | the allowed memory in mebibytes for each sort and hash operation
+`infra_domain_name`                        | yes      |                                      |         | The public FQDN for the environment being configured. This is used for configuring services that require a public domain to work, like mail.
+`infra_maintainer_keys`                    | no       | []                                   |         | A list of public ssh keys allowed or disallowed to connect as the `ansible_user` on all of the managed hosts, __see below__
+`infra_mtu`                                | no       | 1500                                 |         | The MTU to set on the primary NIC
+`infra_package_manager`                    |          | no                                   | auto    | The package manager to use
+`infra_proxied_ssh`                        | no       | false                                |         | Whether or not the connection ansible uses to get to the managed node goes through a bastion host
+`infra_reboot_on_pkg_change`               | no       | false                                |         | Whether or not to automatically reboot the host if a system package was upgraded
+`infra_rebootable`                         | no       | true                                 |         | Whether or not the server being configured is rebootable
+`infra_sysctl_net`                         | no       | []                                   |         | a list of sysctl network parameters to set for the server being configured, __see below__
+`infra_txqueuelen`                         | no       | 1000                                 |         | The transmission queue length to set on the primary NIC
 `irods_admin_password`                     | no       | `irods_clerver_password`             |         | The iRODS admin account password
 `irods_admin_username`                     | no       | `irods_clerver_user`                 |         | The iRODS admin account name
 `irods_amqp_exchange`                      | no       | irods                                |         | The AMQP exchange used to publish events
@@ -67,9 +87,8 @@ Variable                                   | Required | Default                 
 `irods_clerver_password`                   | no       | rods                                 |         | The password used to authenticate the clerver
 `irods_clerver_user`                       | no       | rods                                 |         | the rodsadmin user to be used by the server being configured
 `irods_db_password`                        | no       | testpassword                         |         | The password iRODS uses when connecting to the ICAT DB.
-`irods_db_user`                            | no       | irods                                |         | The user iRODS uses when connecting to the ICAT DB.
+`irods_db_username`                        | no       | irods                                |         | The user iRODS uses when connecting to the ICAT DB.
 `irods_dbms_host`                          | no       | `groups['irods_catalog'][0]`         |         | The host of the DBMS that provides the ICAT DB.
-`irods_dbms_pg_hba`                        | no       | /etc/postgresql/12/main/pg_hba.conf  |         | The absolute path to the pg_hba.conf file on the DBMS hosting the ICAT DB
 `irods_dbms_port`                          | no       | 5432                                 |         | The TCP port the DBMS listens on.
 `irods_default_dir_mode`                   | no       | 0750                                 |         | The default permissions assigned to newly created directories in the vault
 `irods_default_file_mode`                  | no       | 0600                                 |         | The default permissions assigned to newly created files in the vault
@@ -106,6 +125,16 @@ Variable                                   | Required | Default                 
 `mdrepo_cli_account`                       | no       | null                                 |         | The iRODS account used my the MD Repo CLI
 `pire_manager`                             | no       | null                                 |         | The username that owns the PIRE project collection, if `null`, the collection isn't created.
 `pire_resource_hierarchy`                  | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the PIRE project
+`proxy_restart_allowed`                    | no       | false                                |         | Whether or not HAProxy can be restarted
+`proxy_rsyslog_conf`                       | no       | /etc/rsyslog.d/haproxy.conf          |         | the path to the rsyslog configuration file for HAProxy
+`proxy_stats_auth`                         | no       | null                                 |         | an object providing the authentication credentials for the HAProxy stats web interface _see below_
+`proxy_stats_tls_crt`                      | no       | null                                 |         | the absolute path to the TLS certificate chain used for securing the HAProxy stats web interface
+`proxy_stats_tls_crt_content`              | no       | null                                 |         | the content of the TLS certificate chain file
+`proxy_irods_direct_max_conn`              | no       | 200                                  |         | the maximum number of connections to iRODS
+`proxy_irods_reconn_ports`                 | no       | 20000-20399                          |         | the range of TCP range of ports that need to be forwarded to iRODS for reconnections
+`proxy_irods_vip_client_hosts`             | no       | []                                   |         | a list of host names, ip addresses, or CIDR blocks of clients allowed unlimited concurrent iRODS connections.
+`proxy_sftp_port`                          | no       | 22                                   |         | the TCP port hosting the SFTP service whose communication will be forwarded to SFTPGo
+`proxy_sftp_backend_port`                  | no       | 2022                                 |         | the TCP port that SFTPGo opens on the hosts
 `sftp_admin_password`                      | yes      |                                      |         | The password of the SFTPGo admin user
 `sftp_admin_ui_port`                       | no       | 18023                                |         | The SFTPGo admin UI service port number
 `sftp_admin_username`                      | no       | admin                                |         | The SFTPGo admin account name
@@ -118,9 +147,9 @@ Variable                                   | Required | Default                 
 `sftp_irods_proxy_username`                | no       | sftp                                 |         | The irods user who provides proxy access to SFTPGo
 `sftp_irods_ssl_algorithm`                 | no       |                                      |         | The SSL encryption algorithm (required by PAM auth scheme)
 `sftp_irods_ssl_ca_cert_path`              | no       |                                      |         | The SSL CA certificate file path (required by PAM auth scheme)
-`sftp_irods_ssl_hash_rounds`               | no       |                                      |         | The SSL encryption hash rounds (required by PAM auth scheme)
-`sftp_irods_ssl_key_size`                  | no       |                                      |         | The SSL encryption key size (required by PAM auth scheme)
-`sftp_irods_ssl_salt_size`                 | no       |                                      |         | The SSL encryption salt size (required by PAM auth scheme)
+`sftp_irods_ssl_hash_rounds`               | no       | 0                                    |         | The SSL encryption hash rounds (required by PAM auth scheme)
+`sftp_irods_ssl_key_size`                  | no       | 0                                    |         | The SSL encryption key size (required by PAM auth scheme)
+`sftp_irods_ssl_salt_size`                 | no       | 0                                    |         | The SSL encryption salt size (required by PAM auth scheme)
 `sftp_irods_zone`                          | no       | tempZone                             |         | The iRODS zone that SFTP connects to
 `sftp_port`                                | no       | 2022                                 |         | The SFTP service port number
 `sftp_proxy_allowed`                       | no       | `[]`                                 |         | A list of network/masks for the proxy servers allowed access to the SFTP servers
@@ -159,6 +188,24 @@ Variable                                   | Required | Default                 
 `webdav_tls_key`                           | no       |                                      |         | The TLS key
 `webdav_tls_key_file`                      | no       | /etc/ssl/certs/dummy.key             |         | The TLS key file used for encrypted communication
 `webdav_varnish_service_port`              | no       | 6081                                 |         | The service port number for varnish-cache
+
+An element of `infra_maintainer_keys` is either a string or a mapping with the following fields.
+
+Field   | Required | Default | Choices        | Comments
+--------|----------|---------|----------------|---------
+`key`   | yes      |         |                | The public ssh key
+`state` | no       | present | absent,present | 'present' indicates that this can be used to authorize a connection and 'absent' indicates the opposite
+
+If it is a string, its value is assumed to be a public ssh key that can be used to authorized a connection.
+
+`infra_sysctl_net` entry fields
+
+Both of them are required.
+
+Field   | Comments
+--------|---------
+`name`  | The parameter name to modify
+`value` | The new value to set
 
 `irods_federation` entry fields
 
@@ -208,6 +255,14 @@ Field    | Comments
 -------- | --------
 `name`   | The parameter name to modify
 `value`  | The new value to set
+
+`proxy_stats_auth` object fields
+
+Field      | Required | Default | Comments
+---------- | -------- | ------- | --------
+`username` | no       | ds      | the account authorized to access the stats web interface
+`password` | yes      |         | the password used to authenticate the account
+`realm`    | no       |         | the realm of the authentication system
 
 ## Command line variables
 

@@ -35,7 +35,7 @@
           db_odbc_driver: "{{ _irods_odbc_driver }}"
           db_password: "{{ _irods_db_password }}"
           db_port: "{{ _irods_dbms_port }}"
-          db_username: "{{ _irods_db_user }}"
+          db_username: "{{ _irods_db_username }}"
         irods_cfg_database_user_password_salt: "{{ _irods_user_password_salt }}"
         irods_cfg_default_dir_mode: "{{ _irods_default_dir_mode }}"
         irods_cfg_default_file_mode: "{{ _irods_default_file_mode }}"
@@ -135,6 +135,7 @@
         irods_cfg_server_port_range_start: "{{ _irods_server_port_range_start }}"
         irods_cfg_system_account_name: "{{ _irods_service_account_name }}"
         irods_cfg_system_group_name: "{{ _irods_service_group_name }}"
+        irods_cfg_test_log: "{{ _test_log | d(true) }}"
         irods_cfg_transfer_buffer_size_for_parallel_transfer: >-
           {{ _irods_parallel_transfer_buffer_size }}
         irods_cfg_zone_key: "{{ _irods_zone_key }}"

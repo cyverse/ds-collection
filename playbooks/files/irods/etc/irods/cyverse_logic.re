@@ -657,26 +657,26 @@ cyverse_logic_acPreProcForModifyAccessControl(*RecurseFlag, *Perm, *Username, *Z
 # updated object.
 #
 # Parameters:
-#  RecurseFlag  (string) indicates if the permission change applied recursively
-#               to the contents of a *Path, "1" indicates the flag was present,
-#               and "0" indicates the opposite.
-#  Perm         (string) the permission granted to *Username, if the value was
-#               "null", "read", "write", or "own", enabled inheritance if the
-#               value was "inherit", or disabled inheritance if the value was
-#               "noinherit". If the value is prefixed with "admin:", this is an
-#               administrative ACL change.
-#  Username     (string) the account or group given *Perm, ignored if *Perm was
-#               "inherit" or "noinherit"
-#  UserZone     (string) the zone where *UserName belongs, ignored if *Perm is
-#               "inherit" or "noinherit"
-#  Path         (string) the path to the collection or data object whose ACL was
-#               altered
+#  RecurseFlag     (string) indicates if the permission change applied
+#                  recursively to the contents of a *Path, "1" indicates the
+#                  flag was present, and "0" indicates the opposite.
+#  Perm            (string) the permission granted to *Username, if the value
+#                  was "null", "read", "write", or "own", enabled inheritance if
+#                  the value was "inherit", or disabled inheritance if the value
+#                  was "noinherit". If the value is prefixed with "admin:", this
+#                  is an administrative ACL change.
+#  Username        (string) the account or group given *Perm, ignored if *Perm
+#                  was "inherit" or "noinherit"
+#  UserZone        (string) the zone where *UserName belongs, ignored if *Perm
+#                  is "inherit" or "noinherit"
+#  Path            (string) the path to the collection or data object whose ACL
+#                  was altered
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
-# Session Variables:
-#  userNameClient
-#  rodsZoneClient
-#
-cyverse_logic_acPostProcForModifyAccessControl(*RecurseFlag, *Perm, *Username, *UserZone, *Path) {
+cyverse_logic_acPostProcForModifyAccessControl(
+	*RecurseFlag, *Perm, *Username, *UserZone, *Path, *ClientUsername, *ClientZone
+) {
 	*me = 'ipc_acPostProcForModifyAccessControl';
 	*entityId = _cyverse_logic_getId(*Path);
 
@@ -688,7 +688,7 @@ cyverse_logic_acPostProcForModifyAccessControl(*RecurseFlag, *Perm, *Username, *
 			*type = cyverse_getEntityType(*Path);
 			*userZone = if *UserZone == '' then cyverse_ZONE else *UserZone;
 			*uuid = '';
-			_cyverse_logic_ensureUUID(*type, *Path, $userNameClient, $rodsZoneClient, *uuid);
+			_cyverse_logic_ensureUUID(*type, *Path, *ClientUsername, *ClientZone, *uuid);
 
 			if (cyverse_isColl(*type)) {
 				_cyverse_logic_sendCollAccessMod(
@@ -697,11 +697,11 @@ cyverse_logic_acPostProcForModifyAccessControl(*RecurseFlag, *Perm, *Username, *
 					*Username,
 					*userZone,
 					bool(*RecurseFlag),
-					$userNameClient,
-					$rodsZoneClient );
+					*ClientUsername,
+					*ClientZone );
 			} else if (cyverse_isDataObj(*type)) {
 				_cyverse_logic_sendDataObjACLMod(
-					*uuid, *lvl, *Username, *userZone, $userNameClient, $rodsZoneClient );
+					*uuid, *lvl, *Username, *userZone, *ClientUsername, *ClientZone );
 			}
 
 			_cyverse_logic_unregisterAction(*entityId, *me);
@@ -713,49 +713,57 @@ cyverse_logic_acPostProcForModifyAccessControl(*RecurseFlag, *Perm, *Username, *
 # Only rodsadmin users are allowed to add, remove or update protected AVUs.
 #
 # Parameters:
-#  Opt         (string) the subCommand, one of 'add', 'adda', 'addw', 'rm',
-#              'rmi', 'rmw', or 'set'
-#  EntityType  (unused)
-#  EntityName  (unused)
-#  Attr        (string) the name of the attribute
-#  Val         (string) the value of the attribute
-#  Unit        (string) the unit of the attribute
+#  Opt             (string) the subCommand, one of 'add', 'adda', 'addw', 'rm',
+#                  'rmi', 'rmw', or 'set'
+#  EntityType      (unused)
+#  EntityName      (unused)
+#  Attr            (string) the name of the attribute
+#  Val             (string) the value of the attribute
+#  Unit            (string) the unit of the attribute
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
-# Session Variables:
-#  userNameClient
-#  rodsZoneClient
-#
-cyverse_logic_acPreProcForModifyAVUMetadata(*Opt, *EntityType, *EntityName, *Attr, *Val, *Unit) {
+cyverse_logic_acPreProcForModifyAVUMetadata(
+	*Opt, *EntityType, *EntityName, *Attr, *Val, *Unit, *ClientUsername, *ClientZone
+) {
 	if (*Opt != 'adda') {
-		_cyverse_logic_ensureAVUEditable($userNameClient, $rodsZoneClient, *Attr, *Val, *Unit);
+		_cyverse_logic_ensureAVUEditable(*ClientUsername, *ClientZone, *Attr, *Val, *Unit);
 	}
 }
 
 # This rule checks that AVU being modified isn't a protected one.
 #
 # Parameters:
-#  Opt         (unused)
-#  EntityType  (unused)
-#  EntityName  (unused)
-#  Attr        (string) the attribute name before modification
-#  Val         (string) the attribute value before modification
-#  Unit        (string) the attribute unit before modification
-#  New1        (string) holds an update to the name, value, or unit prefixed by
-#              'n:', 'v:', or 'u:', respectively
-#  New2        (string) either empty or holds an update to the name, value, or
-#              unit prefixed by 'n:', 'v:', or 'u:', respectively
-#  New3        (string) either empty or holds an update to the name, value, or
-#              unit prefixed by 'n:', 'v:', or 'u:', respectively
-#
-# Session Variables:
-#  userNameClient
-#  rodsZoneClient
+#  Opt             (unused)
+#  EntityType      (unused)
+#  EntityName      (unused)
+#  Attr            (string) the attribute name before modification
+#  Val             (string) the attribute value before modification
+#  Unit            (string) the attribute unit before modification
+#  New1            (string) holds an update to the name, value, or unit prefixed
+#                  by 'n:', 'v:', or 'u:', respectively
+#  New2            (string) either empty or holds an update to the name, value,
+#                  or unit prefixed by 'n:', 'v:', or 'u:', respectively
+#  New3            (string) either empty or holds an update to the name, value,
+#                  or unit prefixed by 'n:', 'v:', or 'u:', respectively
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
 # XXX: Due to a bug in iRODS 4.2.8, when a unitless AVU is modified to have a new attribute name,
 #      value, and unit in a single call, the new unit is not passed in.
 #
 cyverse_logic_acPreProcForModifyAVUMetadata(
-	*Opt, *EntityType, *EntityName, *Attr, *Val, *Unit, *New1, *New2, *New3
+	*Opt,
+	*EntityType,
+	*EntityName,
+	*Attr,
+	*Val,
+	*Unit,
+	*New1,
+	*New2,
+	*New3,
+	*ClientUsername,
+	*ClientZone
 ) {
 	*newArgs = list(*New1, *New2, *New3);
 
@@ -764,38 +772,40 @@ cyverse_logic_acPreProcForModifyAVUMetadata(
 	*newVal = _cyverse_logic_getNewAVUSetting(*Val, 'v:', *newArgs);
 	*newUnit = _cyverse_logic_getNewAVUSetting(*Unit, 'u:', *newArgs);
 
-	_cyverse_logic_ensureAVUEditable($userNameClient, $rodsZoneClient, *Attr, *Val, *Unit);
-	_cyverse_logic_ensureAVUEditable($userNameClient, $rodsZoneClient, *newAttr, *newVal, *newUnit);
+	_cyverse_logic_ensureAVUEditable(*ClientUsername, *ClientZone, *Attr, *Val, *Unit);
+	_cyverse_logic_ensureAVUEditable(*ClientUsername, *ClientZone, *newAttr, *newVal, *newUnit);
 }
 
 # This rule ensures that only the non-protected AVUs are copied from one item to
 # another.
 #
 # Parameters:
-#  Opt      (unused)
-#  SrcType  (string) the type of entity whose AVUs are being copied, '-C' for
-#           collection, '-d' for data object, '-R' for resource, or '-u' for
-#           user
-#  TgtType  (string) the type of entity receiving the AVUs, '-C' for collection,
-#           '-d' for data object, '-R' for resource, or '-u' for user
-#  SrcName  (string) the name of the entity whose AVUs are being copied, for a
-#           collection or data object, this is the entity's absolute path
-#  TgtName  (string) the name of the entity receiving the AVUs, for a collection
-#           or data object, this is the entity's absolute path
+#  Opt             (unused)
+#  SrcType         (string) the type of entity whose AVUs are being copied, '-C'
+#                  for collection, '-d' for data object, '-R' for resource, or
+#                  '-u' for user
+#  TgtType         (string) the type of entity receiving the AVUs, '-C' for
+#                  collection, '-d' for data object, '-R' for resource, or '-u'
+#                  for user
+#  SrcName         (string) the name of the entity whose AVUs are being copied,
+#                  for a collection or data object, this is the entity's
+#                  absolute path
+#  TgtName         (string) the name of the entity receiving the AVUs, for a
+#                  collection or data object, this is the entity's absolute path
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
-# Session Variables:
-#  userNameClient
-#  rodsZoneClient
-#
-cyverse_logic_acPreProcForModifyAVUMetadata(*Opt, *SrcType, *TgtType, *SrcName, *TgtName) {
+cyverse_logic_acPreProcForModifyAVUMetadata(
+	*Opt, *SrcType, *TgtType, *SrcName, *TgtName, *ClientUsername, *ClientZone
+) {
 	if (cyverse_isColl(*SrcType)) {
-		_cyverse_logic_cpCollAVUs(*SrcName, *TgtType, *TgtName, $userNameClient, $rodsZoneClient);
+		_cyverse_logic_cpCollAVUs(*SrcName, *TgtType, *TgtName, *ClientUsername, *ClientZone);
 	} else if (cyverse_isDataObj(*SrcType)) {
-		_cyverse_logic_cpDataObjAVUs(*SrcName, *TgtType, *TgtName, $userNameClient, $rodsZoneClient);
+		_cyverse_logic_cpDataObjAVUs(*SrcName, *TgtType, *TgtName, *ClientUsername, *ClientZone);
 	} else if (cyverse_isResc(*SrcType)) {
-		_cyverse_logic_cpRescAVUs(*SrcName, *TgtType, *TgtName, $userNameClient, $rodsZoneClient);
+		_cyverse_logic_cpRescAVUs(*SrcName, *TgtType, *TgtName, *ClientUsername, *ClientZone);
 	} else if (cyverse_isUser(*SrcType)) {
-		_cyverse_logic_cpUserAVUs(*SrcName, *TgtType, *TgtName, $userNameClient, $rodsZoneClient);
+		_cyverse_logic_cpUserAVUs(*SrcName, *TgtType, *TgtName, *ClientUsername, *ClientZone);
 	}
 
 	# fail to prevent iRODS from also copying the protected metadata
@@ -807,42 +817,38 @@ cyverse_logic_acPreProcForModifyAVUMetadata(*Opt, *SrcType, *TgtType, *SrcName, 
 # subcommand was used.
 #
 # Parameters:
-#  Opt         (string) the subCommand, one of 'add', 'adda', 'addw', 'rm',
-#              'rmw', 'rmi', or 'set'
-#  EntityType  (string) the type of entity whose AVU was modified, '-C' for
-#              collection, '-d' for data object, '-R' for resource, or '-u' for
-#              user
-#  EntityName  (string) the name of the entity whose AVU was modified, this is
-#              an absolute path for a collection or data object
-#  Attr        (string) the name of the attribute
-#  Val         (string) the value of the attribute
-#  Unit        (string) the unit of the attribute
+#  Opt             (string) the subCommand, one of 'add', 'adda', 'addw', 'rm',
+#                  'rmw', 'rmi', or 'set'
+#  EntityType      (string) the type of entity whose AVU was modified, '-C' for
+#                  collection, '-d' for data object, '-R' for resource, or '-u'
+#                  for user
+#  EntityName      (string) the name of the entity whose AVU was modified, this
+#                  is an absolute path for a collection or data object
+#  Attr            (string) the name of the attribute
+#  Val             (string) the value of the attribute
+#  Unit            (string) the unit of the attribute
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
-# Session Variables:
-#  userNameClient
-#  rodsZoneClient
-#
-cyverse_logic_acPostProcForModifyAVUMetadata(*Opt, *EntityType, *EntityName, *Attr, *Val, *Unit) {
+cyverse_logic_acPostProcForModifyAVUMetadata(
+	*Opt, *EntityType, *EntityName, *Attr, *Val, *Unit, *ClientUsername, *ClientZone
+) {
 	if (cyverse_isFSType(*EntityType) && *Attr != _cyverse_logic_UUID_ATTR) {
 		if (_cyverse_logic_contains(*Opt, list('add', 'adda', 'rm', 'set'))) {
 			*uuid = '';
-
-			_cyverse_logic_ensureUUID(
-				*EntityType, *EntityName, $userNameClient, $rodsZoneClient, *uuid );
+			_cyverse_logic_ensureUUID(*EntityType, *EntityName, *ClientUsername, *ClientZone, *uuid);
 
 			_cyverse_logic_sendAVUOp(
-				*Opt, *EntityType, *uuid, *Attr, *Val, *Unit, $userNameClient, $rodsZoneClient );
+				*Opt, *EntityType, *uuid, *Attr, *Val, *Unit, *ClientUsername, *ClientZone );
 		} else if (*Opt == 'addw') {
 			_cyverse_logic_sendAVUAddWildcard(
-				*EntityName, *Attr, *Val, *Unit, $userNameClient, $rodsZoneClient );
+				*EntityName, *Attr, *Val, *Unit, *ClientUsername, *ClientZone );
 		} else if (*Opt == 'rmw') {
 			*uuid = '';
-
-			_cyverse_logic_ensureUUID(
-				*EntityType, *EntityName, $userNameClient, $rodsZoneClient, *uuid );
+			_cyverse_logic_ensureUUID(*EntityType, *EntityName, *ClientUsername, *ClientZone, *uuid);
 
 			_cyverse_logic_sendAVURmWildcard(
-				*EntityType, *uuid, *Attr, *Val, *Unit, $userNameClient, $rodsZoneClient );
+				*EntityType, *uuid, *Attr, *Val, *Unit, *ClientUsername, *ClientZone );
 		}
 	}
 }
@@ -850,36 +856,44 @@ cyverse_logic_acPostProcForModifyAVUMetadata(*Opt, *EntityType, *EntityName, *At
 # For a collection or data object, this rule sends a message indicating that an AVU was modified.
 #
 # Parameters:
-#  Opt         (unused)
-#  EntityType  (string) the type of entity whose AVU was modified, '-C' for
-#              collection, '-d' for data object, '-R' for resource, or '-u' for
-#              user
-#  EntityName  (string) the name of the entity whose AVU was modified, this is
-#              an absolute path for a collection or data object
-#  Attr        (string) the attribute name before modification
-#  Val         (string) the attribute value before modification
-#  Unit        (string) the attribute unit before modification
-#  New1        (string) holds the updated name, value, or unit prefixed by 'n:',
-#              'v:', or 'u:', respectively
-#  New2        (string) either empty or holds the updated name, value, or unit
-#              prefixed by 'n:', 'v:', or 'u:', respectively
-#  New3        (string) either empty or holds the updated name, value, or unit
-#              prefixed by 'n:', 'v:', or 'u:', respectively
-#
-# Session Variables:
-#  userNameClient
-#  rodsZoneClient
+#  Opt             (unused)
+#  EntityType      (string) the type of entity whose AVU was modified, '-C' for
+#                  collection, '-d' for data object, '-R' for resource, or '-u'
+#                  for user
+#  EntityName      (string) the name of the entity whose AVU was modified, this
+#                  is an absolute path for a collection or data object
+#  Attr            (string) the attribute name before modification
+#  Val             (string) the attribute value before modification
+#  Unit            (string) the attribute unit before modification
+#  New1            (string) holds the updated name, value, or unit prefixed by
+#                  'n:', 'v:', or 'u:', respectively
+#  New2            (string) either empty or holds the updated name, value, or
+#                  unit prefixed by 'n:', 'v:', or 'u:', respectively
+#  New3            (string) either empty or holds the updated name, value, or
+#                  unit prefixed by 'n:', 'v:', or 'u:', respectively
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
 # XXX: Due to a bug in iRODS 4.2.8, when a unitless AVU is modified to have a new attribute name,
 #      value, and unit in a single call, the new unit is not passed in.
 #
 cyverse_logic_acPostProcForModifyAVUMetadata(
-	*Opt, *EntityType, *EntityName, *Attr, *Val, *Unit, *New1, *New2, *New3
+	*Opt,
+	*EntityType,
+	*EntityName,
+	*Attr,
+	*Val,
+	*Unit,
+	*New1,
+	*New2,
+	*New3,
+	*ClientUsername,
+	*ClientZone
 ) {
 	if (cyverse_isFSType(*EntityType)) {
 		*newArgs = list(*New1, *New2, *New3);
 		*uuid = '';
-		_cyverse_logic_ensureUUID(*EntityType, *EntityName, $userNameClient, $rodsZoneClient, *uuid);
+		_cyverse_logic_ensureUUID(*EntityType, *EntityName, *ClientUsername, *ClientZone, *uuid);
 
 		# Determine the new AVU settings.
 		*newAttr = _cyverse_logic_getNewAVUSetting(*Attr, 'n:', *newArgs);
@@ -896,8 +910,8 @@ cyverse_logic_acPostProcForModifyAVUMetadata(
 			*newAttr,
 			*newVal,
 			*newUnit,
-			$userNameClient,
-			$rodsZoneClient );
+			*ClientUsername,
+			*ClientZone );
 	}
 }
 
@@ -906,33 +920,31 @@ cyverse_logic_acPostProcForModifyAVUMetadata(
 # message for each AVU being copied.
 #
 # Parameters:
-#  Opt      (unused)
-#  SrcType  (string) the type of entity whose AVUs were copied, '-C' for
-#           collection, '-d' for data object, '-R' for resource, or '-u' for
-#           user
-#  TgtType  (string) the type of entity that received the AVUs, '-C' for
-#           collection, '-d' for data object, '-R' for resource, or '-u' for
-#           user
-#  SrcName  (string) the name of the entity whose AVUs were copied, for a
-#           collection or data object, this is the entity's absolute path
-#  TgtName  (string) the name of the entity that received the AVUs, for a
-#           collection or data object, this is the entity's absolute path
+#  Opt             (unused)
+#  SrcType         (string) the type of entity whose AVUs were copied, '-C' for
+#                  collection, '-d' for data object, '-R' for resource, or '-u'
+#                  for user
+#  TgtType         (string) the type of entity that received the AVUs, '-C' for
+#                  collection, '-d' for data object, '-R' for resource, or '-u'
+#                  for user
+#  SrcName         (string) the name of the entity whose AVUs were copied, for a
+#                  collection or data object, this is the entity's absolute path
+#  TgtName         (string) the name of the entity that received the AVUs, for a
+#                  collection or data object, this is the entity's absolute path
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
-# Session Variables:
-#  userNameClient
-#  rodsZoneClient
-#
-cyverse_logic_acPostProcForModifyAVUMetadata(*Opt, *SrcType, *TgtType, *SrcName, *TgtName) {
+cyverse_logic_acPostProcForModifyAVUMetadata(
+	*Opt, *SrcType, *TgtType, *SrcName, *TgtName, *ClientUsername, *ClientZone
+) {
 	if (cyverse_isFSType(*TgtType)) {
 		*tgt = '';
-		_cyverse_logic_resolveMsgEntityId(*TgtType, *TgtName, $userNameClient, $rodsZoneClient, *tgt);
+		_cyverse_logic_resolveMsgEntityId(*TgtType, *TgtName, *ClientUsername, *ClientZone, *tgt);
 
 		if (cyverse_isFSType(*SrcType)) {
 			*src = '';
-			_cyverse_logic_resolveMsgEntityId(
-				*SrcType, *SrcName, $userNameClient, $rodsZoneClient, *src );
-
-			_cyverse_logic_sendAVUCp(*SrcType, *src, *TgtType, *tgt, $userNameClient, $rodsZoneClient);
+			_cyverse_logic_resolveMsgEntityId(*SrcType, *SrcName, *ClientUsername, *ClientZone, *src);
+			_cyverse_logic_sendAVUCp(*SrcType, *src, *TgtType, *tgt, *ClientUsername, *ClientZone);
 		} else {
 			*uuidAttr = _cyverse_logic_UUID_ATTR;
 
@@ -948,8 +960,8 @@ cyverse_logic_acPostProcForModifyAVUMetadata(*Opt, *SrcType, *TgtType, *SrcName,
 						*rec.META_RESC_ATTR_NAME,
 						*rec.META_RESC_ATTR_VALUE,
 						*rec.META_RESC_ATTR_UNITS,
-						$userNameClient,
-						$rodsZoneClient );
+						*ClientUsername,
+						*ClientZone );
 				}
 			} else {
 				foreach( *rec in
@@ -963,8 +975,8 @@ cyverse_logic_acPostProcForModifyAVUMetadata(*Opt, *SrcType, *TgtType, *SrcName,
 						*rec.META_USER_ATTR_NAME,
 						*rec.META_USER_ATTR_VALUE,
 						*rec.META_USER_ATTR_UNITS,
-						$userNameClient,
-						$rodsZoneClient );
+						*ClientUsername,
+						*ClientZone );
 				}
 			}
 		}
@@ -976,15 +988,13 @@ cyverse_logic_acPostProcForModifyAVUMetadata(*Opt, *SrcType, *TgtType, *SrcName,
 # assigns a UUID and pushes a collection.add message into the irods exchange.
 #
 # Parameters:
-#  ParCollPath  (string) the absolute path to the parent of the collection being
-#               created
-#  CollName     (string) the name of the collection being created
+#  ParCollPath     (string) the absolute path to the parent of the collection
+#                  being created
+#  CollName        (string) the name of the collection being created
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
-# Session Variables:
-#  userNameClient
-#  rodsZoneClient
-#
-cyverse_logic_acCreateCollByAdmin(*ParCollPath, *CollName) {
+cyverse_logic_acCreateCollByAdmin(*ParCollPath, *CollName, *ClientUsername, *ClientZone) {
 	*coll = *ParCollPath ++ '/' ++ *CollName;
 	*perm = _cyverse_logic_resolveAdmPerm(*coll);
 
@@ -994,8 +1004,8 @@ cyverse_logic_acCreateCollByAdmin(*ParCollPath, *CollName) {
 	}
 
 	*uuid = '';
-	_cyverse_logic_ensureUUID(cyverse_COLL, *coll, $userNameClient, $rodsZoneClient, *uuid);
-	_cyverse_logic_sendCollAdd(*uuid, *coll, $userNameClient, $rodsZoneClient);
+	_cyverse_logic_ensureUUID(cyverse_COLL, *coll, *ClientUsername, *ClientZone, *uuid);
+	_cyverse_logic_sendCollAdd(*uuid, *coll, *ClientUsername, *ClientZone);
 }
 
 # This rule makes the admin owner of any created collection. It also assigns a
@@ -1003,20 +1013,20 @@ cyverse_logic_acCreateCollByAdmin(*ParCollPath, *CollName) {
 # is not applied to collections created when a TAR file is expanded. (i.e.
 # ibun -x)
 #
-# Session Variables:
-#  collName
-#  rodsZoneClient
-#  userNameClient
+# Parameters:
+#  CollPath        (string) the path to the collection that was created
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
-cyverse_logic_acPostProcForCollCreate {
-	*err = errormsg(_cyverse_logic_setAdmPerm($collName), *msg);
+cyverse_logic_acPostProcForCollCreate(*CollPath, *ClientUsername, *ClientZone) {
+	*err = errormsg(_cyverse_logic_setAdmPerm(*CollPath), *msg);
 	if (*err < 0) {
 		writeLine('serverLog', *msg);
 	}
 
 	*uuid = '';
-	_cyverse_logic_ensureUUID(cyverse_COLL, $collName, $userNameClient, $rodsZoneClient, *uuid);
-	_cyverse_logic_sendCollAdd(*uuid, $collName, $userNameClient, $rodsZoneClient);
+	_cyverse_logic_ensureUUID(cyverse_COLL, *CollPath, *ClientUsername, *ClientZone, *uuid);
+	_cyverse_logic_sendCollAdd(*uuid, *CollPath, *ClientUsername, *ClientZone);
 }
 
 # This prevents the default collections being created for newly created groups.
@@ -1033,20 +1043,18 @@ cyverse_logic_acCreateDefaultCollections(*OtherUserType) {
 # This rule pushes a collection.rm message into the irods exchange.
 #
 # Parameters:
-#  ParCollPath  (string) the absolute path to the parent collection of the
-#               collection being deleted
-#  CollName     (string) the name of collection being deleted
+#  ParCollPath     (string) the absolute path to the parent collection of the
+#                  collection being deleted
+#  CollName        (string) the name of collection being deleted
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
-# Session Variables:
-#  rodsZoneClient
-#  userNameClient
-#
-cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName) {
+cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName, *ClientUsername, *ClientZone) {
 	*path = *ParCollPath ++ '/' ++ *CollName;
 	*uuid = _cyverse_logic_getCollUUID(*path);
 
 	if (*uuid != '') {
-		_cyverse_logic_sendEntityRm(cyverse_COLL, *uuid, *path, $userNameClient, $rodsZoneClient);
+		_cyverse_logic_sendEntityRm(cyverse_COLL, *uuid, *path, *ClientUsername, *ClientZone);
 	}
 }
 
@@ -1057,10 +1065,6 @@ cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName) {
 #               collection being deleted
 #  CollName     (string) the name of collection being deleted
 #
-# Session Variables:
-#  rodsZoneClient
-#  userNameClient
-#
 cyverse_logic_acDeleteCollByAdminIfPresent(*ParCollPath, *CollName) {
 	cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName);
 }
@@ -1068,31 +1072,31 @@ cyverse_logic_acDeleteCollByAdminIfPresent(*ParCollPath, *CollName) {
 # This rule stores the name UUID of a collection that is about to be deleted for
 # use by cyverse_logic_acPostProcForRmColl.
 #
-# Session Variables:
-#  collName
+# Parameters:
+#  *CollPath  (path) the path to the collection
 #
 # temporaryStorage:
-#  '$collName'  writes the UUID here
+#  '*CollPath'  writes the UUID here
 #
-cyverse_logic_acPreprocForRmColl {
-	temporaryStorage.'$collName' = _cyverse_logic_getCollUUID($collName);
+cyverse_logic_acPreprocForRmColl(*CollPath) {
+	temporaryStorage.'*CollPath' = _cyverse_logic_getCollUUID(*CollPath);
 }
 
 # This rule publishes a removal message for a collection.
 #
-# Session Variables:
-#  collName
-#  userNameClient
-#  rodsZoneClient
+# Parameters:
+#  CollPath        (string) the path to the collection being deleted
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
 # temporaryStorage:
-#  '$collName'  reads the UUID from here
+#  '*CollPath'  reads the UUID from here
 #
-cyverse_logic_acPostProcForRmColl {
-	*uuid = temporaryStorage.'$collName';
+cyverse_logic_acPostProcForRmColl(*CollPath, *ClientUsername, *ClientZone) {
+	*uuid = temporaryStorage.'*CollPath';
 
 	if (*uuid != '') {
-		_cyverse_logic_sendEntityRm(cyverse_COLL, *uuid, $collName, $userNameClient, $rodsZoneClient);
+		_cyverse_logic_sendEntityRm(cyverse_COLL, *uuid, *CollPath, *ClientUsername, *ClientZone);
 	}
 }
 
@@ -1119,45 +1123,45 @@ cyverse_logic_acPostProcForDataCopyReceived(*StoreResc) {
 # This rule stores the UUID of a data object that is about to be deleted for use
 # by cyverse_logic_acPostProcForDelete.
 #
-# Session Variables:
-#  objPath
+# Parameters:
+#  DataPath  (path) the path to the data object being deleted
 #
 # temporaryStorage:
-#  '$objPath'  writes the UUID here
+#  '*DataPath'  writes the UUID here
 #
-cyverse_logic_acDataDeletePolicy {
-	temporaryStorage.'$objPath' = _cyverse_logic_getDataObjUUID($objPath);
+cyverse_logic_acDataDeletePolicy(*DataPath) {
+	temporaryStorage.'*DataPath' = _cyverse_logic_getDataObjUUID(*DataPath);
 }
 
 # This rule publishes a removal message for a data object.
 #
-# Session Variables:
-#  objPath
-#  userNameClient
-#  rodsZoneClient
+# Parameters:
+#  DataPath        (path) the path to the data object being deleted
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
 # temporaryStorage:
-#  '$objPath' reads the UUID from here
+#  '*DataPath' reads the UUID from here
 #
-cyverse_logic_acPostProcForDelete {
-	*uuid = temporaryStorage.'$objPath';
+cyverse_logic_acPostProcForDelete(*DataPath, *ClientUsername, *ClientZone) {
+	*uuid = temporaryStorage.'*DataPath';
 
 	if (*uuid != '') {
-		_cyverse_logic_sendEntityRm(
-			cyverse_DATA_OBJ, *uuid, $objPath, $userNameClient, $rodsZoneClient );
+		_cyverse_logic_sendEntityRm(cyverse_DATA_OBJ, *uuid, *DataPath, *ClientUsername, *ClientZone);
 	}
 }
 
 # This rule publishes a data object access message.
 #
-# Session Variables:
-#  objPath
-#  userNameClient
-#  rodsZoneClient
+# Parameters:
+#  DataPath        (path) the path to the data object being opened
+#  DataSize        (double) the size of the data object in bytes
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
-cyverse_logic_acPostProcForOpen {
-	*me = 'ipc_acPostProcForOpen';
-	*id = _cyverse_logic_getDataObjId($objPath);
+cyverse_logic_acPostProcForOpen(*DataPath, *ClientUsername, *ClientZone) {
+	*me = 'cyverse_logic_acPostProcForOpen';
+	*id = _cyverse_logic_getDataObjId(*DataPath);
 
 	if (*id >= 0) {
 		_cyverse_logic_registerAction(*id, *me);
@@ -1166,11 +1170,9 @@ cyverse_logic_acPostProcForOpen {
 			*uuid = '';
 
 			_cyverse_logic_ensureUUID(
-				cyverse_DATA_OBJ, $objPath, $userNameClient, $rodsZoneClient, *uuid );
+				cyverse_DATA_OBJ, *DataPath, *ClientUsername, *ClientZone, *uuid );
 
-			_cyverse_logic_sendDataObjOpen(
-				*uuid, $objPath, $dataSize, $userNameClient, $rodsZoneClient );
-
+			_cyverse_logic_sendDataObjOpen(*uuid, *DataPath, *DataSize, *ClientUsername, *ClientZone);
 			_cyverse_logic_unregisterAction(*id, *me);
 		}
 	}
@@ -1180,39 +1182,32 @@ cyverse_logic_acPostProcForOpen {
 # renamed.
 #
 # Parameters:
-#  SrcEntity   (string) the path to the collection or data object prior to being
-#              moved or renamed.
-#  DestEntity  (string) the new path
-#
-# Session Variables:
-#  userNameClient
-#  rodsZoneClient
+#  SrcEntity       (string) the path to the collection or data object prior to
+#                  being moved or renamed.
+#  DestEntity      (string) the new path
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
 # Error Codes:
 #   -1105000 (INVALID_OBJECT_TYPE)  if the type of DestEntity cannot be determined
 #
-cyverse_logic_acPostProcForObjRename(*SrcEntity, *DestEntity) {
+cyverse_logic_acPostProcForObjRename(*SrcEntity, *DestEntity, *ClientUsername, *ClientZone) {
 	*type = cyverse_getEntityType(*DestEntity);
 	if (*type == '') {
 		writeLine('serverLog', 'Cannot determine the type of "*DestEntity"');
 		-1105000;
 	} else {
 		*uuid = '';
-		_cyverse_logic_ensureUUID(*type, *DestEntity, $userNameClient, $rodsZoneClient, *uuid);
+		_cyverse_logic_ensureUUID(*type, *DestEntity, *ClientUsername, *ClientZone, *uuid);
 
 		if (*uuid != '') {
 			_cyverse_logic_sendEntityMv(
-				*type, *uuid, *SrcEntity, *DestEntity, $userNameClient, $rodsZoneClient );
+				*type, *uuid, *SrcEntity, *DestEntity, *ClientUsername, *ClientZone );
 		}
 	}
 }
 
 # Use default threading setting
-#
-# Session Variables:
-#  dataSize
-#  numThreads
-#  windowSize
 #
 cyverse_logic_acSetNumThreads {
 	msiSetNumThreads('default', 'default', 'default');

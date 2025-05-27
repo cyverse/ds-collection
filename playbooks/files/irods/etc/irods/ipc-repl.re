@@ -661,26 +661,26 @@ replEntityRename(*SourceObject, *DestObject) {
 # This rule ensures that the correct resource is chosen for first replica of a
 # newly created data object.
 #
-# Session Variables:
-#  objPath
+# Parameters:
+#  DataPath  (path) the path to the data object being created
 
 # DEPRECATED
-_ipcRepl_acSetRescSchemeForCreate {
-  on (pire_replBelongsTo(/$objPath)) {
+_ipcRepl_acSetRescSchemeForCreate(*DataPath) {
+  on (pire_replBelongsTo(*DataPath)) {
     _setDefaultResc(pire_replIngestResc);
   }
 }
-_ipcRepl_acSetRescSchemeForCreate {
+_ipcRepl_acSetRescSchemeForCreate(*DataPath) {
   _setDefaultResc(_defaultIngestResc);
 }
 
-ipcRepl_acSetRescSchemeForCreate {
-  (*resc, *residency) = _repl_findResc($objPath);
+ipcRepl_acSetRescSchemeForCreate(*DataPath) {
+  (*resc, *residency) = _repl_findResc(*DataPath);
 
   if (*resc != cyverse_DEFAULT_RESC) {
     msiSetDefaultResc(*resc, *residency);
   } else {
-    _ipcRepl_acSetRescSchemeForCreate;
+    _ipcRepl_acSetRescSchemeForCreate(*DataPath);
   }
 }
 
@@ -688,31 +688,31 @@ ipcRepl_acSetRescSchemeForCreate {
 # This rule ensures that the correct resource is chosen for the second and
 # subsequent replicas of a data object.
 #
-# Session Variables:
-#  objPath
+# Parameters:
+#  DataPath  (path) the path to the data object being replicated
 
 # DEPRECATED
-_ipcRepl_acSetRescSchemeForRepl {
-  on (pire_replBelongsTo(/$objPath)) {
+_ipcRepl_acSetRescSchemeForRepl(*DataPath) {
+  on (pire_replBelongsTo(*DataPath)) {
     _setDefaultResc(pire_replReplResc);
   }
 }
-_ipcRepl_acSetRescSchemeForRepl {
+_ipcRepl_acSetRescSchemeForRepl(*DataPath) {
   _setDefaultResc(_defaultReplResc);
 }
 
-ipcRepl_acSetRescSchemeForRepl {
+ipcRepl_acSetRescSchemeForRepl(*DataPath) {
   if (
     if errorcode(temporaryStorage.repl_replicate) < 0 then true
     else temporaryStorage.repl_replicate != 'REPL_FORCED_REPL_RESC'
   ) {
-    (*resc, *_) = _repl_findResc($objPath);
+    (*resc, *_) = _repl_findResc(*DataPath);
 
     if (*resc != cyverse_DEFAULT_RESC) {
       (*repl, *residency) = _repl_findReplResc(*resc);
       msiSetDefaultResc(*repl, *residency);
     } else {
-      _ipcRepl_acSetRescSchemeForRepl;
+      _ipcRepl_acSetRescSchemeForRepl(*DataPath);
     }
   }
 }

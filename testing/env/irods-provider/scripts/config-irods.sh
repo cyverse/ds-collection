@@ -50,12 +50,17 @@ main() {
 setup_irods() {
 	mk_unattended_install > /tmp/resolved_installation.json
 
-	# NOTE: This will fail, because the post-install test fails due to the default storage resource
-	# not existing yet.
+	# NOTE: This will fail, because there is no ICAT DBMS
 	if ! python3 /var/lib/irods/scripts/setup_irods.py --stdout --verbose \
 		--json_configuration_file=/tmp/resolved_installation.json
 	then
 		echo Ignoring expected failure >&2
+
+		sed 's/demoResc/'"$IRODS_DEFAULT_RESOURCE"'/g' /var/lib/irods/packaging/core.re.template \
+			> /etc/irods/core.re
+
+		cp /var/lib/irods/packaging/core.{dvm,fnm}.template /etc/irods
+		chown "$IRODS_SYSTEM_USER":"$IRODS_SYSTEM_GROUP" /etc/irods/core.*
 	fi
 
 	printf '\n' >> /var/lib/irods/.irods/irods_environment.json

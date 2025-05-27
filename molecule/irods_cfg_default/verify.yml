@@ -133,7 +133,7 @@
           - server_config.advanced_settings.delay_rule_executors is not defined
           - server_config.advanced_settings.delay_server_sleep_time_in_seconds == 30
           - server_config.advanced_settings.maximum_number_of_concurrent_rule_engine_server_processes is not defined
-          - server_config.advanced_settings.maximum_size_of_delay_queue_in_bytes is not defined
+          - server_config.advanced_settings.maximum_size_of_delay_queue_in_bytes == 0
           - server_config.advanced_settings.maximum_size_for_single_buffer_in_megabytes == 32
           - server_config.advanced_settings.maximum_temporary_password_lifetime_in_seconds == 1000
           - server_config.advanced_settings.migrate_delay_server_sleep_time_in_seconds is not defined

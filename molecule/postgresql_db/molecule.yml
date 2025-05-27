@@ -23,3 +23,6 @@ provisioner:
           ansible_python_interpreter: /usr/bin/python3
           postgresql_db_admin_password: password
           postgresql_db_admin_username: username
+          postgresql_db_name: db
+          postgresql_db_client_hosts:
+            - '1.1.1.1'

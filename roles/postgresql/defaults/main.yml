@@ -15,9 +15,6 @@ postgresql_db: postgres
 # changing this requires adjusting the systemctl file.
 postgresql_db_path: /var/lib/postgresql/12/main
 
-postgresql_hba_insertafter: '# ----------------------------------'
-postgresql_hba_users: []
-
 # configuration defaults
 postgresql_checkpoint_completion_target: 0.5
 postgresql_checkpoint_timeout: 5min
@@ -35,6 +32,8 @@ postgresql_log_line_prefix: '%m [%p] %q%u@%d '
 postgresql_log_min_duration_statement: -1
 
 postgresql_max_connections: 100
+
+postgresql_pg_hba: /etc/postgresql/12/main/pg_hba.conf
 
 postgresql_wal_keep_segments: 0
 postgresql_max_wal_senders: 10
