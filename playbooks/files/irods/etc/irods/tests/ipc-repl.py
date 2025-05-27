@@ -15,8 +15,20 @@ class TestIpcRepl(IrodsTestCase):
     """Test ipc-repl.re"""
 
     @unittest.skip("Not implemented")
-    def test_private(self):
-        """Test the private rule logic"""
+    def test_replicate(self):
+        """Test _repl_replicate logic"""
+
+    @unittest.skip("Not implemented")
+    def test_mvreplicas(self):
+        """Test _repl_mvReplicas logic"""
+
+    @unittest.skip("Not implemented")
+    def test_syncreplicas(self):
+        """Test _repl_syncReplicas logic"""
+
+    @unittest.skip("Not implemented")
+    def test_supporting(self):
+        """Test supporting function and rule logic"""
 
     @unittest.skip("Not implemented")
     def test_public(self):

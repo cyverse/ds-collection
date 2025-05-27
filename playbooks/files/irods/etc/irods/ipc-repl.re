@@ -618,42 +618,20 @@ _repl_findReplResc(*Resc) {
 #  SourceObject  (path) the absolute path to the collection or data object
 #                before it was moved
 #  DestObject    (path) the absolute path after it was moved
-
-# DEPRECATED
-_old_replEntityRename(*SourceObject, *DestObject) {
-  on (pire_replBelongsTo(/*DestObject)) {
-    if (!pire_replBelongsTo(/*SourceObject)) {
-      _scheduleMoves(*DestObject, pire_replIngestResc, pire_replReplResc);
-    }
-  }
-}
-_old_replEntityRename(*SourceObject, *DestObject) {
-  on (pire_replBelongsTo(/*SourceObject)) {
-    _scheduleMoves(*DestObject, _defaultIngestResc, _defaultReplResc);
-  }
-}
-# DEPRECATION NOTE: When the conditional versions are ready to be deleted, merge this into
-#                   replEntityRename.
-_old_replEntityRename(*SourceObject, *DestObject) {
-  (*srcResc, *_) = _repl_findResc(*SourceObject);
-
-  if (*srcResc != cyverse_DEFAULT_RESC) {
-    _repl_scheduleMoves(*DestObject, cyverse_DEFAULT_RESC, cyverse_DEFAULT_REPL_RESC);
-  }
-}
-
+#
 replEntityRename(*SourceObject, *DestObject) {
   (*destResc, *_) = _repl_findResc(*DestObject);
+  (*srcResc, *_) = _repl_findResc(*SourceObject);
 
   if (*destResc != cyverse_DEFAULT_RESC) {
-    (*srcResc, *_) = _repl_findResc(*SourceObject);
-
     if (*srcResc != *destResc) {
       (*destRepl, *_) = _repl_findReplResc(*destResc);
       _repl_scheduleMoves(*DestObject, *destResc, *destRepl);
     }
   } else {
-    _old_replEntityRename(*SourceObject, *DestObject);
+    if (*srcResc != cyverse_DEFAULT_RESC) {
+      _repl_scheduleMoves(*DestObject, cyverse_DEFAULT_RESC, cyverse_DEFAULT_REPL_RESC);
+    }
   }
 }
 
@@ -665,11 +643,6 @@ replEntityRename(*SourceObject, *DestObject) {
 #  DataPath  (path) the path to the data object being created
 
 # DEPRECATED
-_ipcRepl_acSetRescSchemeForCreate(*DataPath) {
-  on (pire_replBelongsTo(*DataPath)) {
-    _setDefaultResc(pire_replIngestResc);
-  }
-}
 _ipcRepl_acSetRescSchemeForCreate(*DataPath) {
   _setDefaultResc(_defaultIngestResc);
 }
@@ -692,11 +665,6 @@ ipcRepl_acSetRescSchemeForCreate(*DataPath) {
 #  DataPath  (path) the path to the data object being replicated
 
 # DEPRECATED
-_ipcRepl_acSetRescSchemeForRepl(*DataPath) {
-  on (pire_replBelongsTo(*DataPath)) {
-    _setDefaultResc(pire_replReplResc);
-  }
-}
 _ipcRepl_acSetRescSchemeForRepl(*DataPath) {
   _setDefaultResc(_defaultReplResc);
 }
@@ -721,9 +689,6 @@ ipcRepl_acSetRescSchemeForRepl(*DataPath) {
 # This rule ensures that uploaded files are replicated.
 
 # DEPRECATED
-_ipcRepl_put_old(*ObjPath, *DestResc, *New) {
-  on (pire_replBelongsTo(/*ObjPath)) {}
-}
 _ipcRepl_put_old(*ObjPath, *DestResc, *New) {
   _ipcRepl_createOrOverwrite_old(*ObjPath, *DestResc, *New, _defaultIngestResc, _defaultReplResc);
 }
