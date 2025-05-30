@@ -13,59 +13,157 @@ from tempfile import NamedTemporaryFile
 import unittest
 
 import test_rules
-from test_rules import IrodsTestCase
+from test_rules import IrodsTestCase, IrodsType
+
+from irods.exception import USER_FILE_DOES_NOT_EXIST
+
 
 _TEST_FILE = '/testing/home/rods/tmp'
 
 
-class TestPepApiDataObjCreatePre(IrodsTestCase):
+def setUpModule():  # pylint: disable=invalid-name
+    """Set up the module."""
+    test_rules.setUpModule()
+
+
+def tearDownModule():  # pylint: disable=invalid-name
+    """Tear down the module."""
+    test_rules.tearDownModule()
+
+
+class CyVerseCoreTestCase(IrodsTestCase):
+    """Base class for CyVerse core tests."""
+
+    def setUp(self):
+        """Set up the test case."""
+        super().setUp()
+        self.update_rulebase('cyverse_encryption.re', 'mocks/cyverse_encryption.re')
+
+    def tearDown(self):
+        """Tear down the test case."""
+        self.update_rulebase('cyverse_encryption.re', '../cyverse_encryption.re')
+        super().tearDown()
+
+    def verify_msg_logged(self, msg_frag) -> bool:
+        """Verify that a message fragment was logged"""
+        for line in self.tail_rods_log():
+            if msg_frag in line:
+                return True
+        return False
+
+
+class PepApiCollCreatePostTest(CyVerseCoreTestCase):
+    """Test pep_api_coll_create_post"""
+
+    def __init__(self, method_name: str):
+        super(CyVerseCoreTestCase, self).__init__(method_name)
+        self._test_coll = '/testing/home/rods/test_coll'
+
+    def setUp(self):
+        """Add stubbed out version of cyverse_encryption.re to the server."""
+        super().setUp()
+        self._ensure_test_coll_absent()
+        self.irods.collections.create(self._test_coll)
+
+    def tearDown(self):
+        """Remove stubbed out version of cyverse_encryption.re from the server."""
+        self._ensure_test_coll_absent()
+        super().tearDown()
+
+    def _ensure_test_coll_absent(self):
+        try:
+            self.irods.collections.remove(self._test_coll, force=True)
+        except USER_FILE_DOES_NOT_EXIST:
+            pass
+
+    def test_cyverseencryption_called(self):
+        """Test that the cyverse_encryption PEP is called."""
+        if not self.verify_msg_logged('cyverse_encryption_api_coll_create_post'):
+            self.fail('cyverse_encryption_api_coll_create_post not called')
+
+    @unittest.skip("not implemented")
+    def test_ipctrash_called(self):
+        """Test that the ipc-trash PEP is called."""
+
+
+class PepApiDataObjCopyPreTest(CyVerseCoreTestCase):
+    """Test pep_api_data_obj_copy_pre"""
+
+    def __init__(self, method_name: str):
+        super(CyVerseCoreTestCase, self).__init__(method_name)
+        self._test_copy = '/testing/home/rods/test_copy'
+
+    def setUp(self):
+        super().setUp()
+        self.irods.data_objects.create(_TEST_FILE)
+
+    def tearDown(self):
+        self.ensure_obj_absent(self._test_copy)
+        self.ensure_obj_absent(_TEST_FILE)
+        super().tearDown()
+
+    def test_cyverseencryption_called(self):
+        """Test that the cyverse_encryption version of the rule is called"""
+        self.irods.data_objects.copy(_TEST_FILE, self._test_copy)
+        if not self.verify_msg_logged('cyverse_encryption_api_data_obj_copy_pre'):
+            self.fail('cyverse_encryption_api_data_obj_copy_pre not called')
+
+
+class PepApiDataObjCreatePreTest(CyVerseCoreTestCase):
     """Test pep_api_data_obj_create_pre"""
 
     def setUp(self):
         """Add stubbed out version of cyverse_encryption.re to the server."""
         super().setUp()
-        self.update_rulebase('cyverse_encryption.re', 'mocks/cyverse_encryption.re')
         self.irods.data_objects.create(_TEST_FILE)
 
     def tearDown(self):
         """Remove stubbed out version of cyverse_encryption.re from the server."""
-        self.update_rulebase('cyverse_encryption.re', "../cyverse_encryption.re")
         self.ensure_obj_absent(_TEST_FILE)
         super().tearDown()
 
-    def test_ipcencryption_called(self):
+    def test_cyverseencryption_called(self):
         """Test that the rule is called."""
-        for line in self.tail_rods_log():
-            if 'ipcEncryption_api_data_obj_create_pre' in line:
-                return
-        self.fail('ipcEncryption_api_data_obj_create_pre not called')
+        if not self.verify_msg_logged('cyverse_encryption_api_data_obj_create_pre'):
+            self.fail('cyverse_encryption_api_data_obj_create_pre not called')
 
 
-class TestPepApiDataObjOpenPre(IrodsTestCase):
+class PepApiDataObjCreateAndStatPreTest(CyVerseCoreTestCase):
+    """
+    Test pep_api_data_obj_create_and_stat_pre.
+
+    NOTE: As of iRODS 4.2.8, this PEP is not currently called by any iRODS client.
+    """
+
+    def test_cyverseencryption_called(self):
+        """Test that cyverse_encryption's version of this rule"""
+        self.exec_rule(
+            self.mk_rule("pep_api_data_obj_create_and_stat_pre('', '', '', '')"), IrodsType.NONE)
+        if not self.verify_msg_logged('cyverse_encryption_api_data_obj_create_and_stat_pre'):
+            self.fail('cyverse_encryption_api_data_obj_create_and_stat_pre not called')
+
+
+class PepApiDataObjOpenPreTest(CyVerseCoreTestCase):
     """Test pep_api_data_obj_open_pre"""
 
     def setUp(self):
         """Add stubbed out version of cyverse_encryption.re to the server."""
         super().setUp()
         self.irods.data_objects.create(_TEST_FILE)
-        self.update_rulebase('cyverse_encryption.re', 'mocks/cyverse_encryption.re')
 
     def tearDown(self):
         """Remove stubbed out version of cyverse_encryption.re from the server."""
-        self.update_rulebase('cyverse_encryption.re', "../cyverse_encryption.re")
         self.ensure_obj_absent(_TEST_FILE)
         super().tearDown()
 
-    def test_ipcencryption_called(self):
+    def test_cyverseencryption_called(self):
         """Test that the rule is called."""
         with self.irods.data_objects.open(_TEST_FILE, mode='r', create=False):
-            for line in self.tail_rods_log():
-                if 'ipcEncryption_api_data_obj_open_pre' in line:
-                    return
-            self.fail('ipcEncryption_api_data_obj_open_pre not called')
+            if not self.verify_msg_logged('cyverse_encryption_api_data_obj_create_pre'):
+                self.fail('ipcEncryption_api_data_obj_open_pre not called')
 
 
-class TestPepApiDataObjPutPre(IrodsTestCase):
+class PepApiDataObjPutPreTest(CyVerseCoreTestCase):
     """Test pep_api_data_obj_put_pre"""
 
     def setUp(self):
@@ -73,7 +171,6 @@ class TestPepApiDataObjPutPre(IrodsTestCase):
         super().setUp()
         self._file = NamedTemporaryFile(delete=False)
         self._file.close()
-        self.update_rulebase('cyverse_encryption.re', 'mocks/cyverse_encryption.re')
         try:
             subprocess.run(
                 f"echo '{test_rules.IRODS_PASSWORD}' | iput '{self._file.name}' '{_TEST_FILE}'",
@@ -87,20 +184,18 @@ class TestPepApiDataObjPutPre(IrodsTestCase):
 
     def tearDown(self):
         """Remove stubbed out version of cyverse_encryption.re from the server."""
-        self.update_rulebase('cyverse_encryption.re', "../cyverse_encryption.re")
         self.ensure_obj_absent(_TEST_FILE)
         os.unlink(self._file.name)
         super().tearDown()
 
-    def test_ipcencryption_called(self):
+    def test_cyverseencryption_called(self):
         """Test that the rule is called."""
-        for line in self.tail_rods_log():
-            if 'ipcEncryption_api_data_obj_put_pre' in line:
-                return
-        self.fail('ipcEncryption_api_data_obj_put_pre not called')
+        if not self.verify_msg_logged('cyverse_encryption_api_data_obj_put_pre'):
+            self.fail('cyverse_encryption_api_data_obj_put_pre not called')
 
 
-class TestCyVerseCore(IrodsTestCase):
+class CyVerseCoreTest(CyVerseCoreTestCase):
+    """Test the cyverse_core.re rule-base"""
 
     @unittest.skip("not implemented")
     def test_accreatecollbyadmin(self):
@@ -187,24 +282,12 @@ class TestCyVerseCore(IrodsTestCase):
         """Test acPostProcForParallelTransferReceived"""
 
     @unittest.skip("not implemented")
-    def test_pepcollcreatepost(self):
-        """Test pep_coll_create_post"""
-
-    @unittest.skip("not implemented")
-    def test_pepapidataobjcopypre(self):
-        """Test pep_api_data_obj_copy_pre"""
-
-    @unittest.skip("not implemented")
     def test_pepapidataobjcopypost(self):
         """Test pep_api_data_obj_copy_post"""
 
     @unittest.skip("not implemented")
     def test_pepapidataobjcreatepost(self):
         """Test pep_api_data_obj_create_post"""
-
-    @unittest.skip("not implemented")
-    def test_pepapidataobjcreateandstatpre(self):
-        """Test pep_api_data_obj_create_and_stat_pre"""
 
     @unittest.skip("not implemented")
     def test_pepapidataobjopenandstatpre(self):

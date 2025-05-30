@@ -20,8 +20,8 @@ class TestMsisendmail(IrodsTestCase):
         Verify that an intercept message is logged when attempt is made to call the msiSendMail
         microservice.
         """
-        rule = self._mk_rule("msiSendMail('', '', '')")
-        self._exec_rule(rule, IrodsType.NONE)
+        rule = self.mk_rule("msiSendMail('', '', '')")
+        self.exec_rule(rule, IrodsType.NONE)
         if 'intercepted msiSendMail call' not in self.tail_rods_log(1)[0]:
             self.fail()
 
@@ -34,8 +34,8 @@ class TestMsiservermonperf(IrodsTestCase):
         Verify that an intercept message is logged when an attempt is made to call msiServerMonPerf
         microservice
         """
-        rule = self._mk_rule("msiServerMonPerf('', '')")
-        self._exec_rule(rule, IrodsType.NONE)
+        rule = self.mk_rule("msiServerMonPerf('', '')")
+        self.exec_rule(rule, IrodsType.NONE)
         if 'intercepted msiServerMonPerf call' not in self.tail_rods_log(1)[0]:
             self.fail()
 

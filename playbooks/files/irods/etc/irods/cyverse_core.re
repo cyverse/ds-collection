@@ -568,7 +568,7 @@ acPostProcForRmColl {
 #  CollCreateInp  (`KeyValuePair_PI`) information related to the new collection
 #
 pep_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
-	ipcEncryption_api_coll_create_post(*Instance, *Comm, *CollCreateInp);
+	cyverse_encryption_api_coll_create_post(*Instance, *Comm, *CollCreateInp);
 	ipcTrash_api_coll_create_post(*Instance, *Comm, *CollCreateInp);
 }
 
@@ -585,7 +585,7 @@ pep_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
 #  TransStat       unknown
 #
 pep_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
-	ipcEncryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp)
+	cyverse_encryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp)
 }
 
 # This is the post processing logic for when a data object is copied through the
@@ -614,7 +614,7 @@ pep_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 #              object
 #
 pep_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
-	ipcEncryption_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp);
+	cyverse_encryption_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp);
 }
 
 # This is the post processing logic for when a data object is created through
@@ -644,7 +644,7 @@ pep_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 #              object
 #
 pep_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	ipcEncryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp);
+	cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp);
 }
 
 
@@ -659,7 +659,7 @@ pep_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 #  DataObjInp  (`KeyValuePair_PI`) information related to the data object
 #
 pep_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
-	ipcEncryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp);
+	cyverse_encryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp);
 }
 
 
@@ -675,7 +675,7 @@ pep_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
 #  OpenStat    (unknown) unused
 #
 pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	ipcEncryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp)
+	cyverse_encryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp)
 }
 
 
@@ -692,7 +692,7 @@ pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 #  PORTAL_OPR_OUT  unknown
 #
 pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
-	ipcEncryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp);
+	cyverse_encryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp);
 }
 
 # This is the post processing logic for when a data object is uploaded through
@@ -722,7 +722,7 @@ pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTA
 #                    its new path
 #
 pep_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp) {
-	ipcEncryption_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp)
+	cyverse_encryption_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp)
 	ipcTrash_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp);
 }
 
@@ -736,7 +736,7 @@ pep_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp) {
 #                    its old path
 #
 pep_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
-	ipcEncryption_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp)
+	cyverse_encryption_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp)
 	ipcTrash_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp);
 }
 
@@ -825,10 +825,10 @@ pep_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat) {
 #  StructFileExtAndRegInp  (`KeyValuePair_PI`) information about the struct file
 #
 pep_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp) {
-	# we need to comment out this block
+	# XXX - we need to comment out this block
 	# StructFileExtAndRegInp variable is not properly serialized due to a bug in iRODS < v4.3
 	# Github issue: https://github.com/irods/irods/issues/7413
-	#ipcEncryption_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp);
+	#cyverse_encryption_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp);
 }
 
 
