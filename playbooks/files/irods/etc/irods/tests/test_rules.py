@@ -21,35 +21,71 @@ from paramiko import AutoAddPolicy, SSHClient
 from scp import SCPClient
 
 
-_IRODS_HOST = environ.get("IRODS_HOST")
-_IRODS_PORT = int(environ.get("IRODS_PORT"))
+_IRODS_HOST = environ.get("IRODS_HOST", '')
+_IRODS_PORT = int(environ.get("IRODS_PORT", 0))
 _IRODS_ZONE_NAME = environ.get("IRODS_ZONE_NAME")
 _IRODS_USER_NAME = environ.get("IRODS_USER_NAME")
 
 IRODS_PASSWORD = environ.get("IRODS_PASSWORD")
 
-_Emptied_Log = False  # pylint: disable=invalid-name
+
+_Setup = False  # pylint: disable=invalid-name
 
 
 def setUpModule():  # pylint: disable=invalid-name
-    """This clears the rodsLog on the iRODS catalog provider."""
-    global _Emptied_Log  # pylint: disable=global-statement
+    """Prepares the testing env for testing"""
+    global _Setup  # pylint: disable=global-statement
+    _place_mocks()
+    _clear_rods_log()
+    _Setup = True
 
-    if not _Emptied_Log:
-        ssh = SSHClient()
-        ssh.set_missing_host_key_policy(AutoAddPolicy())
-        ssh.connect(_IRODS_HOST, password='')
 
-        try:
-            _, stdout, _ = ssh.exec_command(
-                'truncate --size=0 /var/lib/irods/log/test_mode_output.log')
+def tearDownModule():  # pylint: disable=invalid-name
+    """Restores the testing env for testing"""
+    global _Setup  # pylint: disable=global-statement
+    _Setup = False
+    _remove_mocks()
 
-            _Emptied_Log = True
 
-            if stdout.channel.recv_exit_status() != 0:
-                raise RuntimeError("Failed to clear the rodsLog")
-        finally:
-            ssh.close()
+def _clear_rods_log():
+    with _connect_ssh() as ssh:
+        _, stdout, _ = ssh.exec_command(
+            'truncate --size=0 /var/lib/irods/log/test_mode_output.log')
+
+        if stdout.channel.recv_exit_status() != 0:
+            raise RuntimeError("Failed to clear the rodsLog")
+
+
+def _place_mocks():
+    with _connect_ssh() as ssh:
+        with _connect_scp(ssh) as scp:
+            mock_path = path.join(path.dirname(__file__), 'mocks/amqp-topic-send')
+            scp.put(mock_path, '/var/lib/irods/msiExecCmd_bin')
+
+
+def _remove_mocks():
+    with _connect_ssh() as ssh:
+        with _connect_scp(ssh) as scp:
+            orig_path = path.join(
+                path.dirname(__file__), '../../../var/lib/irods/msiExecCmd_bin/amqp-topic-send')
+
+            scp.put(orig_path, '/var/lib/irods/msiExecCmd_bin')
+
+
+def _connect_scp(ssh: SSHClient) -> SCPClient:
+    transport = ssh.get_transport()
+
+    if transport:
+        return SCPClient(transport)
+    else:
+        raise RuntimeError("Could not get ssh transport")
+
+
+def _connect_ssh() -> SSHClient:
+    ssh = SSHClient()
+    ssh.set_missing_host_key_policy(AutoAddPolicy())
+    ssh.connect(_IRODS_HOST, password='')
+    return ssh
 
 
 class IrodsType(Enum):
@@ -61,7 +97,7 @@ class IrodsType(Enum):
     STRING = enum.auto()
     STRING_LIST = enum.auto()
 
-    def format(self, value: any) -> Optional[str]:
+    def format(self, value: Optional[str]) -> Optional[str]:
         """
         formats a value for iRODS rule base on its type
 
@@ -80,8 +116,12 @@ class IrodsType(Enum):
         if self == IrodsType.PATH:
             return str(value)
         if self == IrodsType.STRING:
-            return f'"{value}"'
-        return 'list(' + ','.join(map(IrodsType.STRING.format, value)) + ')'
+            return IrodsType._fmt_str(value)
+        return 'list(' + ','.join(map(IrodsType._fmt_str, value)) + ')'
+
+    @staticmethod
+    def _fmt_str(value: str) -> str:
+        return f'"{value}"'
 
 
 class IrodsVal:
@@ -191,12 +231,8 @@ def unimplemented(test_case):
 class IrodsTestCase(TestCase):
     """This is a base class for all iRODS rule unit tests."""
 
-    @classmethod
-    def setUpClass(cls):
-        setUpModule()
-
     @staticmethod
-    def prep_path(irods_path: str) -> Tuple[IrodsVal.path, IrodsVal.string]:
+    def prep_path(irods_path: str) -> Tuple[IrodsVal, IrodsVal]:
         """
         This creates a pair of encoding for a path, one as an iRODS path type, and one as a iRODS
         string type.
@@ -211,9 +247,9 @@ class IrodsTestCase(TestCase):
 
     def setUp(self):
         super().setUp()
-        self._irods: iRODSSession = None
-        self._ssh: SSHClient = None
-        self._scp: SCPClient = None
+        self._irods = None
+        self._ssh = None
+        self._scp = None
 
     def tearDown(self):
         if self._scp:
@@ -240,16 +276,14 @@ class IrodsTestCase(TestCase):
     def scp(self) -> SCPClient:
         """provides access to an open SCP session"""
         if not self._scp:
-            self._scp = SCPClient(self.ssh.get_transport())
+            self._scp = _connect_scp(self.ssh)
         return self._scp
 
     @property
     def ssh(self) -> SSHClient:
         """provides access to an open SSH session"""
         if not self._ssh:
-            self._ssh = SSHClient()
-            self._ssh.set_missing_host_key_policy(AutoAddPolicy())
-            self._ssh.connect(_IRODS_HOST, password='')
+            self._ssh = _connect_ssh()
         return self._ssh
 
     def ensure_obj_absent(self, obj_path: str) -> None:
@@ -292,20 +326,39 @@ class IrodsTestCase(TestCase):
             args     the list of input parameters to pass to the function
             exp_res  the expected result of the function call
         """
-        rule = self._mk_rule(f"writeLine('stdout', {fn}({', '.join(map(repr, args))}))")
+        rule = self.mk_rule(f"writeLine('stdout', {fn}({', '.join(map(repr, args))}))")
         try:
-            self.assertEqual(self._exec_rule(rule, exp_res.type), exp_res)
+            self.assertEqual(self.exec_rule(rule, exp_res.type), exp_res)
         except _RuleExecFailure as ref:
             self.fail(str(ref))
 
-    def _mk_rule(self, logic):
+    def mk_rule(self, logic: str) -> Rule:
+        """
+        Creates an iRODS rule object
+
+        Parameters:
+            logic  the iRODS rule language logic defining the rule
+
+        Returns:
+            the rule object
+        """
         return Rule(
             session=self.irods,
             instance_name='irods_rule_engine_plugin-irods_rule_language-instance',
             body=logic,
             output='ruleExecOut')
 
-    def _exec_rule(self, rule, res_type):
+    def exec_rule(self, rule: Rule, res_type: IrodsType) -> IrodsVal:
+        """
+        Executes a rule.
+
+        Parameters:
+            rule      the rule to execute
+            res_type  the type of iRODS value the rule returns.
+
+        Returns:
+            the result returned by the rule
+        """
         output = rule.execute(r_error=(r_errs := RErrorStack()))
         if r_errs:
             raise _RuleExecFailure(pprint.pformat([vars(r) for r in r_errs]))
