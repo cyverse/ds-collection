@@ -7,3 +7,7 @@
 pep_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 	writeLine('serverLog', "cyverse_core: pep_api_data_obj_copy_pre called");
 }
+
+pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
+	writeLine('serverLog', "cyverse_core: pep_api_data_obj_put_pre called");
+}
