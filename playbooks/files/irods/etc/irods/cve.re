@@ -91,8 +91,8 @@ pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL
 #  -818000 (CAT_NO_ACCESS_PERMISSION)
 #
 _cve_DEL_VAL = 1130
-_cve_delete_forbidden(*ClientUser, *ClientZone, *DataPath) =
-	let *permSufficient = 0 in
+_cve_delete_allowed(*ClientUser, *ClientZone, *DataPath) =
+	let *permSufficient = false in
 	let *collPath = '' in
 	let *dataName = '' in
 	let *_ = msiSplitPath(str(*DataPath), *collPath, *dataName) in
@@ -105,23 +105,24 @@ _cve_delete_forbidden(*ClientUser, *ClientZone, *DataPath) =
 				where USER_NAME = '*group' and COLL_NAME = '*collPath' and DATA_NAME = '*dataName'
 			) {
 				if (int(*accessRec.DATA_ACCESS_TYPE) >= _cve_DEL_VAL) {
-					*permSufficient = 1;
+					*permSufficient = true;
 				}
 			}
-			if (*permSufficient > 0) {
+			if (*permSufficient) {
 			 	break;
 			}
 		} in
-	*permSufficient < 1
+	*permSufficient
 pep_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp) {
 	on (
-		_cve_delete_forbidden(*Comm.user_user_name, *Comm.user_rods_zone, *DataObjUnlinkInp.obj_path)
+		! _cve_delete_allowed(*Comm.user_user_name, *Comm.user_rods_zone, *DataObjUnlinkInp.obj_path)
 	) {
-		msg = 'pep_api_data_obj_unlink_pre: prevented '
+		*msg = 'pep_api_data_obj_unlink_pre: prevented '
 			++ *Comm.user_user_name ++ '#' ++ *Comm.user_rods_zone ++ ' from removing logical_path '
 			++ *DataObjUnlinkInp.obj_path;
 
 		writeLine('serverLog', *msg);
+		cut;
 		failmsg(-818000, 'delete_object or greater required');
 	}
 }

@@ -13,7 +13,10 @@ import pprint
 from typing import Any, List, Optional, Tuple
 from unittest import TestCase
 
-from irods.exception import CAT_NO_ROWS_FOUND
+from irods.access import iRODSAccess
+from irods.exception import (
+    CAT_INVALID_ARGUMENT, CAT_NO_ROWS_FOUND, CAT_SQL_ERR, CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME,
+    CUT_ACTION_PROCESSED_ERR)
 from irods.message import RErrorStack
 from irods.rule import Rule
 from irods.session import iRODSSession
@@ -310,9 +313,23 @@ class IrodsTestCase(TestCase):
         Parameters:
             obj_path  the absolute path to the data object
         """
-        try:
+        if self.irods.data_objects.exists(obj_path):
+            self.irods.acls.set(iRODSAccess('own', obj_path, 'rods'), admin=True)
             self.irods.data_objects.unlink(obj_path, force=True)
-        except CAT_NO_ROWS_FOUND:
+
+    def ensure_user_exists(self, username: str, password: Optional[str] = None) -> None:
+        """
+        Ensures that a user exists
+        """
+        try:
+            if password is None:
+                self.irods.users.create(username, 'rodsuser')
+            else:
+                self.irods.users.create_with_password(username, password)
+        except CAT_SQL_ERR as e:
+            if not str(e).endswith('CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME'):
+                raise e
+        except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
             pass
 
     def reload_rules(self) -> None:
