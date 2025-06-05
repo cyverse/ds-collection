@@ -71,7 +71,8 @@ def _remove_mocks():
     with _connect_ssh() as ssh:
         with _connect_scp(ssh) as scp:
             orig_path = path.join(
-                path.dirname(__file__), '../../../var/lib/irods/msiExecCmd_bin/amqp-topic-send')
+                path.dirname(__file__),
+                '../../files/irods/var/lib/irods/msiExecCmd_bin/amqp-topic-send')
 
             scp.put(orig_path, '/var/lib/irods/msiExecCmd_bin')
 

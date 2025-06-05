@@ -97,7 +97,7 @@ class PepApiDataObjCopyPreTestP(_CveTest):
         self._icp_exit_status = stderr.channel.recv_exit_status()
 
     def tearDown(self):
-        self.update_rulebase('cyverse_core.re', '../cyverse_core.re')
+        self.update_rulebase('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')
         self.ensure_obj_absent(self._copy_data_path)
         self.ensure_obj_absent(_TEST_DATA)
         super().tearDown()
@@ -141,7 +141,7 @@ class PepApiDataObjCopyPreTestNoP(_CveTest):
         self._icp_exit_status = stderr.channel.recv_exit_status()
 
     def tearDown(self):
-        self.update_rulebase('cyverse_core.re', '../cyverse_core.re')
+        self.update_rulebase('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')
         self.ensure_obj_absent(_TEST_DATA)
         self.ensure_obj_absent(self._copy_data_path)
         super().tearDown()
@@ -195,7 +195,7 @@ class PepApiDataObjPutPreTestP(_CveTest):
         self._iput_resp = resp.returncode
 
     def tearDown(self):
-        self.update_rulebase('cyverse_core.re', '../cyverse_core.re')
+        self.update_rulebase('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')
         super().tearDown()
 
     def test_no_upload(self):
@@ -242,7 +242,7 @@ class PepApiDataObjPutPreTestNoP(_CveTest):
         self._iput_resp = resp.returncode
 
     def tearDown(self):
-        self.update_rulebase('cyverse_core.re', '../cyverse_core.re')
+        self.update_rulebase('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')
         self.ensure_obj_absent(_TEST_DATA)
         super().tearDown()
 
@@ -362,7 +362,7 @@ class TestPepApiDataObjUnlinkPreRead(_CveTest):
                 self._deleted = False
 
     def tearDown(self):
-        self.update_rulebase('cyverse_core.re', '../cyverse_core.re')
+        self.update_rulebase('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')
         self.ensure_obj_absent(_TEST_DATA)
         self.irods.users.remove(self._user)
         super().tearDown()
@@ -425,7 +425,7 @@ class TestPepApiDataObjUnlinkPreDelete(_CveTest):
                 self._deleted = False
 
     def tearDown(self):
-        self.update_rulebase('cyverse_core.re', '../cyverse_core.re')
+        self.update_rulebase('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')
         self.ensure_obj_absent(_TEST_DATA)
         self.irods.users.remove(self._user)
         super().tearDown()

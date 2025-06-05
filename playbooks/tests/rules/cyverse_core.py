@@ -41,7 +41,8 @@ class CyVerseCoreTestCase(IrodsTestCase):
 
     def tearDown(self):
         """Tear down the test case."""
-        self.update_rulebase('cyverse_encryption.re', '../cyverse_encryption.re')
+        self.update_rulebase(
+            'cyverse_encryption.re', '../../files/irods/etc/irods/cyverse_encryption.re')
         super().tearDown()
 
     def verify_msg_logged(self, msg_frag) -> bool:
@@ -60,7 +61,7 @@ class Acsetreservernumproc(CyVerseCoreTestCase):
         self.update_rulebase('cve.re', 'mocks/cve.re')
 
     def tearDown(self):
-        self.update_rulebase('cve.re', '../cve.re')
+        self.update_rulebase('cve.re', '../../files/irods/etc/irods/cve.re')
         super().tearDown()
 
     def test_correct_num_set(self):
