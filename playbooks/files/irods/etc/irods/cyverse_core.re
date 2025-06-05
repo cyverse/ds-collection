@@ -153,11 +153,10 @@ acSetRescSchemeForRepl {
 	ipcRepl_acSetRescSchemeForRepl($objPath);
 }
 
-# This rule sets the default resource selection schema for replication of an
-# existing data object.
+# Set maximum number of rule engine processes
 #
 acSetReServerNumProc {
-	cyverse_logic_acSetReServerNumProc;
+	msiSetReServerNumProc(str(cyverse_MAX_NUM_RE_PROCS));
 }
 
 
