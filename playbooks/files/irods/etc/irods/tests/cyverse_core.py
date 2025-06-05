@@ -52,6 +52,22 @@ class CyVerseCoreTestCase(IrodsTestCase):
         return False
 
 
+class Acsetreservernumproc(CyVerseCoreTestCase):
+    """Test acSetReServerNumProc"""
+
+    def setUp(self):
+        super().setUp()
+        self.update_rulebase('cve.re', 'mocks/cve.re')
+
+    def tearDown(self):
+        self.update_rulebase('cve.re', '../cve.re')
+        super().tearDown()
+
+    def test_correct_num_set(self):
+        """Verify that the correct number passed to msiSetReServerNumProc"""
+        self.verify_msg_logged('msiSetReServerNumProc(4)')
+
+
 class PepApiCollCreatePostTest(CyVerseCoreTestCase):
     """Test pep_api_coll_create_post"""
 
@@ -232,10 +248,6 @@ class CyVerseCoreTest(CyVerseCoreTestCase):
     @unittest.skip("not implemented")
     def test_acsetrescschemeforrepl(self):
         """Test acSetRescSchemeForRepl"""
-
-    @unittest.skip("not implemented")
-    def test_acsetreservernumproc(self):
-        """Test acSetReserveNumProc"""
 
     @unittest.skip("not implemented")
     def test_acpreprocformodifyaccesscontrol(self):

@@ -1224,12 +1224,6 @@ cyverse_logic_acPostProcForParallelTransferReceived(*StoreResc) {
 	msi_update_unixfilesystem_resource_free_space(*StoreResc);
 }
 
-# Set maximum number of rule engine processes
-#
-cyverse_logic_acSetReServerNumProc {
-	msiSetReServerNumProc(str(cyverse_MAX_NUM_RE_PROCS));
-}
-
 
 #
 # DYNAMIC PEPS
