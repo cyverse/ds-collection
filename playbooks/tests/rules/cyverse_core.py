@@ -15,7 +15,7 @@ import unittest
 import test_rules
 from test_rules import IrodsTestCase, IrodsType
 
-from irods.exception import USER_FILE_DOES_NOT_EXIST
+from irods.exception import USER_FILE_DOES_NOT_EXIST, UserDoesNotExist
 
 
 _TEST_FILE = '/testing/home/rods/tmp'
@@ -51,6 +51,60 @@ class CyVerseCoreTestCase(IrodsTestCase):
             if msg_frag in line:
                 return True
         return False
+
+
+class AccreateuserzonecollectionsGroup(CyVerseCoreTestCase):
+    """Test acCreateUserZoneCollections group creation"""
+
+    def setUp(self):
+        super().setUp()
+        self._group_name = 'testers'
+        self.irods.groups.create(self._group_name)
+
+    def tearDown(self):
+        self.irods.groups.remove(self._group_name)
+        super().tearDown()
+
+    def test_no_home_coll(self):
+        """Test that no home collection is created for the group"""
+        home = os.path.join('/', self.irods.zone, 'home', self._group_name)
+        if self.irods.collections.exists(home):
+            self.fail('home collection created for group')
+
+    def test_no_trash_coll(self):
+        """Test that no trash collection is created for the group"""
+        trash = os.path.join('/', self.irods.zone, 'trash/home', self._group_name)
+        if self.irods.collections.exists(trash):
+            self.fail('trash collection created for group')
+
+
+class AccreateuserzonecollectionsUser(CyVerseCoreTestCase):
+    """Test acCreateUserZoneCollections user creation"""
+
+    def setUp(self):
+        super().setUp()
+        self._user_name = 'tester'
+        try:
+            self.irods.users.remove(self._user_name)
+        except UserDoesNotExist:
+            pass
+        self.irods.users.create(self._user_name, 'rodsuser')
+
+    def tearDown(self):
+        self.irods.users.remove(self._user_name)
+        super().tearDown()
+
+    def test_home_coll(self):
+        """Verify that when a user is created, a home collection is created"""
+        home = os.path.join('/', self.irods.zone, 'home', self._user_name)
+        if not self.irods.collections.exists(home):
+            self.fail(f'home collection {home} not created for user {self._user_name}')
+
+    def test_trash_coll(self):
+        """Verify that when a user is created, a trash collection is created"""
+        trash = os.path.join('/', self.irods.zone, 'trash/home', self._user_name)
+        if not self.irods.collections.exists(trash):
+            self.fail(f'trash collection {trash} created for user {self._user_name}')
 
 
 class Acsetreservernumproc(CyVerseCoreTestCase):
@@ -217,10 +271,6 @@ class CyVerseCoreTest(CyVerseCoreTestCase):
     @unittest.skip("not implemented")
     def test_accreatecollbyadmin(self):
         """Test acCreateCollByAdmin"""
-
-    @unittest.skip("not implemented")
-    def test_accreatedefaultcollections(self):
-        """Test acCreateDefaultCollections"""
 
     @unittest.skip("not implemented")
     def test_acdatadeletepolicy(self):

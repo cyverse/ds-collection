@@ -1029,17 +1029,6 @@ cyverse_logic_acPostProcForCollCreate(*CollPath, *ClientUsername, *ClientZone) {
 	_cyverse_logic_sendCollAdd(*uuid, *CollPath, *ClientUsername, *ClientZone);
 }
 
-# This prevents the default collections being created for newly created groups.
-#
-# Parameters:
-#  OtherUserType  (string) the type of user being created
-#
-cyverse_logic_acCreateDefaultCollections(*OtherUserType) {
-	if (*OtherUserType != 'rodsgroup') {
-		acCreateUserZoneCollections;
-	}
-}
-
 # This rule pushes a collection.rm message into the irods exchange.
 #
 # Parameters:

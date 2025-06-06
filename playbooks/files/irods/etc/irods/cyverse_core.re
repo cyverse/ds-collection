@@ -56,14 +56,13 @@ acCreateCollByAdmin(*ParColl, *ChildColl) {
 	cyverse_logic_acCreateCollByAdmin(*ParColl, *ChildColl, $userNameClient, $rodsZoneClient);
 }
 
-# This rule administratively creates the default collections for a newly created
-# user.
+# This rule administrative creates a user's home and trash collections.
 #
 # Session Variables:
 #  otherUserType
 #
-acCreateDefaultCollections {
-	cyverse_logic_acCreateDefaultCollections($otherUserType);
+acCreateUserZoneCollections {
+	on ($otherUserType == 'rodsgroup') {}
 }
 
 # This rule applies the project specific data delete policies.
