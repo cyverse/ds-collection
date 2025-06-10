@@ -32,7 +32,7 @@
       ansible.builtin.assert:
         that:
           - haproxy is search('\ndefaults\n(  [^\n]*\n)*  maxconn +500\n')
-          - haproxy is not search('\ndefaults\n(  [^\n]*\n)*  timeout queue')
+          - haproxy is not search('\ndefaults\n(  [^\n]*\n)*  timeout queue +\n(  .*\n)*')
 
     - name: Verify haproxy config stats listener
       ansible.builtin.assert:
@@ -111,18 +111,20 @@
       ansible.builtin.assert:
         that:
           - haproxy is search('\ndefaults\n(  [^\n]*\n)*  maxconn +1\n')
+          - haproxy is search('\ndefaults\n(  [^\n]*\n)*  timeout queue +3s\n')
 
-    - name: Verify haproxy config default section values
+    - name: Verify haproxy config stats section values
       ansible.builtin.debug:
         msg: TODO implement {{ item }}
       with_items:
-        - timeout queue
+        - bind
+        - stats auth
+        - stats realm
 
     - name: TODO implement
       ansible.builtin.debug:
         msg: "{{ item }} section tests"
       with_items:
-        - STATS
         - IRODS
         - SFTP
         - WEBDAV
