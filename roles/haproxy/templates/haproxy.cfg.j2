@@ -96,13 +96,16 @@ frontend irods_main
   acl                        is-conn        capture.req.hdr(0) -m str RODS_CONNECT
   acl                        is-ping        capture.req.hdr(0) -m str HEARTBEAT
   acl                        vip-src        src -f /etc/haproxy/vip.lst
+  acl                        blocked        src -f /etc/haproxy/block.lst
   acl                        throttle-conn  sc1_conn_cur gt 1
   acl                        block-conn     sc1_conn_cur gt 10
   tcp-request inspect-delay  5s
+  tcp-request content        accept if is-ping or is-conn vip-src
+  tcp-request content        reject if !is-conn or blocked
   tcp-request content        capture req.payload_lv(0,4),regsub(^\s*<MsgHeader_PI\s*>[\s\S]*<type\s*>,),regsub(</type\s*>[\s\S]*</MsgHeader_PI\s*>\s*$,) len 16
-  tcp-request content        track-sc1 src table concurrency_st if is-conn !vip-src
-  tcp-request content        reject if !is-conn !is-ping or block-conn
-  use_backend                irods_throttled if !is-ping throttle-conn
+  tcp-request content        track-sc1 src table concurrency_st if !vip-src
+  tcp-request content        reject if block-conn
+  use_backend                irods_throttled if throttle-conn
   default_backend            irods_direct
 
 frontend irods_reconn
@@ -136,14 +139,13 @@ backend irods_direct
 listen sftp
   bind                    :{{ haproxy_sftp_port }}
   acl                     vip-src     src -f /etc/haproxy/vip.lst
+  acl                     blocked     src -f /etc/haproxy/block.lst
   acl                     block-conn  sc1_conn_cur gt 10
-  tcp-request connection  track-sc1 src table concurrency_st if !vip-src
+  tcp-request connection  accept if vip-src
+  tcp-request connection  reject if blocked
+  tcp-request connection  track-sc1 src table concurrency_st
   tcp-request connection  reject if block-conn
   server                  sftp {{ haproxy_sftp_hosts[0] if haproxy_sftp_hosts[0]|ansible.utils.ipaddr else lookup('dig', haproxy_sftp_hosts[0]) }}:{{ haproxy_sftp_backend_port }} send-proxy-v2
-{#{% for w in haproxy_sftp_hosts %}
- # server          sftp-{{ loop.index }} {{ w if w|ansible.utils.ipaddr else lookup('dig', w) }}:{{ haproxy_sftp_backend_port }} check port {{ haproxy_sftp_backend_port }} fall 2 inter {{ haproxy_sftp_check_period }} downinter 3s fastinter 1s
- #{% endfor %}
- #}
 
 
 ##########################
@@ -153,12 +155,10 @@ listen sftp
 listen webdav
   bind                    :{{ haproxy_webdav_port }},:{{ haproxy_webdav_tls_port }}
   acl                     vip-src     src -f /etc/haproxy/vip.lst
+  acl                     blocked     src -f /etc/haproxy/block.lst
   acl                     block-conn  sc1_conn_cur gt 10
-  tcp-request connection  track-sc1 src table concurrency_st if !vip-src
+  tcp-request connection  accept if vip-src
+  tcp-request connection  reject if blocked
+  tcp-request connection  track-sc1 src table concurrency_st
   tcp-request connection  reject if block-conn
   server                  dav {{ haproxy_webdav_hosts[0] if haproxy_webdav_hosts[0]|ansible.utils.ipaddr else lookup('dig', haproxy_webdav_hosts[0]) }}
-{#{% for w in haproxy_webdav_hosts %}
- #  server          dav-{{ loop.index }} {{ w if w|ansible.utils.ipaddr else lookup('dig', w) }} check port {{ haproxy_webdav_port }} fall 2 inter {{ haproxy_webdav_check_period }} downinter 3s fastinter 1s
- #{% endfor %}
- #  option httpchk  OPTIONS /
- #}
