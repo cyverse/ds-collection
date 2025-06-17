@@ -14,9 +14,7 @@ from typing import Any, List, Optional, Tuple
 from unittest import TestCase
 
 from irods.access import iRODSAccess
-from irods.exception import (
-    CAT_INVALID_ARGUMENT, CAT_NO_ROWS_FOUND, CAT_SQL_ERR, CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME,
-    CUT_ACTION_PROCESSED_ERR)
+from irods.exception import CAT_SQL_ERR, CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 from irods.message import RErrorStack
 from irods.rule import Rule
 from irods.session import iRODSSession

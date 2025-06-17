@@ -164,7 +164,7 @@ cyverse_isForSvc(*SvcUser, *SvcColl, *Path) =
 #  SvcUser   the iRODS user name used by the service
 #  Perm      the permission to grant. It should be 'null', 'read', 'write', or
 #            'own'.
-#  CollPath  the path to the collection of begin given write access to
+#  CollPath  the path to the collection of begin given access to
 #
 cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath) {
 	*path = str(*CollPath);
@@ -178,7 +178,7 @@ cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath) {
 #  SvcUser  the iRODS user name used by the service
 #  Perm     the permission to grant. It should be 'null', 'read', 'write', or
 #           'own'.
-#  ObjPath  the path to the data object of begin given write access to
+#  ObjPath  the path to the data object of begin given access to
 #
 cyverse_giveAccessDataObj(*SvcUser, *Perm, *ObjPath) {
 	*path = str(*ObjPath);
