@@ -10,9 +10,12 @@ import os
 from typing import Union
 import unittest
 
+from irods.access import iRODSAccess
 from irods.collection import iRODSCollection
 from irods.data_object import iRODSDataObject
 from irods.exception import UserDoesNotExist
+from irods.rule import Rule
+from irods.session import iRODSSession
 
 import test_rules
 from test_rules import IrodsTestCase, IrodsType, IrodsVal
@@ -226,15 +229,6 @@ class CyverseIsuser(CyverseTestCase):
 class CyverseGetentitytype(CyverseTestCase):
     """Test cyverse_getEntityType"""
 
-    def setUp(self):
-        super().setUp()
-        self._test_obj = '/testing/home/rods/test_obj'
-        self.irods.data_objects.create(self._test_obj)
-
-    def tearDown(self):
-        self.irods.data_objects.unlink(self._test_obj, force=True)
-        super().tearDown()
-
     def test_collection(self):
         """Test with collection"""
         for p in IrodsTestCase.prep_path('/testing'):
@@ -243,9 +237,12 @@ class CyverseGetentitytype(CyverseTestCase):
 
     def test_data_obj(self):
         """Test with data object"""
-        for p in IrodsTestCase.prep_path(self._test_obj):
+        obj = '/testing/home/rods/test_obj'
+        self.irods.data_objects.create(obj)
+        for p in IrodsTestCase.prep_path(obj):
             with self.subTest(p=p):
                 self.fn_test('cyverse_getEntityType', [p], IrodsVal.string('-d'))
+        self.irods.data_objects.unlink(obj, force=True)
 
     def test_resc(self):
         """Test with resource"""
@@ -365,25 +362,180 @@ class CyverseEnsureaccessoncreatecoll(CyverseTestCase):
         if not self.has_perm('svc', 'modify_object', self.irods.collections.get(self._coll)):  # type: ignore # noqa: E501 # pylint: disable=line-too-long
             self.fail('svc did not receive write permission on collection')
 
-    @unittest.skip("not implemented")
     def test_coll_not_in_svc_coll(self):
-        """Test that a collection not ia service collection doesn't get service permission"""
+        """Test that a collection not in a service collection doesn't get service permission"""
+        other_coll = '/testing/home/rods/coll'
+        child = os.path.join(other_coll, 'child')
+        self.irods.collections.create(child, recursive=True)
+        rule = self.mk_rule(
+            f'cyverse_ensureAccessOnCreateColl("svc", "child", "write", {other_coll})')
+        self.exec_rule(rule, IrodsType.NONE)
+        if self.has_perm('rods', 'modify_object', self.irods.collections.get(self._coll)):  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+            self.fail('svc did not receive write permission on collection')
+        self.irods.collections.remove(other_coll, recursive=True, force=True)
 
 
-class CyverseTest(CyverseTestCase):
-    """Tests of cyverse.re"""
+class CyverseEnsureaccessoncreatedataobj(CyverseTestCase):
+    """Tests of cyverse_ensureAccessOjCreateDataObj"""
 
-    @unittest.skip("not implemented")
-    def test_cyverseensureaccessoncreatedataobj(self):
-        """Test cyverse_ensureAccessOjCreateDataObj"""
+    def setUp(self):
+        super().setUp()
+        self.ensure_user_exists('svc')
+        self._svc_coll = '/testing/home/rods/svc_data'
+        self.irods.collections.create(self._svc_coll)
 
-    @unittest.skip("not implemented")
-    def test_cyverseensureaccessonmv(self):
-        """Test cyverse_ensureAccessOnMov"""
+    def tearDown(self):
+        self.irods.collections.remove(self._svc_coll, recursive=True, force=True)
+        self.irods.users.remove('svc')
+        super().tearDown()
 
-    @unittest.skip("not implemented")
-    def test_cyversesetprotectedavu(self):
-        """Test cyverse_setProtectedAVU"""
+    def test_obj_in_svc_coll(self):
+        """Test that a data object in a service collection gets service permission"""
+        obj = os.path.join(self._svc_coll, 'obj')
+        self.irods.data_objects.create(obj)
+        rule = self.mk_rule(
+            f'cyverse_ensureAccessOnCreateDataObj("svc", "svc_data", "write", {obj})')
+        self.exec_rule(rule, IrodsType.NONE)
+        if not self.has_perm('svc', 'modify_object', self.irods.data_objects.get(obj)):
+            self.fail('svc did not receive write permission on collection')
+        self.ensure_obj_absent(obj)
+
+    def test_obj_not_in_svc_coll(self):
+        """Test that a data object not in a service collection doesn't get service permission"""
+        obj = os.path.join('/testing/home/rods/obj')
+        self.irods.data_objects.create(obj)
+        rule = self.mk_rule(
+            f'cyverse_ensureAccessOnCreateDataObj("svc", "svc_data", "write", {obj})')
+        self.exec_rule(rule, IrodsType.NONE)
+        if self.has_perm('svc', 'modify_object', self.irods.data_objects.get(obj)):
+            self.fail('svc received write permission on data object')
+        self.ensure_obj_absent(obj)
+
+
+class CyverseEnsureaccessonmv(CyverseTestCase):
+    """Tests of cyverse_ensureAccessOnMov"""
+
+    def setUp(self):
+        super().setUp()
+        self.ensure_user_exists('svc')
+        self._svc_coll = '/testing/home/rods/svc_data'
+        self.irods.collections.create(self._svc_coll)
+
+    def tearDown(self):
+        self.irods.collections.remove(self._svc_coll, recursive=True, force=True)
+        self.irods.users.remove('svc')
+        super().tearDown()
+
+    def test_mv_coll_into_svc_coll(self):
+        """Test move collection into service collection gets service permission"""
+        coll = os.path.join(self._svc_coll, 'coll')
+        self.irods.collections.create(coll)
+        rule = self.mk_rule(
+            f'''
+            cyverse_ensureAccessOnMv("svc", "svc_data", "write", /testing/home/rods/coll, {coll})
+            ''')
+        self.exec_rule(rule, IrodsType.NONE)
+        if not self.has_perm('svc', 'modify_object', self.irods.collections.get(coll)):  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+            self.fail('svc did not receive write permission on collection')
+        self.irods.collections.remove(coll, force=True, recursive=True)
+
+    def test_mv_coll_into_not_svc_coll(self):
+        """
+        Test move collection into collection that doesn't belong to a service doesn't gets service
+        permission.
+        """
+        coll = '/testing/home/rods/coll'
+        self.irods.collections.create(coll)
+        rule = self.mk_rule(
+            f'cyverse_ensureAccessOnMv("svc", "svc_data", "write", /testing/home/coll, {coll})')
+        self.exec_rule(rule, IrodsType.NONE)
+        if self.has_perm('svc', 'modify_object', self.irods.collections.get(coll)):  # type: ignore
+            self.fail('svc received write permission on collection')
+        self.irods.collections.remove(coll, force=True)
+
+    def test_mv_data_into_svc_coll(self):
+        """Test move data object into service collection gets service permission"""
+        obj = os.path.join(self._svc_coll, 'obj')
+        self.irods.data_objects.create(obj)
+        rule = self.mk_rule(
+            f'cyverse_ensureAccessOnMv("svc", "svc_data", "write", /testing/home/rods/obj, {obj})')
+        self.exec_rule(rule, IrodsType.NONE)
+        if not self.has_perm('svc', 'modify_object', self.irods.data_objects.get(obj)):
+            self.fail('svc did not receive write permission on data object')
+        self.irods.data_objects.unlink(obj, force=True)
+
+    def test_mv_data_into_not_svc_coll(self):
+        """
+        Test move data object into collection that doesn't belong to a service doesn't gets service
+        permission.
+        """
+        obj = '/testing/home/rods/obj'
+        self.irods.data_objects.create(obj)
+        rule = self.mk_rule(
+            f'cyverse_ensureAccessOnMv("svc", "svc_data", "write", /testing/home/obj, {obj})')
+        self.exec_rule(rule, IrodsType.NONE)
+        if self.has_perm('svc', 'modify_object', self.irods.data_objects.get(obj)):
+            self.fail('svc received write permission on data object')
+        self.irods.data_objects.unlink(obj, force=True)
+
+
+class CyverseSetprotectedavu(CyverseTestCase):
+    """Tests of cyverse_setProtectedAVU"""
+
+    def setUp(self):
+        super().setUp()
+        self.ensure_user_exists('user', 'password')
+
+    def tearDown(self):
+        self.irods.users.remove('user')
+        super().tearDown()
+
+    def test_avu_set_on_coll(self):
+        """Test that an AVU is set on a collection"""
+        self.irods.acls.set(iRODSAccess('read', '/testing/home/rods', 'user'))
+        with iRODSSession(
+            host=self.irods.host,
+            port=self.irods.port,
+            zone=self.irods.zone,
+            user='user',
+            password='password'
+        ) as user_sess:
+            rule = Rule(
+                session=user_sess,
+                instance_name='irods_rule_engine_plugin-irods_rule_language-instance',
+                body="cyverse_setProtectedAVU(/testing/home/rods, 'key', 'value', 'unit')",
+                output='ruleExecOut')
+            rule.execute()
+        try:
+            coll = self.irods.collections.get('/testing/home/rods')
+            coll.metadata.get_one('key')  # type: ignore
+            coll.metadata.remove('key', 'value', 'unit')  # type: ignore
+        except KeyError:
+            self.fail("AVU 'key' not set on collection '/testing/home/rods'")
+
+    def test_avu_set_on_data(self):
+        """Test that an AVU is set on a data object"""
+        obj = '/testing/home/rods/test_obj'
+        self.irods.data_objects.create(obj)
+        self.irods.acls.set(iRODSAccess('read', '/testing/home/rods', 'user'), recursive=True)
+        with iRODSSession(
+            host=self.irods.host,
+            port=self.irods.port,
+            zone=self.irods.zone,
+            user='user',
+            password='password'
+        ) as user_sess:
+            rule = Rule(
+                session=user_sess,
+                instance_name='irods_rule_engine_plugin-irods_rule_language-instance',
+                body=f"cyverse_setProtectedAVU({obj}, 'key', 'value', 'unit')",
+                output='ruleExecOut')
+            rule.execute()
+        try:
+            self.irods.data_objects.get(obj).metadata.get_one('key')  # type: ignore
+            self.irods.data_objects.unlink(obj, force=True)
+        except KeyError:
+            self.fail("AVU 'key' not set on data object")
 
 
 if __name__ == "__main__":

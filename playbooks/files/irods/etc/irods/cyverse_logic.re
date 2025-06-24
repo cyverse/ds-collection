@@ -1050,12 +1050,14 @@ cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName, *ClientUsername, *Cli
 # This rule pushes a collection.rm message into the irods exchange.
 #
 # Parameters:
-#  ParCollPath  (string) the absolute path to the parent collection of the
-#               collection being deleted
-#  CollName     (string) the name of collection being deleted
+#  ParCollPath     (string) the absolute path to the parent collection of the
+#                  collection being deleted
+#  CollName        (string) the name of collection being deleted
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
-cyverse_logic_acDeleteCollByAdminIfPresent(*ParCollPath, *CollName) {
-	cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName);
+cyverse_logic_acDeleteCollByAdminIfPresent(*ParCollPath, *CollName, *ClientUsername, *ClientZone) {
+	cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName, *ClientUsername, *ClientZone);
 }
 
 # This rule stores the name UUID of a collection that is about to be deleted for

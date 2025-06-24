@@ -106,8 +106,14 @@ acDeleteCollByAdmin(*ParColl, *ChildColl) {
 #             collection being deleted
 #  ChildColl  (string) the name of collection being deleted
 #
+# Session Variables:
+#  rodsZoneClient
+#  userNameClient
+#
 acDeleteCollByAdminIfPresent(*ParColl, *ChildColl) {
-	*status = errormsg(cyverse_logic_acDeleteCollByAdminIfPresent(*ParColl, *ChildColl), *msg);
+	*status = errormsg(
+		cyverse_logic_acDeleteCollByAdminIfPresent(*ParColl, *ChildColl, $userNameClient, $rodsZoneClient),
+		*msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
 
 	*status = errormsg(msiDeleteCollByAdmin(*ParColl, *ChildColl), *msg);

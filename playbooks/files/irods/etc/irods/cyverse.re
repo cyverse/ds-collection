@@ -246,7 +246,8 @@ cyverse_ensureAccessOnMv(*SvcUser, *SvcColl, *Perm, *OldPath, *NewPath) {
 	}
 }
 
-# This rule sets a protected AVU on an entity as a rodsadmin user.
+# This rule sets a protected AVU on an entity as a rodsadmin user. The user that
+# caused the setting of the AVU needs at least read permission on the Entity.
 #
 # PARAMETERS:
 #  Entity  the name of a resource or user or the path of a collection or data
