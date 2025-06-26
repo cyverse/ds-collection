@@ -1,4 +1,12 @@
-# Trash management policy
+# Trash timestamp management policy
+#
+# The logic here ensures that the any collection or data object that is put into
+# trash receives metadata indicating the time it was put into trash. It also
+# removes this metadata from anything moved out of trash. When a collection is
+# put into trash, only the collection receives the metadata, not its contents.
+# The AVU metadata attribute used is `ipc::trash_timestamp` with value being the
+# 11 digit number of seconds since the POSIX epoch, the standard way iRODS
+# stores time stamps.
 #
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.

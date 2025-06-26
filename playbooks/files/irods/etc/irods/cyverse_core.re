@@ -124,12 +124,6 @@ acPreConnect(*OUT) {
 	cyverse_logic_acPreConnect(*OUT);
 }
 
-# This rule sets the default values for parameters related to parallel transfer.
-#
-acSetNumThreads {
-	cyverse_logic_acSetNumThreads;
-}
-
 # This rule sets the maximum number of deferred rule executors.
 #
 acSetRescSchemeForCreate {

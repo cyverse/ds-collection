@@ -1,5 +1,8 @@
 # Avra project policy
 #
+# Any data object put in the AVRA project collection will be stored on the AVRA
+# resource server, and no other data objects may be stored there.
+#
 # © 2024 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 

@@ -1,5 +1,12 @@
 # Encryption enforcement policy
 #
+# This rule base implements CyVerse's encryption enforcement policy. A user may
+# choose to require that any file uploaded to a collection be encrypted. To do
+# this, the user must set the AVU attribute `encryption::required` with value
+# `true` on a collection. Afterwards, any file uploaded to this collection or
+# one under it, must have the file extension `.enc`. This is the extension used
+# by GoCommands when it encrypts a file.
+#
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 

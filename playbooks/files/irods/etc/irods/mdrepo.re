@@ -1,12 +1,11 @@
 # MD Repo project policy
 #
 # XXX - This works around bugs in tickets that prevent a data object from being
-#       created in a collection using a write ticket. Before an attempt is made
-#       to create a data object using a ticket, an empty data object is created
-#       as the ticket owner. Since the data object exists, as long as the
-#       operation creating it allows overwriting, the operation will succeed
-#       using the ticket for authorization. After upgrading to 4.2.12+, this
-#       rulebase should be removed.
+# created in a collection using a write ticket. Before an attempt is made to
+# create a data object using a ticket, an empty data object is created as the
+# ticket owner. Since the data object exists, as long as the operation creating
+# it allows overwriting, the operation will succeed using the ticket for
+# authorization. After upgrading to 4.2.12+, this rulebase should be removed.
 #
 # © 2023 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
