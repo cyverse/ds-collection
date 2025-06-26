@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
+#
+# Copyright: © 2025, The Arizona Board of Regents
+# Standard BSD License | CyVerse (see https://cyverse.org/license)
+
 """Provide irods_unixfilesystem_resource Ansible module"""
 
 import os
@@ -10,7 +14,7 @@ from irods.session import iRODSSession
 
 DOCUMENTATION = r"""
 ---
-module: irods_unixfilesystem_resource
+module: cyverse.ds.irods_unixfilesystem_resource
 
 short_description: Create an iRODS Unix filesystem storage resource
 

@@ -165,14 +165,11 @@
 {% macro mk_log_level(levels) -%}
 {%   if levels | length == 0 %}
 {}
-{%-  elif levels | length == 1 %}
-{%     set log, lvl = levels | items | first %}
-{ "{{ log }}": "{{ lvl }}" }
 {%-  else %}
 {
 {%     for log, lvl in levels | items %}
     "{{ log }}": "{{ lvl }}"{% if not loop.last %},{% endif +%}
-{%-    endfor %}
+{%     endfor %}
 }
 {%- endif %}
 {%- endmacro %}
@@ -256,30 +253,30 @@
 {
 {%   if irods_cfg_agent_factory_watcher_sleep_time %}
     "agent_factory_watcher_sleep_time_in_seconds": {{ irods_cfg_agent_factory_watcher_sleep_time }},
-{%-  endif %}
+{%   endif %}
     "default_number_of_transfer_threads": {{ irods_cfg_default_number_of_transfer_threads }},
     "default_temporary_password_lifetime_in_seconds": {{ irods_cfg_default_temporary_password_lifetime }},
 {%   if irods_cfg_delay_rule_executors is not none %}
     "delay_rule_executors": {{ mk_string_list(irods_cfg_delay_rule_executors) | string | indent(4) }},
-{%-  endif %}
+{%   endif %}
 {%   if irods_cfg_delay_server_sleep_time %}
     "delay_server_sleep_time_in_seconds": {{ irods_cfg_delay_server_sleep_time }},
-{%-  endif %}
+{%   endif %}
     "maximum_size_for_single_buffer_in_megabytes": {{ irods_cfg_maximum_size_for_single_buffer }},
 {%   if irods_cfg_maximum_size_of_delay_queue %}
     "maximum_size_of_delay_queue_in_bytes": {{ irods_cfg_maximum_size_of_delay_queue }},
-{%-  endif %}
+{%   endif %}
     "maximum_temporary_password_lifetime_in_seconds": {{ irods_cfg_maximum_temporary_password_lifetime }},
 {%   if irods_cfg_migrate_delay_server_sleep_time %}
     "migrate_delay_server_sleep_time_in_seconds": {{ irods_cfg_migrate_delay_server_sleep_time }},
-{%-  endif %}
+{%   endif %}
 {%   if irods_cfg_number_of_concurrent_delay_rule_executors %}
     "number_of_concurrent_delay_rule_executors": {{ irods_cfg_number_of_concurrent_delay_rule_executors }},
-{%-  endif %}
+{%   endif %}
     "rule_engine_server_sleep_time_in_seconds": {{ irods_cfg_rule_engine_server_sleep_time }},
 {%   if irods_cfg_stacktrace_file_processor_sleep_time %}
     "stacktrace_file_processor_sleep_time_in_seconds": {{ irods_cfg_stacktrace_file_processor_sleep_time }},
-{%-  endif %}
+{%   endif %}
     "transfer_buffer_size_for_parallel_transfer_in_megabytes": {{ irods_cfg_transfer_buffer_size_for_parallel_transfer }},
     "transfer_chunk_size_for_parallel_transfer_in_megabytes": {{ irods_cfg_transfer_chunk_size_for_parallel_transfer }}
 }

@@ -1,3 +1,9 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+#
+# Copyright: © 2025, The Arizona Board of Regents
+# Standard BSD License | CyVerse (see https://cyverse.org/license)
+
 """
 This lookup plugin generates UUIDs based on the provided type parameter.
 """
@@ -17,7 +23,7 @@ __metaclass__ = type  # pylint: disable=invalid-name
 
 DOCUMENTATION = r'''
 ---
-module: uuid
+module: cyverse.ds.uuid
 
 short_description: Generate UUIDs based on the provided type parameter
 
