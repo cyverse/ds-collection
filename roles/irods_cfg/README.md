@@ -104,6 +104,7 @@ Variable                                                     | Default          
 `irods_cfg_tcp_keepalive_intvl`                              | -1                                                                                   |                                                  | the number of seconds between TCP keep-alive probes, if non-positive, leave socket opt unset
 `irods_cfg_tcp_keepalive_probe`                              | -1                                                                                   |                                                  | the maximum number of TCP keep-alive probes to send before giving up and killing the connection if no response is obtained from the other end, if non-positive, leave socket opt unset
 `irods_cfg_tcp_keepalive_time`                               | -1                                                                                   |                                                  | the number of seconds a connection needs to be idle before TCP begins sending out keep-alive probes, if non-positive, leave socket opt unset
+`irods_cfg_test_log`                                         | false                                                                                |                                                  | if the iRODS server process gets restarted, should log messages be written to /var/lib/irods/log/test_mode_output.log
 `irods_cfg_transfer_buffer_size_for_parallel_transfer`       | 4                                                                                    |                                                  | the buffer size in mebibytes for parallel transfer
 `irods_cfg_transfer_chunk_size_for_parallel_transfer`        | 40                                                                                   |                                                  | the chunk size in mebibytes for parallel transfer
 `irods_cfg_validate`                                         | true                                                                                 |                                                  | whether or not the configuration values should be validated when the configuration files are generated
@@ -178,6 +179,7 @@ Field            | Default | Choices
 `resource`       | ⋮       | ⋮
 `rule_engine`    | ⋮       | ⋮
 `server`         | ⋮       | ⋮
+`sql`            | ⋮       | ⋮
 
 The `irods_cfg_re` variable holds `null`, `core`, or an `re` object. `null` means that no rule engine will be used. `core` means the iRODS rule language rule engine will be used with its default configuration. An `re` object customizes an rule language rule engine. Here are the fields in an `re` object. None of them are required.
 
@@ -206,7 +208,7 @@ None
     irods_cfg_home: /iplant
   tasks:
     - include_role:
-        name: cyverse-ansible.irods-cfg
+        name: cyverse.ds.irods_cfg
         tasks_from: "{{ item }}"
       with_items:
         - client.yml
@@ -215,7 +217,7 @@ None
 # Catalog Service Provider
 - hosts: irods_catalog_provider
   roles:
-    - role: cyverse-ansible.irods-cfg
+    - role: cyverse.ds.irods_cfg
       vars:
         irods_cfg_default_hash_scheme: MD5
         irods_cfg_default_number_of_transfer_threads: 16
@@ -251,7 +253,7 @@ None
 # Catalog Service Consumer Acting as a Resource Server
 - hosts: irods_resource_server
   roles:
-    - role: cyverse-ansible.irods-cfg
+    - role: cyverse.ds.irods_cfg
       vars:
         irods_cfg_default_hash_scheme: MD5
         irods_cfg_default_number_of_transfer_threads: 16
@@ -268,13 +270,3 @@ None
         irods_cfg_zone_name: iplant
         irods_cfg_zone_user: has_admin
 ```
-
-## License
-
-See [license](/LICENSE.txt).
-
-## Author Information
-
-Tony Edgin
-<tedgin@arizona.edu>
-[CyVerse](https://cyverse.org)

@@ -48,6 +48,3 @@
   ansible.builtin.include_tasks: _cfg_template.yml
   vars:
     _cfg_template_dest_file: etc/irods/server_config.json
-
-- name: Server config | ensure known that changes were made
-  ansible.builtin.meta: flush_handlers

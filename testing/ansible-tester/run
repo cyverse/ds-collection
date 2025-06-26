@@ -12,8 +12,8 @@
 #  PLAYBOOK    (OPTIONAL) the name of the playbook being tested.
 #  PRETTY      if this is set to any value, more info is dumped and newlines in
 #              output are expanded.
-#  SETUP       the name of a playbook that prepares the environment for testing
-#              PLAYBOOK
+#  SETUP       a comma-separated list of playbooks to be run, in order, prior to
+#              the playbook under test PLAYBOOK
 #  VERBOSE     if this is set to any value, ansible will generate verbose output
 #
 # Environment Variables:
@@ -23,6 +23,9 @@
 #                            to connect to
 #  IRODS_ZONE_NAME           The name of the iRODS zone inside the testing
 #                            environment
+#
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
 
 set -o errexit -o nounset -o pipefail
 

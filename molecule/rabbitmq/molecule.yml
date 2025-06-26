@@ -1,0 +1,24 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+driver:
+  name: docker
+platforms:
+  - name: ubuntu
+    image: rabbitmq
+    pre_build_image: false
+    dockerfile: Dockerfile
+    privileged: true
+    command: /lib/systemd/systemd
+provisioner:
+  name: ansible
+  inventory:
+    group_vars:
+      all:
+        mgmt_port: 2000
+        admin_user: admin
+        admin_passwd: password
+verifier:
+  name: ansible

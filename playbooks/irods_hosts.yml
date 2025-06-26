@@ -36,9 +36,9 @@
           {%   endfor %}
           {% endfor %}
           {% if inventory_hostname in groups['irods_catalog']
-               and inventory_hostname != _amqp_host
-               and not _amqp_host|ansible.utils.ipaddr %}
-          {{ lookup('dig', _amqp_host) }} {{ _amqp_host }}
+               and inventory_hostname != _irods_amqp_host
+               and not _irods_amqp_host|ansible.utils.ipaddr %}
+          {{ lookup('dig', _irods_amqp_host) }} {{ _irods_amqp_host }}
           {% endif %}
           {% for e in _irods_other_host_entries %}
           {%   if not e|ansible.utils.ipaddr %}

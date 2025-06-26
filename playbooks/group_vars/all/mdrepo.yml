@@ -1,0 +1,3 @@
+---
+_mdrepo_cli_account: "{{ mdrepo_cli_account | d(None) }}"
+_mdrepo_landing_colls: "{{ mdrepo_landing_colls | d([]) }}"

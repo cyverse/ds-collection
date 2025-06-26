@@ -10,12 +10,15 @@
 #  PLAYBOOK  the name of the playbook being tested.
 #  PRETTY    if this is set to any value, more info is dumped and newlines in
 #            output are expanded.
-#  SETUP     the name of a playbook that prepares the environment for testing
-#            PLAYBOOK
+#  SETUP     a comma-separated list of playbooks to be run, in order, prior to
+#            the playbook under test PLAYBOOK
 #  VERBOSE   if this is set to any value, ansible will be passed the verbose
 #            flag -vvv
 #
 # This program executes and ansible playbook on the test environment.
+#
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
 
 set -o errexit -o nounset -o pipefail
 
@@ -55,17 +58,14 @@ main() {
 	fi
 
 	if (( rc == 0 )) && [[ -n "$setup" ]]; then
-		if ! setup_env "$verbose" "$inventory" "$modPath" "$PLAYBOOK_DIR"/"$setup"; then
-			display_failure 'ERROR: The setup playbook failed'
+		if ! setup_env "$verbose" "$inventory" "$modPath" "$setup"; then
+			display_failure 'ERROR: One of the setup playbooks failed'
 			rc=1
 		fi
 	fi
 
 	if (( rc == 0 )) && [[ -n "$playbook" ]]; then
-		local playbookPath="$PLAYBOOK_DIR"/"$playbook"
-		local testPath="$TEST_DIR"/"$playbook"
-
-		if ! do_test "$verbose" "$inventory" "$modPath" "$playbookPath" "$testPath" ; then
+		if ! do_test "$verbose" "$inventory" "$modPath" "$playbook"; then
 			display_failure FAILED
 			rc=1
 		else
@@ -98,31 +98,34 @@ do_test() {
 	local inventory="$2"
 	local modPath="$3"
 	local playbook="$4"
-	local test="$5"
 
-	local verboseOpt
-	verboseOpt="$(verbosity "$verbose")"
+	local args=(--inventory-file="$inventory" --module-path="$modPath")
+
+	local pbPath="$PLAYBOOK_DIR"/"$playbook"
 
 	printf 'checking playbook syntax\n'
-	if ! ansible-playbook --syntax-check --inventory-file "$inventory" --module-path="$modPath" \
-		"$playbook"
+	if ! ansible-playbook --syntax-check "${args[@]}" "$pbPath"
 	then
 		return 1
+	fi
+
+	if [[ -n "$verbose" ]]
+	then
+		args+=(-vvv)
 	fi
 
 	printf 'running playbook\n'
-	# shellcheck disable=SC2086
-	if ! ansible-playbook $verboseOpt \
-		--inventory-file="$inventory" --module-path="$modPath" --skip-tags=no_testing "$playbook"
+	if ! ansible-playbook --skip-tags=no_testing "${args[@]}" "$pbPath"
 	then
 		return 1
 	fi
 
-	if [[ -e "$test" ]]; then
+	local testPath="$TEST_DIR"/"$playbook"
+
+	if [[ -e "$testPath" ]]; then
 		printf 'testing configuration\n'
 		# shellcheck disable=SC2086
-		if ! ansible-playbook $verboseOpt --module-path="$modPath" --inventory-file="$inventory" \
-			"$test"
+		if ! ansible-playbook "${args[@]}" "$testPath"
 		then
 			return 1
 		fi
@@ -151,7 +154,7 @@ run_idempotency() {
 			--inventory-file="$inventory" \
 			--module-path="$modPath" \
 			--skip-tags='no_testing, non_idempotent' \
-			"$playbook" \
+			"$PLAYBOOK_DIR"/"$playbook" \
 		2>&1
 }
 
@@ -161,13 +164,24 @@ setup_env() {
 	local modPath="$3"
 	local setup="$4"
 
-	local verboseOpt
-	verboseOpt="$(verbosity "$verbose")"
+	local args=(--inventory-file="$inventory" --skip-tags=no_testing)
+
+	if [[ -n "$verbose" ]]
+	then
+		args+=(-vvv)
+	fi
+
+	local setupArray
+	IFS=, read -r -a setupArray <<< "$setup"
+
+	local playbook
+	for playbook in "${setupArray[@]}"
+	do
+		args+=("$PLAYBOOK_DIR"/"$playbook")
+	done
 
 	printf 'preparing environment for testing playbook\n'
-	# shellcheck disable=SC2086
-	ansible-playbook $verboseOpt \
-		--inventory-file="$inventory" --module-path="$modPath" --skip-tags=no_testing "$setup"
+	ansible-playbook "${args[@]}"
 }
 
 wait_for_env() {
@@ -178,14 +192,6 @@ wait_for_env() {
 	if ! output="$(ansible-playbook --inventory-file="$inventory" /wait-for-ready.yml)"; then
 		printf 'failed to bring up the environment\n%s' "$output"
 		return 1
-	fi
-}
-
-verbosity() {
-	local verbose="$1"
-
-	if [[ -n "$verbose" ]]; then
-		printf -- '-vvv'
 	fi
 }
 

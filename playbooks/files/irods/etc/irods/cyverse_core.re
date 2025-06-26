@@ -12,9 +12,9 @@
 @include 'cyverse'
 
 @include 'cyverse_logic'
+@include 'cyverse_encryption'
 @include 'ipc-repl'
 @include 'ipc-trash'
-@include 'ipc-encryption'
 
 # SERVICE SPECIFIC RULES
 #
@@ -26,31 +26,12 @@
 
 @include 'avra'
 @include 'coge'
-@include 'mdrepo'
 @include 'pire'
 
 
 #
 ### STATIC PEPs ###
 #
-
-## SUPPORTING FUNCTIONS AND RULES ##
-
-# EXCLUSIVE RULES
-#
-# For events occur that should belong to one and only one project,
-# the following rules may be extended with on conditions.
-
-# This rule applies the project specific collection creation policies to a newly
-# created collection that wasn't created administratively.
-#
-cyverse_core_acPostProcForCollCreate_exclusive {
-	*err = errormsg(coge_acPostProcForCollCreate, *msg);
-	if (*err < 0) {
-		writeLine('serverLog', *msg);
-	}
-}
-
 
 # POLICY
 
@@ -62,19 +43,36 @@ cyverse_core_acPostProcForCollCreate_exclusive {
 #  ParColl    the absolute path to the parent of the collection being created
 #  ChildColl  the name of the collection being created
 #
+# Session Variables:
+#  userNameClient
+#  rodsZoneClient
+#
 # Error Codes:
 #  -43000 (SYS_NO_RCAT_SERVER_ERR)
 #  -160000 (SYS_SERVICE_ROLE_NOT_SUPPORTED)
 #
 acCreateCollByAdmin(*ParColl, *ChildColl) {
 	msiCreateCollByAdmin(*ParColl, *ChildColl);
-	cyverse_logic_acCreateCollByAdmin(*ParColl, *ChildColl);
+	cyverse_logic_acCreateCollByAdmin(*ParColl, *ChildColl, $userNameClient, $rodsZoneClient);
+}
+
+# This rule administratively creates the default collections for a newly created
+# user.
+#
+# Session Variables:
+#  otherUserType
+#
+acCreateDefaultCollections {
+	cyverse_logic_acCreateDefaultCollections($otherUserType);
 }
 
 # This rule applies the project specific data delete policies.
 #
+# Session Variables:
+#  objPath
+#
 acDataDeletePolicy {
-	cyverse_logic_acDataDeletePolicy;
+	cyverse_logic_acDataDeletePolicy($objPath);
 }
 
 # This rule applies the collection delete policies for a collection being
@@ -85,9 +83,15 @@ acDataDeletePolicy {
 #              collection being deleted
 #  ChildColl  (string) the name of collection being deleted
 #
+# Session Variables:
+#  rodsZoneClient
+#  userNameClient
+#
 # XXX: `iadmin rmdir` does not trigger this PEP in iRODS 4.2.8
 acDeleteCollByAdmin(*ParColl, *ChildColl) {
-	*status = errormsg(cyverse_logic_acDeleteCollByAdmin(*ParColl, *ChildColl), *msg);
+	*status = errormsg(
+		cyverse_logic_acDeleteCollByAdmin(*ParColl, *ChildColl, $userNameClient, $rodsZoneClient),
+		*msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
 
 	msiDeleteCollByAdmin(*ParColl, *ChildColl);
@@ -126,15 +130,21 @@ acPreConnect(*OUT) {
 
 # This rule sets the maximum number of deferred rule executors.
 #
+# Session Variables:
+#  objPath
+#
 acSetRescSchemeForCreate {
-	ipcRepl_acSetRescSchemeForCreate;
+	ipcRepl_acSetRescSchemeForCreate($objPath);
 }
 
 # This rule sets the default resource selection scheme for the replica of a
 # newly created data object.
 #
+# Session Variables:
+#  objPath
+#
 acSetRescSchemeForRepl {
-	ipcRepl_acSetRescSchemeForRepl;
+	ipcRepl_acSetRescSchemeForRepl($objPath);
 }
 
 # This rule sets the default resource selection schema for replication of an
@@ -191,9 +201,13 @@ acPreProcForModifyAccessControl(*RecursiveFlag, *AccessLevel, *UserName, *Zone, 
 #  AValue    (string) the value of the attribute
 #  AUnit     (string) the unit of the attribute
 #
+# Session Variables:
+#  userNameClient
+#  rodsZoneClient
+#
 acPreProcForModifyAVUMetadata(*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit) {
 	cyverse_logic_acPreProcForModifyAVUMetadata(
-		*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit );
+		*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, $userNameClient, $rodsZoneClient );
 }
 
 # This rule sets the preprocessing policy for modifying AVUs.
@@ -215,6 +229,10 @@ acPreProcForModifyAVUMetadata(*Option, *ItemType, *ItemName, *AName, *AValue, *A
 #  NAUnit    (string) either empty or holds an update to the name, value, or
 #            unit prefixed by 'n:', 'v:', or 'u:', respectively
 #
+# Session Variables:
+#  userNameClient
+#  rodsZoneClient
+#
 # XXX: Due to a bug in iRODS 4.2.8, when a unitless AVU is modified to have a new attribute name,
 #      value, and unit in a single call, *NAUnit will be empty.
 #
@@ -222,7 +240,17 @@ acPreProcForModifyAVUMetadata(
 	*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, *NAName, *NAValue, *NAUnit
 ) {
 	cyverse_logic_acPreProcForModifyAVUMetadata(
-		*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, *NAName, *NAValue, *NAUnit );
+		*Option,
+		*ItemType,
+		*ItemName,
+		*AName,
+		*AValue,
+		*AUnit,
+		*NAName,
+		*NAValue,
+		*NAUnit,
+		$userNameClient,
+		$rodsZoneClient );
 }
 
 # This rule sets the preprocessing policy for copying AVUs between entities.
@@ -241,17 +269,30 @@ acPreProcForModifyAVUMetadata(
 #  TargetItemName  (string) the name of the entity receiving the AVUs, for a
 #                  collection or data object, this is the entity's absolute path
 #
+# Session Variables:
+#  userNameClient
+#  rodsZoneClient
+#
 acPreProcForModifyAVUMetadata(
 	*Option, *SourceItemType, *TargetItemType, *SourceItemName, *TargetItemName
 ) {
 	cyverse_logic_acPreProcForModifyAVUMetadata(
-		*Option, *SourceItemType, *TargetItemType, *SourceItemName, *TargetItemName );
+		*Option,
+		*SourceItemType,
+		*TargetItemType,
+		*SourceItemName,
+		*TargetItemName,
+		$userNameClient,
+		$rodsZoneClient );
 }
 
 # This rule sets the preprocessing policy for deleting a collection.
 #
+# Session Variables:
+#  collName
+#
 acPreprocForRmColl {
-	cyverse_logic_acPreprocForRmColl;
+	cyverse_logic_acPreprocForRmColl($collName);
 }
 
 
@@ -264,11 +305,20 @@ acPreprocForRmColl {
 
 # This rule sets the post-processing policy for a newly created collection.
 #
+# Session Variables:
+#  collName
+#  rodsZoneClient
+#  userNameClient
+#
 acPostProcForCollCreate {
-	*err = errormsg(cyverse_logic_acPostProcForCollCreate, *msg);
+	*err = errormsg(
+		cyverse_logic_acPostProcForCollCreate($collName, $rodsZoneClient, $userNameClient), *msg );
 	if (*err < 0) { writeLine('serverLog', *msg); }
 
-	cyverse_core_acPostProcForCollCreate_exclusive;
+	*err = errormsg(coge_acPostProcForCollCreate($collName), *msg);
+	if (*err < 0) {
+		writeLine('serverLog', *msg);
+	}
 }
 
 # This rule sets the post-processing policy for when a data object's replica is
@@ -284,8 +334,14 @@ acPostProcForDataCopyReceived(*LeafResource) {
 
 # This rule sets the post-processing policy for deleting a data object.
 #
+# Session Variables:
+#  objPath
+#  userNameClient
+#  rodsZoneClient
+#
 acPostProcForDelete {
-	*err = errormsg(cyverse_logic_acPostProcForDelete, *msg);
+	*err = errormsg(
+		cyverse_logic_acPostProcForDelete($objPath, $rodsZoneClient, $userNameClient), *msg );
 	if (*err < 0) {
 		writeLine('serverLog', *msg);
 	}
@@ -308,9 +364,13 @@ acPostProcForDelete {
 #  Path           (string) the path to the collection or data object whose ACL
 #                  was altered
 #
+# Session Variables:
+#  userNameClient
+#  rodsZoneClient
+#
 acPostProcForModifyAccessControl(*RecursiveFlag, *AccessLevel, *UserName, *Zone, *Path) {
 	cyverse_logic_acPostProcForModifyAccessControl(
-		*RecursiveFlag, *AccessLevel, *UserName, *Zone, *Path );
+		*RecursiveFlag, *AccessLevel, *UserName, *Zone, *Path,  $userNameClient, $rodsZoneClient );
 }
 
 # This rule sets the post-processing policy for manipulating AVUs other than
@@ -328,9 +388,13 @@ acPostProcForModifyAccessControl(*RecursiveFlag, *AccessLevel, *UserName, *Zone,
 #  AValue    (string) the value of the attribute
 #  AUnit     (string) the unit of the attribute
 #
+# Session Variables:
+#  userNameClient
+#  rodsZoneClient
+#
 acPostProcForModifyAVUMetadata(*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit) {
 	cyverse_logic_acPostProcForModifyAVUMetadata(
-		*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit );
+		*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, $userNameClient, $rodsZoneClient );
 }
 
 # This rule sets the post-processing policy for modifying AVUs.
@@ -352,6 +416,10 @@ acPostProcForModifyAVUMetadata(*Option, *ItemType, *ItemName, *AName, *AValue, *
 #  NAUnit    (string) either empty or holds the updated name, value, or unit
 #            prefixed by 'n:', 'v:', or 'u:', respectively
 #
+# Session Variables:
+#  userNameClient
+#  rodsZoneClient
+#
 # XXX: Due to a bug in iRODS 4.2.8, when a unitless AVU is modified to have a new attribute name,
 #      value, and unit in a single call, *NAUnit will be empty.
 #
@@ -359,7 +427,17 @@ acPostProcForModifyAVUMetadata(
 	*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, *NAName, *NAValue, *NAUnit
 ) {
 	cyverse_logic_acPostProcForModifyAVUMetadata(
-		*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, *NAName, *NAValue, *NAUnit );
+		*Option,
+		*ItemType,
+		*ItemName,
+		*AName,
+		*AValue,
+		*AUnit,
+		*NAName,
+		*NAValue,
+		*NAUnit,
+		$userNameClient,
+		$rodsZoneClient );
 }
 
 # This rule sets the post-processing policy for copying AVUs between entities.
@@ -378,11 +456,21 @@ acPostProcForModifyAVUMetadata(
 #  TargetItemName  (string) the name of the entity that received the AVUs, for a
 #                  collection or data object, this is the entity's absolute path
 #
+# Session Variables:
+#  userNameClient
+#  rodsZoneClient
+#
 acPostProcForModifyAVUMetadata(
 	*Option, *SourceItemType, *TargetItemType, *SourceItemName, *TargetItemName
 ) {
 	cyverse_logic_acPostProcForModifyAVUMetadata(
-		*Option, *SourceItemType, *TargetItemType, *SourceItemName, *TargetItemName );
+		*Option,
+		*SourceItemType,
+		*TargetItemType,
+		*SourceItemName,
+		*TargetItemName,
+		$userNameClient,
+		$rodsZoneClient );
 }
 
 # This rule sets the post-processing policy for a moved or renamed collection or
@@ -393,15 +481,24 @@ acPostProcForModifyAVUMetadata(
 #                being moved or renamed.
 #  DestObject    (string) the new path
 #
+# Session Variables:
+#  userNameClient
+#  rodsZoneClient
+#
 acPostProcForObjRename(*SourceObject, *DestObject) {
-	*err = errormsg(cyverse_logic_acPostProcForObjRename(*SourceObject, *DestObject), *msg);
+	*err = errormsg(
+		cyverse_logic_acPostProcForObjRename(
+			*SourceObject, *DestObject, $userNameClient, $rodsZoneClient ),
+		*msg );
 	if (*err < 0) {
 		writeLine('serverLog', *msg);
 	}
+
 	*err = errormsg(coge_acPostProcForObjRename(*SourceObject, *DestObject), *msg);
 	if (*err < 0) {
 		writeLine('serverLog', *msg);
 	}
+
 	*err = errormsg(replEntityRename(*SourceObject, *DestObject), *msg);
 	if (*err < 0) {
 		writeLine('serverLog', *msg);
@@ -412,9 +509,14 @@ acPostProcForObjRename(*SourceObject, *DestObject) {
 #
 # Session Variables:
 #  objPath
+#  dataSize
+#  userNameClient
+#  rodsZoneClient
 #
 acPostProcForOpen {
-	*err = errormsg(cyverse_logic_acPostProcForOpen, *msg);
+	*err = errormsg(
+		cyverse_logic_acPostProcForOpen($objPath, $dataSize, $userNameClient, $rodsZoneClient),
+		*msg );
 	if (*err < 0) {
 		writeLine('serverLog', *msg);
 	}
@@ -433,8 +535,13 @@ acPostProcForParallelTransferReceived(*LeafResource) {
 
 # Ths rule sets the post-processing policy for when a collection is removed.
 #
+# Session Variables:
+#  collName
+#  userNameClient
+#  rodsZoneClient
+#
 acPostProcForRmColl {
-	cyverse_logic_acPostProcForRmColl;
+	cyverse_logic_acPostProcForRmColl($collName, $userNameClient, $rodsZoneClient);
 }
 
 
@@ -455,7 +562,7 @@ acPostProcForRmColl {
 #  CollCreateInp  (`KeyValuePair_PI`) information related to the new collection
 #
 pep_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
-	ipcEncryption_api_coll_create_post(*Instance, *Comm, *CollCreateInp);
+	cyverse_encryption_api_coll_create_post(*Instance, *Comm, *CollCreateInp);
 	ipcTrash_api_coll_create_post(*Instance, *Comm, *CollCreateInp);
 }
 
@@ -472,7 +579,7 @@ pep_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
 #  TransStat       unknown
 #
 pep_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
-	ipcEncryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp)
+	cyverse_encryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp)
 }
 
 # This is the post processing logic for when a data object is copied through the
@@ -501,8 +608,7 @@ pep_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 #              object
 #
 pep_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
-	ipcEncryption_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp);
-	mdrepo_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp);
+	cyverse_encryption_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp);
 }
 
 # This is the post processing logic for when a data object is created through
@@ -532,7 +638,7 @@ pep_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 #              object
 #
 pep_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	ipcEncryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp);
+	cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp);
 }
 
 
@@ -547,8 +653,7 @@ pep_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 #  DataObjInp  (`KeyValuePair_PI`) information related to the data object
 #
 pep_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
-	ipcEncryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp)
-	mdrepo_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp);
+	cyverse_encryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp);
 }
 
 
@@ -564,7 +669,7 @@ pep_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
 #  OpenStat    (unknown) unused
 #
 pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	ipcEncryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp)
+	cyverse_encryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp)
 }
 
 
@@ -581,8 +686,7 @@ pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 #  PORTAL_OPR_OUT  unknown
 #
 pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
-	ipcEncryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp)
-	mdrepo_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT);
+	cyverse_encryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp);
 }
 
 # This is the post processing logic for when a data object is uploaded through
@@ -612,7 +716,7 @@ pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTA
 #                    its new path
 #
 pep_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp) {
-	ipcEncryption_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp)
+	cyverse_encryption_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp)
 	ipcTrash_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp);
 }
 
@@ -626,7 +730,7 @@ pep_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp) {
 #                    its old path
 #
 pep_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
-	ipcEncryption_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp)
+	cyverse_encryption_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp)
 	ipcTrash_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp);
 }
 
@@ -715,10 +819,10 @@ pep_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat) {
 #  StructFileExtAndRegInp  (`KeyValuePair_PI`) information about the struct file
 #
 pep_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp) {
-	# we need to comment out this block
+	# XXX - we need to comment out this block
 	# StructFileExtAndRegInp variable is not properly serialized due to a bug in iRODS < v4.3
 	# Github issue: https://github.com/irods/irods/issues/7413
-	#ipcEncryption_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp);
+	#cyverse_encryption_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp);
 }
 
 
@@ -768,12 +872,14 @@ _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo, *Step) {
 	if (*err < 0) {
 		writeLine('serverLog', *msg);
 	}
+
 	if (*Step != 'FINISH') {
 		*err = errormsg(coge_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
 		if (*err < 0) {
 			writeLine('serverLog', *msg);
 		}
 	}
+
 	if (*Step != 'START') {
 		*err = errormsg(ipcRepl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
 		if (*err < 0) {
@@ -789,6 +895,7 @@ _cyverse_core_dataObjModified(*User, *Zone, *DataObjInfo) {
 	if (*err < 0) {
 		writeLine('serverLog', *msg);
 	}
+
 	*err = errormsg(ipcRepl_dataObjModified(*User, *Zone, *DataObjInfo), *msg);
 	if (*err < 0) {
 		writeLine('serverLog', *msg);
@@ -950,28 +1057,6 @@ pep_database_mod_data_obj_meta_post(*Instance, *Context, *OUT, *DataObjInfo, *Re
 			*Context.user_user_name, *Context.user_rods_zone, *logicalPath );
 	}
 # XXX - ^^^
-}
-
-
-# MOD TICKET
-
-# This is this post processing logic for when a ticket is added to the catalog
-# or modified with in the catalog.
-#
-#  Instance      (string) the type of DBMS being used
-#  Context       (`KeyValuePair_PI`) the database plugin context
-#  OUT           (`KeyValuePair_PI`) unknown
-#  OpName        unknown
-#  TicketString  (string) the ticket label
-#  Arg3          unknown
-#  Arg4          unknown
-#  Arg5          unknown
-#
-pep_database_mod_ticket_post(
-	*Instance, *Context, *OUT, *OpName, *TicketString, *Arg3, *Arg4, *Arg5
-) {
-	mdrepo_database_mod_ticket_post(
-		*Instance, *Context, *OUT, *OpName, *TicketString, *Arg3, *Arg4, *Arg5 );
 }
 
 

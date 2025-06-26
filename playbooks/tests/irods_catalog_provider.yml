@@ -1,26 +1,4 @@
 ---
-- name: Test allow catalog service providers to talk to DBMS
-  hosts: dbms
-  become: true
-  tasks:
-    - name: Test allow communication with Postgres DBMS
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: |
-          sed --quiet \
-              '/^# BEGIN DS IRODS MANAGED BLOCK$/{
-                n;
-                / *host \+ICAT \+irods \+[0-9.]\+\/32 \+md5$/!Q1;
-                n;
-                / *host \+ICAT \+irods \+[0-9.]\+\/32 \+md5$/!Q1;
-                n;
-                /^# END DS IRODS MANAGED BLOCK$/Q0 };
-              $ Q1' \
-            /etc/postgresql/12/main/pg_hba.conf
-      changed_when: false
-      tags: skip_ansible_lint
-
-
 - name: Test provisioning
   ansible.builtin.import_playbook: irods_provision.yml
 
@@ -31,7 +9,7 @@
   become_flags: '-i'
   tasks:
     - name: Verify parallel installed
-      ansible.builtin.include_tasks: tasks/irods/test_pkg_installed.yml
+      ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: parallel
 
@@ -47,8 +25,8 @@
       when: ansible_distribution == 'CentOS'
       block:
         - name: CentOS | verify correct packages installed
-          ansible.builtin.include_tasks: tasks/irods/test_pkg_installed.yml
-          with_items:
+          ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
+          loop:
             - mailx
             - pgdg-redhat-repo
             - postgresql12
@@ -62,7 +40,7 @@
           register: resp
           failed_when: >-
             not resp.stat.exists or not resp.stat.rusr or not resp.stat.rgrp or not resp.stat.roth
-          with_items:
+          loop:
             - /etc/profile.d/postgres.csh
             - /etc/profile.d/postgres.sh
 
@@ -100,8 +78,8 @@
       when: ansible_distribution == 'Ubuntu'
       block:
         - name: Ubuntu | verify correct packages installed
-          ansible.builtin.include_tasks: tasks/irods/test_pkg_installed.yml
-          with_items:
+          ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
+          loop:
             - bsd-mailx
             - odbc-postgresql
             - postgresql-client-12
@@ -129,14 +107,14 @@
           changed_when: false
 
     - name: Verify PostgreSQL plugin installed
-      ansible.builtin.include_tasks: tasks/irods/test_pkg_installed.yml
+      ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: irods-database-plugin-postgres
         version: 4.3.1
 
     - name: Verify iRODS ownership
       ansible.builtin.include_tasks: tasks/irods/test_irods_ownership.yml
-      with_items:
+      loop:
         - /etc/irods
         - /var/lib/irods
       loop_control:
@@ -160,7 +138,7 @@
         not response.stat.exists
         or response.stat.pw_name != 'irods'
         or not response.stat.rusr
-      with_items:
+      loop:
         - avra.re
         - avra-env.re
         - coge.re
@@ -171,13 +149,11 @@
         - cyverse.re
         - cyverse-env.re
         - cyverse_core.re
+        - cyverse_encryption.re
         - cyverse_housekeeping.re
         - cyverse_json.re
         - cyverse_logic.re
         - ipc-trash.re
-        - ipc-encryption.re
-        - mdrepo.re
-        - mdrepo-env.re
         - pire.re
         - pire-env.re
         - server_config.json

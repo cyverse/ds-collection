@@ -1,0 +1,33 @@
+---
+- name: Verify
+  hosts: all
+  become: true
+  become_user: postgres
+  tasks:
+    - name: Test ensure database exists
+      ansible.builtin.command: psql --command='\quit' db
+      changed_when: false
+
+    - name: Verify database admin user exists
+      ansible.builtin.command: psql --no-align --tuples-only --command='\du username'
+      register: response
+      failed_when: response.stdout | length == 0
+      changed_when: false
+
+    - name: Verify admin user has all privileges on database
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          psql --no-align --tuples-only --command='\l db' | grep --quiet 'username=CTc/postgres'
+      changed_when: false
+
+    - name: Verify irods DBMS user password
+      ansible.builtin.debug:
+        msg: TODO implement
+
+    - name: Test allow communication with Postgres DBMS
+      ansible.builtin.command: >-
+        grep --perl-regexp --quiet --regex='^host\tdb\tusername\t1.1.1.1\/32\t+md5'
+          /etc/postgresql/12/main/pg_hba.conf
+      changed_when: false

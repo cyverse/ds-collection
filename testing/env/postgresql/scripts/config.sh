@@ -25,19 +25,22 @@
 # or IP address of the server managing the filesystem underlying the resource.
 # VAULT is the absolute path to the vault on the filesystem.
 #
-# TODO The current syntax of IRODS_RESOURCES doesn't allow spaces or colons in
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+#
+# TODO: The current syntax of IRODS_RESOURCES doesn't allow spaces or colons in
 # vault path names. Please change its syntax.
 
 set -o errexit -o nounset -o pipefail
 
-EXEC_NAME=$(readlink --canonicalize "$0")
+EXEC_NAME="$(readlink --canonicalize "$0")"
 readonly EXEC_NAME
 
 
 main()
 {
   local baseDir
-  baseDir=$(dirname "$EXEC_NAME")
+  baseDir="$(dirname "$EXEC_NAME")"
 
   local sql="$baseDir"/icat.sql
 
@@ -59,6 +62,9 @@ main()
 
   printf 'Stopping PostgreSQL server\n'
   pg_ctlcluster 12 main stop > /dev/null
+
+  printf 'Granting access\n'
+  printf 'host  all  all  0.0.0.0/0  trust\n' >> /etc/postgresql/12/main/pg_hba.conf
 }
 
 
@@ -115,7 +121,7 @@ init_db()
   local sql="$5"
 
   local sqlDir
-  sqlDir=$(dirname "$sql")
+  sqlDir="$(dirname "$sql")"
 
   printf '\tCreating %s database\n' "$name"
   psql --command "CREATE DATABASE \"$name"\" > /dev/null

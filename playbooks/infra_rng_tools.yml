@@ -1,0 +1,15 @@
+- name: Ensure rng-tools is installed
+  hosts: all:!unmanaged_systems:!localhost
+  become: true
+  tasks:
+    - name: Update apt cache on Ubuntu machines
+      when: ansible_distribution == 'Ubuntu'
+      ansible.builtin.apt:
+        update_cache: true
+      tags:
+        - non_idempotent
+
+    - name: Install rng-tools package
+      ansible.builtin.package:
+        name: rng-tools
+        state: present

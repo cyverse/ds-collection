@@ -1,0 +1,9 @@
+---
+- name: Converge
+  hosts: all
+  roles:
+    - role: cyverse.ds.rabbitmq
+      vars:
+        rabbitmq_mgmt_port: "{{ mgmt_port }}"
+        rabbitmq_admin_username: "{{ admin_user }}"
+        rabbitmq_admin_password: "{{ admin_passwd }}"

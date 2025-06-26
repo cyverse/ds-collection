@@ -1,0 +1,18 @@
+---
+_infra_domain_name: "{{ infra_domain_name | mandatory }}"
+
+_infra_maintainer_keys: "{{ infra_maintainer_keys | d([]) }}"
+
+_infra_mtu: "{{ infra_mtu | d(1500) }}"
+
+_infra_package_manager: "{{ infra_package_manager | d('auto') }}"
+
+_infra_proxied_ssh: "{{ infra_proxied_ssh | d(false) }}"
+
+_infra_reboot_on_pkg_change: "{{ infra_reboot_on_pkg_change | d(false) }}"
+
+_infra_rebootable: "{{ infra_rebootable | d(true) }}"
+
+_infra_sysctl_net: "{{ infra_sysctl_net | d([]) }}"
+
+_infra_txqueuelen: "{{ infra_txqueuelen | d(1000) }}"

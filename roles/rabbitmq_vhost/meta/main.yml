@@ -1,0 +1,14 @@
+---
+galaxy_info:
+  author: Tony Edgin
+  description: An ansible role for managing a RabbitMQ vhost
+  company: University of Arizona
+  role_name: rabbitmq_vhost
+  license: See LICENSE.txt
+  min_ansible_version: 2.11.1
+  galaxy_tags: []
+
+collections:
+  - community.rabbitmq
+
+dependencies: []

@@ -11,7 +11,7 @@ import unittest
 
 from test_rules import IrodsTestCase
 
-from irods.exception import CAT_NO_ROWS_FOUND, CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
+from irods.exception import CAT_SQL_ERR, CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 from irods.models import Collection, CollectionAccess, CollectionUser, DataAccess, DataObject, User
 
 
@@ -25,6 +25,9 @@ class CogeTestCase(IrodsTestCase):
         self._coge_coll_path = "/testing/home/rods/coge_data"
         try:
             self.irods.users.create(self._coge_user, "rodsuser")
+        except CAT_SQL_ERR as e:
+            if not str(e).endswith('CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME'):
+                raise e
         except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
             pass
         self.irods.collections.create(self._coge_coll_path)
@@ -44,18 +47,6 @@ class CogeTestCase(IrodsTestCase):
     def coge_user(self) -> str:
         """The CoGe username"""
         return self._coge_user
-
-    def ensure_data_rm(self, data_path):
-        """
-        Ensures that a data object doesn't exist.
-
-        Parameters:
-            data_path  the absolute path to the data object
-        """
-        try:
-            self.irods.data_objects.unlink(data_path, force=True)
-        except CAT_NO_ROWS_FOUND:
-            pass
 
 
 class TestCogeAcpostprocforcollcreate(CogeTestCase):
@@ -84,8 +75,8 @@ class TestCogeAcpostprocforobjrename(CogeTestCase):
 
     def tearDown(self):
         """Remove the test data object."""
-        self.ensure_data_rm(self._orig_data_path)
-        self.ensure_data_rm(self._new_data_path)
+        self.ensure_obj_absent(self._new_data_path)
+        self.ensure_obj_absent(self._orig_data_path)
         super().tearDown()
 
     def test_coge_access(self):
@@ -112,7 +103,7 @@ class TestCogeDataobjcreated(CogeTestCase):
 
     def tearDown(self):
         """Remove the test data object."""
-        self.ensure_data_rm(self._data_path)
+        self.ensure_obj_absent(self._data_path)
         super().tearDown()
 
     def test_coge_access(self):

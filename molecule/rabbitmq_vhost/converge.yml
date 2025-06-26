@@ -1,0 +1,29 @@
+---
+- name: Converge
+  hosts: all
+  tasks:
+    - name: Create minimal user
+      ansible.builtin.include_role:
+        name: cyverse.ds.rabbitmq_vhost
+      vars:
+        rabbitmq_vhost_admin_username: admin
+        rabbitmq_vhost_admin_password: password
+        rabbitmq_vhost_name: /vhost1
+        rabbitmq_vhost_users:
+          - name: user
+
+    - name: Create vhost
+      ansible.builtin.include_role:
+        name: cyverse.ds.rabbitmq_vhost
+      vars:
+        rabbitmq_vhost_admin_username: admin
+        rabbitmq_vhost_admin_password: password
+        rabbitmq_vhost_name: /vhost2
+        rabbitmq_vhost_users:
+          - name: admin
+            configure_priv: .*
+            read_priv: .*
+            write_priv: .*
+        rabbitmq_vhost_exchanges:
+          - name: topic-exchange
+            type: topic

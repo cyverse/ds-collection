@@ -5,17 +5,24 @@ services:
     privileged: true
     tty: true
 
-  apache:
-    build:
-      context: .
-      dockerfile: apache/Dockerfile
-    privileged: true
-    tty: true
-
   sftp:
     build:
       context: .
       dockerfile: sftp/Dockerfile
+    privileged: true
+    tty: true
+
+  webdav_configured:
+    build:
+      context: .
+      dockerfile: webdav/Dockerfile.configured
+    privileged: true
+    tty: true
+
+  webdav_unconfigured:
+    build:
+      context: .
+      dockerfile: webdav/Dockerfile.unconfigured
     privileged: true
     tty: true
 

@@ -1,0 +1,27 @@
+---
+_sftp_admin_password: "{{ sftp_admin_password | mandatory }}"
+_sftp_admin_ui_port:  "{{ sftp_admin_ui_port | d(18023) }}"
+_sftp_admin_username: "{{ sftp_admin_username | d('admin') }}"
+
+_sftp_irods_admin_password: "{{ sftp_irods_admin_password | mandatory }}"
+_sftp_irods_admin_username: "{{ sftp_irods_admin_username | d('rods') }}"
+_sftp_irods_auth_scheme: "{{ sftp_irods_auth_scheme | d('native') }}"
+_sftp_irods_host: "{{ sftp_irods_host | d('localhost') }}"
+_sftp_irods_port: "{{ sftp_irods_port | d(1247) }}"
+_sftp_irods_proxy_password: "{{ sftp_irods_proxy_password | mandatory }}"
+_sftp_irods_proxy_username: "{{ sftp_irods_proxy_username | d('sftp') }}"
+_sftp_irods_ssl_algorithm: "{{ sftp_irods_ssl_algorithm | d('') }}"
+_sftp_irods_ssl_ca_cert_path: "{{ sftp_irods_ssl_ca_cert_path | d('') }}"
+_sftp_irods_ssl_hash_rounds: "{{ sftp_irods_ssl_hash_rounds | d(0) }}"
+_sftp_irods_ssl_key_size: "{{ sftp_irods_ssl_key_size | d(0) }}"
+_sftp_irods_ssl_salt_size: "{{ sftp_irods_ssl_salt_size | d(0) }}"
+_sftp_irods_zone: "{{ sftp_irods_zone | d('tempZone') }}"
+
+_sftp_port: "{{ sftp_port | d(2022) }}"
+
+_sftp_proxy_allowed: "{{ sftp_proxy_allowed | d([]) }}"
+
+_sftp_user_host_allowed: "{{ sftp_user_host_allowed | d([]) }}"
+_sftp_user_host_rejected: "{{ sftp_user_host_rejected | d([]) }}"
+
+_sftp_vault_dir: "{{ sftp_vault_dir | d('/sftpgo_vault') }}"

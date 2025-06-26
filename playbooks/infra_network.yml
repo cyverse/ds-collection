@@ -1,0 +1,105 @@
+---
+- name: Determine the servers that are on physical machines
+  hosts: all:!unmanaged_systems:!localhost
+  become: true
+  tasks:
+    - name: Group by virtualization type
+      ansible.builtin.group_by:
+        key: "{{ 'physical' if ansible_virtualization_type == 'NA'
+                            or ansible_virtualization_type == 'kvm' else
+                 'virtual' }}"
+      changed_when: false
+
+
+- name: Determine the NIC throughput and OS version for the physical servers
+  hosts: physical
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Call ethtool
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          ethtool {{ ansible_default_ipv4.alias }} | sed -n 's/\tSpeed: \([0-9]*\).*/\1/p'
+      register: ethtool
+      changed_when: false
+
+    - name: Group by NIC speed
+      ansible.builtin.group_by:
+        key: network_{{ '10G' if ethtool.stdout | int >= 10000 else '1G' }}
+      changed_when: false
+
+
+- name: Tune physical network
+  hosts: physical
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Configure MTU for interface
+      community.general.nmcli:
+        type: ethernet
+        conn_name: "{{ ansible_default_ipv4.alias }}"
+        mtu: "{{ _infra_mtu }}"
+        state: present
+
+    - name: Ensure correct MTU on network restart for Ubuntu
+      when: ansible_distribution == 'Ubuntu'
+      ansible.builtin.template:
+        src: etc/netplan/mtu.yaml.j2
+        dest: /etc/netplan/50-mtu.yaml
+        mode: u+r
+
+    - name: Ensure correct MTU on network restart for other than Ubuntu
+      when: ansible_distribution != 'Ubuntu'
+      ansible.builtin.lineinfile:
+        dest: /etc/sysconfig/network-scripts/ifcfg-{{ ansible_default_ipv4.alias }}
+        regexp: ^MTU=
+        line: MTU={{ _infra_mtu }}
+
+    - name: Set transmission queue length for {{ ansible_default_ipv4.alias }}
+      ansible.builtin.shell:
+        executable:  /bin/bash
+        cmd: |
+          set -o pipefail
+          qlen="$(ip link show {{ ansible_default_ipv4.alias }} \
+            | sed --quiet 's/.*qlen \([^ ]*\).*/\1/p')"
+          if [[ "$qlen" != '{{ _network_txqueuelen }}' ]]; then
+            ip link set {{ ansible_default_ipv4.alias }} txqueuelen {{ _infra_txqueuelen }} \
+              > /dev/null
+            echo changed
+          fi
+      register: resp
+      changed_when: resp.stdout == 'changed'
+
+    - name: Ensure correct transmission queue length on reboot for Ubuntu 20.04 or later
+      when: >-
+        ansible_distribution == 'Ubuntu' and ansible_distribution_version is version('20.04', '>=')
+      ansible.builtin.template:
+        src: etc/udev/rules.d/txqueuelen.rules.j2
+        dest: /etc/udev/rules.d/50-txqueuelen.rules
+        mode: u+r
+
+    - name: Ensure correct transmission queue length on reboot for Ubuntu < 20.04 or other linux
+      when:
+        - ansible_distribution != 'Ubuntu'
+        - ansible_distribution == 'Ubuntu' and ansible_distribution_version is version('20.04', '<')
+      ansible.builtin.lineinfile:
+        dest: >-
+          {{ '/etc/network/interfaces' if ansible_distribution == 'Ubuntu' else '/etc/rc.local' }}
+        regexp: /usr/sbin/ip link set {{ ansible_default_ipv4.alias }} txqueuelen
+        line: >-
+          /usr/sbin/ip link set {{ ansible_default_ipv4.alias }} txqueuelen {{ _infra_txqueuelen }}
+
+
+- name: Tune TCP
+  hosts: all:!unmanaged_systems:!localhost
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Configure linux kernel
+      ansible.posix.sysctl:
+        name: net.{{ item.name }}
+        value: "{{ item.value }}"
+      with_items: "{{ _infra_sysctl_net }}"
+      tags: no_testing

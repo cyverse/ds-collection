@@ -1,0 +1,15 @@
+FROM test-env-base:centos7
+
+ADD https://packages.irods.org/renci-irods.yum.repo /etc/yum.repos.d/renci-irods.yum.repo
+
+RUN <<'EOF'
+	set -o errexit
+	yum install --assumeyes yum-plugin-versionlock
+	rpm --import https://packages.irods.org/irods-signing-key.asc
+	yum --assumeyes updateinfo
+	yum --assumeyes install \
+		https://github.com/UtrechtUniversity/davrods/releases/download/4.2.8_1.5.0/davrods-4.2.8_1.5.0-1.rpm
+	yum --assumeyes versionlock add irods-runtime-4.2.8
+	yum clean all
+	rm --force --recursive /var/cache/yum
+EOF

@@ -27,8 +27,8 @@ main()
   # shellcheck disable=SC1090
   . "$cfg"
 
-  trap 'rm --force "$BaseDir"/requirements.txt' EXIT
-  cp --update=none "$BaseDir"/../../requirements.txt "$BaseDir"/requirements.txt
+  trap 'rm --force "$BaseDir"/requirements.txt "$BaseDir"/requirements.yml' EXIT
+  cp --update=none "$BaseDir"/../../requirements.txt "$BaseDir"/../../requirements.yml "$BaseDir"/
 
   local buildArgs=(
 #    --no-cache

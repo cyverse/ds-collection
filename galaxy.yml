@@ -1,9 +1,16 @@
 ---
 namespace: cyverse
 name: ds
+description: the ansible deployment logic for the CyVerse Data Store
 version: 0.1.0
 readme: README.md
 authors:
   - Tony Edgin
-description: the ansible deployment logic for the CyVerse Data Store
+dependencies:
+  "ansible.netcommon": "*"
+  "ansible.posix": "*"
+  "ansible.utils": "*"
+  "community.docker": "4.5"
+  "community.general": "10.4"
+  "community.postgresql": "3.11"
 repository: https://github.com/cyverse/ds-collection

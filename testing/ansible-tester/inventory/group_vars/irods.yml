@@ -19,7 +19,7 @@ cereus_resource_hierarchy:
     - name: cereus
 
 irods_amqp_host: "{{ groups['amqp'][0] }}"
-irods_amqp_user: amqp_admin
+irods_amqp_username: amqp_admin
 irods_amqp_password: password
 irods_clerver_password: password
 irods_default_number_of_transfer_threads: 4
@@ -41,6 +41,7 @@ irods_parallel_transfer_buffer_size: 4
 irods_resource_hierarchies:
   - name: ingestRes
   - name: replRes
+irods_restart_allowed: true
 irods_s3_cred:
   - name: cred-1
     access_key: access-1
@@ -53,9 +54,6 @@ irods_server_port_range_end: 20009
 irods_zone_key: TEMPORARY_zone_key
 
 mdrepo_cli_account: md-cli
-mdrepo_landing_colls:
-  - /testing/home/md-cli/landing
-  - /testing/home/shared/mdrepo/landing
 
 pire_manager: pire_mgr
 pire_resource_hierarchy:
