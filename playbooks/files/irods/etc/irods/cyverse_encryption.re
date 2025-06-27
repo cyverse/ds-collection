@@ -117,11 +117,23 @@ cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjIn
 # This verifies that an object is encrypted if it is being opened for
 # modification in a collection that requires encryption.
 #
-#  Instance    (string) unknown
-#  Comm        (`KeyValuePair_PI`) user connection and auth information
+#  Instance    (string) unused
+#  Comm        (`KeyValuePair_PI`) unused
 #  DataObjInp  (`KeyValuePair_PI`) information related to the data object
 #
 cyverse_encryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
+    _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjInp.obj_path);
+}
+
+# This verifies that an object is encrypted if it is being opened for
+# modification in a collection that requires encryption.
+#
+#  Instance    (string) unused
+#  Comm        (`KeyValuePair_PI`) unused
+#  DataObjInp  (`KeyValuePair_PI`) information related to the data object
+#  OpenStat    (unknown) unused
+#
+cyverse_encryption_api_data_obj_open_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
     _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjInp.obj_path);
 }
 

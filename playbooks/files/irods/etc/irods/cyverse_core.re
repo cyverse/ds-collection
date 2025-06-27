@@ -672,10 +672,10 @@ pep_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
 #  Instance    (string) unknown
 #  Comm        (`KeyValuePair_PI`) user connection and auth information
 #  DataObjInp  (`KeyValuePair_PI`) information related to the data object
-#  OpenStat    (unknown) unused
+#  OpenStat    unknown
 #
 pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	cyverse_encryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp)
+	cyverse_encryption_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat)
 }
 
 
