@@ -5,28 +5,8 @@
   vars_files:
     - ../../roles/haproxy/defaults/main.yml
   vars:
-    block_lst: "{{ lookup('template', '../../roles/haproxy/templates/block.lst.j2') }}"
     haproxy: "{{ lookup('template', '../../roles/haproxy/templates/haproxy.cfg.j2') }}"
-    vip: "{{ lookup('template', '../../roles/haproxy/templates/vip.lst.j2') }}"
   tasks:
-    - name: Verify vip.list is ansible managed
-      ansible.builtin.assert:
-        that: vip is search('^#\n# Ansible managed')
-
-    - name: Verify the VIP list has nothing below the header comment
-      ansible.builtin.assert:
-        that:
-          - vip is search('^#')
-          - vip is not search('\n[^#\n]')
-
-    - name: Verify block.list is ansible managed
-      ansible.builtin.assert:
-        that: block_lst is search('^#\n# Ansible managed')
-
-    - name: Verify block list has nothing below the header comment
-      ansible.builtin.debug:
-        msg: "TODO: implement"
-
     - name: Verify haproxy config is ansible managed
       ansible.builtin.assert:
         that: haproxy is search('^#\n# Ansible managed')
@@ -79,36 +59,6 @@
           - haproxy is search('\nlisten webdav\n(..[^\n]*\n)*  bind .* :80,:443\n')
           - haproxy is search('\nlisten webdav\n(..[^\n]*\n)*  server .* 127.0.0.1\n')
 
-- name: Verify | VIP list template custom expansion
-  hosts: localhost
-  gather_facts: false
-  vars_files:
-    - ../../roles/haproxy/defaults/main.yml
-    - vars/vip_clients.yml
-  vars:
-    vip: "{{ lookup('template', '../../roles/haproxy/templates/vip.lst.j2') }}"
-    data_ip: "{{ lookup('dig', 'data.cyverse.org') }}"
-  tasks:
-    - name: Verify the ip address passes through
-      ansible.builtin.assert:
-        that: vip is search('\n' ~ ('1.2.3.4'|regex_escape) ~ '\n')
-
-    - name: Verify the host name converted to address
-      ansible.builtin.assert:
-        that: vip is search('\n' ~ (data_ip|regex_escape) ~ '\n')
-
-    - name: Verify CIDR block passes through
-      ansible.builtin.assert:
-        that: vip is search('\n' ~ ('5.6.7.0/24'|regex_escape) ~ '\n')
-
-- name: Verify | Block list template custom expansion
-  hosts: localhost
-  gather_facts: false
-  tasks:
-    - name: Implement
-      ansible.builtin.debug:
-        msg: "TODO: implement"
-
 - name: Verify | haproxy config template custom expansion
   hosts: localhost
   gather_facts: false
@@ -130,11 +80,15 @@
           - haproxy is search('\ndefaults\n(  [^\n]*\n)*  maxconn +1\n')
           - haproxy is search('\ndefaults\n(  [^\n]*\n)*  timeout queue +3s\n')
 
+    - name: Verify stats section
+      ansible.builtin.assert:
+        that:
+          - haproxy is search('\nlisten stats\n(  [^\n]*\n)*  bind +:4 ssl crt /path/to/tls.crt\n')
+
     - name: Verify haproxy config stats section values
       ansible.builtin.debug:
-        msg: TODO implement {{ item }}
+        msg: "TODO: implement {{ item }}"
       with_items:
-        - bind
         - stats auth
         - stats realm
 
@@ -148,6 +102,8 @@
 
 - name: Verify | set up HAProxy
   hosts: instance
+  vars:
+    data_ip: "{{ lookup('dig', 'data.cyverse.org') }}"
   tasks:
     - name: Retrieve installed packages
       ansible.builtin.package_facts:
@@ -202,15 +158,48 @@
       ansible.builtin.debug:
         msg: TODO implement
 
+    - name: Verify allow list
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
+    - name: Verify block list template
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
     - name: Test VIP list placement
       ansible.builtin.stat:
         path: /etc/haproxy/vip.lst
       register: response
       failed_when: not response.stat.exists or not result.stat.roth
 
-    - name: Test block list placement
+    - name: Retrieve vip.lst
+      ansible.builtin.slurp:
+        src: /etc/haproxy/vip.lst
+      register: vip_encoded
+
+    - name: Decode vip.lst
+      ansible.builtin.set_fact:
+        vip: "{{ vip_encoded.content | b64decode }}"
+
+    - name: Verify vip.list is ansible managed
+      ansible.builtin.assert:
+        that: vip is search('^#\n# Ansible managed\n#\n')
+
+    - name: Verify the ip address passes through
+      ansible.builtin.assert:
+        that: vip is search('\n' ~ ('1.2.3.4'|regex_escape) ~ '\n')
+
+    - name: Verify the host name converted to address
+      ansible.builtin.assert:
+        that: vip is search('\n' ~ (data_ip|regex_escape) ~ '\n')
+
+    - name: Verify CIDR block passes through
+      ansible.builtin.assert:
+        that: vip is search('\n' ~ ('5.6.7.0/24'|regex_escape) ~ '\n')
+
+    - name: Verify block list
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: "TODO: implement"
 
     - name: Test place haproxy config file
       ansible.builtin.debug:

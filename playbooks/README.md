@@ -125,7 +125,8 @@ Variable                                   | Required | Default                 
 `mdrepo_cli_account`                       | no       | null                                 |         | The iRODS account used my the MD Repo CLI
 `pire_manager`                             | no       | null                                 |         | The username that owns the PIRE project collection, if `null`, the collection isn't created.
 `pire_resource_hierarchy`                  | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the PIRE project
-`proxy_block_client_hosts`                 | no       | []                                   |         | A list of host names, ip addresses, or CIDR blocks of clients not allowed to use the Data Store
+`proxy_allow_client_hosts`                 | no       | []                                   |         | A list of host names, IP addresses, and CIDR blocks of clients allowed limited concurrent iRODS connections
+`proxy_block_client_hosts`                 | no       | []                                   |         | A list of host names, IP addresses, and CIDR blocks of clients not allowed to use the Data Store
 `proxy_restart_allowed`                    | no       | false                                |         | Whether or not HAProxy can be restarted
 `proxy_rsyslog_conf`                       | no       | /etc/rsyslog.d/haproxy.conf          |         | the path to the rsyslog configuration file for HAProxy
 `proxy_stats_auth`                         | no       | null                                 |         | an object providing the authentication credentials for the HAProxy stats web interface _see below_
@@ -135,7 +136,7 @@ Variable                                   | Required | Default                 
 `proxy_irods_reconn_ports`                 | no       | 20000-20399                          |         | the range of TCP range of ports that need to be forwarded to iRODS for reconnections
 `proxy_sftp_port`                          | no       | 22                                   |         | the TCP port hosting the SFTP service whose communication will be forwarded to SFTPGo
 `proxy_sftp_backend_port`                  | no       | 2022                                 |         | the TCP port that SFTPGo opens on the hosts
-`proxy_vip_client_hosts`                   | no       | []                                   |         | a list of host names, ip addresses, or CIDR blocks of clients allowed unlimited concurrent iRODS connections.
+`proxy_vip_client_hosts`                   | no       | []                                   |         | a list of host names, IP addresses, and CIDR blocks of clients allowed unlimited concurrent iRODS connections.
 `sftp_admin_password`                      | yes      |                                      |         | The password of the SFTPGo admin user
 `sftp_admin_ui_port`                       | no       | 18023                                |         | The SFTPGo admin UI service port number
 `sftp_admin_username`                      | no       | admin                                |         | The SFTPGo admin account name

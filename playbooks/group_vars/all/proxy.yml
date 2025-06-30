@@ -1,5 +1,7 @@
 ---
-_proxy_block_client_hosts: "{{ proxy_block_client_hosts: }}"
+_proxy_allow_client_hosts: "{{ proxy_allow_client_hosts | d([]) }}"
+
+_proxy_block_client_hosts: "{{ proxy_block_client_hosts | d([]) }}"
 
 _proxy_restart_allowed: "{{ proxy_restart_allowed | d(false) }}"
 
