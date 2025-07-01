@@ -1,5 +1,10 @@
 ---
 _sftp_admin_password: "{{ sftp_admin_password | mandatory }}"
+_sftp_admin_tls_cert_chain: "{{ sftp_admin_tls_cert_chain | d(None) }}"
+_sftp_admin_tls_cert_chain_file: >-
+  {{ sftp_admin_tls_cert_chain_file | d('/etc/ssl/certs/dummy-chain.crt') }}
+_sftp_admin_tls_key: "{{ sftp_admin_tls_key | d(None) }}"
+_sftp_admin_tls_key_file: "{{ sftp_admin_tls_key_file | d('/etc/ssl/certs/dummy.key') }}"
 _sftp_admin_ui_port:  "{{ sftp_admin_ui_port | d(18023) }}"
 _sftp_admin_username: "{{ sftp_admin_username | d('admin') }}"
 

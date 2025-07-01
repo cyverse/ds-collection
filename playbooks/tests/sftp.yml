@@ -27,6 +27,8 @@
           - sftpgo_json.command.commands[0].env[5] == 'IRODS_AUTH_SCHEME=native'
           - sftpgo_json.command.commands[0].env[6] == 'IRODS_SSL_CA_CERT_PATH='
           - sftpgo_json.command.commands[0].env[7] == 'IRODS_SSL_ALGORITHM='
+          - sftpgo_json.command.commands[0].env[8] == 'IRODS_SSL_KEY_SIZE=0'
+          - sftpgo_json.command.commands[0].env[9] == 'IRODS_SSL_SALT_SIZE=0'
           - sftpgo_json.command.commands[0].env[10] == 'IRODS_SSL_HASH_ROUNDS=0'
           - sftpgo_json.command.commands[0].env[11] == 'IRODS_SHARED=/zone/home/shared'
           - sftpgo_json.common.proxy_allowed[0] == '127.0.0.1'
@@ -40,8 +42,6 @@
       ansible.builtin.debug:
         msg: TODO implement for {{ item }}
       with_items:
-        - IRODS_SSL_KEY_SIZE
-        - IRODS_SSL_SALT_SIZE
         - SFTPGO_HOME_PATH
 
     - name: Test sftpgo.json common object contents
@@ -70,6 +70,14 @@
         - name: Verify user information
           ansible.builtin.assert:
             that: "user_info.stdout is search('user_type_name: rodsadmin')"
+
+    - name: Test TLS certificate chain file
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
+    - name: Test TLS key file
+      ansible.builtin.debug:
+        msg: "TODO: implement"
 
     - name: Test sftpgo installed
       ansible.builtin.stat:

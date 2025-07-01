@@ -138,6 +138,10 @@ Variable                                   | Required | Default                 
 `proxy_sftp_backend_port`                  | no       | 2022                                 |         | the TCP port that SFTPGo opens on the hosts
 `proxy_vip_client_hosts`                   | no       | []                                   |         | a list of host names, IP addresses, and CIDR blocks of clients allowed unlimited concurrent iRODS connections.
 `sftp_admin_password`                      | yes      |                                      |         | The password of the SFTPGo admin user
+`sftp_admin_tls_cert_chain`                | no       |                                      |         | The TLS certificate chain contents for SFTPGo admin access, if not provided will not create file
+`sftp_admin_tls_cert_chain_file`           | no       | /etc/ssl/certs/dummy-chain.crt       |         | The TLS certificate chain file for SFTPGo admin access
+`sftp_admin_tls_key`                       | no       |                                      |         | The TLS key contents for SFTPGo admin access, if not provided, will not create file
+`sftp_admin_tls_key_file`                  | no       | /etc/ssl/certs/dummy.key             |         | The TLS key file for SFTPGo admin access
 `sftp_admin_ui_port`                       | no       | 18023                                |         | The SFTPGo admin UI service port number
 `sftp_admin_username`                      | no       | admin                                |         | The SFTPGo admin account name
 `sftp_irods_admin_password`                | yes      |                                      |         | The password for the rodsadmin user that creates the iRODS user for SFTP
