@@ -31,6 +31,8 @@
           - sftpgo_json.command.commands[0].env[9] == 'IRODS_SSL_SALT_SIZE=0'
           - sftpgo_json.command.commands[0].env[10] == 'IRODS_SSL_HASH_ROUNDS=0'
           - sftpgo_json.command.commands[0].env[11] == 'IRODS_SHARED=/zone/home/shared'
+          - sftpgo_json.command.commands[0].env[12] == 'SFTPGO_HOME_PATH=/sftpgo_vault/data'
+          - sftpgo_json.common.defender.blocklist|length == 0
           - sftpgo_json.common.proxy_allowed[0] == '127.0.0.1'
           - sftpgo_json.common.proxy_allowed[1] == '206.207.252.35'
           - sftpgo_json.data_provider.backups_path == '/sftpgo_vault/backups'
@@ -38,18 +40,18 @@
           - sftpgo_json.httpd.bindings[0].port == 18023
           - sftpgo_json.sftpd.bindings[0].port == 2022
 
-    - name: Test sftpgo.json command.commands.env list contents
+    - name: Test sftpgo.json common.defender object contents
       ansible.builtin.debug:
         msg: TODO implement for {{ item }}
-      with_items:
-        - SFTPGO_HOME_PATH
-
-    - name: Test sftpgo.json common object contents
-      ansible.builtin.debug:
-        msg: TODO implement for {{ item }}
-      with_items:
+      loop:
         - safelist
-        - blocklist
+
+    - name: Test sftpgo.json httpd.bindings[0] object contents
+      ansible.builtin.debug:
+        msg: "TODO: implement for {{ item }}"
+      loop:
+        - certificate_file
+        - certificate_key_file
 
 
 - name: Test sftp playbook
@@ -84,7 +86,7 @@
         path: "{{ item }}"
       register: response
       failed_when: not response.stat.exists
-      with_items:
+      loop:
         - /etc/sftpgo/sftpgo.conf
         - /etc/sftpgo/sftpgo.json
         - /usr/bin/sftpgo
@@ -127,7 +129,7 @@
         or not resp.stat.isdir
         or resp.stat.pw_name != 'sftpgo'
         or resp.stat.mode != '0700'
-      with_items:
+      loop:
         - /sftp_vault
         - /sftp_vault/data
 
