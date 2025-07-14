@@ -8,13 +8,15 @@
     - name: Test with default host and port
       block:
         - name: Test missing admin_password
-          irods_resource_hierarchy:
+          cyverse.ds.irods_resource_hierarchy:
             admin_username: rods
             zone: testing
             hierarchy:
               name: ingestRes
           register: resp
           failed_when: resp is not failed
+          tags:
+            - skip_ansible_lint
 
         - name: Test missing admin_username
           ansible.builtin.debug:
