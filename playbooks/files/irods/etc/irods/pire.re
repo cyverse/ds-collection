@@ -1,5 +1,8 @@
 # PIRE project policy
 #
+# Any data object put in the BH-PIRE or EHT project collection will be stored on
+# the BH-PIRE resource server. No other data objects may be stored there.
+#
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 

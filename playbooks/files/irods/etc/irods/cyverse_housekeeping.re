@@ -1,7 +1,27 @@
 # This is a library of rules for periodic tasks like updating quota usage data.
 #
+## STORAGE FREE SPACE TRACKING
+#
+# Once a day, the amount of available storage for each storage resource is
+# determined and cataloged.
+#
+## TRASH REMOVAL
+#
+# Once a week, all files that have been in the trash for at least 30 days are
+# permanently deleted.
+#
+## USER STORAGE USAGE TRACKING
+#
+# Once a day, the amount of data own by each user is calculated and stored in
+# the ICAT.
+#
 # © 2023 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
+
+
+#
+# SHARED RULES
+#
 
 _cyverse_housekeeping_schedulePeriodicPolicy(*RuleName, *Freq, *Desc) {
 	writeLine('serverLog', 'DS: scheduling *Desc');

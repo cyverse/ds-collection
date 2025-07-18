@@ -65,7 +65,7 @@
           then
             exit 1
           fi
-          test -n "$status"
+          test "$status" = up
       changed_when: false
       with_items: "{{ irods_storage_resources }}"
 

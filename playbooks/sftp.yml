@@ -25,6 +25,22 @@
         admin_password: "{{ _sftp_irods_admin_password }}"
         zone: "{{ _sftp_irods_zone }}"
 
+    - name: Place TLS certificate chain file
+      when: _sftp_admin_tls_cert_chain
+      ansible.builtin.copy:
+        content: "{{ _sftp_admin_tls_cert_chain }}"
+        path: "{{ _sftp_admin_tls_cert_chain_file }}"
+        mode: a+r
+      notify: Reload sftpgo
+
+    - name: Place TLS certificate key file
+      when: _sftp_admin_tls_key
+      ansible.builtin.copy:
+        content: "{{ _sftp_admin_tls_key }}"
+        path: "{{ _sftp_admin_tls_key_file }}"
+        mode: ug+r
+      notify: Reload sftpgo
+
     - name: Check if sftpgo is already installed
       ansible.builtin.stat:
         path: /usr/bin/sftpgo
@@ -309,6 +325,12 @@
       when: notifications_enabled | d(false)
       ansible.builtin.systemd:
         daemon_reload: true
+
+    - name: Reload sftpgo
+      when: notifications_enabled | d(false)
+      ansible.builtin.service:
+        name: sftpgo
+        state: reload
 
     - name: Restart sftpgo
       when: notifications_enabled | d(false)

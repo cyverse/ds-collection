@@ -29,6 +29,6 @@
         host: "{{ inventory_hostname }}"
         vault: "{{ item.vault }}"
         context: "{{ item.context }}"
-        status: down
+        status: up
         init_free_space: true
       with_items: "{{ _irods_storage_resources }}"

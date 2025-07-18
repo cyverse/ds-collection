@@ -1,6 +1,23 @@
 # Replication logic
 #
-# Replication is controlled by AVUs attached to relevant root resources.
+# All data objects belong to at least on resource. The resource a data object's
+# primary replica belongs to depends on the data object's parent collection. The
+# resource residency policy for a given collection is either assigned to the
+# collection by an AVU or to one of its ancestral collections, with the policy
+# attached to its most recent ancestor taking precedent. Depending on the policy
+# attached to the parent collection, a user may force the primary replica to be
+# stored on a specific resource. By default, the primary replica is stored on
+# CyVerseRes.
+#
+# A data object may be replicated to a second resource. This may automatically
+# happen asynchronously, or a user may manually replicate the object
+# synchronously. Whether or not replication is allowed, and whether or not it
+# happens automatically depend on policy attached to the resource where its
+# primary replica is stored. All data stored on the CyVerseRes are automatically
+# asynchronously replicated to taccRes.
+#
+# All policy controlling replica residency and replication are controlled by the
+# following AVUs.
 #
 # ipc::hosted-collection COLL (forced|preferred)
 #  When attached to a resource RESC, this AVU indicates that data objects that
