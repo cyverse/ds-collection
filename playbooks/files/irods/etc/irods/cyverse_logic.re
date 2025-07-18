@@ -1,6 +1,919 @@
 # The general Data Store rule independent of environment specific rule
 # customizations.
 #
+#
+#### AMQP MESSAGE PUBLISHING
+#
+# For a select set of user events described below, iRODS is configured to
+# publish messages defined as JSON documents to an AMQP topic exchange. The name
+# of the exchange is configured in the iRODS rule constant
+# `cyverse_AMQP_EXCHANGE`.
+#
+### Shared JSON Object Definitions
+#
+# This section describes the JSON objects that are common to multiple messages.
+#
+## AVU
+#
+# All AVUs mentioned in the AMQP messages will be an object with the following
+# form.
+#
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/avu",
+#  "title": "AVU",
+#  "description": "an iRODS AVU",
+#  "type": "object",
+#  "properties" {
+#   "attribute": {
+#    "description": "the name of the AVU",
+#    "type": "string"
+#   },
+#   "value": {
+#    "description": "the value of the AVU",
+#    "type": "string"
+#   },
+#   "unit": {
+#    "description": "the units of the value",
+#    "string"
+#   }
+#  },
+#  "required": [ "attribute", "value" ]
+# }
+#
+## User Id
+#
+# All users mentioned in the AMQP messages be be an object with the following
+# form.
+#
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/user-id",
+#  "title": "User Identity",
+#  "description": "An object uniquely identifying an iRODS user",
+#  "type": "object",
+#  "properties": {
+#   "name": {
+#    "description": "The username of the user",
+#    "type": "string"
+#   },
+#   "zone": {
+#    "description": "The authentication zone of the user",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "name", "zone" ]
+# }
+#
+## Simple AVU Change
+#
+# All AMQP messages involving a single collection or data object and a single
+# AVU will have the following form.
+#
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/avu/simple-change",
+#  "title": "Simple AVU Change",
+#  "description": "An object describing a simple AVU change event",
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the AVU event happened ",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description":
+#     "The UUID of the collection or data object receiving the AVU change",
+#    "type": "string"
+#   },
+#   "metadatum": {
+#    "description": "the AVU",
+#    "$ref": "/avu"
+#   }
+#  },
+#  "required": [ "author", "entity", "metadatum" ]
+# }
+#
+### Types of Messages Published
+#
+# Here are the definitions of all of the messages that are published to the
+# topic exchange.
+#
+## Collection Created
+#
+# Whenever a collection is created, the following message is published.
+#
+# topic: collection.add
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/collection/add",
+#  "title": "collection.add",
+#  "description": "The message published whenever a collection is created",
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the collection was created",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the newly created collection",
+#    "type": "string"
+#   },
+#   "path": {
+#    "description": "The absolute logical path to the collection",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "author", "entity", "path" ]
+# }
+#
+## Collection Moved
+#
+# Whenever a collection is moved or renamed, the following message is published.
+#
+# topic: collection.mv
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/collection/mv",
+#  "title": "collection.mv",
+#  "description":
+#   "The message published whenever a collection is moved or renamed",
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the collection was moved",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the collection",
+#    "type": "string"
+#   },
+#   "old-path": {
+#    "description": "The collection's previous absolute logical path",
+#    "type": "string"
+#   },
+#   "new-path": {
+#    "description": "The collection's current absolute logical path",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "author", "entity", "old-path", "new-path" ]
+# }
+#
+## Collection Removed
+#
+# Whenever a collection is removed, the following message is published.
+#
+# topic: collection.rm
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/collection/rm",
+#  "title": "collection.rm",
+#  "description": "The message published whenever a collection is removed",
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the collection was deleted",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the collection",
+#    "type": "string"
+#   },
+#   "path": {
+#    "description": "The collection's previous absolute logical path",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "author", "entity", "path" ]
+# }
+#
+## Collection ACL Change
+#
+# Whenever a collection's ACL is changed, i.e., a permission is added, modified,
+# or removed, or inheritance is changed, the following message is published.
+#
+# topic: collection.acl.mod
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/collection/acl/mod",
+#  "title": "collection.acl.mod",
+#  "description":
+#   "The message published whenever a collection's ACL is changed, or ACL inheritance is changed"
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the ACL was modified",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the collection",
+#    "type": "string"
+#   },
+#   "recursive": {
+#    "description":
+#     "whether or not the change was recursively applied to all member collections and data objects",
+#    "type": "boolean"
+#   },
+#   "permission": {
+#    "description":
+#     "The permission level being set, one of: 'null', 'read', 'write', or 'own'",
+#    "type": "string"
+#   },
+#   "user": {
+#    "description": "The user receiving the permission",
+#    "$ref": "/user-id"
+#   },
+#   "inherit": {
+#    "description": "inheritance is being set (true) or removed (false)",
+#    "type": "boolean"
+#   }
+#  },
+#  "required": [ "author", "entity", "recursive" ]
+# }
+#
+## Collection AVU Added
+#
+# Whenever an AVU is added to a collection, the following message is published.
+#
+# topic: collection.metadata.add
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/collection/metadata/add",
+#  "title": "collection.metadata.add",
+#  "description":
+#   "The message published whenever an AVU is added to a collection"
+#  "$ref": "/avu/simple-change"
+# }
+#
+## Collection AVU Administratively Added
+#
+# Whenever an AVU is added to a collection administratively, the following
+# message is published.
+#
+# topic: collection.metadata.adda
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/collection/metadata/adda",
+#  "title": "collection.metadata.adda",
+#  "description":
+#   "The message published whenever an AVU is administratively added to a collection"
+#  "$ref": "/avu/simple-change"
+# }
+#
+## Collection AVU Copied
+#
+# Whenever an AVU is copied to a collection, the following message is published.
+#
+# topic: collection.metadata.cp
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/collection/metadata/cp",
+#  "title": "collection.metadata.cp",
+#  "description":
+#   "The message published whenever an AVU is copied to a collection".
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the AVU were copied",
+#    "$ref": "/user-id"
+#   },
+#   "source": {
+#    "description": "The name or path of the source providing the AVUs",
+#    "type": "string"
+#   },
+#   "source-type": {
+#    "description":
+#     "the type of the source: collection, data-object, resource, or user",
+#    "type": "string"
+#   },
+#   "destination": {
+#    "description": "The logical path to the collection receiving the AVUs",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "author", "source", "source-type", "destination" ]
+# }
+#
+## Collection AVU Modified
+#
+# Whenever a collection's AVU is modified, the following message is published.
+#
+# topic: collection.metadata.mod
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/collection/metadata/mod",
+#  "title": "collection.metadata.mod",
+#  "description":
+#   "The message published whenever a collection's AVU is modified".
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the AVU was modified",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the collection",
+#    "type": "string"
+#   },
+#   "old-metadatum": {
+#    "description": "the AVU before it was modified",
+#    "$ref": "/avu"
+#   },
+#   "new-metadatum": {
+#    "description": "the AVU after it was modified",
+#    "$ref": "/avu"
+#   }
+#  },
+#  "required": [ "author", "entity", "old-metadatum", "new-metadatum" ]
+# }
+#
+## Collection AVU Removed
+#
+# Whenever a collection's AVU is removed, the following message is published.
+#
+# topic: collection.metadata.rm
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/collection/metadata/rm",
+#  "title": "collection.metadata.rm",
+#  "description":
+#   "The message published whenever a collection's AVU is removed"
+#  "$ref": "/avu/simple-change"
+# }
+#
+## Collection AVUs Removed by Wildcard
+#
+# Whenever a collection's AVUs are removed by wildcard, the following message is
+# published.
+#
+# topic: collection.metadata.rmw
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/collection/metadata/rmw",
+#  "title": "collection.metadata.rmw",
+#  "description":
+#   "The message published whenever a collection's AVUs are removed by wildcard"
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the AVUs were removed",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the collection",
+#    "type": "string"
+#   },
+#   "attribute-pattern": {
+#    "description": "the wildcard pattern that matched the attributes",
+#    "type": "string"
+#   },
+#   "value-pattern": {
+#    "description": "the wildcard pattern that matched the values",
+#    "type": "string"
+#   },
+#   "unit-pattern": {
+#    "description": "the wildcard pattern that matched the units",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "author", "entity" ]
+# }
+#
+## Collection AVU Set
+#
+# Whenever an AVU is set on a collection, the following message is published.
+#
+# topic: collection.metadata.adda
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/collection/metadata/set",
+#  "title": "collection.metadata.set",
+#  "description":
+#   "The message published whenever an AVU is set on a collection"
+#  "$ref": "/avu/simple-change"
+# }
+#
+## Data Object Created
+#
+# Whenever a data object is created, the following message is published.
+#
+# topic: data-object.add
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/add",
+#  "title": "data-object.add",
+#  "description": "The message published whenever a data object is created",
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the data object was created",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the newly created collection",
+#    "type": "string"
+#   },
+#   "path": {
+#    "description": "The absolute logical path to the data object",
+#    "type": "string"
+#   },
+#   "creator": {
+#    "description": "The user assigned as the owner of the data object",
+#    "$ref": "/user-id"
+#   },
+#   "size": {
+#    "description": "The size in bytes of the data object",
+#    "type", "integer"
+#   },
+#   "type": {
+#    "description": "The file type of the data object",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "author", "entity", "path", "size" ]
+# }
+#
+## Data Object Moved
+#
+# Whenever a data object is moved or renamed, the following message is
+# published.
+#
+# topic: data-object.mv
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/mv",
+#  "title": "data-object.mv",
+#  "description":
+#   "The message published whenever a data object is moved or renamed",
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the data object was moved",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the data object",
+#    "type": "string"
+#   },
+#   "old-path": {
+#    "description": "The data object's previous absolute logical path",
+#    "type": "string"
+#   },
+#   "new-path": {
+#    "description": "The data object's current absolute logical path",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "author", "entity", "old-path", "new-path" ]
+# }
+#
+## Data Object Modified
+#
+# Whenever a data object is modified or overwritten (not its AVU metadata), the
+# following message is published.
+#
+# topic: data-object.mod
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/mod",
+#  "title": "data-object.mod",
+#  "description": "The message published whenever a data object is modified",
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the data object was modified",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the data object",
+#    "type": "string"
+#   },
+#   "creator": {
+#    "description": "The user assigned as the owner of the data object",
+#    "$ref": "/user-id"
+#   },
+#   "size": {
+#    "description": "The size in bytes of the data object",
+#    "type", "integer"
+#   },
+#   "type": {
+#    "description": "The file type of the data object",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "author", "entity", "path", "size" ]
+# }
+#
+## Data Object Opened
+#
+# Whenever a data object is opened for either reading or writing, the following
+# message is published.
+#
+# topic: data-object.open
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/open",
+#  "title": "data-object.open",
+#  "description": "The message published whenever a data object is opened",
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the data object was modified",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the data object",
+#    "type": "string"
+#   },
+#   "path": {
+#    "description": "The absolute logical path to the data object",
+#    "type": "string"
+#   },
+#   "size": {
+#    "description": "The size in bytes of the data object",
+#    "type", "integer"
+#   },
+#   "timestamp": {
+#    "description": "The time the data object was opened in the form YYYY-MM-DD.hh:mm:ss",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "author", "entity", "path", "size", "timestamp" ]
+# }
+#
+## Data Object Removed
+#
+# Whenever a data object is removed, the following message is published.
+#
+# topic: data-object.rm
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/rm",
+#  "title": "data-object.rm",
+#  "description": "The message published whenever a data object is removed",
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the data object was deleted",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the data object",
+#    "type": "string"
+#   },
+#   "path": {
+#    "description": "The data object's previous absolute logical path",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "author", "entity", "path" ]
+# }
+#
+## Data Object ACL Change
+#
+# Whenever a data object's ACL is changed, i.e., a permission is added,
+# modified, or removed, the following message is published.
+#
+# topic: data-object.acl.mod
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/acl/mod",
+#  "title": "data-object.acl.mod",
+#  "description":
+#   "The message published whenever a data object's ACL is changed"
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the ACL was modified",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the data object",
+#    "type": "string"
+#   },
+#   "permission": {
+#    "description":
+#     "The permission level being set, one of: 'null', 'read', 'write', or 'own'",
+#    "type": "string"
+#   },
+#   "user": {
+#    "description": "The user receiving the permission",
+#    "$ref": "/user-id"
+#   }
+#  },
+#  "required": [ "author", "entity", "permission", "user" ]
+# }
+#
+## Data Object AVU Added
+#
+# Whenever an AVU is added to a data object, the following message is published.
+#
+# topic: data-object.metadata.add
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/metadata/add",
+#  "title": "data-object.metadata.add",
+#  "description":
+#   "The message published whenever an AVU is added to a data object"
+#  "$ref": "/avu/simple-change"
+# }
+#
+## Data Object AVU Administratively Added
+#
+# Whenever an AVU is added to a data object administratively, the following
+# message is published.
+#
+# topic: data-object.metadata.adda
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/metadata/adda",
+#  "title": "data-object.metadata.adda",
+#  "description":
+#   "The message published whenever an AVU is administratively added to a data object"
+#  "$ref": "/avu/simple-change"
+# }
+#
+## Data Object AVU Added by Wildcard
+#
+# Whenever an AVU is added to multiple data objects whose names match a wildcard
+# pattern, the following message is published.
+#
+# topic: data-object.metadata.addw
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/metadata/addw",
+#  "title": "data-object.metadata.addw",
+#  "description":
+#   "The message published when an AVU is added to one or more iRODS data objects using a wildcard matching their names",
+#  "type": object,
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the AVU was added",
+#    "$ref": "/user-id"
+#   },
+#   "pattern": {
+#    "description":
+#     "The PostgreSQL wildcard pattern used to match the names of the data objects receiving the AVU",
+#    "type": "string"
+#   },
+#   "metadatum: {
+#    "description": "The AVU",
+#    "$ref": "/avu"
+#   }
+#  },
+#  "required": [ "author", "pattern", "metadatum" ]
+# }
+#
+## Data Object AVU Copied
+#
+# Whenever an AVU is copied to a data object, the following message is
+# published.
+#
+# topic: data object.metadata.cp
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/metadata/cp",
+#  "title": "data-object.metadata.cp",
+#  "description":
+#   "The message published whenever an AVU is copied to a data-object".
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the AVUs were copied",
+#    "$ref": "/user-id"
+#   },
+#   "source": {
+#    "description": "The name or path of the source providing the AVUs",
+#    "type": "string"
+#   },
+#   "source-type": {
+#    "description":
+#     "the type of the source: collection, data-object, resource, or user",
+#    "type": "string"
+#   },
+#   "destination": {
+#    "description": "The logical path to the data object receiving the AVUs",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "author", "source", "source-type", "destination" ]
+# }
+#
+## Data Object AVU Modified
+#
+# Whenever a data object's AVU is modified, the following message is published.
+#
+# topic: data-object.metadata.mod
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/metadata/mod",
+#  "title": "data-object.metadata.mod",
+#  "description":
+#   "The message published whenever a data object's AVU is modified".
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the AVU was modified",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the data object",
+#    "type": "string"
+#   },
+#   "old-metadatum": {
+#    "description": "the AVU before it was modified",
+#    "$ref": "/avu"
+#   },
+#   "new-metadatum": {
+#    "description": "the AVU after it was modified",
+#    "$ref": "/avu"
+#   }
+#  },
+#  "required": [ "author", "entity", "old-metadatum", "new-metadatum" ]
+# }
+#
+## Data Object AVU Removed
+#
+# Whenever a data object's AVU is removed, the following message is published.
+#
+# topic: data-object.metadata.rm
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/metadata/rm",
+#  "title": "data-object.metadata.rm",
+#  "description":
+#   "The message published whenever a data object's AVU is removed"
+#  "$ref": "/avu/simple-change"
+# }
+#
+## Data Object AVUs Removed by Wildcard
+#
+# Whenever a data object's AVUs are removed by wildcard, the following message
+# is published.
+#
+# topic: data-object.metadata.rmw
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/metadata/rmw",
+#  "title": "data-object.metadata.rmw",
+#  "description":
+#   "The message published whenever a data-object's AVUs are removed by wildcard"
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the AVUs were removed",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the data object",
+#    "type": "string"
+#   },
+#   "attribute-pattern": {
+#    "description": "the wildcard pattern that matched the attributes",
+#    "type": "string"
+#   },
+#   "value-pattern": {
+#    "description": "the wildcard pattern that matched the values",
+#    "type": "string"
+#   },
+#   "unit-pattern": {
+#    "description": "the wildcard pattern that matched the units",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "author", "entity" ]
+# }
+#
+## Data Object AVU Set
+#
+# Whenever an AVU is set on a data object, the following message is published.
+#
+# topic: data object.metadata.adda
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/metadata/set",
+#  "title": "data-object.metadata.set",
+#  "description":
+#   "The message published whenever an AVU is set on a data object"
+#  "$ref": "/avu/simple-change"
+# }
+#
+## Data Object System Metadata Modified
+#
+# Whenever a data object's system metadata is modified, the following message is
+# published.
+#
+# topic: data object.sys-metadata.mod
+# body:
+# {
+#  "$schema": "https://json-schema.org/draft/2020-12/schema",
+#  "$id": "/data-object/sys-metadata/mod",
+#  "title": "data-object.sys-metadata.mod",
+#  "description":
+#   "The message published whenever a data object's system metadata is modified"
+#  "type": "object",
+#  "properties": {
+#   "author": {
+#    "description":
+#     "The user authenticated the session where the metadata is modified",
+#    "$ref": "/user-id"
+#   },
+#   "entity": {
+#    "description": "The UUID of the data object",
+#    "type": "string"
+#   }
+#  },
+#  "required": [ "author", "entity" ]
+# }
+#
+#
+#### CHECKSUM
+#
+# Every data object receives an MD5 checksum on upload. This happens
+# asynchronously.
+#
+#
+#### NUMBER OF RULE ENGINE PROCESSES
+#
+# The number of rule engine processes is configured using the rule base constant
+# `cyverse_MAX_NUM_RE_PROCS`.
+#
+#
+#### PROTECTED AVUS
+#
+# Any AVU attribute that begins with `ipc` can only be modified by rodsadmin
+# users.
+#
+#
+#### RESOURCE SERVER STORAGE TRACKING
+#
+# Available storage on a unixfilesystem resource is updated in the following
+# cases.
+#
+#    * whenever a replica is added to it using parallel transfer
+#    * whenever a replica is created by a copy operation
+#
+#
+#### RODSADMIN GROUP
+#
+# The `rodsadmin` group receives own permission on all collections and data
+# objects.
+#
+#
+#### TLS POLICY
+#
+# Connections are not allowed to use TLS.
+#
+#
+#### UUID
+#
+# Whenever a collection or data object is created, it receives a type 1 UUID.
+#
+#
 # © 2021 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
@@ -213,7 +1126,7 @@ _cyverse_logic_unregisterAction(*EntityId, *Action) {
 
 
 #
-# MESSAGE PUBLISHING
+# AMQP MESSAGE PUBLISHING
 #
 
 _cyverse_logic_COLL_MSG_TYPE = 'collection'
@@ -1196,12 +2109,6 @@ cyverse_logic_acPostProcForObjRename(*SrcEntity, *DestEntity, *ClientUsername, *
 				*type, *uuid, *SrcEntity, *DestEntity, *ClientUsername, *ClientZone );
 		}
 	}
-}
-
-# Use default threading setting
-#
-cyverse_logic_acSetNumThreads {
-	msiSetNumThreads('default', 'default', 'default');
 }
 
 # Whenever a large file is uploaded, recheck the free space on the storage

@@ -12,13 +12,10 @@ from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
 import unittest
 
+from irods.exception import UserDoesNotExist
+
 import test_rules
 from test_rules import IrodsTestCase, IrodsType
-
-from irods.exception import USER_FILE_DOES_NOT_EXIST, UserDoesNotExist
-
-
-_TEST_FILE = '/testing/home/rods/tmp'
 
 
 def setUpModule():  # pylint: disable=invalid-name
@@ -33,6 +30,15 @@ def tearDownModule():  # pylint: disable=invalid-name
 
 class CyVerseCoreTestCase(IrodsTestCase):
     """Base class for CyVerse core tests."""
+
+    def __init__(self, method_name: str):
+        super().__init__(method_name)
+        self._test_file = '/testing/home/rods/tmp'
+
+    @property
+    def artifact_file(self) -> str:
+        """A file name to be used for testing"""
+        return self._test_file
 
     def setUp(self):
         """Set up the test case."""
@@ -127,7 +133,7 @@ class PepApiCollCreatePostTest(CyVerseCoreTestCase):
     """Test pep_api_coll_create_post"""
 
     def __init__(self, method_name: str):
-        super(CyVerseCoreTestCase, self).__init__(method_name)
+        super().__init__(method_name)
         self._test_coll = '/testing/home/rods/test_coll'
 
     def setUp(self):
@@ -142,10 +148,7 @@ class PepApiCollCreatePostTest(CyVerseCoreTestCase):
         super().tearDown()
 
     def _ensure_test_coll_absent(self):
-        try:
-            self.irods.collections.remove(self._test_coll, force=True)
-        except USER_FILE_DOES_NOT_EXIST:
-            pass
+        self.ensure_coll_absent(self._test_coll)
 
     def test_cyverseencryption_called(self):
         """Test that the cyverse_encryption PEP is called."""
@@ -161,21 +164,21 @@ class PepApiDataObjCopyPreTest(CyVerseCoreTestCase):
     """Test pep_api_data_obj_copy_pre"""
 
     def __init__(self, method_name: str):
-        super(CyVerseCoreTestCase, self).__init__(method_name)
+        super().__init__(method_name)
         self._test_copy = '/testing/home/rods/test_copy'
 
     def setUp(self):
         super().setUp()
-        self.irods.data_objects.create(_TEST_FILE)
+        self.irods.data_objects.create(self.artifact_file)
 
     def tearDown(self):
         self.ensure_obj_absent(self._test_copy)
-        self.ensure_obj_absent(_TEST_FILE)
+        self.ensure_obj_absent(self.artifact_file)
         super().tearDown()
 
     def test_cyverseencryption_called(self):
         """Test that the cyverse_encryption version of the rule is called"""
-        self.irods.data_objects.copy(_TEST_FILE, self._test_copy)
+        self.irods.data_objects.copy(self.artifact_file, self._test_copy)
         if not self.verify_msg_logged('cyverse_encryption_api_data_obj_copy_pre'):
             self.fail('cyverse_encryption_api_data_obj_copy_pre not called')
 
@@ -186,11 +189,11 @@ class PepApiDataObjCreatePreTest(CyVerseCoreTestCase):
     def setUp(self):
         """Add stubbed out version of cyverse_encryption.re to the server."""
         super().setUp()
-        self.irods.data_objects.create(_TEST_FILE)
+        self.irods.data_objects.create(self.artifact_file)
 
     def tearDown(self):
         """Remove stubbed out version of cyverse_encryption.re from the server."""
-        self.ensure_obj_absent(_TEST_FILE)
+        self.ensure_obj_absent(self.artifact_file)
         super().tearDown()
 
     def test_cyverseencryption_called(self):
@@ -203,7 +206,7 @@ class PepApiDataObjCreateAndStatPreTest(CyVerseCoreTestCase):
     """
     Test pep_api_data_obj_create_and_stat_pre.
 
-    NOTE: As of iRODS 4.2.8, this PEP is not currently called by any iRODS client.
+    NOTE: As of iRODS 4.3.1, this PEP is not currently called by any iRODS client.
     """
 
     def test_cyverseencryption_called(self):
@@ -220,18 +223,33 @@ class PepApiDataObjOpenPreTest(CyVerseCoreTestCase):
     def setUp(self):
         """Add stubbed out version of cyverse_encryption.re to the server."""
         super().setUp()
-        self.irods.data_objects.create(_TEST_FILE)
+        self.irods.data_objects.create(self.artifact_file)
 
     def tearDown(self):
         """Remove stubbed out version of cyverse_encryption.re from the server."""
-        self.ensure_obj_absent(_TEST_FILE)
+        self.ensure_obj_absent(self.artifact_file)
         super().tearDown()
 
     def test_cyverseencryption_called(self):
         """Test that the rule is called."""
-        with self.irods.data_objects.open(_TEST_FILE, mode='r', create=False):
+        with self.irods.data_objects.open(self.artifact_file, mode='r', create=False):
             if not self.verify_msg_logged('cyverse_encryption_api_data_obj_create_pre'):
                 self.fail('ipcEncryption_api_data_obj_open_pre not called')
+
+
+class PepApiDataObjOpenAndStatPreTest(CyVerseCoreTestCase):
+    """
+    Test pep_api_data_obj_open_and_stat_pre"
+
+    NOTE: As of iRODS 4.3.1, this PEP is not currently called by any iRODS client.
+    """
+
+    def test_cyverseencryption_called(self):
+        """Test that cyverse_encryption's version of this rule"""
+        self.exec_rule(
+            self.mk_rule("pep_api_data_obj_open_and_stat_pre('', '', '', '')"), IrodsType.NONE)
+        if not self.verify_msg_logged('cyverse_encryption_api_data_obj_open_and_stat_pre'):
+            self.fail('cyverse_encryption_api_data_obj_open_and_stat_pre not called')
 
 
 class PepApiDataObjPutPreTest(CyVerseCoreTestCase):
@@ -243,8 +261,11 @@ class PepApiDataObjPutPreTest(CyVerseCoreTestCase):
         self._file = NamedTemporaryFile(delete=False)
         self._file.close()
         try:
+            cmd = f"""
+                echo '{test_rules.IRODS_PASSWORD}' | iput '{self._file.name}' '{self.artifact_file}'
+            """
             subprocess.run(
-                f"echo '{test_rules.IRODS_PASSWORD}' | iput '{self._file.name}' '{_TEST_FILE}'",
+                cmd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 shell=True,
@@ -255,7 +276,7 @@ class PepApiDataObjPutPreTest(CyVerseCoreTestCase):
 
     def tearDown(self):
         """Remove stubbed out version of cyverse_encryption.re from the server."""
-        self.ensure_obj_absent(_TEST_FILE)
+        self.ensure_obj_absent(self.artifact_file)
         os.unlink(self._file.name)
         super().tearDown()
 
@@ -263,6 +284,46 @@ class PepApiDataObjPutPreTest(CyVerseCoreTestCase):
         """Test that the rule is called."""
         if not self.verify_msg_logged('cyverse_encryption_api_data_obj_put_pre'):
             self.fail('cyverse_encryption_api_data_obj_put_pre not called')
+
+
+class PepApiDataObjRename(CyVerseCoreTestCase):
+    """Test pep_api_data_obj_rename_pre"""
+
+    def __init__(self, method_name: str):
+        super().__init__(method_name)
+        self._test_rename = '/testing/home/rods/test_rename'
+
+    def setUp(self):
+        super().setUp()
+        self.irods.data_objects.create(self.artifact_file)
+        self.irods.data_objects.move(self.artifact_file, self._test_rename)
+
+    def tearDown(self):
+        self.ensure_obj_absent(self._test_rename)
+        super().tearDown()
+
+    def test_cyverseencryption_post_called(self):
+        """Test that the cyverse_encryption logic attached to this post PEP is called"""
+        if not self.verify_msg_logged("cyverse_encryption_api_data_obj_rename_post"):
+            self.fail('cyverse_encryption_api_data_obj_rename_post not called')
+
+    def test_cyverseencryption_pre_called(self):
+        """Test that the cyverse_encryption logic attached to this pre PEP is called"""
+        if not self.verify_msg_logged("cyverse_encryption_api_data_obj_rename_pre"):
+            self.fail('cyverse_encryption_api_data_obj_rename_pre not called')
+
+    @unittest.skip("not implemented")
+    def test_ipctrash_called(self):
+        """Test that the ipc-trash logic attached to these PEPs is called"""
+
+
+@test_rules.unimplemented
+class PepApiStructFileExtAndRegPre(CyVerseCoreTestCase):
+    """Test pep_api_struct_file_ext_and_reg_pre
+
+    XXX: This PEP is broken because of bug
+    https://github.com/irods/irods/issues/7413. It is fixed in iRODS 4.3.
+    """
 
 
 class CyVerseCoreTest(CyVerseCoreTestCase):
@@ -353,20 +414,8 @@ class CyVerseCoreTest(CyVerseCoreTestCase):
         """Test pep_api_data_obj_create_post"""
 
     @unittest.skip("not implemented")
-    def test_pepapidataobjopenandstatpre(self):
-        """Test pep_api_data_obj_open_and_stat_pre"""
-
-    @unittest.skip("not implemented")
     def test_pepapidataobjputpost(self):
         """Test pep_api_data_obj_put_post"""
-
-    @unittest.skip("not implemented")
-    def test_pepapidataobjrenamepre(self):
-        """Test pep_api_data_obj_rename_pre"""
-
-    @unittest.skip("not implemented")
-    def test_pepapidataobjrenamepost(self):
-        """Test pep_api_data_obj_rename_post"""
 
     @unittest.skip("not implemented")
     def test_pepapiadataobjunlinkpre(self):
@@ -387,10 +436,6 @@ class CyVerseCoreTest(CyVerseCoreTestCase):
     @unittest.skip("not implemented")
     def test_pepapirmcollexcept(self):
         """Test pep_api_rm_coll_except"""
-
-    @unittest.skip("not implemented")
-    def test_pepapistructfileextandregpre(self):
-        """Test pep_api_struct_file_ext_and_reg_pre"""
 
     @unittest.skip("not implemented")
     def test_getobjpath(self):

@@ -284,13 +284,6 @@ class Resource:
         """this is the root's type of resource."""
         return self._type
 
-    def children_provided(self) -> bool:
-        """
-        Indicates if the resource definitions provides information about child
-        resources.
-        """
-        return self.children is not None
-
     def has_definition(self) -> bool:
         """
         Indicates whether or not a definition of the resource has been
@@ -343,7 +336,7 @@ class Irods(ABC):
         """
 
     @abstractmethod
-    def create_resc(self, name: str, resc_type: str, context: str) -> None:
+    def create_resc(self, name: str, resc_type: str, context: Optional[str]) -> None:
         """
         Creates a coordinating resource.
 
@@ -402,8 +395,11 @@ class _IrodsImpl(Irods):
         self._session.resources.add_child(parent_name, child_name)
 
     def create_resc(self, name, resc_type, context):
-        self._session.resources.create(name, resc_type, context=context)
-        self._session.resources.modify(name, 'status', 'down')
+        if context:
+            self._session.resources.create(name, resc_type, context=context)
+        else:
+            self._session.resources.create(name, resc_type)
+        self._session.resources.modify(name, 'status', 'up')
 
     def get_resc(self, name):
         return self._session.resources.get(name)
@@ -468,22 +464,22 @@ class RescHierMgr:
     def _create_coord_resc(self, resc_state: Resource) -> None:
         if self._irods.has_resc(resc_state.name):
             resc = self._irods.get_resc(resc_state.name)
-            if resc_state.resc_type != resc.type:
+            if resc_state.resc_type != resc.type:  # type: ignore
                 raise ResourceHierarchyException(
-                    f"resource {resc_state.name} exists with type {resc.type} !="
+                    f"resource {resc_state.name} exists with type {resc.type} !="  # type: ignore
                     f" {resc_state.resc_type}")
-            if resc_state.context != resc.context:
+            if resc_state.context != resc.context:  # type: ignore
                 raise ResourceHierarchyException(
-                    f"resource {resc_state.name} exists with context {resc.context} !="
+                    f"resource {resc_state.name} exists with context {resc.context} !="  # type: ignore  # noqa: E501
                     f"{resc_state.context}")
-        else:
+        elif resc_state.resc_type:
             self._irods.create_resc(resc_state.name, resc_state.resc_type, resc_state.context)
             self._made_change = True
 
     def _create_hier(self, root_resc_state: Resource) -> None:
         if root_resc_state.has_definition():
             self._create_coord_resc(root_resc_state)
-            if self._resc_state.children_provided():
+            if self._resc_state.children:
                 for child in self._resc_state.children:
                     self._create_hier(child)
                     self._add_child(root_resc_state, child)
@@ -494,7 +490,7 @@ def main() -> None:
     ansible = AnsibleModule(argument_spec=_ARG_SPEC)
     result = {'changed': False}
     try:
-        request = Request(ansible.params)
+        request = Request(ansible.params)  # type: ignore
         with _IrodsImpl(request.irods_conn_info) as irods:
             mgr = RescHierMgr(irods, request.hierarchy)
             mgr.update_irods()
