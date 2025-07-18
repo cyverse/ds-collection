@@ -44,9 +44,11 @@ class CyverseCoreTestCase(IrodsTestCase):
         """Set up the test case."""
         super().setUp()
         self.update_rulebase('cyverse_encryption.re', 'mocks/cyverse_encryption.re')
+        self.update_rulebase('ipc-trash.re', 'mocks/ipc-trash.re')
 
     def tearDown(self):
         """Tear down the test case."""
+        self.update_rulebase('ipc-trash.re', '../../files/irods/etc/irods/ipc-trash.re')
         self.update_rulebase(
             'cyverse_encryption.re', '../../files/irods/etc/irods/cyverse_encryption.re')
         super().tearDown()
@@ -155,9 +157,10 @@ class PepApiCollCreatePostTest(CyverseCoreTestCase):
         if not self.verify_msg_logged('cyverse_encryption_api_coll_create_post'):
             self.fail('cyverse_encryption_api_coll_create_post not called')
 
-    @unittest.skip("not implemented")
     def test_ipctrash_called(self):
         """Test that the ipc-trash PEP is called."""
+        if not self.verify_msg_logged('ipcTrash_api_coll_create_post'):
+            self.fail('ipcTrash_api_coll_create_post not called')
 
 
 class PepApiDataObjCopyPreTest(CyverseCoreTestCase):
@@ -313,8 +316,12 @@ class PepApiDataObjRename(CyverseCoreTestCase):
             self.fail('cyverse_encryption_api_data_obj_rename_pre not called')
 
     @unittest.skip("not implemented")
-    def test_ipctrash_called(self):
-        """Test that the ipc-trash logic attached to these PEPs is called"""
+    def test_ipctrash_post_called(self):
+        """Test that the ipc-trash logic attached to the post PEP is called"""
+
+    @unittest.skip("not implemented")
+    def test_ipctrash_pre_called(self):
+        """Test that the ipc-trash logic attached to the pre PEP is called"""
 
 
 @test_rules.unimplemented
