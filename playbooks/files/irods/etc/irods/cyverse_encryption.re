@@ -109,8 +109,9 @@ cyverse_encryption_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
 #  Comm        (`KeyValuePair_PI`) user connection and auth information
 #  DataObjInp  (`KeyValuePair_PI`) information related to the created data
 #              object
+#  OpenStat    unknown
 #
-cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp) {
+cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
     _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjInp.obj_path);
 }
 
@@ -122,6 +123,19 @@ cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjIn
 #  DataObjInp  (`KeyValuePair_PI`) information related to the data object
 #
 cyverse_encryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
+    _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjInp.obj_path);
+}
+
+
+# This verifies that an object is encrypted if it is being opened for
+# modification in a collection that requires encryption.
+#
+#  Instance    (string) unknown
+#  Comm        (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp  (`KeyValuePair_PI`) information related to the data object
+#  OpenStat    unknown
+#
+cyverse_encryption_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
     _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjInp.obj_path);
 }
 
@@ -146,7 +160,7 @@ cyverse_encryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp) {
 #  DataObjCopyInp  (`KeyValuePair_PI`) information related to copy operation
 #  TransStat       unknown
 #
-cyverse_encryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp) {
+cyverse_encryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
     _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjCopyInp.dst_obj_path);
 }
 

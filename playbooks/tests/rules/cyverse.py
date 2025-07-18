@@ -154,6 +154,28 @@ class CyverseRmprefix(CyverseTestCase):
             IrodsVal.string('rig'))
 
 
+class CyverseKeyvalpairMsTTests(CyverseTestCase):
+    """Tests of `KEYVALPAIR_MS_T` functions"""
+
+    @unittest.skip("not implemented")
+    def test_cyverse_haskey(self):
+        """test cyverse_hasKey"""
+
+    @unittest.skip("not implemented")
+    def test_cyverse_getvalue(self):
+        """test cyverse_getValue"""
+
+
+@test_rules.unimplemented
+class CyverseFileModeTests(CyverseTestCase):
+    """Tests of file mode logic"""
+
+
+@test_rules.unimplemented
+class CyverseFileOpenFlagTests(CyverseTestCase):
+    """Tests of file open flag logic"""
+
+
 class CyverseIscoll(CyverseTestCase):
     """Test cyverse_isColl"""
 

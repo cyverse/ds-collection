@@ -8,15 +8,53 @@
 
 import unittest
 
+import test_rules
 from test_rules import IrodsTestCase
+
+
+@test_rules.unimplemented
+class TestList(IrodsTestCase):
+    """Tests of the private list rule logic"""
 
 
 class TestCyVerseLogic(IrodsTestCase):
     """Test cyverse_logic.re"""
 
-    @unittest.skip("Not implemented")
-    def test_private(self):
-        """Test the private rule logic"""
+    @unittest.skip("not implemented")
+    def test_icat_ids(self):
+        """Test the private ICAT Ids rule logic"""
+
+    @unittest.skip("not implemented")
+    def test_user_info(self):
+        """Test private user info rule logic"""
+
+    @unittest.skip("not implemented")
+    def test_avus(self):
+        """Test private AVU rule logic"""
+
+    @unittest.skip("not implemented")
+    def test_checksum(self):
+        """Test private checksum rule logic"""
+
+    @unittest.skip("not implemented")
+    def test_uuids(self):
+        """Test private UUID rule logic"""
+
+    @unittest.skip("not implemented")
+    def test_action_tracking(self):
+        """Test private action tracking rule logic"""
+
+    @unittest.skip("not implemented")
+    def test_message_publishing(self):
+        """Test private message publishing rule logic"""
+
+    @unittest.skip("not implemented")
+    def test_protected_avus(self):
+        """Test private protected AVUs rule logic"""
+
+    @unittest.skip("not implemented")
+    def test_rodsadmin_group_permissions(self):
+        """Test private rodsadmin group permissions rule logic"""
 
     @unittest.skip("Not implemented")
     def test_public(self):

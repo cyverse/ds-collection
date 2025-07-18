@@ -31,7 +31,7 @@ def tearDownModule():  # pylint: disable=invalid-name
     test_rules.tearDownModule()
 
 
-class CyVerseCoreTestCase(IrodsTestCase):
+class CyverseCoreTestCase(IrodsTestCase):
     """Base class for CyVerse core tests."""
 
     def setUp(self):
@@ -53,7 +53,7 @@ class CyVerseCoreTestCase(IrodsTestCase):
         return False
 
 
-class AccreateuserzonecollectionsGroup(CyVerseCoreTestCase):
+class AccreateuserzonecollectionsGroup(CyverseCoreTestCase):
     """Test acCreateUserZoneCollections group creation"""
 
     def setUp(self):
@@ -78,7 +78,7 @@ class AccreateuserzonecollectionsGroup(CyVerseCoreTestCase):
             self.fail('trash collection created for group')
 
 
-class AccreateuserzonecollectionsUser(CyVerseCoreTestCase):
+class AccreateuserzonecollectionsUser(CyverseCoreTestCase):
     """Test acCreateUserZoneCollections user creation"""
 
     def setUp(self):
@@ -107,7 +107,7 @@ class AccreateuserzonecollectionsUser(CyVerseCoreTestCase):
             self.fail(f'trash collection {trash} created for user {self._user_name}')
 
 
-class Acsetreservernumproc(CyVerseCoreTestCase):
+class Acsetreservernumproc(CyverseCoreTestCase):
     """Test acSetReServerNumProc"""
 
     def setUp(self):
@@ -123,11 +123,11 @@ class Acsetreservernumproc(CyVerseCoreTestCase):
         self.verify_msg_logged('msiSetReServerNumProc(4)')
 
 
-class PepApiCollCreatePostTest(CyVerseCoreTestCase):
+class PepApiCollCreatePostTest(CyverseCoreTestCase):
     """Test pep_api_coll_create_post"""
 
     def __init__(self, method_name: str):
-        super(CyVerseCoreTestCase, self).__init__(method_name)
+        super(CyverseCoreTestCase, self).__init__(method_name)
         self._test_coll = '/testing/home/rods/test_coll'
 
     def setUp(self):
@@ -157,11 +157,11 @@ class PepApiCollCreatePostTest(CyVerseCoreTestCase):
         """Test that the ipc-trash PEP is called."""
 
 
-class PepApiDataObjCopyPreTest(CyVerseCoreTestCase):
+class PepApiDataObjCopyPreTest(CyverseCoreTestCase):
     """Test pep_api_data_obj_copy_pre"""
 
     def __init__(self, method_name: str):
-        super(CyVerseCoreTestCase, self).__init__(method_name)
+        super(CyverseCoreTestCase, self).__init__(method_name)
         self._test_copy = '/testing/home/rods/test_copy'
 
     def setUp(self):
@@ -180,7 +180,7 @@ class PepApiDataObjCopyPreTest(CyVerseCoreTestCase):
             self.fail('cyverse_encryption_api_data_obj_copy_pre not called')
 
 
-class PepApiDataObjCreatePreTest(CyVerseCoreTestCase):
+class PepApiDataObjCreatePreTest(CyverseCoreTestCase):
     """Test pep_api_data_obj_create_pre"""
 
     def setUp(self):
@@ -199,7 +199,7 @@ class PepApiDataObjCreatePreTest(CyVerseCoreTestCase):
             self.fail('cyverse_encryption_api_data_obj_create_pre not called')
 
 
-class PepApiDataObjCreateAndStatPreTest(CyVerseCoreTestCase):
+class PepApiDataObjCreateAndStatPreTest(CyverseCoreTestCase):
     """
     Test pep_api_data_obj_create_and_stat_pre.
 
@@ -214,7 +214,7 @@ class PepApiDataObjCreateAndStatPreTest(CyVerseCoreTestCase):
             self.fail('cyverse_encryption_api_data_obj_create_and_stat_pre not called')
 
 
-class PepApiDataObjOpenPreTest(CyVerseCoreTestCase):
+class PepApiDataObjOpenPreTest(CyverseCoreTestCase):
     """Test pep_api_data_obj_open_pre"""
 
     def setUp(self):
@@ -234,7 +234,7 @@ class PepApiDataObjOpenPreTest(CyVerseCoreTestCase):
                 self.fail('ipcEncryption_api_data_obj_open_pre not called')
 
 
-class PepApiDataObjPutPreTest(CyVerseCoreTestCase):
+class PepApiDataObjPutPreTest(CyverseCoreTestCase):
     """Test pep_api_data_obj_put_pre"""
 
     def setUp(self):
@@ -265,7 +265,7 @@ class PepApiDataObjPutPreTest(CyVerseCoreTestCase):
             self.fail('cyverse_encryption_api_data_obj_put_pre not called')
 
 
-class CyVerseCoreTest(CyVerseCoreTestCase):
+class CyverseCoreTest(CyverseCoreTestCase):
     """Test the cyverse_core.re rule-base"""
 
     @unittest.skip("not implemented")
@@ -345,12 +345,36 @@ class CyVerseCoreTest(CyVerseCoreTestCase):
         """Test acPostProcForParallelTransferReceived"""
 
     @unittest.skip("not implemented")
+    def test_pepapibulkdataobjputpost(self):
+        """Test pep_api_bulk_data_obj_put_post """
+
+    @unittest.skip("not implemented")
+    def test_pepapibulkdataobjregpost(self):
+        """Test pep_api_bulk_data_obj_reg_post """
+
+    @unittest.skip("not implemented")
+    def test_pepapidataobjclosepost(self):
+        """Test pep_api_data_close_post """
+
+    @unittest.skip("not implemented")
     def test_pepapidataobjcopypost(self):
         """Test pep_api_data_obj_copy_post"""
 
     @unittest.skip("not implemented")
     def test_pepapidataobjcreatepost(self):
         """Test pep_api_data_obj_create_post"""
+
+    @unittest.skip("not implemented")
+    def test_pepapidataobjcreateandstatpost(self):
+        """Test pep_api_data_obj_create_and_stat_post"""
+
+    @unittest.skip("not implemented")
+    def test_pepapidataobjopenandstatpost(self):
+        """Test pep_api_data_obj_open_and_stat_post"""
+
+    @unittest.skip("not implemented")
+    def test_pepapidataobjopenpost(self):
+        """Test pep_api_data_obj_open_post"""
 
     @unittest.skip("not implemented")
     def test_pepapidataobjopenandstatpre(self):
@@ -381,6 +405,22 @@ class CyVerseCoreTest(CyVerseCoreTestCase):
         """Test pep_api_data_obj_unlink_except"""
 
     @unittest.skip("not implemented")
+    def test_pepapidataobjwritepost(self):
+        """Test pep_api_data_obj_write_post"""
+
+    @unittest.skip("not implemented")
+    def test_pepapiphypathregpost(self):
+        """Test pep_api_phy_path_reg_post"""
+
+    @unittest.skip("not implemented")
+    def test_pepapireplicaclosepost(self):
+        """Test pep_api_replica_close_post"""
+
+    @unittest.skip("not implemented")
+    def test_pepapireplicaopenpost(self):
+        """Test pep_api_replica_open_post"""
+
+    @unittest.skip("not implemented")
     def test_pepapirmcollpre(self):
         """Test pep_api_rm_coll_pre"""
 
@@ -393,44 +433,48 @@ class CyVerseCoreTest(CyVerseCoreTestCase):
         """Test pep_api_struct_file_ext_and_reg_pre"""
 
     @unittest.skip("not implemented")
+    def test_pepapitouchpost(self):
+        """Test pep_api_touch_post"""
+
+    @unittest.skip("not implemented")
     def test_getobjpath(self):
-        """ Test _cyverse_core_getObjPath """
+        """Test _cyverse_core_getObjPath """
 
     @unittest.skip("not implemented")
     def test_mkdataobjsessvar(self):
-        """ Test _cyverse_core_mkDataObjSessVar """
+        """Test _cyverse_core_mkDataObjSessVar """
 
     @unittest.skip("not implemented")
     def test_dataobjcreated(self):
-        """ Test _cyverse_core_dataObjCreated """
+        """Test _cyverse_core_dataObjCreated """
 
     @unittest.skip("not implemented")
     def test_dataobjmodified(self):
-        """ Test _cyverse_core_dataObjModified """
+        """Test _cyverse_core_dataObjModified """
 
     @unittest.skip("not implemented")
     def test_dataobjmetadatamodified(self):
-        """ Test _cyverse_core_dataObjMetadataModified """
+        """Test _cyverse_core_dataObjMetadataModified """
 
     @unittest.skip("not implemented")
     def test_pepdatabaseclosepost(self):
-        """ Test pep_database_close_post """
+        """Test pep_database_close_post """
 
     @unittest.skip("not implemented")
     def test_pepdatabaseclosefinally(self):
-        """ Test pep_database_close_finally """
+        """Test pep_database_close_finally """
 
     @unittest.skip("not implemented")
     def test_pepdatabasemoddataobjmetapost(self):
-        """ Test pep_database_mod_data_obj_meta_post """
+        """Test pep_database_mod_data_obj_meta_post """
 
     @unittest.skip("not implemented")
     def test_pepdatabaseregdataobjpost(self):
-        """ Test pep_database_reg_data_obj_post """
+        """Test pep_database_reg_data_obj_post """
 
     @unittest.skip("not implemented")
     def test_pepresourceresolvehierarchypre(self):
-        """ Test pep_resource_resolve_hierarchy_pre """
+        """Test pep_resource_resolve_hierarchy_pre """
 
 
 if __name__ == "__main__":

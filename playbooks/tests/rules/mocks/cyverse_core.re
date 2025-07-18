@@ -1,4 +1,4 @@
-# A stub implementation of cyverse_encryption.re for unit testing. All rules
+# A stub implementation of cyverse_core.re for unit testing. All rules
 # write a message to the server log saying they were called.
 #
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.

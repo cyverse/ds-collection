@@ -16,6 +16,7 @@ from unittest import TestCase
 from irods.access import iRODSAccess
 from irods.exception import CAT_SQL_ERR, CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 from irods.message import RErrorStack
+from irods.models import User
 from irods.rule import Rule
 from irods.session import iRODSSession
 from paramiko import AutoAddPolicy, SSHClient
@@ -320,16 +321,12 @@ class IrodsTestCase(TestCase):
         """
         Ensures that a user exists
         """
-        try:
+        result = self.irods.query().count(User.id).filter(User.name == username).one()
+        if int(result[User.id]) == 0:
             if password is None:
                 self.irods.users.create(username, 'rodsuser')
             else:
                 self.irods.users.create_with_password(username, password)
-        except CAT_SQL_ERR as e:
-            if not str(e).endswith('CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME'):
-                raise e
-        except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
-            pass
 
     def reload_rules(self) -> None:
         """Reloads the iRODS rule engine."""
