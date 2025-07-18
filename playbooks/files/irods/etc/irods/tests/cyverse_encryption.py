@@ -15,7 +15,7 @@ import unittest
 from irods.exception import CUT_ACTION_PROCESSED_ERR
 
 import test_rules
-from test_rules import IrodsTestCase
+from test_rules import IrodsTestCase, IrodsType
 
 
 def setUpModule():  # pylint: disable=invalid-name
@@ -54,10 +54,14 @@ class CyVerseEncryptionApiCollCreatePost(_CyverseEncryptionTestCase):
         """
         Test that a collection created in a collection requiring encryption also requires encryption
         """
-        child = self.irods.collections.create(os.path.join(self.enc_coll, 'child'))
-        if child.metadata.get_one('encryption::required').value != 'true':  # type: ignore
+        child = os.path.join(self.enc_coll, 'child')
+        meta = self.irods.collections.create(child).metadata  # type: ignore
+        if (
+            'encryption::required' not in meta
+            or meta.get_one('encryption::required').value != 'true'
+        ):
             self.fail("encryption::required AVU not set to 'true'")
-        child.remove(force=True)  # type: ignore
+        self.ensure_coll_absent(child)
 
     def test_no_enc_coll_sub_coll_no_enc(self):
         """
@@ -287,12 +291,12 @@ class CyverseEncryptionApiDataObjRenamePreCollection(_CyverseEncryptionTestCase)
         if not self.irods.collections.exists(self._orig_coll):
             self.irods.collections.create(self._orig_coll)
         if self.irods.collections.exists(self._new_enc_coll):
-            self.irods.collections.remove(self._new_enc_coll, force=True, recurse=True)
+            self.ensure_coll_absent(self._new_enc_coll)
 
     def tearDown(self):
         for coll in [self._orig_coll, self._new_enc_coll]:
             if self.irods.collections.exists(coll):
-                self.irods.collections.remove(coll, force=True, recurse=True)
+                self.ensure_coll_absent(coll)
         super().tearDown()
 
     def test_enc_coll_allowed_in_enc_coll(self):
@@ -329,37 +333,43 @@ class CyverseEncryptionApiDataObjRenamePreCollection(_CyverseEncryptionTestCase)
         self.irods.collections.move(self._orig_coll, new_coll)
         if not self.irods.collections.exists(new_coll):
             self.fail("unencrypted collection not moved into collection not requiring encryption")
-        self.irods.collections.remove(new_coll, force=True, recurse=True)
+        self.ensure_coll_absent(new_coll)
 
 
 class CyverseEncryptionApiDataObjRenamePost(_CyverseEncryptionTestCase):
     """Tests cyverse_encryption_api_data_obj_rename_post"""
 
+    def setUp(self):
+        super().setUp()
+        self._orig_path = '/testing/home/rods/orig_coll'
+        self._mv_enc_path = os.path.join(self.enc_coll, 'moved_coll')
+        self._mv_path = '/testing/home/rods/moved_coll'
+        self.irods.collections.create(self._orig_path)
+        self.ensure_coll_absent(self._mv_enc_path)
+        self.ensure_coll_absent(self._mv_path)
+
+    def tearDown(self):
+        self.ensure_coll_absent(self._orig_path)
+        super().tearDown()
+
     def test_coll_added_to_enc_coll(self):
         """Test that a collection added to a collection requiring encryption receives the AVU"""
-        orig_path = '/testing/home/rods/orig_coll'
-        self.irods.collections.create(orig_path)
-        mv_path = os.path.join(self.enc_coll, 'moved_coll')
-        self.irods.collections.move(orig_path, mv_path)
-        coll = self.irods.collections.get(mv_path)
+        self.irods.collections.move(self._orig_path, self._mv_enc_path)
+        coll = self.irods.collections.get(self._mv_enc_path)
         if coll.metadata.get_one('encryption::required').value != 'true':  # type: ignore
             self.fail("encryption::required AVU not set to 'true'")
-        coll.remove(force=True)  # type: ignore
+        self.ensure_coll_absent(self._mv_enc_path)
 
-    @unittest.skip("not implemented")
+    @unittest.skip("")
     def test_coll_added_to_not_enc_coll(self):
         """
         Test that a collection added to a collection not requiring encryption doesn't receive the
         AVU
         """
-        orig_path = '/testing/home/rods/orig_coll'
-        self.irods.collections.create(orig_path)
-        mv_path = '/testing/home/rods/moved_coll'
-        self.irods.collections.move(orig_path, mv_path)
-        coll = self.irods.collections.get(mv_path)
-        if self.irods.collections.get(mv_path).metadata.items().get('encryption::required'):  # type: ignore # noqa: E501 # pylint: disable=line-too-long
-            self.fail("encryption::required AVU not set to 'true'")
-        coll.remove(force=True)  # type: ignore
+        self.irods.collections.move(self._orig_path, self._mv_path)
+        if 'encryption::required' in self.irods.collections.get(self._mv_path).metadata:  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+            self.fail("encryption::required AVU set")
+        self.ensure_coll_absent(self._mv_path)
 
 
 @test_rules.unimplemented
@@ -371,36 +381,154 @@ class CyverseEncryptionApiStructFileExtAndRegPre(_CyverseEncryptionTestCase):
     """
 
 
+class Ipcencryptioncheckencryptionrequiredforcoll(_CyverseEncryptionTestCase):
+    """Tests of _ipcEncryptionCheckEncryptionRequiredForColl"""
+
+    def setUp(self):
+        super().setUp()
+        self._src_coll = '/testing/home/rods/coll'
+        self.irods.collections.create(self._src_coll)
+
+    def tearDown(self):
+        self.ensure_coll_absent(self._src_coll)
+        super().tearDown()
+
+    def test_enc_coll_allowed_in_enc_coll(self):
+        """
+        Test that a collection requiring data to be encrypted can be moved into a collection
+        requiring encryption when passing paths as paths
+        """
+        self.irods.collections.get(self._src_coll).metadata.set('encryption::required', 'true')  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+        self._for_all_str_path_combos(os.path.join(self.enc_coll, 'coll'), self._check_allowed)
+
+    def test_not_enc_coll_not_allowed_in_enc_coll(self):
+        """
+        Test that a collection not requiring data to be encrypted cannot be moved into a collection
+        requiring encryption
+        """
+        self.irods.data_objects.create(os.path.join(self._src_coll, 'data'))
+        self._for_all_str_path_combos(os.path.join(self.enc_coll, 'coll'), self._check_disallowed)
+
+    def test_not_enc_coll_allowed_in_not_enc_coll(self):
+        """
+        Test that a collection not requiring encryption can be moved into a collection not
+        requiring encryption
+        """
+        self.irods.data_objects.create(os.path.join(self._src_coll, 'data'))
+        self._for_all_str_path_combos('/testing/home/rods/new_coll', self._check_allowed)
+
+    def _for_all_str_path_combos(self, dest_coll, test):
+        for o in IrodsTestCase.prep_path(self._src_coll):
+            for n in IrodsTestCase.prep_path(dest_coll):
+                with self.subTest(o=o, n=n):
+                    rule = self.mk_rule(
+                        f"_ipcEncryptionCheckEncryptionRequiredForColl({repr(o)}, {repr(n)})")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+                    test(rule)
+
+    def _check_allowed(self, rule):
+        try:
+            self.exec_rule(rule, IrodsType.NONE)
+        except CUT_ACTION_PROCESSED_ERR:
+            self.fail("placement forbidden")
+
+    def _check_disallowed(self, rule):
+        try:
+            self.exec_rule(rule, IrodsType.NONE)
+            self.fail("placement allowed")
+        except CUT_ACTION_PROCESSED_ERR:
+            pass
+
+
+class Ipcencryptioncheckencryptionrequiredforcollinternal(_CyverseEncryptionTestCase):
+    """Tests of _ipcEncryptionCheckEncryptionRequiredForCollInternal"""
+
+    def setUp(self):
+        super().setUp()
+        self._not_enc_data = '/testing/home/rods/data'
+        self.ensure_obj_absent(self._not_enc_data)
+
+    def test_coll_with_enc_data(self):
+        """Verify that rule doesn't fail when collection only contains encrypted data"""
+        obj = '/testing/home/rods/data.enc'
+        self.irods.data_objects.create(obj)
+        self._for_str_path_combos(self._check_allowed)
+        self.irods.data_objects.unlink(obj, force=True)
+
+    def test_coll_with_not_enc_data(self):
+        """Verify that rule fails when collection contains unencrypted data in top level"""
+        self.irods.data_objects.create(self._not_enc_data)
+        self._for_str_path_combos(self._check_disallowed)
+        self.irods.data_objects.unlink(self._not_enc_data, force=True)
+
+    def test_coll_with_not_enc_data_sub_coll(self):
+        """Verify that the rule fails when collection contains unencrypted data in subcollection"""
+        coll = '/testing/home/rods/coll'
+        self.irods.collections.create(coll)
+        self.irods.data_objects.create(os.path.join(coll, 'data'))
+        self._for_str_path_combos(self._check_disallowed)
+        self.ensure_coll_absent(coll)
+
+    def _for_str_path_combos(self, test):
+        for o in IrodsTestCase.prep_path('/testing/home/rods'):
+            with self.subTest(o=o):
+                rule = self.mk_rule(
+                    f"_ipcEncryptionCheckEncryptionRequiredForCollInternal({repr(o)})")
+                test(rule)
+
+    def _check_allowed(self, rule):
+        try:
+            self.exec_rule(rule, IrodsType.NONE)
+        except CUT_ACTION_PROCESSED_ERR:
+            self.fail("rule failed")
+
+    def _check_disallowed(self, rule):
+        try:
+            self.exec_rule(rule, IrodsType.NONE)
+            self.fail("rule didn't fail")
+        except CUT_ACTION_PROCESSED_ERR:
+            pass
+
+
+class Ipcencryptioncheckencryptionrequiredfordataobj(_CyverseEncryptionTestCase):
+    """Tests of _ipcEncryptionCheckEncryptionRequiredForDataObj"""
+
+    @unittest.skip("not implemented")
+    def test_enc_data_enc_required_path(self):
+        """
+        Verify doesn't fail for encrypted data when encryption required and path can have type path
+        """
+
+    @unittest.skip("not implemented")
+    def test_not_enc_data_enc_required_path(self):
+        """Verify fails for unencrypted data when encryption required and path can have type path"""
+
+    @unittest.skip("not implemented")
+    def test_enc_not_required_path(self):
+        """Verify it works when enc not required and path can have type path"""
+
+    @unittest.skip("not implemented")
+    def test_str(self):
+        """Verify that path can have type str"""
+
+
 class CyverseEncryptionTests(_CyverseEncryptionTestCase):
     """The cyverse_encryption.re tests"""
 
     @unittest.skip("not implemented")
-    def test_ipcisencryptionrequired(self):
-        """Test _ipcIsEncryptionRequired"""
-
-    @unittest.skip("not implemented")
-    def test_ipcencryptioncheckencryptionrequiredfordataobj(self):
-        """Test _ipcEncryptionCheckEncryptionRequiredForDataObj"""
-
-    @unittest.skip("not implemented")
-    def test_ipcencryptioncheckencryptionrequiredforcollinternal(self):
-        """Test _ipcEncryptionCheckEncryptionRequiredForCollInternal"""
-
-    @unittest.skip("not implemented")
-    def test_ipcencryptioncheckencryptionrequiredforcoll(self):
-        """Test _ipcEncryptionCheckEncryptionRequiredForColl"""
-
-    @unittest.skip("not implemented")
-    def test_ipcencryptionrejectbulkregifencryptionrequired(self):
-        """Test _ipcEncryptionRejectBulkRegIfEncryptionRequired"""
+    def test_ipcencryptioncopyavufromparent(self):
+        """Test _ipcEncryptionCopyAVUFromParent"""
 
     @unittest.skip("not implemented")
     def test_ipcencryptioncopyavufromparentinternal(self):
         """Test _ipcEncryptionCopyAVUFromParentInternal"""
 
     @unittest.skip("not implemented")
-    def test_ipcencryptioncopyavufromparent(self):
-        """Test _ipcEncryptionCopyAVUFromParent"""
+    def test_ipcencryptionrejectbulkregifencryptionrequired(self):
+        """Test _ipcEncryptionRejectBulkRegIfEncryptionRequired"""
+
+    @unittest.skip("not implemented")
+    def test_ipcisencryptionrequired(self):
+        """Test _ipcIsEncryptionRequired"""
 
 
 if __name__ == "__main__":

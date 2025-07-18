@@ -15,8 +15,6 @@ import unittest
 import test_rules
 from test_rules import IrodsTestCase, IrodsType
 
-from irods.exception import USER_FILE_DOES_NOT_EXIST
-
 
 def setUpModule():  # pylint: disable=invalid-name
     """Set up the module."""
@@ -77,10 +75,7 @@ class PepApiCollCreatePostTest(CyVerseCoreTestCase):
         super().tearDown()
 
     def _ensure_test_coll_absent(self):
-        try:
-            self.irods.collections.remove(self._test_coll, force=True)
-        except USER_FILE_DOES_NOT_EXIST:
-            pass
+        self.ensure_coll_absent(self._test_coll)
 
     def test_cyverseencryption_called(self):
         """Test that the cyverse_encryption PEP is called."""

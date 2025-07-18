@@ -34,7 +34,7 @@ class CogeTestCase(IrodsTestCase):
 
     def tearDown(self):
         """Remove coge user and coge_data collection."""
-        self.irods.collections.remove(self._coge_coll_path, force=True)
+        self.ensure_coll_absent(self._coge_coll_path)
         self.irods.users.remove(self._coge_user)
         super().tearDown()
 

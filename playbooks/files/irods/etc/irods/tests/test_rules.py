@@ -286,6 +286,16 @@ class IrodsTestCase(TestCase):
             self._ssh = _connect_ssh()
         return self._ssh
 
+    def ensure_coll_absent(self, coll_path: str) -> None:
+        """
+        Ensures that a collection is not in iRODS
+
+        Parameters:
+            coll_path  the absolute path to the collection
+        """
+        if self.irods.collections.exists(coll_path):
+            self.irods.collections.remove(coll_path, force=True)
+
     def ensure_obj_absent(self, obj_path: str) -> None:
         """
         Ensures that a data object is not in iRODS
