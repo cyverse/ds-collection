@@ -133,12 +133,6 @@ acPreConnect(*OUT) {
 	cyverse_logic_acPreConnect(*OUT);
 }
 
-# This rule sets the default values for parameters related to parallel transfer.
-#
-acSetNumThreads {
-	cyverse_logic_acSetNumThreads;
-}
-
 # This rule sets the maximum number of deferred rule executors.
 #
 # Session Variables:
@@ -756,10 +750,10 @@ pep_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
 #  Instance    (string) unknown
 #  Comm        (`KeyValuePair_PI`) user connection and auth information
 #  DataObjInp  (`KeyValuePair_PI`) information related to the data object
-#  OpenStat    (unknown) unused
+#  OpenStat    unknown
 #
 pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	cyverse_encryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp, *OpenStat)
+	cyverse_encryption_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat)
 }
 
 

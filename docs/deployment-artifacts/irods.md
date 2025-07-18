@@ -30,11 +30,11 @@ The following files contain the policy that is independent of deployment environ
 * [cyverse_core.re](../../playbooks/files/irods/etc/irods/cyverse_core.re) acts as a switchyard for PEPs, deferring to other rule bases for actual implementations.
 * [cyverse_encryption.re](../../playbooks/files/irods/etc/irods/cyverse_encryption.re) has the encryption enforcement logic.
 * [cyverse_json.re](../../playbooks/files/irods/etc/irods/cyverse_json.re) provides the logic for creating JSON documents.
-* [ipc-repl.re](../../playbooks/files/irods/etc/irods/ipc-repl.re) has the resource determination and asynchronous replication logic.
+* [cve.re](../../playbooks/files/irods/etc/irods/cve.re) are workarounds for iRODS CVEs.
+* [ipc-repl.re](../../playbooks/files/irods/etc/irods/ipc-repl.re) has the resource residency and asynchronous replication logic.
 * [ipc-trash.re](../../playbooks/files/irods/etc/irods/ipc-trash.re) has the trash timestamp management logic.
 * [cyverse_logic.re](../../playbooks/files/irods/etc/irods/cyverse_logic.re) has the CyVerse policy logic not implemented in another rule base.
 * [cyverse_housekeeping.re](../../playbooks/files/irods/etc/irods/cyverse_housekeeping.re) provides the logic for the periodically run asynchronous tasks.
-* [cve.re](../../playbooks/files/irods/etc/irods/cve.re) are workarounds for iRODS CVEs.
 
 The template [cyverse-env.re](../../playbooks/templates/irods/etc/irods/cyverse-env.re.j2) is for environment-dependent constants.
 

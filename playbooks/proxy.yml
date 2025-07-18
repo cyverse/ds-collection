@@ -5,6 +5,8 @@
   roles:
     - role: cyverse.ds.haproxy
       vars:
+        haproxy_allow_client_hosts: "{{ _proxy_allow_client_hosts }}"
+        haproxy_block_client_hosts: "{{ _proxy_block_client_hosts }}"
         # Reserve two CPUs for OS
         haproxy_num_threads: "{{ [ ansible_processor_vcpus - 2, 1 ] | max }}"
         haproxy_queue_timeout: 10m
@@ -17,10 +19,10 @@
         haproxy_irods_host: "{{ groups['irods_catalog'][0] }}"
         haproxy_irods_direct_max_conn: "{{ _proxy_irods_direct_max_conn }}"
         haproxy_irods_throttled_max_conn: 100
-        haproxy_irods_vip_client_hosts: "{{ _proxy_irods_vip_client_hosts }}"
-        haproxy_webdav_hosts: "{{ groups['webdav'] }}"
-        haproxy_webdav_check_period: 6s
+        haproxy_vip_client_hosts: "{{ _proxy_vip_client_hosts }}"
         haproxy_sftp_hosts: "{{ groups['sftp'] }}"
         haproxy_sftp_port: "{{ _proxy_sftp_port }}"
         haproxy_sftp_backend_port: "{{ _proxy_sftp_backend_port }}"
         haproxy_sftp_check_period: 6s
+        haproxy_webdav_hosts: "{{ groups['webdav'] }}"
+        haproxy_webdav_check_period: 6s

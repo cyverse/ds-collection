@@ -14,7 +14,6 @@ from typing import Any, List, Optional, Tuple
 from unittest import TestCase
 
 from irods.access import iRODSAccess
-from irods.exception import CAT_SQL_ERR, CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 from irods.message import RErrorStack
 from irods.models import User
 from irods.rule import Rule
@@ -305,6 +304,16 @@ class IrodsTestCase(TestCase):
         if not self._ssh:
             self._ssh = _connect_ssh()
         return self._ssh
+
+    def ensure_coll_absent(self, coll_path: str) -> None:
+        """
+        Ensures that a collection is not in iRODS
+
+        Parameters:
+            coll_path  the absolute path to the collection
+        """
+        if self.irods.collections.exists(coll_path):
+            self.irods.collections.remove(coll_path, force=True)
 
     def ensure_obj_absent(self, obj_path: str) -> None:
         """

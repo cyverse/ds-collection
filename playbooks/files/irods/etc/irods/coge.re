@@ -1,4 +1,8 @@
-# CoGe service policy
+# CoGe Service Policy
+#
+# CoGe is given write access to any collection named "coge_data" in the top
+# level of a user's home collection. CoGe is give write access to any data
+# object placed in such a collection.
 #
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
