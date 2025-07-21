@@ -315,13 +315,15 @@ class PepApiDataObjRename(CyverseCoreTestCase):
         if not self.verify_msg_logged("cyverse_encryption_api_data_obj_rename_pre"):
             self.fail('cyverse_encryption_api_data_obj_rename_pre not called')
 
-    @unittest.skip("not implemented")
     def test_ipctrash_post_called(self):
         """Test that the ipc-trash logic attached to the post PEP is called"""
+        if not self.verify_msg_logged("ipcTrash_api_data_obj_rename_post"):
+            self.fail('ipcTrash_api_data_obj_rename_post not called')
 
-    @unittest.skip("not implemented")
     def test_ipctrash_pre_called(self):
         """Test that the ipc-trash logic attached to the pre PEP is called"""
+        if not self.verify_msg_logged("ipcTrash_api_data_obj_rename_pre"):
+            self.fail('ipcTrash_api_data_obj_rename_pre not called')
 
 
 @test_rules.unimplemented
