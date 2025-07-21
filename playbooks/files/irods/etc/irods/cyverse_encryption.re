@@ -22,7 +22,7 @@ _ipcIsEncryptionRequired(*Coll) =
 
 # This rule checks if encryption is required and reject creating non-encrypted files
 _ipcEncryptionCheckEncryptionRequiredForDataObj(*Path) {
-	msiSplitPath(*Path, *parentColl, *objName);
+	msiSplitPath(str(*Path), *parentColl, *objName);
 	# check if parent coll has encryption::required avu
 	if (_ipcIsEncryptionRequired(*parentColl)) {
 		# all encrypted files will have ".enc" extension

@@ -490,15 +490,26 @@ class Ipcencryptioncheckencryptionrequiredforcollinternal(_CyverseEncryptionTest
 class Ipcencryptioncheckencryptionrequiredfordataobj(_CyverseEncryptionTestCase):
     """Tests of _ipcEncryptionCheckEncryptionRequiredForDataObj"""
 
-    @unittest.skip("not implemented")
     def test_enc_data_enc_required_path(self):
         """
         Verify doesn't fail for encrypted data when encryption required and path can have type path
         """
+        obj_path = os.path.join(self.enc_coll, 'data.enc')
+        rule = self.mk_rule(f"_ipcEncryptionCheckEncryptionRequiredForDataObj({obj_path})")
+        try:
+            self.exec_rule(rule, IrodsType.NONE)
+        except CUT_ACTION_PROCESSED_ERR:
+            self.fail("rule failed")
 
-    @unittest.skip("not implemented")
     def test_not_enc_data_enc_required_path(self):
         """Verify fails for unencrypted data when encryption required and path can have type path"""
+        obj_path = os.path.join(self.enc_coll, 'data')
+        rule = self.mk_rule(f"_ipcEncryptionCheckEncryptionRequiredForDataObj({obj_path})")
+        try:
+            self.exec_rule(rule, IrodsType.NONE)
+            self.fail("rule passed")
+        except CUT_ACTION_PROCESSED_ERR:
+            pass
 
     @unittest.skip("not implemented")
     def test_enc_not_required_path(self):
