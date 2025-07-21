@@ -8,6 +8,23 @@
 # © 2022 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
+#
+# List manipulation
+#
+
+_cyverse_json_revAccum: list ? * list ? -> list ?
+_cyverse_json_revAccum(*RevList, *List) =
+	if size(*List) == 0 then *RevList
+	else _cyverse_json_revAccum(cons(hd(*List), *RevList), tl(*List))
+
+_cyverse_json_rev: list ? -> list ?
+_cyverse_json_rev(*List) = _cyverse_json_revAccum(list(), *List)
+
+
+#
+# String manipulation
+#
+
 _cyverse_json_substrRem: string * int -> string
 _cyverse_json_substrRem(*String, *NewHdPos) = substr(*String, *NewHdPos, strlen(*String))
 
@@ -32,13 +49,10 @@ _cyverse_json_append(*Base, *Separator, *Elements) =
 _cyverse_json_join: string * list string -> string
 _cyverse_json_join(*Separator, *Elements) = _cyverse_json_append('', *Separator, *Elements)
 
-_cyverse_json_rev: list ? -> list ?
-_cyverse_json_rev(*List) = _cyverse_json_revAccum(list(), *List)
 
-_cyverse_json_revAccum: list ? * list ? -> list ?
-_cyverse_json_revAccum(*RevList, *List) =
-	if size(*List) == 0 then *RevList
-	else _cyverse_json_revAccum(cons(hd(*List), *RevList), tl(*List))
+#
+# JSON encoding
+#
 
 _cyverse_json_encode: string -> string
 _cyverse_json_encode(*Unencoded) = _cyverse_json_encodeAccum('', *Unencoded)
@@ -56,6 +70,11 @@ _cyverse_json_encodeAccum(*Encoded, *Unencoded) =
 			else if *c == '\\' then '\\\\'
 			else *c in
 		_cyverse_json_encodeAccum(*Encoded ++ *escC, _cyverse_json_strTl(*Unencoded))
+
+
+#
+# VAL
+#
 
 # describes the different types of JSON values
 #
@@ -101,6 +120,27 @@ _cyverse_json_isEmpty(*Val) =
 		| cyverse_json_str(*s) => false
 		| cyverse_json_empty => true
 
+_cyverse_json_serializeScalarsAccum: list string * list cyverse_json_val -> list string
+_cyverse_json_serializeScalarsAccum(*RevSerialized, *Raw) =
+	if size(*Raw) == 0 then _cyverse_json_rev(*RevSerialized)
+	else _cyverse_json_serializeScalarsAccum(
+		cons(json_serialize(hd(*Raw)), *RevSerialized), tl(*Raw) )
+
+_cyverse_json_serializeScalars: list cyverse_json_val -> list string
+_cyverse_json_serializeScalars(*Raw) = _cyverse_json_serializeScalarsAccum(list(), *Raw)
+
+_cyverse_json_serializeFieldsAccum: list string * list (string * cyverse_json_val) -> list string
+_cyverse_json_serializeFieldsAccum(*RevSerialized, *Raw) =
+	if size(*Raw) == 0 then _cyverse_json_rev(*RevSerialized)
+	else
+		let (*name, *value) = hd(*Raw) in
+		let *serializedField =
+			'"' ++ _cyverse_json_encode(*name) ++ '":' ++ cyverse_json_serialize(*value) in
+		_cyverse_json_serializeFieldsAccum(cons(*serializedField, *RevSerialized), tl(*Raw))
+
+_cyverse_json_serializeFields: list (string * cyverse_json_val) -> list string
+_cyverse_json_serializeFields(*Raw) = _cyverse_json_serializeFieldsAccum(list(), *Raw)
+
 # serializes a JSON document
 # Parameters:
 #  *Val  the document (value) to serialize
@@ -120,27 +160,28 @@ cyverse_json_serialize(*Val) =
 		| cyverse_json_str(*s) => '"' ++ _cyverse_json_encode(*s) ++ '"'
 		| cyverse_json_empty => ''
 
-_cyverse_json_serializeScalarsAccum: list string * list cyverse_json_val -> list string
-_cyverse_json_serializeScalarsAccum(*RevSerialized, *Raw) =
-	if size(*Raw) == 0 then _cyverse_json_rev(*RevSerialized)
-	else
-    _cyverse_json_serializeScalarsAccum(
-		cons(json_serialize(hd(*Raw)), *RevSerialized), tl(*Raw) )
+cyverse_json_getValue: cyverse_json_val * string -> cyverse_json_val
+cyverse_json_getValue(*Doc, *FieldName) =
+	match *Doc with
+		| cyverse_json_empty => cyverse_json_empty
+		| cyverse_json_null => cyverse_json_empty
+		| cyverse_json_bool(*b) => cyverse_json_empty
+		| cyverse_json_num(*n) => cyverse_json_empty
+		| cyverse_json_str(*s) => cyverse_json_empty
+		| cyverse_json_array(*l) => cyverse_json_empty
+		| cyverse_json_obj(*fields) =>
+			let *ans = cyverse_json_empty in
+			let *_ = foreach (*field in *fields) {
+				(*name, *val) = *field;
+				if (*FieldName == *name) {
+					*ans = *val;
+				} } in
+			*ans
 
-_cyverse_json_serializeScalars: list cyverse_json_val -> list string
-_cyverse_json_serializeScalars(*Raw) = _cyverse_json_serializeScalarsAccum(list(), *Raw)
 
-_cyverse_json_serializeFieldsAccum: list string * list (string * cyverse_json_val) -> list string
-_cyverse_json_serializeFieldsAccum(*RevSerialized, *Raw) =
-	if size(*Raw) == 0 then _cyverse_json_rev(*RevSerialized)
-	else
-		let (*name, *value) = hd(*Raw) in
-		let *serializedField =
-			'"' ++ _cyverse_json_encode(*name) ++ '":' ++ cyverse_json_serialize(*value) in
-		_cyverse_json_serializeFieldsAccum(cons(*serializedField, *RevSerialized), tl(*Raw))
-
-_cyverse_json_serializeFields: list (string * cyverse_json_val) -> list string
-_cyverse_json_serializeFields(*Raw) = _cyverse_json_serializeFieldsAccum(list(), *Raw)
+#
+# DESERIALIZE_RES
+#
 
 # describes a response from a deserialization operation, where Value is the type
 # of the deserialized value
@@ -152,43 +193,6 @@ data cyverse_json_deserialize_res(Value) =
 	# the failure result, an ordered-triple containing an error message, the
 	# portion deserialized so far and the remainder of the serialization string
 	| cyverse_json_deserialize_err: string * Value * string -> cyverse_json_deserialize_res(Value)
-
-cyverse_json_deserialize: string -> cyverse_json_deserialize_res(cyverse_json_val)
-cyverse_json_deserialize(*Serial) =
-	let *Serial = _cyverse_json_trimLeadingSpace(*Serial) in
-	if *Serial == '' then cyverse_json_deserialize_val(json_empty, *Serial)
-	else
-		let *res = _cyverse_json_deserializeValue(*Serial) in
-		match *res with
-			| cyverse_json_deserialize_err(*m, *v, *s) => *res
-			| cyverse_json_deserialize_val(*val, *Serial) =>
-				let *Serial = _cyverse_json_trimLeadingSpace(*Serial) in
-				if *Serial == '' then cyverse_json_deserialize_val(*val, *Serial)
-				else cyverse_json_deserialize_err('unexpected content after document', *val, *Serial)
-
-_cyverse_json_deserializeValue: string -> cyverse_json_deserialize_res(cyverse_json_val)
-_cyverse_json_deserializeValue(*Serial) =
-	let *Serial = _cyverse_json_trimLeadingSpace(*Serial) in
-	if *Serial like 'null*' then _cyverse_json_deserializeNull(*Serial)
-	else if *Serial like '"*' then _cyverse_json_deserializeString(*Serial)
-	else if *Serial like regex '^(false|true).*' then _cyverse_json_deserializeBoolean(*Serial)
-	else if *Serial like regex '^-\{0,1\}[0-9].*' then _cyverse_json_deserializeNumber(*Serial)
-	else if *Serial like '[*' then _cyverse_json_deserializeArray(*Serial)
-	else if *Serial like '{*' then _cyverse_json_deserializeObject(*Serial)
-	else cyverse_json_deserialize_err('there is no legal next value', cyverse_json_empty, *Serial)
-
-_cyverse_json_deserializeArray: string -> cyverse_json_deserialize_res(cyverse_json_val)
-_cyverse_json_deserializeArray(*Serial) =
-	let *Serial = _cyverse_json_strTl(*Serial) in                    # remove opening bracket
-	match _cyverse_json_deserializeArrayAccum(list(), *Serial) with
-		| cyverse_json_deserialize_err(*msg, *elmts, *Serial) =>
-			cyverse_json_deserialize_err(*msg, cyverse_json_array(*elmts), *Serial)
-		| cyverse_json_deserialize_val(*elmts, *Serial) =>
-			let *Serial = _cyverse_json_trimLeadingSpace(*Serial) in
-			if *Serial like ']*' then
-				cyverse_json_deserialize_val(json_array(*elmts), _cyverse_json_strTl(*Serial))
-			else cyverse_json_deserialize_err(
-				'missing end of array', cyverse_json_array(*elmts), *Serial)
 
 _cyverse_json_deserializeArrayAccum :
 	list cyverse_json_val * string -> cyverse_json_deserialize_res(list cyverse_json_val)
@@ -209,15 +213,31 @@ _cyverse_json_deserializeArrayAccum(*RevCurElmts, *Serial) =
 					else *Serial in
 					_cyverse_json_deserializeArrayAccum(cons(*newElement, *RevCurElmts), *Serial)
 
+_cyverse_json_deserializeArray: string -> cyverse_json_deserialize_res(cyverse_json_val)
+_cyverse_json_deserializeArray(*Serial) =
+	let *Serial = _cyverse_json_strTl(*Serial) in                    # remove opening bracket
+	match _cyverse_json_deserializeArrayAccum(list(), *Serial) with
+		| cyverse_json_deserialize_err(*msg, *elmts, *Serial) =>
+			cyverse_json_deserialize_err(*msg, cyverse_json_array(*elmts), *Serial)
+		| cyverse_json_deserialize_val(*elmts, *Serial) =>
+			let *Serial = _cyverse_json_trimLeadingSpace(*Serial) in
+			if *Serial like ']*' then
+				cyverse_json_deserialize_val(json_array(*elmts), _cyverse_json_strTl(*Serial))
+			else cyverse_json_deserialize_err(
+				'missing end of array', cyverse_json_array(*elmts), *Serial)
+
 _cyverse_json_deserializeBoolean: string -> cyverse_json_deserialize_res(cyverse_json_val)
 _cyverse_json_deserializeBoolean(*Serial) =
 	if *Serial like 'false*' then
 		cyverse_json_deserialize_val(json_bool(false), _cyverse_json_substrRem(*Serial, 5))
 	else cyverse_json_deserialize_val(json_bool(true), _cyverse_json_substrRem(*Serial, 4))
 
-_cyverse_json_deserializeNull: string -> cyverse_json_deserialize_res(cyverse_json_val)
-_cyverse_json_deserializeNull(*Serial) =
-	cyverse_json_deserialize_val(json_null, _cyverse_json_substrRem(*Serial, 4))
+_cyverse_json_extractDigits: string * string -> string * string
+_cyverse_json_extractDigits(*Buf, *Serial) =
+	if *Serial == '' || !(*Serial like regex '^[0-9].*') then (*Buf, *Serial)
+	else
+		_cyverse_json_extractDigits(
+			*Buf ++ _cyverse_json_strHd(*Serial), _cyverse_json_strTl(*Serial))
 
 # FORMAT -?[0-9]+(\.[0-9]*)?
 _cyverse_json_deserializeNumber: string -> cyverse_json_deserialize_res(cyverse_json_val)
@@ -231,25 +251,9 @@ _cyverse_json_deserializeNumber(*Serial) =
 		else (*numStrBuf, *Serial) in
 	cyverse_json_deserialize_val(json_num(double(*numStrBuf)), *Serial)
 
-_cyverse_json_extractDigits: string * string -> string * string
-_cyverse_json_extractDigits(*Buf, *Serial) =
-	if *Serial == '' || !(*Serial like regex '^[0-9].*') then (*Buf, *Serial)
-	else
-		_cyverse_json_extractDigits(
-			*Buf ++ _cyverse_json_strHd(*Serial), _cyverse_json_strTl(*Serial))
-
-_cyverse_json_deserializeObject: string -> cyverse_json_deserialize_res(cyverse_json_val)
-_cyverse_json_deserializeObject(*Serial) =
-	let *Serial = _cyverse_json_strTl(*Serial) in                     # remove opening brace
-	match _cyverse_json_deserializeObjectAccum(list(), *Serial) with
-		| cyverse_json_deserialize_err(*msg, *fields, *Serial) =>
-			cyverse_json_deserialize_err(*msg, cyverse_json_obj(*fields), *Serial)
-		| cyverse_json_deserialize_val(*fields, *Serial) =>
-			let *Serial = _cyverse_json_trimLeadingSpace(*Serial) in
-			if *Serial like '}*' then
-				cyverse_json_deserialize_val(json_obj(*fields), _cyverse_json_strTl(*Serial))
-			else cyverse_json_deserialize_err(
-				'missing end of object', cyverse_json_obj(*fields), *Serial)
+_cyverse_json_deserializeNull: string -> cyverse_json_deserialize_res(cyverse_json_val)
+_cyverse_json_deserializeNull(*Serial) =
+	cyverse_json_deserialize_val(json_null, _cyverse_json_substrRem(*Serial, 4))
 
 _cyverse_json_deserializeObjectAccum :
 	list (string * cyverse_json_val) * string ->
@@ -272,6 +276,62 @@ _cyverse_json_deserializeObjectAccum(*RevCurFields, *Serial) =
 					else *Serial in
 				_cyverse_json_deserializeObjectAccum(cons(*newField, *RevCurFields), *Serial)
 
+_cyverse_json_deserializeObject: string -> cyverse_json_deserialize_res(cyverse_json_val)
+_cyverse_json_deserializeObject(*Serial) =
+	let *Serial = _cyverse_json_strTl(*Serial) in                     # remove opening brace
+	match _cyverse_json_deserializeObjectAccum(list(), *Serial) with
+		| cyverse_json_deserialize_err(*msg, *fields, *Serial) =>
+			cyverse_json_deserialize_err(*msg, cyverse_json_obj(*fields), *Serial)
+		| cyverse_json_deserialize_val(*fields, *Serial) =>
+			let *Serial = _cyverse_json_trimLeadingSpace(*Serial) in
+			if *Serial like '}*' then
+				cyverse_json_deserialize_val(json_obj(*fields), _cyverse_json_strTl(*Serial))
+			else cyverse_json_deserialize_err(
+				'missing end of object', cyverse_json_obj(*fields), *Serial)
+
+_cyverse_json_extractStringAccum: string * string -> string * string
+_cyverse_json_extractStringAccum(*Buf, *Serial) =
+	if *Serial == '' || *Serial == '\\' || *Serial like '"*' then (*Buf, *Serial)
+	else
+		let (*Buf, *Serial) =
+			if *Serial like '\\*' then
+				let *escChar = substr(*Serial, 0, 2) in
+				let *char =
+					if *escChar == 'n' then '\n'
+					else if *escChar == 'r' then '\r'
+					else if *escChar == 't' then '\t'
+					else *escChar in
+				(*Buf ++ *char, _cyverse_json_substrRem(*Serial, 2))
+			else (*Buf ++ _cyverse_json_strHd(*Serial), _cyverse_json_strTl(*Serial)) in
+		_cyverse_json_extractStringAccum(*Buf, *Serial)
+
+_cyverse_json_extractString: string -> cyverse_json_deserialize_res(string)
+_cyverse_json_extractString(*Serial) =
+	let *initSerial = *Serial in
+	let *Serial = triml(*Serial, '"') in                            # Remove opening mark
+	let (*str, *Serial) = _cyverse_json_extractStringAccum('', *Serial) in
+	if *Serial like '"*' then cyverse_json_deserialize_val(*str, _cyverse_json_strTl(*Serial))
+	else cyverse_json_deserialize_err('missing end of string', '', *initSerial)
+
+_cyverse_json_deserializeString: string -> cyverse_json_deserialize_res(cyverse_json_val)
+_cyverse_json_deserializeString(*Serial) =
+	match _cyverse_json_extractString(*Serial) with
+		| cyverse_json_deserialize_err(*msg, *val, *Serial) =>
+			cyverse_json_deserialize_err(*msg, cyverse_json_empty, *Serial)
+		| cyverse_json_deserialize_val(*val, *Serial) =>
+			cyverse_json_deserialize_val(json_str(*val), *Serial)
+
+_cyverse_json_deserializeValue: string -> cyverse_json_deserialize_res(cyverse_json_val)
+_cyverse_json_deserializeValue(*Serial) =
+	let *Serial = _cyverse_json_trimLeadingSpace(*Serial) in
+	if *Serial like 'null*' then _cyverse_json_deserializeNull(*Serial)
+	else if *Serial like '"*' then _cyverse_json_deserializeString(*Serial)
+	else if *Serial like regex '^(false|true).*' then _cyverse_json_deserializeBoolean(*Serial)
+	else if *Serial like regex '^-\{0,1\}[0-9].*' then _cyverse_json_deserializeNumber(*Serial)
+	else if *Serial like '[*' then _cyverse_json_deserializeArray(*Serial)
+	else if *Serial like '{*' then _cyverse_json_deserializeObject(*Serial)
+	else cyverse_json_deserialize_err('there is no legal next value', cyverse_json_empty, *Serial)
+
 _cyverse_json_deserializeField: string -> cyverse_json_deserialize_res((string * cyverse_json_val))
 _cyverse_json_deserializeField(*Serial) =
 	let *initSerial = *Serial in
@@ -290,52 +350,15 @@ _cyverse_json_deserializeField(*Serial) =
 					| cyverse_json_deserialize_val(*val, *Serial) =>
 						cyverse_json_deserialize_val((*name, *val), *Serial)
 
-_cyverse_json_deserializeString: string -> cyverse_json_deserialize_res(cyverse_json_val)
-_cyverse_json_deserializeString(*Serial) =
-	match _cyverse_json_extractString(*Serial) with
-		| cyverse_json_deserialize_err(*msg, *val, *Serial) =>
-			cyverse_json_deserialize_err(*msg, cyverse_json_empty, *Serial)
-		| cyverse_json_deserialize_val(*val, *Serial) =>
-			cyverse_json_deserialize_val(json_str(*val), *Serial)
-
-_cyverse_json_extractString: string -> cyverse_json_deserialize_res(string)
-_cyverse_json_extractString(*Serial) =
-	let *initSerial = *Serial in
-	let *Serial = triml(*Serial, '"') in                            # Remove opening mark
-	let (*str, *Serial) = _cyverse_json_extractStringAccum('', *Serial) in
-	if *Serial like '"*' then cyverse_json_deserialize_val(*str, _cyverse_json_strTl(*Serial))
-	else cyverse_json_deserialize_err('missing end of string', '', *initSerial)
-
-_cyverse_json_extractStringAccum: string * string -> string * string
-_cyverse_json_extractStringAccum(*Buf, *Serial) =
-	if *Serial == '' || *Serial == '\\' || *Serial like '"*' then (*Buf, *Serial)
+cyverse_json_deserialize: string -> cyverse_json_deserialize_res(cyverse_json_val)
+cyverse_json_deserialize(*Serial) =
+	let *Serial = _cyverse_json_trimLeadingSpace(*Serial) in
+	if *Serial == '' then cyverse_json_deserialize_val(json_empty, *Serial)
 	else
-		let (*Buf, *Serial) =
-			if *Serial like '\\*' then
-				let *escChar = substr(*Serial, 0, 2) in
-				let *char =
-					if *escChar == 'n' then '\n'
-					else if *escChar == 'r' then '\r'
-					else if *escChar == 't' then '\t'
-					else *escChar in
-				(*Buf ++ *char, _cyverse_json_substrRem(*Serial, 2))
-			else (*Buf ++ _cyverse_json_strHd(*Serial), _cyverse_json_strTl(*Serial)) in
-		_cyverse_json_extractStringAccum(*Buf, *Serial)
-
-cyverse_json_getValue: cyverse_json_val * string -> cyverse_json_val
-cyverse_json_getValue(*Doc, *FieldName) =
-	match *Doc with
-		| cyverse_json_empty => cyverse_json_empty
-		| cyverse_json_null => cyverse_json_empty
-		| cyverse_json_bool(*b) => cyverse_json_empty
-		| cyverse_json_num(*n) => cyverse_json_empty
-		| cyverse_json_str(*s) => cyverse_json_empty
-		| cyverse_json_array(*l) => cyverse_json_empty
-		| cyverse_json_obj(*fields) =>
-			let *ans = cyverse_json_empty in
-			let *_ = foreach (*field in *fields) {
-				(*name, *val) = *field;
-				if (*FieldName == *name) {
-					*ans = *val;
-				} } in
-			*ans
+		let *res = _cyverse_json_deserializeValue(*Serial) in
+		match *res with
+			| cyverse_json_deserialize_err(*m, *v, *s) => *res
+			| cyverse_json_deserialize_val(*val, *Serial) =>
+				let *Serial = _cyverse_json_trimLeadingSpace(*Serial) in
+				if *Serial == '' then cyverse_json_deserialize_val(*val, *Serial)
+				else cyverse_json_deserialize_err('unexpected content after document', *val, *Serial)
