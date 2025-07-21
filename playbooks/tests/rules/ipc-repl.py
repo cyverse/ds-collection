@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python  # pylint: disable=invalid-name
 # -*- coding: utf-8 -*-
 #
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
@@ -11,12 +11,20 @@ import unittest
 from test_rules import IrodsTestCase
 
 
+class TestReplReplicate(IrodsTestCase):
+    """Tests of _repl_replicate"""
+
+    @unittest.skip("not implemented")
+    def test_object_exists(self):
+        """Tests its handling of a object that still exists"""
+
+    @unittest.skip("not implemented")
+    def test_object_gone(self):
+        """Tests its handling of an object that not longer exists"""
+
+
 class TestIpcRepl(IrodsTestCase):
     """Test ipc-repl.re"""
-
-    @unittest.skip("Not implemented")
-    def test_replicate(self):
-        """Test _repl_replicate logic"""
 
     @unittest.skip("Not implemented")
     def test_mvreplicas(self):
