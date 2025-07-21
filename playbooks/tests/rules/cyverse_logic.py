@@ -8,13 +8,26 @@
 
 import unittest
 
-import test_rules
-from test_rules import IrodsTestCase
+from test_rules import IrodsTestCase, IrodsVal
 
 
-@test_rules.unimplemented
-class TestList(IrodsTestCase):
-    """Tests of the private list rule logic"""
+class TestCyverseLogicContains(IrodsTestCase):
+    """Tests of the _cyverse_logic_contains"""
+
+    def test_item_not_in_list(self):
+        """Verify that it returns false when item not in list"""
+        self.fn_test(
+            '_cyverse_logic_contains',
+            [IrodsVal.string("missing"), IrodsVal.string_list([])],
+            IrodsVal.boolean(False))
+
+    @unittest.skip("not implemented")
+    def test_item_first(self):
+        """Verify that it returns true when item is first in list"""
+
+    @unittest.skip("not implemented")
+    def test_item_last(self):
+        """Verify that it returns true when item is last in list"""
 
 
 class TestCyVerseLogic(IrodsTestCase):
