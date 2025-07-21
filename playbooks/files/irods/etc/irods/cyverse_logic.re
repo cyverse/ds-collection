@@ -1011,6 +1011,13 @@ cyverse_logic_chksumRepl(*DataObjId, *ReplNum) {
 	}
 }
 
+# Using an API PEP's data object operation input map, it determines if data
+# object(s) will need a checksum.
+#
+#_cyverse_logic_needsChecksum : `KeyValPair_PI` -> boolean
+_cyverse_logic_needsChecksum(*DataObjOpInp) =
+	!cyverse_hasKey(*DataObjOpInp, 'regChksum') && !cyverse_hasKey(*DataObjOpInp, 'verifyChksum')
+
 # Schedule a task for computing the checksum of a given replica of a given data object
 _cyverse_logic_schedChksumRepl(*DataObjPath, *ReplNum) {
 	*dataObjId = _cyverse_logic_getDataObjId(*DataObjPath)
@@ -1020,6 +1027,24 @@ _cyverse_logic_schedChksumRepl(*DataObjPath, *ReplNum) {
 		'<PLUSET>0s</PLUSET>' ++
 		'<EF>0s REPEAT 0 TIMES</EF>'
 	) {cyverse_logic_chksumRepl(*dataObjId, *ReplNum)}
+}
+
+# Ensures that the replica of a given data object on a given storage resource
+# has a checksum
+#
+# Parameters:
+#  *DataPath  (string) the absolute path to the data object
+#  *RescHier  (string) the resource hierarchy of the storage resource
+#
+_cyverse_logic_ensureReplicaChecksum(*DataPath, *RescHier) {
+	msiSplitPath(*DataPath, *collPath, *dataName);
+
+	foreach ( *rec in
+		SELECT DATA_REPL_NUM
+		WHERE COLL_NAME == *collPath AND DATA_NAME == *dataName AND DATA_RESC_HIER == *RescHier
+	) {
+		_cyverse_logic_schedChksumRepl(*DataPath, *rec.DATA_REPL_NUM);
+	}
 }
 
 
@@ -1141,22 +1166,22 @@ _cyverse_logic_getMsgType(*EntityType) =
 	else if cyverse_isUser(*EntityType) then _cyverse_logic_USER_MSG_TYPE
 	else ''
 
-_cyverse_logic_mkAVUObj(*Field, *Attr, *Val, *Unit) =
-	cyverse_json_object(
-		*Field,
-		list(
-			cyverse_json_string('attribute', *Attr),
-			cyverse_json_string('value', *Val),
-			cyverse_json_string('unit', *Unit) ) )
+_cyverse_logic_mkAVUObj(*Attr, *Val, *Unit) =
+	cyverse_json_obj(list(
+		('attribute', cyverse_json_str(*Attr)),
+		('value', cyverse_json_str(*Val)),
+		('unit', cyverse_json_str(*Unit)) ))
 
-_cyverse_logic_mkUserObj(*Field, *Name, *Zone) = cyverse_json_object(
-	*Field, list(cyverse_json_string('name', *Name), cyverse_json_string('zone', *Zone)) )
+_cyverse_logic_mkUserObj: string * string -> cyverse_json_val
+_cyverse_logic_mkUserObj(*Name, *Zone) =
+	cyverse_json_obj(list(('name', cyverse_json_str(*Name)), ('zone', cyverse_json_str(*Zone))))
 
-_cyverse_logic_mkAuthorField(*Name, *Zone) = _cyverse_logic_mkUserObj('author', *Name, *Zone)
+_cyverse_logic_mkAuthorField: string * string -> (string * cyverse_json_val)
+_cyverse_logic_mkAuthorField(*Name, *Zone) = ('author', _cyverse_logic_mkUserObj(*Name, *Zone))
 
-_cyverse_logic_mkEntityField(*Uuid) = cyverse_json_string('entity', *Uuid)
+_cyverse_logic_mkEntityField(*Uuid) = ('entity', cyverse_json_str(*Uuid))
 
-_cyverse_logic_mkPathField(*Path) = cyverse_json_string('path', "*Path")
+_cyverse_logic_mkPathField(*Path) = ('path', cyverse_json_str(str(*Path)))
 
 _cyverse_logic_resolveMsgEntityId(*EntityType, *EntityName, *ClientName, *ClientZone, *ID) {
 	if (cyverse_isFSType(*EntityType)) {
@@ -1178,7 +1203,7 @@ _cyverse_logic_resolveMsgEntityId(*EntityType, *EntityName, *ClientName, *Client
 _cyverse_logic_sendMsg(*Topic, *Msg) {
 	*exchangeArg = execCmdArg(cyverse_AMQP_EXCHANGE);
 	*topicArg = execCmdArg(*Topic);
-	*msgArg = execCmdArg(*Msg);
+	*msgArg = execCmdArg(cyverse_json_serialize(*Msg));
 	*argStr = '*exchangeArg *topicArg *msgArg';
 
 	*status = errormsg(msiExecCmd('amqp-topic-send', *argStr, cyverse_RE_HOST, '', 0, *out), *msg);
@@ -1195,22 +1220,20 @@ _cyverse_logic_sendMsg(*Topic, *Msg) {
 _cyverse_logic_sendAVUAddWildcard(
 	*DataObjPattern, *AttrName, *AttrVal, *AttrUnit, *AuthorName, *AuthorZone
 ) {
-	*msg = cyverse_json_document(
-		list(
-			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-			cyverse_json_string('pattern', *DataObjPattern),
-			_cyverse_logic_mkAVUObj('metadatum', *AttrName, *AttrVal, *AttrUnit) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		('pattern', cyverse_json_str(*DataObjPattern)),
+		('metadatum', _cyverse_logic_mkAVUObj(*AttrName, *AttrVal, *AttrUnit)) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.metadata.addw', *msg);
 }
 
 _cyverse_logic_sendAVUCp(*SrcType, *Src, *TgtType, *Tgt, *AuthorName, *AuthorZone) {
-	*msg = cyverse_json_document(
-		list(
-			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-			cyverse_json_string('source', *Src),
-			cyverse_json_string('source-type', _cyverse_logic_getMsgType(*SrcType)),
-			cyverse_json_string('destination', *Tgt) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		('source', cyverse_json_str(*Src)),
+		('source-type', cyverse_json_str(_cyverse_logic_getMsgType(*SrcType))),
+		('destination', cyverse_json_str(*Tgt)) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_getMsgType(*TgtType) ++ '.metadata.cp', *msg);
 }
@@ -1227,12 +1250,11 @@ _cyverse_logic_sendAVUMod(
 	*AuthorName,
 	*AuthorZone
 ) {
-	*msg = cyverse_json_document(
-		list(
-			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-			_cyverse_logic_mkEntityField(*Entity),
-			_cyverse_logic_mkAVUObj('old-metadatum', *OldName, *OldVal, *OldUnit),
-			_cyverse_logic_mkAVUObj('new-metadatum', *NewName, *NewVal, *NewUnit) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		_cyverse_logic_mkEntityField(*Entity),
+		('old-metadatum', _cyverse_logic_mkAVUObj(*OldName, *OldVal, *OldUnit)),
+		('new-metadatum', _cyverse_logic_mkAVUObj(*NewName, *NewVal, *NewUnit)) ) );
 
 	_cyverse_logic_sendMsg(_cyverse_logic_getMsgType(*EntityType) ++ '.metadata.mod', *msg);
 }
@@ -1240,13 +1262,12 @@ _cyverse_logic_sendAVUMod(
 _cyverse_logic_sendAVURmWildcard(
 	*EntityType, *Entity, *AttrPat, *ValPat, *UnitPat, *AuthorName, *AuthorZone
 ) {
-	*msg = cyverse_json_document(
-		list(
-			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-			_cyverse_logic_mkEntityField(*Entity),
-			cyverse_json_string('attribute-pattern', *AttrPat),
-			cyverse_json_string('value-pattern', *ValPat),
-			cyverse_json_string('unit-pattern', *UnitPat) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		_cyverse_logic_mkEntityField(*Entity),
+		('attribute-pattern', cyverse_json_str(*AttrPat)),
+		('value-pattern', cyverse_json_str(*ValPat)),
+		('unit-pattern', cyverse_json_str(*UnitPat)) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_getMsgType(*EntityType) ++ '.metadata.rmw', *msg);
 }
@@ -1254,11 +1275,10 @@ _cyverse_logic_sendAVURmWildcard(
 _cyverse_logic_sendAVUOp(
 	*Op, *EntityType, *Entity, *AttrName, *AttrVal, *AttrUnit, *AuthorName, *AuthorZone
 ) {
-	*msg = cyverse_json_document(
-		list(
-			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-			_cyverse_logic_mkEntityField(*Entity),
-			_cyverse_logic_mkAVUObj('metadatum', *AttrName, *AttrVal, *AttrUnit) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		_cyverse_logic_mkEntityField(*Entity),
+		('metadatum', _cyverse_logic_mkAVUObj(*AttrName, *AttrVal, *AttrUnit)) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_getMsgType(*EntityType) ++ '.metadata.' ++ *Op, *msg);
 }
@@ -1266,24 +1286,22 @@ _cyverse_logic_sendAVUOp(
 _cyverse_logic_sendCollACLMod(
 	*Coll, *AccessLvl, *Username, *UserZone, *Recurse, *AuthorName, *AuthorZone
 ) {
-	*msg = cyverse_json_document(
-		list(
-			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-			_cyverse_logic_mkEntityField(*Coll),
-			cyverse_json_boolean('recursive', *Recurse),
-			cyverse_json_string('permission', *AccessLvl),
-			_cyverse_logic_mkUserObj('user', *Username, *UserZone) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		_cyverse_logic_mkEntityField(*Coll),
+		('recursive', cyverse_json_bool(*Recurse)),
+		('permission', cyverse_json_str(*AccessLvl)),
+		('user', _cyverse_logic_mkUserObj(*Username, *UserZone)) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_COLL_MSG_TYPE ++ '.acl.mod', *msg);
 }
 
 _cyverse_logic_sendCollInheritMod(*Coll, *Inherit, *Recurse, *AuthorName, *AuthorZone) {
-	*msg = cyverse_json_document(
-		list(
-			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-			_cyverse_logic_mkEntityField(*Coll),
-			cyverse_json_boolean('recursive', *Recurse),
-			cyverse_json_boolean('inherit', *Inherit) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		_cyverse_logic_mkEntityField(*Coll),
+		('recursive', cyverse_json_bool(*Recurse)),
+		('inherit', cyverse_json_bool(*Inherit)) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_COLL_MSG_TYPE ++ '.acl.mod', *msg);
 }
@@ -1304,11 +1322,10 @@ _cyverse_logic_sendCollAccessMod(
 }
 
 _cyverse_logic_sendCollAdd(*Id, *Path, *AuthorName, *AuthorZone) {
-	*msg = cyverse_json_document(
-		list(
-			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-			_cyverse_logic_mkEntityField(*Id),
-			_cyverse_logic_mkPathField(*Path) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		_cyverse_logic_mkEntityField(*Id),
+		_cyverse_logic_mkPathField(*Path) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_COLL_MSG_TYPE ++ '.add', *msg);
 }
@@ -1316,12 +1333,11 @@ _cyverse_logic_sendCollAdd(*Id, *Path, *AuthorName, *AuthorZone) {
 _cyverse_logic_sendDataObjACLMod(
 	*DataObj, *AccessLvl, *Username, *UserZone, *AuthorName, *AuthorZone
 ) {
-	*msg = cyverse_json_document(
-		list(
-			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-			_cyverse_logic_mkEntityField(*DataObj),
-			cyverse_json_string('permission', *AccessLvl),
-			_cyverse_logic_mkUserObj('user', *Username, *UserZone) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		_cyverse_logic_mkEntityField(*DataObj),
+		('permission', cyverse_json_str(*AccessLvl)),
+		('user', _cyverse_logic_mkUserObj(*Username, *UserZone)) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.acl.mod', *msg);
 }
@@ -1329,24 +1345,22 @@ _cyverse_logic_sendDataObjACLMod(
 _cyverse_logic_sendDataObjAdd(
 	*Id, *Path, *OwnerName, *OwnerZone, *Size, *Type, *AuthorName, *AuthorZone
 ) {
-	*msg = cyverse_json_document(
-		list(
-			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-			_cyverse_logic_mkEntityField(*Id),
-			_cyverse_logic_mkPathField(*Path),
-			_cyverse_logic_mkUserObj('creator', *OwnerName, *OwnerZone),
-			cyverse_json_number('size', *Size),
-			cyverse_json_string('type', *Type) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		_cyverse_logic_mkEntityField(*Id),
+		_cyverse_logic_mkPathField(*Path),
+		('creator', _cyverse_logic_mkUserObj(*OwnerName, *OwnerZone)),
+		('size', cyverse_json_num(*Size)),
+		('type', cyverse_json_str(*Type)) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.add', *msg);
 }
 
 # Publish a data-object.sys-metadata.mod message to AMQP exchange
 _cyverse_logic_sendDataObjMetadataMod(*Id, *AuthorName, *AuthorZone) {
-	*msg = cyverse_json_document(
-		list(
-			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-			_cyverse_logic_mkEntityField(*Id) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		_cyverse_logic_mkEntityField(*Id) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.sys-metadata.mod', *msg);
 }
@@ -1355,31 +1369,27 @@ _cyverse_logic_sendDataObjMetadataMod(*Id, *AuthorName, *AuthorZone) {
 _cyverse_logic_sendDataObjMod(
 	*Id, *Path, *OwnerName, *OwnerZone, *Size, *Type, *AuthorName, *AuthorZone
 ) {
-	*msg = cyverse_json_document(
-		list(
-			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-			_cyverse_logic_mkEntityField(*Id),
-			_cyverse_logic_mkUserObj('creator', *OwnerName, *OwnerZone),
-			cyverse_json_number('size', *Size),
-			cyverse_json_string('type', *Type) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		_cyverse_logic_mkEntityField(*Id),
+		('creator', _cyverse_logic_mkUserObj(*OwnerName, *OwnerZone)),
+		('size', cyverse_json_num(*Size)),
+		('type', cyverse_json_str(*Type)) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.mod', *msg);
 }
 
 _cyverse_logic_sendDataObjOpen(*Id, *Path, *Size, *AuthorName, *AuthorZone) {
-	if (*AuthorName != 'anonymous') {
-		msiGetSystemTime(*timestamp, 'human');
+	msiGetSystemTime(*timestamp, 'human');
 
-		*msg = cyverse_json_document(
-			list(
-				_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-				_cyverse_logic_mkEntityField(*Id),
-				_cyverse_logic_mkPathField(*Path),
-				cyverse_json_number('size', *Size),
-				cyverse_json_string('timestamp', *timestamp) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		_cyverse_logic_mkEntityField(*Id),
+		_cyverse_logic_mkPathField(*Path),
+		('size', cyverse_json_num(*Size)),
+		('timestamp', cyverse_json_str(*timestamp)) ));
 
-		_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.open', *msg);
-	}
+	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.open', *msg);
 }
 
 _cyverse_logic_sendEntityMv(*Type, *Id, *OldPath, *NewPath, *AuthorName, *AuthorZone) {
@@ -1389,25 +1399,86 @@ _cyverse_logic_sendEntityMv(*Type, *Id, *OldPath, *NewPath, *AuthorName, *Author
 		writeLine('serverLog', 'Failed to determine message type for entity type "*Type"');
 		-1105000;  # INVALID_OBJECT_TYPE
 	} else {
-		*msg = cyverse_json_document(
-			list(
-				_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-				_cyverse_logic_mkEntityField(*Id),
-				cyverse_json_string('old-path', '*OldPath'),
-				cyverse_json_string('new-path', '*NewPath') ) );
+		*msg = cyverse_json_obj(list(
+			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+			_cyverse_logic_mkEntityField(*Id),
+			('old-path', cyverse_json_str(str(*OldPath))),
+			('new-path', cyverse_json_str(str(*NewPath))) ));
 
 		_cyverse_logic_sendMsg(*msgType ++ '.mv', *msg);
 	}
 }
 
 _cyverse_logic_sendEntityRm(*Type, *Id, *Path, *AuthorName, *AuthorZone) {
-	*msg = cyverse_json_document(
-		list(
-			_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
-			_cyverse_logic_mkEntityField(*Id),
-			_cyverse_logic_mkPathField(*Path) ) );
+	*msg = cyverse_json_obj(list(
+		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
+		_cyverse_logic_mkEntityField(*Id),
+		_cyverse_logic_mkPathField(*Path) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_getMsgType(*Type) ++ '.rm', *msg);
+}
+
+# Determine the size and type of a data object, and owner
+#
+# _cyverse_logic_retrieveDataInfo : string -> `KeyValPair_PI`
+_cyverse_logic_retrieveDataInfo(*Path) =
+	let *info.'size' = '-1' in
+	let *info.'type' = '' in
+	let *info.ownerName = '' in
+	let *info.ownerZone = '' in
+	let *collPath = '' in
+	let *dataName = '' in
+	let *_ = msiSplitPath(*Path, *collPath, *dataName) in
+	let *_ = foreach( *rec in
+			SELECT DATA_SIZE, DATA_TYPE_NAME, DATA_OWNER_NAME, DATA_OWNER_ZONE
+			WHERE COLL_NAME == *collPath AND DATA_NAME == *dataName AND DATA_REPL_STATUS == '1'
+		) {
+			*info.'size' = *rec.DATA_SIZE;
+			*info.'type' = *rec.DATA_TYPE_NAME;
+			*info.ownerName = *rec.DATA_OWNER_NAME;
+			*info.ownerZone = *rec.DATA_OWNER_ZONE;
+		} in
+	*info
+
+# Publishes a message indicating that a data object was created.
+#
+_cyverse_logic_notifyDataObjCreated(*Path, *AuthorName, *AuthorZone) {
+	*id = _cyverse_logic_getUUID(cyverse_DATA_OBJ, *Path);
+
+	if (*id != '') {
+		*info = _cyverse_logic_retrieveDataInfo(*Path);
+
+		_cyverse_logic_sendDataObjAdd(
+			*id,
+			*Path,
+			*info.ownerName,
+			*info.ownerZone,
+			double(*info.'size'),
+			*info.'type',
+			*AuthorName,
+			*AuthorZone );
+	}
+}
+
+# Publishes a message indicating that a data object was created.
+#
+# _cyverse_logic_notifyDataObjMod : string * string * string -> void
+_cyverse_logic_notifyDataObjMod(*Path, *AuthorName, *AuthorZone) {
+	*id = _cyverse_logic_getUUID(cyverse_DATA_OBJ, *Path);
+
+	if (*id != '') {
+		*info = _cyverse_logic_retrieveDataInfo(*Path);
+
+		_cyverse_logic_sendDataObjMod(
+			*AuthorName,
+			*AuthorZone,
+			*id,
+			*Path,
+			*info.ownerName,
+			*info.ownerZone,
+			double(*info.'size'),
+			*info.'type' );
+	}
 }
 
 
@@ -1590,7 +1661,7 @@ cyverse_logic_acPreProcForModifyAccessControl(*RecurseFlag, *Perm, *Username, *Z
 cyverse_logic_acPostProcForModifyAccessControl(
 	*RecurseFlag, *Perm, *Username, *UserZone, *Path, *ClientUsername, *ClientZone
 ) {
-	*me = 'ipc_acPostProcForModifyAccessControl';
+	*me = 'cyverse_logic_acPostProcForModifyAccessControl';
 	*entityId = _cyverse_logic_getId(*Path);
 
 	if (*entityId >= 0) {
@@ -1942,17 +2013,6 @@ cyverse_logic_acPostProcForCollCreate(*CollPath, *ClientUsername, *ClientZone) {
 	_cyverse_logic_sendCollAdd(*uuid, *CollPath, *ClientUsername, *ClientZone);
 }
 
-# This prevents the default collections being created for newly created groups.
-#
-# Parameters:
-#  OtherUserType  (string) the type of user being created
-#
-cyverse_logic_acCreateDefaultCollections(*OtherUserType) {
-	if (*OtherUserType != 'rodsgroup') {
-		acCreateUserZoneCollections;
-	}
-}
-
 # This rule pushes a collection.rm message into the irods exchange.
 #
 # Parameters:
@@ -1974,12 +2034,14 @@ cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName, *ClientUsername, *Cli
 # This rule pushes a collection.rm message into the irods exchange.
 #
 # Parameters:
-#  ParCollPath  (string) the absolute path to the parent collection of the
-#               collection being deleted
-#  CollName     (string) the name of collection being deleted
+#  ParCollPath     (string) the absolute path to the parent collection of the
+#                  collection being deleted
+#  CollName        (string) the name of collection being deleted
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
 #
-cyverse_logic_acDeleteCollByAdminIfPresent(*ParCollPath, *CollName) {
-	cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName);
+cyverse_logic_acDeleteCollByAdminIfPresent(*ParCollPath, *CollName, *ClientUsername, *ClientZone) {
+	cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName, *ClientUsername, *ClientZone);
 }
 
 # This rule stores the name UUID of a collection that is about to be deleted for
@@ -2072,7 +2134,7 @@ cyverse_logic_acPostProcForDelete(*DataPath, *ClientUsername, *ClientZone) {
 #  ClientUsername  (string) the client user performing the modification
 #  ClientZone      (string) the authentication zone for the client user
 #
-cyverse_logic_acPostProcForOpen(*DataPath, *ClientUsername, *ClientZone) {
+cyverse_logic_acPostProcForOpen(*DataPath, *DataSize, *ClientUsername, *ClientZone) {
 	*me = 'cyverse_logic_acPostProcForOpen';
 	*id = _cyverse_logic_getDataObjId(*DataPath);
 
@@ -2131,12 +2193,6 @@ cyverse_logic_acPostProcForParallelTransferReceived(*StoreResc) {
 	msi_update_unixfilesystem_resource_free_space(*StoreResc);
 }
 
-# Set maximum number of rule engine processes
-#
-cyverse_logic_acSetReServerNumProc {
-	msiSetReServerNumProc(str(cyverse_MAX_NUM_RE_PROCS));
-}
-
 
 #
 # DYNAMIC PEPS
@@ -2156,9 +2212,6 @@ cyverse_logic_acSetReServerNumProc {
 # 	*me = 'cyverse_logic_dataObjCreated';
 # 	*id = int(*DataObjInfo.data_id);
 # 	_cyverse_logic_registerAction(*id, *me);
-# 	*err = errormsg(_cyverse_logic_schedChksumRepl(*DataObjInfo.logical_path, 0), *msg);
-# 	if (*err < 0) { writeLine('serverLog', *msg); }
-#
 # 	*err = errormsg(_cyverse_logic_setAdmPerm(*DataObjInfo.logical_path), *msg);
 # 	if (*err < 0) { writeLine('serverLog', *msg); }
 #
@@ -2169,26 +2222,10 @@ cyverse_logic_acSetReServerNumProc {
 # 		*DataObjInfo.data_owner_name,
 # 		*DataObjInfo.data_owner_zone,
 # 		*uuid );
-#
-# 	if (_cyverse_logic_isCurrentAction(*id, *me)) {
-# 		*err = errormsg(
-# 			_cyverse_logic_sendDataObjAdd(
-# 				*uuid,
-# 				*DataObjInfo.logical_path,
-# 				*DataObjInfo.data_owner_name,
-# 				*DataObjInfo.data_owner_zone,
-# 				*DataObjInfo.data_size,
-# 				*DataObjInfo.data_type,
-# 				*Username,
-# 				*Zone ),
-# 			*msg );
-# 		if (*err < 0) { writeLine('serverLog', *msg); }
-# 	}
-#
 # 	_cyverse_logic_unregisterAction(*id, *me);
 # }
-#  Step  (string) the current step in the transfer process, one of 'FULL',
-#        'START', or 'FINISH'
+#  Step         (string) the current step in the transfer process, one of
+#               'FULL', 'START', or 'FINISH'
 #
 cyverse_logic_dataObjCreated(*Username, *Zone, *DataObjInfo, *Step) {
 	*me = 'cyverse_logic_dataObjCreated';
@@ -2200,101 +2237,22 @@ cyverse_logic_dataObjCreated(*Username, *Zone, *DataObjInfo, *Step) {
 	if (*Step != 'FINISH') {
 		*err = errormsg(_cyverse_logic_setAdmPerm(*DataObjInfo.logical_path), *msg);
 		if (*err < 0) { writeLine('serverLog', *msg); }
-# XXX - Due to a bug in iRODS 4.2.8, msiExecCmd cannot be call from within the
-#       pep_database_reg_data_obj_post before the data object's replica has been
-#       fully written to storage. This means that the _cyverse_logic_ensureUUID
-#       cannot be called when *Step is START.
-# 		_cyverse_logic_ensureUUID(
-# 			cyverse_DATA_OBJ,
-# 			*DataObjInfo.logical_path,
-# 			*DataObjInfo.data_owner_name,
-# 			*DataObjInfo.data_owner_zone,
-# 			*uuid );
-		if (*Step != 'START') {
-			_cyverse_logic_ensureUUID(
-				cyverse_DATA_OBJ,
-				*DataObjInfo.logical_path,
-				*DataObjInfo.data_owner_name,
-				*DataObjInfo.data_owner_zone,
-				*uuid );
-		}
-# XXX - ^^^
-	}
 
-	if (*Step != 'START') {
-		*err = errormsg(_cyverse_logic_schedChksumRepl(*DataObjInfo.logical_path, 0), *msg);
-		if (*err < 0) { writeLine('serverLog', *msg); }
-
-		if (*uuid == '') {
-			_cyverse_logic_ensureUUID(
-				cyverse_DATA_OBJ,
-				*DataObjInfo.logical_path,
-				*DataObjInfo.data_owner_name,
-				*DataObjInfo.data_owner_zone,
-				*uuid );
-		}
-
-		if (_cyverse_logic_isCurrentAction(*id, *me)) {
-			*err = errormsg(
-				_cyverse_logic_sendDataObjAdd(
-					*uuid,
-					*DataObjInfo.logical_path,
-					*DataObjInfo.data_owner_name,
-					*DataObjInfo.data_owner_zone,
-					*DataObjInfo.data_size,
-					*DataObjInfo.data_type,
-					*Username,
-					*Zone ),
-				*msg );
-			if (*err < 0) { writeLine('serverLog', *msg); }
-
-			_cyverse_logic_unregisterAction(*id, *me);
-		}
-	}
-}
-# XXX - ^^^
-
-# This ensures that a data object has a UUID and publishes a data object
-# modification message.
-#
-# Parameters:
-#  Username     (string) the iRODS account that modified the data object
-#  Zone         (string) the zone of the username who modified the data object
-#  DataObjInfo  (`KeyValuePair_PI`) the DATA_OBJ_INFO map for a data object
-#               modification event
-#
-cyverse_logic_dataObjMod(*Username, *Zone, *DataObjInfo) {
-	*me = 'cyverse_logic_dataObjMod';
-	*id = int(*DataObjInfo.data_id);
-	_cyverse_logic_registerAction(*id, *me);
-
-	if (_cyverse_logic_isCurrentAction(*id, *me)) {
-		*err = errormsg(
-			_cyverse_logic_schedChksumRepl(*DataObjInfo.logical_path, *DataObjInfo.replica_number),
-			*msg );
-		if (*err < 0) { writeLine('serverLog', *msg); }
-
-		*uuid = '';
 		_cyverse_logic_ensureUUID(
 			cyverse_DATA_OBJ,
 			*DataObjInfo.logical_path,
 			*DataObjInfo.data_owner_name,
 			*DataObjInfo.data_owner_zone,
 			*uuid );
+	}
 
-		_cyverse_logic_sendDataObjMod(
-			*uuid,
-			*DataObjInfo.logical_path,
-			*DataObjInfo.data_owner_name,
-			*DataObjInfo.data_owner_zone,
-			*DataObjInfo.data_size,
-			*DataObjInfo.data_type,
-			*Username,
-			*Zone );
-
-		_cyverse_logic_unregisterAction(*id, *me);
+	if (*Step != 'START') {
+		if (_cyverse_logic_isCurrentAction(*id, *me)) {
+			_cyverse_logic_unregisterAction(*id, *me);
+		}
 	}
 }
+# XXX - ^^^
 
 # This ensures that a data object has a UUID and publishes a data object
 # system metadata modification message.
@@ -2316,6 +2274,494 @@ cyverse_logic_dataObjMetaMod(*Username, *Zone, *Path) {
 			_cyverse_logic_ensureUUID(cyverse_DATA_OBJ, *Path, *Username, *Zone, *uuid);
 			_cyverse_logic_sendDataObjMetadataMod(*uuid, *Username, *Zone);
 			_cyverse_logic_unregisterAction(*id, *me);
+		}
+	}
+}
+
+
+# BULK_DATA_OBJ_PUT
+
+# CHKSUM ALGORITHM:
+#
+# If neither *BulkOpInp.regChksum nor *BulkOpInp.verifyChksum exist, calculate
+# the checksum of replica on *BulkOpInp.resc_hier for each entry of
+# *BulkOpInp.logical_path.
+#
+# DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
+#
+# If *BulkOpInp.forceFlag is not set, then all data objects are new, so publish
+# a data object add message for each one of them. Otherwise, there is no
+# difference in the contents of *BulkOpInp between when a data object is created
+# and when it is modified. For each data object, if the create time is less than
+# the modification time time, publish a data object modification message,
+# otherwise publish a data object create message.
+#
+# *BulkOpInp:
+#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#gafeecbd87f6ba164e8c1d189c42a8c93e
+#
+# N.B. This can be triggered by `iput -b -r`.
+# N.B. `-k` adds `regChksum` to BulkOpInp.
+# N.B. `-K` adds `verifyChksum` to BULKOPRINP.
+# N.B. Overwriting a replica that has a checksum clears the checksum.
+# N.B. `-X` handled transparently
+# N.B. large files are not passed through rcBulkDataObjPut
+#
+cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
+
+	# checksum policy
+	if (_cyverse_logic_needsChecksum(*BulkOpInp)) {
+		foreach (*key in *BulkOpInp) {
+			if (*key like 'logical_path_*') {
+				_cyverse_logic_ensureReplicaChecksum(
+					cyverse_getValue(*BulkOpInp, *key), cyverse_getValue(*BulkOpInp, 'resc_hier') );
+			}
+		}
+	}
+
+	# data object creation and modification message publishing policy
+	*authorName = cyverse_getValue(*Comm, 'user_user_name');
+	*authorZone = cyverse_getValue(*Comm, 'user_rods_zone');
+	*mayOverwrite = cyverse_hasKey(*BulkOpInp, 'forceFlag');
+	foreach (*key in *BulkOpInp) {
+		if (*key like 'logical_path_*') {
+			*dataPath = cyverse_getValue(*BulkOpInp, *key);
+			*idx = triml(*key, 'logical_path_');
+			if (*mayOverwrite) {
+				msiSplitPath(*dataPath, *collPath, *dataName);
+				foreach ( *rec in
+					SELECT DATA_CREATE_TIME, DATA_MODIFY_TIME
+					WHERE COLL_NAME == *collPath AND DATA_NAME == *dataName
+				) {
+					if (*rec.DATA_CREATE_TIME == *rec.DATA_MODIFY_TIME) {
+						_cyverse_logic_notifyDataObjCreated(*dataPath, *authorName, *authorZone);
+					} else {
+						_cyverse_logic_notifyDataObjMod(*dataPath, *authorName, *authorZone);
+					}
+				}
+			} else {
+				_cyverse_logic_notifyDataObjCreated(*dataPath, *authorName, *authorZone);
+			}
+		}
+	}
+}
+
+
+# BULK_DATA_OBJ_REG
+
+# N.B. This isn't used by iCommands or any official API as of iRODS 4.2.10, so
+# let's not implement it.
+#
+cyverse_logic_api_bulk_data_obj_reg_post(
+	*Instance, *Comm, *BulkDataObjRegInp, *BULK_DATA_OBJ_REG_OUT
+) {
+}
+
+
+# CHKSUM ALGORITHM:
+#
+# If neither *DataObjCopyInp.regChksum nor *DataObjCopyInp.verifyChksum exist,
+# calculate the checksum of *DataObjCopyInp.dst_obj_path on
+# *DataObjCopyInp.dst_resc_hier.
+#
+# DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
+#
+# If *DataObjCopyInp.dst_openType == 1 (CREATE) then publish a data object
+# create message, otherwise publish a data object mod message. openType of 3
+# (OPEN FOR WRITE)
+#
+# *DataObjCopyInp:
+#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#gaad62fbc609d67726e15e7330bbbdf98d
+#
+cyverse_logic_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
+	*destPath = cyverse_getValue(*DataObjCopyInp, 'dst_obj_path');
+
+	if (*destPath == '') {
+		failmsg(
+			-1,
+			'Could not determine path to created data object, (DataObjCopyInp = *DataObjCopyInp)' );
+	} else {
+
+		# checksum policy
+		if (_cyverse_logic_needsChecksum(*DataObjCopyInp)) {
+			_cyverse_logic_ensureReplicaChecksum(
+				*destPath, cyverse_getValue(*DataObjCopyInp, 'dst_resc_hier') );
+		}
+
+		# data object creation and modification message publishing policy
+		*authorName = cyverse_getValue(*Comm, 'user_user_name');
+		*authorZone = cyverse_getValue(*Comm, 'user_rods_zone');
+		if (cyverse_getValue(*DataObjCopyInp, 'dst_openType') == cyverse_FILE_CREATE) {
+			_cyverse_logic_notifyDataObjCreated(*destPath, *authorName, *authorZone);
+		} else {
+			_cyverse_logic_notifyDataObjMod(*destPath, *authorName, *authorZone);
+		}
+	}
+}
+
+
+# data_obj_create and data_obj_close are used together
+#
+# CHKSUM ALGORITHM:
+#
+# Always compute checksum. Store the path to the data object and the selected
+# resource hierarchy for its replica in temporaryStorage using the keys
+# `dataObjClose_objPath` and `dataObjClose_selectedHierarchy`, respectively.
+# Also, set the temporaryStorage key `dataObjClose_needsChecksum` to some value.
+# `data_obj_close` will use the existence of this key and the other two values
+# to compute the checksum of the indicated replica.
+#
+# DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
+#
+# Alway publish a data object create message. Store the path to the data object
+# in temporaryStorage using the key `dataObjClose_objPath`. Also, set the
+# temporaryStorage key `dataObjClose_created` to some value. `data_obj_close`
+# will use the existence of this key and the other object's path to publish a
+# data object create message.
+
+# *DataObjInp:
+#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#gab5b8db16a4951cf048e88c8538d8aa56
+#
+cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
+	temporaryStorage.dataObjClose_objPath = cyverse_getValue(*DataObjInp, 'obj_path');
+
+	# checksum policy
+	temporaryStorage.dataObjClose_selectedHierarchy = cyverse_getValue(
+		*DataObjInp, 'selected_hierarchy' );
+	temporaryStorage.dataObjClose_needsChecksum = 'checksum';
+
+	# data object creation message publishing policy
+	temporaryStorage.dataObjClose_created = 'created';
+}
+
+# N.B. This isn't used by iCommands or any official API as of iRODS 4.2.10
+#
+cyverse_logic_api_data_obj_create_and_stat_post(*Instance, *Comm, *DataObjInp, *OpenStat) {
+	cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
+}
+
+
+# data_obj_open, data_obj_write, and data_obj_close are used together
+#
+# How *DataObjInp.open_flags maps to the open mode, and what this means when
+# combined with the value of *DataObjInp.openType.
+#
+#    case open_flags)
+#       'r': do nothing
+#       'r+': a write is possible
+#       'w':
+#           no create: truncated
+#           create:  created or truncated
+#       'w+':
+#           no create: truncated
+#           create: created or truncated
+#       'a':
+#           no create: a write is possible
+#           create: possibly created and a write is possible
+#       'a+':
+#           no create: indistinct from r+
+#           create:  possibly created and a write is possible
+#
+# CHECKSUM ALGORITHM:
+#
+# A checksum can only be computed after the replica has been modified, so this
+# needs to happen in data_obj_close. Only when a change occurs does a checksum
+# need to be computed. A change won't occur if the open mode was 'r'. If the
+# mode isn't 'r', store the data object's path and the resource holding its
+# replica for use by data_obj_close. A change definitely occurred when a replica
+# is created or truncated, so if this happens, store a flag to let
+# `data_obj_close` know that it needs to perform a checksum. If a replica is
+# written to, it has also been modified, so `data_obj_write` needs to store a
+# flag to let `data_obj_close` know this has happened.
+#
+# DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
+#
+# The decision on whether or not to publish a message will occur in
+# `data_obj_close`. Only when a change occurs does a message need to be
+# published. A change won't occur if the open mode was 'r'. If the mode isn't
+# 'r', store the data object's path and for use by `data_obj_close`. A change
+# definitely occurred when a data object is created or truncated. If an object
+# is created, store a flag indicating that a create message should be published.
+# If an existing object was truncated, store a flag indicating that a modify
+# message should be published. If an object is written to, it has also been
+# modified, so `data_obj_write` needs to store the flag indicated a modify
+# message should be published. `data_obj_close` will use the flags along with
+# the path to publish the correct message.
+
+# *DataObjInp:
+#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#gab869f78a9d131b1e973d425cd1ebf1f2
+#
+cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
+	*flags = cyverse_getValue(*DataObjInp, 'open_flags');
+
+	if (*flags != cyverse_OPEN_FLAG_R) {
+		temporaryStorage.dataObjClose_objPath = cyverse_getValue(*DataObjInp, 'obj_path');
+
+		# checksum policy
+		temporaryStorage.dataObjClose_selectedHierarchy = cyverse_getValue(
+			*DataObjInp, 'selected_hierarchy' );
+		if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
+			temporaryStorage.dataObjClose_needsChecksum = 'checksum';
+		} else if (cyverse_replTruncated(*flags)) {
+			temporaryStorage.dataObjClose_needsChecksum = 'checksum';
+		}
+
+		# data object creation and modification message publishing policy
+		if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
+			temporaryStorage.dataObjClose_created = 'created';
+		} else if (cyverse_replTruncated(*flags)) {
+			temporaryStorage.dataObjClose_modified = 'modified';
+		}
+	}
+}
+
+# *DataObjWriteInp:
+#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#gaaa88dd8ad00161d5c48115bebbe6866c
+#
+cyverse_logic_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf) {
+
+	# checksum policy
+	temporaryStorage.dataObjClose_needsChecksum = 'checksum';
+
+	# data object creation and modification message publishing policy
+	temporaryStorage.dataObjClose_modified = 'modified';
+}
+
+
+# *DataObjCloseInp:
+#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#ga9dcea65009d7cc49ed0106f88540f431
+#
+cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
+	*path = cyverse_getValue(temporaryStorage, 'dataObjClose_objPath');
+
+	if (*path != '') {
+
+		# checksum policy
+		if (cyverse_getValue(temporaryStorage, 'dataObjClose_needsChecksum') != '') {
+			*resc = cyverse_getValue(temporaryStorage, 'dataObjClose_selectedHierarchy');
+			_cyverse_logic_ensureReplicaChecksum(*path, *resc);
+		}
+		temporaryStorage.dataObjClose_selectedHierarchy = '';
+		temporaryStorage.dataObjClose_needsChecksum = '';
+
+		# data object creation and modification message publishing policy
+		*authorName = cyverse_getValue(*Comm, 'user_user_name');
+		*authorZone = cyverse_getValue(*Comm, 'user_rods_zone');
+		if (cyverse_getValue(temporaryStorage, 'dataObjClose_created') != '') {
+			_cyverse_logic_notifyDataObjCreated(*path, *authorName, *authorZone);
+		} else if (cyverse_getValue(temporaryStorage, 'dataObjClose_modified') != '') {
+			_cyverse_logic_notifyDataObjMod(*path, *authorName, *authorZone);
+		}
+		temporaryStorage.dataObjClose_created = '';
+		temporaryStorage.dataObjClose_modified = '';
+
+		temporaryStorage.dataObjClose_objPath = '';
+	}
+}
+
+
+# CHKSUM ALGORITHM:
+#
+# If neither *DataObjInp.regChksum nor *DataObjInp.verifyChksum exist, calculate
+# the checksum of *DataObjInp.obj_path on *DataObjInp.resc_hier.
+#
+# DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
+#
+# If *DataObjInp.openType == 1 (CREATE) then publish a data object create
+# message, otherwise publish a data object mod message. openType of 3
+# (OPEN FOR WRITE)
+#
+# *DataObjInp:
+#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
+#
+cyverse_logic_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
+	*path = cyverse_getValue(*DataObjInp, 'obj_path');
+
+	if (*path == '') {
+		failmsg(-1, 'Could not determine path to created data object, (DataObjInp = *DataObjInp)');
+	} else {
+
+		# checksum policy
+		if (_cyverse_logic_needsChecksum(*DataObjInp)) {
+			_cyverse_logic_ensureReplicaChecksum(*path, cyverse_getValue(*DataObjInp, 'resc_hier'));
+		}
+
+		# data object creation and modification message publishing policy
+		*authorName = cyverse_getValue(*Comm, 'user_user_name');
+		*authorZone = cyverse_getValue(*Comm, 'user_rods_zone');
+		if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
+			_cyverse_logic_notifyDataObjCreated(*path, *authorName, *authorZone);
+		} else {
+			_cyverse_logic_notifyDataObjMod(*path, *authorName, *authorZone);
+		}
+	}
+}
+
+
+# CHKSUM ALGORITHM:
+#
+# If none of PhyPathRegInp.regRepl, PhyPathRegInp.regChksum, or
+# PhyPathRegInp.verifyChksum are set, calculate the checksum of replica of
+# PhyPathRegInp.obj_path on PhyPathRegInp.resc_hier.
+#
+# DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
+#
+# If PhyPathRegInp.regRepl is set, publish a data object modified message,
+# otherwise publish a data object created message.
+#
+cyverse_logic_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp) {
+
+	# checksum policy
+	if (!cyverse_hasKey(*PhyPathRegInp, 'regRepl') && _cyverse_logic_needsChecksum(*PhyPathRegInp)) {
+		_cyverse_logic_ensureReplicaChecksum(
+			cyverse_getValue(*PhyPathRegInp, 'obj_path'),
+			cyverse_getValue(*PhyPathRegInp, 'resc_hier') );
+	}
+
+	# data object creation and message publishing policy
+	*path = cyverse_getValue(*PhyPathRegInp, 'obj_path');
+	*authorName = cyverse_getValue(*Comm, 'user_user_name');
+	*authorZone = cyverse_getValue(*Comm, 'user_rods_zone');
+	if (cyverse_hasKey(*PhyPathRegInp, 'regRepl')) {
+		_cyverse_logic_notifyDataObjMod(*path, *authorName, *authorZone);
+	} else {
+		_cyverse_logic_notifyDataObjCreated(*path, *authorName, *authorZone);
+	}
+}
+
+
+# replica_open and replica_close work together.
+#
+# CHKSUM ALGORITHM:
+#
+# When replica_open_post is called, if *DataObjInp.destRescName is defined, then
+# store it and *DataObjInp.obj_path in temporaryStorage. When replica_close_post
+# is called, if destRescName and obj_path are in temporaryStorage, and
+# *JSON_INPUT.buf.compute_checksum != true, compute the checksum of obj_path.
+#
+# DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
+#
+# When replica_open_post is called, If DataObjInp.openType is defined, then
+# store it in temporaryStorage. Otherwise store it with the value 3
+# (OPEN FOR WRITE). When replica_close_post is called, read DataObjInp.openType
+# from temporaryStorage. If it is 1 (CREATE), then publish a data object add
+# message, otherwise publish a data object modified message.
+#
+# N.B. These can be triggered by istream.
+# N.B. Only `istream write` needs to be considered.
+# N.B. This can create new, overwrite existing, modify existing, and append to
+#      existing data objects.
+# N.B. This can target a specific resource, e.g., `istream write -R`, or
+#      existing replica, e.g., `istream write -n`.
+# N.B. This can create a checksum, e.g., `istream write -k`.
+# N.B. When a data object with a checksum is overwritten, modified or append
+#      to, the checksum is cleared.
+
+# *DataObjInp: https://docs.irods.org/4.2.10/doxygen/structDataObjInp.html
+#
+cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
+	*path = cyverse_getValue(*DataObjInp, 'obj_path');
+
+	if (*path != '') {
+		temporaryStorage.replica_dataObjPath = *path;
+
+		# checksum policy
+		temporaryStorage.replica_rescHier = cyverse_getValue(*DataObjInp, 'destRescName');
+
+		# data object creation and modification message publishing policy
+		temporaryStorage.replica_openType =
+			if cyverse_hasKey(*DataObjInp, 'openType') then cyverse_getValue(*DataObjInp, 'openType')
+			else cyverse_FILE_OPEN_WRITE;
+	}
+}
+
+cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput) {
+	*path = cyverse_getValue(temporaryStorage, 'replica_dataObjPath');
+
+	if (*path != '') {
+
+		# checksum policy
+		*chksumComputed = match cyverse_json_deserialize(*JsonInput.buf) with
+			| cyverse_json_deserialize_val(*input, *_) =>
+				match cyverse_json_getValue(*input, 'compute_checksum') with
+					| cyverse_json_empty => false
+					| cyverse_json_bool(*v) => *v;
+		if (!*chksumComputed) {
+			_cyverse_logic_ensureReplicaChecksum(
+				*path, cyverse_getValue(temporaryStorage, 'replica_rescHier') );
+		}
+		temporaryStorage.replica_rescHier = '';
+
+		# data object creation and modification message publishing policy
+		*authorName = cyverse_getValue(*Comm, 'user_user_name');
+		*authorZone = cyverse_getValue(*Comm, 'user_rods_zone');
+		if (cyverse_getValue(temporaryStorage, 'replica_openType') == cyverse_FILE_CREATE) {
+			_cyverse_logic_notifyDataObjCreated(*path, *authorName, *authorZone);
+		} else {
+			_cyverse_logic_notifyDataObjMod(*path, *authorName, *authorZone);
+		}
+		temporaryStorage.replica_openType = '';
+
+		temporaryStorage.replica_dataObjPath = '';
+	}
+}
+
+
+# CHKSUM ALGORITHM:
+#
+# Check to see if JSON_INPUT.buf.options.no_create is false. If it is, check to
+# see if neither options.replica_number nor options.leaf_resource_name is set.
+# If that's the case, check to see if the data object's 0 replica has a
+# checksum. If it doesn't compute its checksum.
+#
+# DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
+#
+# NB: Current PEPs will handle itouch on an existing collection or data object.
+#
+# Check to see if *JsonInput.buf.options.no_create is false. If it is, check to
+# see if neither options.replica_number nor options.leaf_resource_name is set.
+# If that's the case, publish a data object create message
+#
+cyverse_logic_api_touch_post(*Instance, *Comm, *JsonInput) {
+	*input = match cyverse_json_deserialize(*JsonInput.buf) with
+		| cyverse_json_deserialize_val(*v, *_) => *v;
+
+	*dataPath = match json_getValue(*input, 'logical_path') with
+		| cyverse_json_empty => ''
+		| cyverse_json_str(*s) => *s;
+
+	if (*dataPath != '') {
+		*options = cyverse_json_getValue(*input, 'options');
+
+		*noCreate = match json_getValue(*options, 'no_create') with
+			| cyverse_json_empty => false
+			| cyverse_json_bool(*b) => *b;
+
+		*replNumSet = match json_getValue(*options, 'replica_number') with
+			| cyverse_json_empty => false
+			| cyverse_json_num(*n) => true;
+
+		*rescNameSet = match json_getValue(*options, 'leaf_resource_name') with
+			| cyverse_json_empty => false
+			| cyverse_json_str(*_) => true;
+
+		if (!*noCreate && !*replNumSet && !*rescNameSet) {
+
+			# checksum policy
+			msiSplitPath(*dataPath, *collPath, *dataName);
+			foreach ( *rec in
+				SELECT DATA_CHECKSUM, DATA_RESC_HIER
+				WHERE COLL_NAME = *collPath AND DATA_NAME = *dataName
+			) {
+				if (*rec.DATA_CHECKSUM == '') {
+					_cyverse_logic_ensureReplicaChecksum(*dataPath, *rec.DATA_RESC_HIER);
+				}
+			}
+
+			# data object creation and modification message publishing policy
+			_cyverse_logic_notifyDataObjCreated(
+				*dataPath,
+				cyverse_getValue(*Comm, 'user_user_name'),
+				cyverse_getValue(*Comm, 'user_rods_zone') );
 		}
 	}
 }

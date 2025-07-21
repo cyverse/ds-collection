@@ -22,7 +22,7 @@ _ipcIsEncryptionRequired(*Coll) =
 
 # This rule checks if encryption is required and reject creating non-encrypted files
 _ipcEncryptionCheckEncryptionRequiredForDataObj(*Path) {
-	msiSplitPath(*Path, *parentColl, *objName);
+	msiSplitPath(str(*Path), *parentColl, *objName);
 	# check if parent coll has encryption::required avu
 	if (_ipcIsEncryptionRequired(*parentColl)) {
 		# all encrypted files will have ".enc" extension
@@ -127,9 +127,10 @@ cyverse_encryption_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
 #  Comm        (`KeyValuePair_PI`) user connection and auth information
 #  DataObjInp  (`KeyValuePair_PI`) information related to the created data
 #              object
+#  OpenStat    unknown
 #
-cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp) {
-	_ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjInp.obj_path);
+cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
+    _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjInp.obj_path);
 }
 
 # This verifies that an object is encrypted if it is being opened for
@@ -155,6 +156,19 @@ cyverse_encryption_api_data_obj_open_stat_pre(*Instance, *Comm, *DataObjInp, *Op
 	_ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjInp.obj_path);
 }
 
+
+# This verifies that an object is encrypted if it is being opened for
+# modification in a collection that requires encryption.
+#
+#  Instance    (string) unknown
+#  Comm        (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp  (`KeyValuePair_PI`) information related to the data object
+#  OpenStat    unknown
+#
+cyverse_encryption_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
+    _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjInp.obj_path);
+}
+
 # This verifies that an object is encrypted if it is being uploaded into a
 # collection that requires encryption.
 #
@@ -176,8 +190,8 @@ cyverse_encryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp) {
 #  DataObjCopyInp  (`KeyValuePair_PI`) information related to copy operation
 #  TransStat       unknown
 #
-cyverse_encryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp) {
-	_ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjCopyInp.dst_obj_path);
+cyverse_encryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
+    _ipcEncryptionCheckEncryptionRequiredForDataObj(*DataObjCopyInp.dst_obj_path);
 }
 
 # This verifies that an object is encrypted if it is being moved into a

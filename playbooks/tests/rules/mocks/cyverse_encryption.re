@@ -8,11 +8,11 @@ cyverse_encryption_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
 	writeLine('serverLog', "cyverse_encryption_api_coll_create_post called");
 }
 
-cyverse_encryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp) {
+cyverse_encryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 	writeLine('serverLog', "cyverse_encryption_api_data_obj_copy_pre called");
 }
 
-cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp) {
+cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 	writeLine('serverLog', "cyverse_encryption_api_data_obj_create_and_stat_pre called");
 }
 

@@ -9,27 +9,34 @@
 from os import path
 import unittest
 
+import test_rules
 from test_rules import IrodsTestCase
 
-from irods.exception import CAT_SQL_ERR, CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME
 from irods.models import Collection, CollectionAccess, CollectionUser, DataAccess, DataObject, User
+
+
+def setUpModule():  # pylint: disable=invalid-name
+    """Set up main module"""
+    test_rules.setUpModule()
+
+
+def tearDownModule():  # pylint: disable=invalid-name
+    """Tear down main module"""
+    test_rules.tearDownModule()
 
 
 class CogeTestCase(IrodsTestCase):
     """Base class for coge.re rule tests."""
 
+    def __init__(self, method: str):
+        super().__init__(method)
+        self._coge_user = "coge"
+        self._coge_coll_path = "/testing/home/rods/coge_data"
+
     def setUp(self):
         """Create coge user and coge_data collection."""
         super().setUp()
-        self._coge_user = "coge"
-        self._coge_coll_path = "/testing/home/rods/coge_data"
-        try:
-            self.irods.users.create(self._coge_user, "rodsuser")
-        except CAT_SQL_ERR as e:
-            if not str(e).endswith('CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME'):
-                raise e
-        except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
-            pass
+        self.ensure_user_exists(self._coge_user)
         self.irods.collections.create(self._coge_coll_path)
 
     def tearDown(self):
@@ -64,12 +71,15 @@ class TestCogeAcpostprocforcollcreate(CogeTestCase):
 class TestCogeAcpostprocforobjrename(CogeTestCase):
     """Test the rule coge_acPostProcForObjRename."""
 
-    def setUp(self):
-        """Create a data object outside of coge_data and move it inside."""
-        super().setUp()
+    def __init__(self, method: str):
+        super().__init__(method)
         self._data_name = "test_data"
         self._orig_data_path = path.join("/testing/home/rods", self._data_name)
         self._new_data_path = path.join(self.coge_coll_path, self._data_name)
+
+    def setUp(self):
+        """Create a data object outside of coge_data and move it inside."""
+        super().setUp()
         self.irods.data_objects.create(self._orig_data_path)
         self.irods.data_objects.move(self._orig_data_path, self._new_data_path)
 
@@ -94,11 +104,14 @@ class TestCogeAcpostprocforobjrename(CogeTestCase):
 class TestCogeDataobjcreated(CogeTestCase):
     """Test the rule coge_dataObjCreated."""
 
+    def __init__(self, method: str):
+        super().__init__(method)
+        self._data_name = "test_data"
+        self._data_path = path.join(self.coge_coll_path, self._data_name)
+
     def setUp(self):
         """Create a data object inside of coge_data."""
         super().setUp()
-        self._data_name = "test_data"
-        self._data_path = path.join(self.coge_coll_path, self._data_name)
         self.irods.data_objects.create(self._data_path)
 
     def tearDown(self):

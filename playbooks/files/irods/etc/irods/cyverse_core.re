@@ -56,14 +56,13 @@ acCreateCollByAdmin(*ParColl, *ChildColl) {
 	cyverse_logic_acCreateCollByAdmin(*ParColl, *ChildColl, $userNameClient, $rodsZoneClient);
 }
 
-# This rule administratively creates the default collections for a newly created
-# user.
+# This rule administrative creates a user's home and trash collections.
 #
 # Session Variables:
 #  otherUserType
 #
-acCreateDefaultCollections {
-	cyverse_logic_acCreateDefaultCollections($otherUserType);
+acCreateUserZoneCollections {
+	on ($otherUserType == 'rodsgroup') {}
 }
 
 # This rule applies the project specific data delete policies.
@@ -107,8 +106,14 @@ acDeleteCollByAdmin(*ParColl, *ChildColl) {
 #             collection being deleted
 #  ChildColl  (string) the name of collection being deleted
 #
+# Session Variables:
+#  rodsZoneClient
+#  userNameClient
+#
 acDeleteCollByAdminIfPresent(*ParColl, *ChildColl) {
-	*status = errormsg(cyverse_logic_acDeleteCollByAdminIfPresent(*ParColl, *ChildColl), *msg);
+	*status = errormsg(
+		cyverse_logic_acDeleteCollByAdminIfPresent(*ParColl, *ChildColl, $userNameClient, $rodsZoneClient),
+		*msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
 
 	*status = errormsg(msiDeleteCollByAdmin(*ParColl, *ChildColl), *msg);
@@ -147,11 +152,10 @@ acSetRescSchemeForRepl {
 	ipcRepl_acSetRescSchemeForRepl($objPath);
 }
 
-# This rule sets the default resource selection schema for replication of an
-# existing data object.
+# Set maximum number of rule engine processes
 #
 acSetReServerNumProc {
-	cyverse_logic_acSetReServerNumProc;
+	msiSetReServerNumProc(str(cyverse_MAX_NUM_RE_PROCS));
 }
 
 
@@ -551,6 +555,41 @@ acPostProcForRmColl {
 
 ## API ##
 
+# BULK_DATA_OBJ_PUT
+
+# This is the post processing logic for when files are uploaded using a
+# BULK_DATA_OBJ_PUT request.
+#
+# Parameters:
+#  Instance       (string) unknown
+#  Comm           (`KeyValuePair_PI`) user connection and auth information
+#  BulkOpInp      (`KeyValuePair_PI`) information related to the bulk upload
+#  BulkOpInpBBuf  (unknown) may contain the contents of the uploaded files
+#
+pep_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
+	cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf);
+}
+
+
+# BULK_DATA_OBJ_REG
+
+# This is the post processing logic for when the replicas of a group of data
+# objects through the API using a BULK_DATA_OBJ_PUT request.
+#
+# Parameters:
+#  Instance               (string) unknown
+#  Comm                   (`KeyValuePair_PI`) user connection and auth
+#                         information
+#  BulkDataObjRegInp      (`KeyValuePair_PI`) information related to the bulk
+#                         replica registration
+#  BULK_DATA_OBJ_REG_OUT  unknown
+#
+pep_api_bulk_data_obj_reg_post(*Instance, *Comm, *BulkDataObjRegInp, *BULK_DATA_OBJ_REG_OUT) {
+	cyverse_logic_api_bulk_data_obj_reg_post(
+		*Instance, *Comm, *BulkDataObjRegInp, *BULK_DATA_OBJ_REG_OUT);
+}
+
+
 # COLL_CREATE
 
 # This is the post processing logic for when a collection is created through the
@@ -567,6 +606,21 @@ pep_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
 }
 
 
+# DATA_OBJ_CLOSE
+
+# This is the post processing logic for when a DATA_OBJ_CLOSE request.
+#
+# Parameters:
+#  Instance         (string) unknown
+#  Comm             (`KeyValuePair_PI`) user connection and auth information
+#  DataObjCloseInp  (`KeyValuePair_PI`) information related to the data object
+#                   close request
+#
+pep_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
+	cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp);
+}
+
+
 # DATA_OBJ_COPY
 
 # This is the pre processing logic for when an attempt is made to copy a data
@@ -579,7 +633,7 @@ pep_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
 #  TransStat       unknown
 #
 pep_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
-	cyverse_encryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp)
+	cyverse_encryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat);
 }
 
 # This is the post processing logic for when a data object is copied through the
@@ -592,6 +646,7 @@ pep_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 #  TransStat       unknown
 #
 pep_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
+	cyverse_logic_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat);
 	ipcTrash_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat);
 }
 
@@ -621,6 +676,7 @@ pep_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
 #              object
 #
 pep_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
+	cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
 	ipcTrash_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
 }
 
@@ -636,9 +692,25 @@ pep_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 #  Comm        (`KeyValuePair_PI`) user connection and auth information
 #  DataObjInp  (`KeyValuePair_PI`) information related to the created data
 #              object
+#  OpenStat    unknown
 #
 pep_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp);
+	cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat);
+}
+
+# This is the post processing logic for when an attempt is made to create a data
+# object and stat its replica through the API using a DATA_OBJ_CREATE_AND_STAT
+# request.
+#
+# Parameters:
+#  Instance    (string) unknown
+#  Comm        (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp  (`KeyValuePair_PI`) information related to the created data
+#              object
+#  OpenStat    unknown
+#
+pep_api_data_obj_create_and_stat_post(*Instance, *Comm, *DataObjInp, *OpenStat) {
+	cyverse_logic_api_data_obj_create_and_stat_post(*Instance, *Comm, *DataObjInp, *OpenStat);
 }
 
 
@@ -654,6 +726,18 @@ pep_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 #
 pep_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
 	cyverse_encryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp);
+}
+
+# This is the post processing logic for when an attempt is made to open a data
+# object through the API using a DATA_OBJ_OPEN request.
+#
+# Parameters:
+#  Instance    (string) unknown
+#  Comm        (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp  (`KeyValuePair_PI`) information related to the data object
+#
+pep_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
+	cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp);
 }
 
 
@@ -700,6 +784,8 @@ pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL
 #  PORTAL_OPR_OUT  unknown
 #
 pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
+	cyverse_logic_api_data_obj_put_post(
+		*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT);
 	ipcTrash_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT);
 }
 
@@ -776,6 +862,69 @@ pep_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp) {
 }
 
 
+# DATA_OBJ_WRITE
+
+# This is the post processing logic for when a DATA_OBJ_WRITE request happened.
+#
+# Parameters:
+#  Instance             (string) unknown
+#  Comm                 (`KeyValuePair_PI`) user connection and auth information
+#  DataObjWriteInp      (`KeyValuePair_PI`) information about the write request
+#  DataObjWriteInpBBuf  (unknown) the contents that were added to the object
+#
+pep_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf) {
+	cyverse_logic_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf);
+}
+
+
+# PHY_PATH_REG
+
+# This is the post processing logic for when a physical path is registered as a
+# replica of a data object through the API using a DATA_OBJ_PHY_PATH_REG
+# request.
+#
+# Parameters:
+#  Instance       (string) unknown
+#  Comm           (`KeyValuePair_PI`) user connection and auth information
+#  PhyPathRegInp  (`KeyValuePair_PI`) information related to the physical path
+#                 registration
+#
+pep_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp) {
+	cyverse_logic_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp)
+}
+
+
+# REPLICA_CLOSE
+
+# This is the post processing logic for when a data object replica is closed
+# through the API using a REPLICA_CLOSE request.
+#
+# Parameters:
+#  Instance   (string) unknown
+#  Comm       (`KeyValuePair_PI`) user connection and auth information
+#  JsonInput  (string) a JSON-serialized description of the replica change
+#
+pep_api_replica_close_post(*Instance, *Comm, *JsonInput) {
+	cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput);
+}
+
+
+# REPLICA_OPEN
+
+# This is the post processing logic for when a data object replica is opened
+# through the API using a REPLICA_OPEN request.
+#
+# Parameters:
+#  Instance     (string) unknown
+#  Comm         (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp   (`KeyValuePair_PI`) information about the data object
+#  JSON_OUTPUT  unknown
+#
+pep_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
+	cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
+}
+
+
 # RM_COLL
 
 # This is the pre processing logic for when an attempt is made to delete a
@@ -823,6 +972,21 @@ pep_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp) {
 	# StructFileExtAndRegInp variable is not properly serialized due to a bug in iRODS < v4.3
 	# Github issue: https://github.com/irods/irods/issues/7413
 	#cyverse_encryption_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp);
+}
+
+
+# TOUCH
+
+# This is the post processing logic for when a data object is acted upon through
+# the API using a TOUCH request.
+#
+# Parameters:
+#  Instance   (string) unknown
+#  Comm       (`KeyValuePair_PI`) user connection and auth information
+#  JsonInput  (string) a JSON-serialized description of the touch request
+#
+pep_api_touch_post(*Instance, *Comm, *JsonInput) {
+	cyverse_logic_api_touch_post(*Instance, *Comm, *JsonInput);
 }
 
 
@@ -906,6 +1070,7 @@ _cyverse_core_dataObjMetadataModified(*User, *Zone, *Object) {
 	cyverse_logic_dataObjMetaMod(*User, *Zone, *Object);
 }
 
+
 # CLOSE
 
 # The rule handles the post-processing logic for when a database connection is
@@ -939,8 +1104,6 @@ pep_database_close_post(*Instance, *Context, *OUT) {
 # 		msiString2KeyValPair(*doiStr, *doi);
 # 		if (*op == 'CREATE') {
 # 			_cyverse_core_dataObjCreated(*user, *zone, *doi);
-# 		} else if (*op == 'MODIFY') {
-# 			_cyverse_core_dataObjModified(*user, *zone, *doi);
 # 		}
 # 	}
 }
@@ -1019,28 +1182,6 @@ pep_database_mod_data_obj_meta_post(*Instance, *Context, *OUT, *DataObjInfo, *Re
 			if errorcode(temporaryStorage.'*pathVar') != 0 then true
 			else ! (temporaryStorage.'*pathVar' like 'CREATE *')
 		) {
-			# If RegParam.allReplStatus is TRUE, then this is a modification and not
-			# a replica update.
-			if (
-				if errorcode(*RegParam.allReplStatus) != 0 then false
-				else *RegParam.allReplStatus == 'TRUE'
-			) {
-# XXX - Because of https://github.com/irods/irods/issues/5540,
-# _cyverse_core_dataObjModified needs to be called here
-# # XXX - Because of https://github.com/irods/irods/issues/5538, the Context
-# # variables need to passed through temporaryStorage
-# # 				temporaryStorage.'*pathVar' = 'MODIFY *DataObjInfo';
-# 				temporaryStorage.'*pathVar'
-# 					= 'MODIFY '
-# 					++ *Context.user_user_name
-# 					++ ' '
-# 					++ *Context.user_rods_zone
-# 					++ ' *DataObjInfo';
-# # XXX - ^^^
-				_cyverse_core_dataObjModified(
-					*Context.user_user_name, *Context.user_rods_zone, *DataObjInfo );
-# XXX - ^^^
-			}
 			*handled = true;
 		}
 	}

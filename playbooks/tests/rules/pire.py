@@ -8,7 +8,7 @@
 
 import unittest
 
-from irods.exception import CUT_ACTION_PROCESSED_ERR
+from irods.exception import SYS_INVALID_RESC_INPUT
 
 from test_rules import IrodsTestCase, IrodsVal
 
@@ -33,14 +33,6 @@ class TestPireIsforpire(IrodsTestCase):
         for p in IrodsTestCase.prep_path("/testing/home/rods"):
             with self.subTest(p=p):
                 self.fn_test("_pire_isForPire", [p], IrodsVal.boolean(False))
-
-
-class TestPireReplbelongsto(IrodsTestCase):
-    """Test pire_replBelongsTo"""
-
-    def test(self):
-        """Since this is a pass through function, just verify that it doesn't error out"""
-        self.fn_test("pire_replBelongsTo", [IrodsVal.path("/testing")], IrodsVal.boolean(False))
 
 
 class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
@@ -73,7 +65,7 @@ class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
         """
         try:
             self.irods.data_objects.create("/testing/home/shared/bhpire/pire", resource="ingestRes")
-        except CUT_ACTION_PROCESSED_ERR:
+        except SYS_INVALID_RESC_INPUT:
             self.fail()
 
     def test_pire_res_not_coll(self):
@@ -83,7 +75,7 @@ class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
         """
         try:
             self.irods.data_objects.create("/testing/home/rods/pire", resource="ingestRes")
-        except CUT_ACTION_PROCESSED_ERR:
+        except SYS_INVALID_RESC_INPUT:
             self.fail()
 
     def test_not_res_pire_coll(self):
@@ -93,7 +85,7 @@ class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
         """
         try:
             self.irods.data_objects.create("/testing/home/rods/other", resource="replRes")
-        except CUT_ACTION_PROCESSED_ERR:
+        except SYS_INVALID_RESC_INPUT:
             self.fail()
 
     def test_not_res_nor_coll(self):
@@ -103,7 +95,7 @@ class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
         """
         try:
             self.irods.data_objects.create("/testing/home/shared/bhpire/other", resource="replRes")
-        except CUT_ACTION_PROCESSED_ERR:
+        except SYS_INVALID_RESC_INPUT:
             self.fail()
 
 
@@ -130,7 +122,7 @@ class TestPepResourceResolveHierarchyPrePireResNotDefault(IrodsTestCase):
         """
         try:
             self.irods.data_objects.create("/testing/home/shared/bhpire/pire", resource="pireRes")
-        except CUT_ACTION_PROCESSED_ERR:
+        except SYS_INVALID_RESC_INPUT:
             self.fail()
 
     def test_pire_res_not_coll(self):
@@ -141,7 +133,7 @@ class TestPepResourceResolveHierarchyPrePireResNotDefault(IrodsTestCase):
         try:
             self.irods.data_objects.create("/testing/home/rods/pire", resource="pireRes")
             self.fail()
-        except CUT_ACTION_PROCESSED_ERR:
+        except SYS_INVALID_RESC_INPUT:
             pass
 
     def test_not_res_pire_coll(self):
@@ -152,7 +144,7 @@ class TestPepResourceResolveHierarchyPrePireResNotDefault(IrodsTestCase):
         try:
             self.irods.data_objects.create(
                 "/testing/home/shared/bhpire/other", resource="ingestRes")
-        except CUT_ACTION_PROCESSED_ERR:
+        except SYS_INVALID_RESC_INPUT:
             self.fail()
 
     def test_not_res_nor_coll(self):
@@ -162,7 +154,7 @@ class TestPepResourceResolveHierarchyPrePireResNotDefault(IrodsTestCase):
         """
         try:
             self.irods.data_objects.create("/testing/home/rods/other", resource="ingestRes")
-        except CUT_ACTION_PROCESSED_ERR:
+        except SYS_INVALID_RESC_INPUT:
             self.fail()
 
 

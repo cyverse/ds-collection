@@ -10,23 +10,24 @@ import enum
 from enum import Enum
 from os import environ, path
 import pprint
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 from unittest import TestCase
 
-from irods.exception import CAT_NO_ROWS_FOUND
+from irods.access import iRODSAccess
 from irods.message import RErrorStack
+from irods.models import User
 from irods.rule import Rule
 from irods.session import iRODSSession
 from paramiko import AutoAddPolicy, SSHClient
 from scp import SCPClient
 
 
-_IRODS_HOST = environ.get("IRODS_HOST", '')
-_IRODS_PORT = int(environ.get("IRODS_PORT", 0))
-_IRODS_ZONE_NAME = environ.get("IRODS_ZONE_NAME")
-_IRODS_USER_NAME = environ.get("IRODS_USER_NAME")
+_IRODS_HOST = environ.get("IRODS_HOST", "localhost")
+_IRODS_PORT = int(environ.get("IRODS_PORT", 1247))
+_IRODS_ZONE_NAME = environ.get("IRODS_ZONE_NAME", "tempZone")
+_IRODS_USER_NAME = environ.get("IRODS_USER_NAME", "anonymous")
 
-IRODS_PASSWORD = environ.get("IRODS_PASSWORD")
+IRODS_PASSWORD = environ.get("IRODS_PASSWORD", "")
 
 
 _Setup = False  # pylint: disable=invalid-name
@@ -36,7 +37,7 @@ def setUpModule():  # pylint: disable=invalid-name
     """Prepares the testing env for testing"""
     global _Setup  # pylint: disable=global-statement
     _place_mocks()
-    _clear_rods_log()
+    clear_rods_log()
     _Setup = True
 
 
@@ -47,7 +48,8 @@ def tearDownModule():  # pylint: disable=invalid-name
     _remove_mocks()
 
 
-def _clear_rods_log():
+def clear_rods_log():
+    """Deletes the contents of the iRODS test log"""
     with _connect_ssh() as ssh:
         _, stdout, _ = ssh.exec_command(
             'truncate --size=0 /var/lib/irods/log/test_mode_output.log')
@@ -67,7 +69,8 @@ def _remove_mocks():
     with _connect_ssh() as ssh:
         with _connect_scp(ssh) as scp:
             orig_path = path.join(
-                path.dirname(__file__), '../../../var/lib/irods/msiExecCmd_bin/amqp-topic-send')
+                path.dirname(__file__),
+                '../../files/irods/var/lib/irods/msiExecCmd_bin/amqp-topic-send')
 
             scp.put(orig_path, '/var/lib/irods/msiExecCmd_bin')
 
@@ -92,12 +95,13 @@ class IrodsType(Enum):
     """This class encodes values as a given iRODS type for passing to an iRODS rule."""
 
     BOOLEAN = enum.auto()
+    INTEGER = enum.auto()
     NONE = enum.auto()
     PATH = enum.auto()
     STRING = enum.auto()
     STRING_LIST = enum.auto()
 
-    def format(self, value: Optional[str]) -> Optional[str]:
+    def format(self, value: Any) -> Optional[str]:
         """
         formats a value for iRODS rule base on its type
 
@@ -111,6 +115,8 @@ class IrodsType(Enum):
             return None
         if self == IrodsType.BOOLEAN:
             return str(value).lower()
+        if self == IrodsType.INTEGER:
+            return str(value)
         if self == IrodsType.NONE:
             return None
         if self == IrodsType.PATH:
@@ -128,7 +134,7 @@ class IrodsVal:
     """This holds a value to pass into an iRODS rule."""
 
     @staticmethod
-    def boolean(val: bool):
+    def boolean(val: bool) -> "IrodsVal":
         """
         Construct an iRODS Boolean.
 
@@ -136,22 +142,35 @@ class IrodsVal:
             val  a Boolean value
 
         Return:
-            An _IrodsVal of type _IrodsType.BOOL
+            An IrodsVal of type IrodsType.BOOLEAN
         """
         return IrodsVal(IrodsType.BOOLEAN, val)
 
     @staticmethod
-    def none():
+    def integer(val: int) -> "IrodsVal":
+        """
+        Construct an iRODS integer.
+
+        Parameters:
+            val  an integer
+
+        Return:
+            An IrodsVal of type IrodsType.INTEGER
+        """
+        return IrodsVal(IrodsType.INTEGER, val)
+
+    @staticmethod
+    def none() -> "IrodsVal":
         """
         Construct an empty result
 
         Return:
-            An _IrodsVal of type _IrodsType.NONE
+            An IrodsVal of type IrodsType.NONE
         """
         return IrodsVal(IrodsType.NONE, None)
 
     @staticmethod
-    def path(irods_path: str):
+    def path(irods_path: str) -> "IrodsVal":
         """
         Construct an iRODS path.
 
@@ -159,12 +178,12 @@ class IrodsVal:
             irods_path  the value of the path to construct
 
         Return:
-            An _IrodsVal of type _IrodsType.PATH
+            An IrodsVal of type IrodsType.PATH
         """
         return IrodsVal(IrodsType.PATH, irods_path)
 
     @staticmethod
-    def string(val: str):
+    def string(val: str) -> "IrodsVal":
         """
         Construct an iRODS string.
 
@@ -172,12 +191,12 @@ class IrodsVal:
             val  the value of the string to construct
 
         Return:
-            An _IrodsVal of type _IrodsType.STRING
+            An IrodsVal of type IrodsType.STRING
         """
         return IrodsVal(IrodsType.STRING, val)
 
     @staticmethod
-    def string_list(val: list[str]):
+    def string_list(val: list[str]) -> "IrodsVal":
         """
         Construct an iRODS list of strings
 
@@ -185,7 +204,7 @@ class IrodsVal:
             val  the python list of strings to convert
 
         Returns
-            an _IrodsVal of type _IrodsType.STRING_LIST
+            an IrodsVal of type IrodsType.STRING_LIST
         """
         return IrodsVal(IrodsType.STRING_LIST, val)
 
@@ -303,10 +322,20 @@ class IrodsTestCase(TestCase):
         Parameters:
             obj_path  the absolute path to the data object
         """
-        try:
+        if self.irods.data_objects.exists(obj_path):
+            self.irods.acls.set(iRODSAccess('own', obj_path, 'rods'), admin=True)
             self.irods.data_objects.unlink(obj_path, force=True)
-        except CAT_NO_ROWS_FOUND:
-            pass
+
+    def ensure_user_exists(self, username: str, password: Optional[str] = None) -> None:
+        """
+        Ensures that a user exists
+        """
+        result = self.irods.query().count(User.id).filter(User.name == username).one()
+        if int(result[User.id]) == 0:
+            if password is None:
+                self.irods.users.create(username, 'rodsuser')
+            else:
+                self.irods.users.create_with_password(username, password)
 
     def reload_rules(self) -> None:
         """Reloads the iRODS rule engine."""
