@@ -138,9 +138,6 @@
         name: irods-database-plugin-postgres
         state: present
 
-    - name: Install plugins
-      ansible.builtin.import_tasks: tasks/irods/install_plugins.yml
-
     - name: Ensure iRODS ownership
       ansible.builtin.import_tasks: tasks/irods/ensure_irods_ownership.yml
 
