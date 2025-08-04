@@ -3,7 +3,7 @@ ansible-lint
 dnspython
 docker
 jsonschema
-molecule<25       # molecule 25 breaks collection path determination
+molecule<25        # molecule 25 breaks collection path determination
 molecule-plugins
 netaddr
 paramiko

@@ -37,7 +37,8 @@ RUN \
 	printf 'Package: irods-*\nPin: version 4.3.1\nPin-Priority: 1001\n' \
 		> /etc/apt/preferences.d/irods
 	apt-get update
-	apt-get --yes install irods-server
+	apt-get --yes install \
+		irods-netcdf-client_modules irods-netcdf-icommands irods-netcdf-server_modules irods-server
 	python3 -m pip install python-irodsclient
 
 ### Configure iRODS

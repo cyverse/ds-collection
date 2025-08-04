@@ -129,11 +129,17 @@
             state: present
 
 
-    - name: Install iRODS S3 resource plugin
+    - name: Install optional iRODS modules
       ansible.builtin.package:
-        name: irods-resource-plugin-s3
+        name: "{{ item }}"
         state: present
       notify: Restart iRODS if needed
+      loop:
+        - irods-netcdf-client_modules
+        - irods-netcdf-icommands
+        - irods-netcdf-server_modules
+        - irods-resource-plugin-s3
+
 
     - name: Ensure iRODS attempts to start on boot
       ansible.builtin.service:

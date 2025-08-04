@@ -43,6 +43,9 @@ RUN \
 	yum --assumeyes versionlock add \
 		irods-database-plugin-postgres-4.3.1 \
 		irods-icommands-4.3.1 \
+		irods-netcdf-client_modules-4.3.1.0 \
+		irods-netcdf-icommands-4.3.1.0 \
+		irods-netcdf-server_modules-4.3.1.0 \
 		irods-runtime-4.3.1 \
 		irods-server-4.3.1
 # XXX - python3-pyodbc required by irods-server but not available as system package in CentOS 7
@@ -54,7 +57,12 @@ RUN \
 #       CentOS 7, 4.3.1
 	yum --assumeyes install irods-icommands
 # XXX - ^^^
-	yum --assumeyes install irods-server irods-database-plugin-postgres
+	yum --assumeyes install \
+		irods-database-plugin-postgres \
+		irods-netcdf-client_modules \
+		irods-netcdf-icommands \
+		irods-netcdf-server_modules \
+		irods-server
 
 ### Install libraries required by command scripts
 	pip3 install pika==1.1
