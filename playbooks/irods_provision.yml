@@ -53,6 +53,9 @@
 #           community.general.yum_versionlock:
 #             name:
 #               - irods-icommands-{{ _irods_version }}
+#               - irods-netcdf-client_modules-{{ _irods_version }}.*
+#               - irods-netcdf-icommands-{{ _irods_version }}.*
+#               - irods-netcdf-server_modules-{{ _irods_version }}.*
 #               - irods-resource-plugin-s3-{{ _irods_version }}.*
 #               - irods-runtime-{{ _irods_version }}
 #               - irods-server-{{ _irods_version }}
@@ -68,6 +71,7 @@
             - irods-*-{{ _irods_version }}
    # XXX - yum versionlock on some CentOS 7 systems doesn't find irods-*-4.2.8.*
    #          - irods-*-{{ _irods_version }}.*
+            - irods-netcdf-*-{{ _irods_version }}.*
             - irods-resource-*-{{ _irods_version }}.*
    # XXX - ^^^
           tags: skip_ansible_lint
