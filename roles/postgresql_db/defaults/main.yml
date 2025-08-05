@@ -1,4 +1,9 @@
 ---
-postgresql_db_admin_user: postgres
+postgresql_db_admin_username: postgres
+
+postgresql_db_client_hosts: []
+
+postgresql_db_dbms_pg_hba: /etc/postgresql/12/main/pg_hba.conf
 postgresql_db_dbms_port: 5432
+
 postgresql_db_name: postgres

@@ -9,3 +9,4 @@
   when: irods_cfg_restart_allowed
   cyverse.ds.irods_ctl:
     state: restarted_if_running
+    test_log: "{{ irods_cfg_test_log }}"

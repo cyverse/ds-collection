@@ -1,0 +1,60 @@
+{# Generates a davrods configuration
+
+   Parameters:
+    exposedRoot  the place in iRODS to act as the root of the WebDAV repo
+    htmlHead     the name of the HTML head file used in collection listings
+    requires     (optional) a list of requirements that must be met to grant
+                 access to the requested collection or data object. Each
+                 requirement must be formatted in a way understandable by
+                 Apache's Require directive.
+
+   This macro requires the template's context.
+ #}
+{% macro davrods(exposedRoot, htmlHead, requires=[]) -%}
+DirectoryIndex disabled
+
+{%   if requires | length == 0 %}
+AuthType None
+
+Require all granted
+
+Dav davrods-nolocks
+
+DavRodsAnonymousMode On
+DavRodsAnonymousLogin "anonymous" ""
+{%   else %}
+AuthType Basic
+AuthName {{ _webdav_auth_name }}
+AuthBasicProvider irods
+
+{%     if requires | length > 1 %}
+<RequireAll>
+{%       for require in requires %}
+  Require {{ require }}
+{%       endfor %}
+</RequireAll>
+{%     else %}
+Require {{ requires[0] }}
+{%     endif %}
+
+Dav davrods-locallock
+
+{%   endif %}
+DavRodsEnvFile /etc/httpd/irods/irods_environment.json
+DavRodsServer {{ _webdav_irods_host }} {{ _webdav_irods_port }}
+DavRodsZone {{ _webdav_irods_zone }}
+DavRodsExposedRoot {{ exposedRoot }}
+DavRodsRxBufferKbs 32768
+DavRodsHtmlHead /etc/httpd/irods/{{ htmlHead }}
+
+# Enable tickets, and automatically append '?ticket=...' to links in web browser directory listings.
+DavrodsTickets ReadOnly
+DavrodsHtmlEmitTickets On
+
+Header set Vary Authorization
+
+# if request is made by clients other than web-browser, let them download the file
+<If "-z %{HTTP_ACCEPT} || %{HTTP_ACCEPT} == '*/*' " >
+  ForceType application/octet-stream
+</If>
+{%- endmacro %}

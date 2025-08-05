@@ -53,6 +53,103 @@ cyverse_rmPrefix(*Orig, *Prefixes) =
 
 
 #
+# These are functions for inspecting `KeyValPair_PI` objects
+#
+
+# Tests to see if the given map contains the given key
+#
+# Parameters:
+#  KVMap  the map being inspected
+#  Key    the key to check for
+#
+cyverse_hasKey: `KeyValPair_PI` * string -> boolean
+cyverse_hasKey(*KVMap, *Key) = errorcode(*KVMap.'*Key') == 0
+
+
+# Retrieves the value of the given key from the given map. If the key isn't
+# found, it returns the empty string.
+#
+# Parameters:
+#  KVMap  the map being inspected
+#  Key    the key used to lookup the value
+#
+cyverse_getValue: `KeyValPair_PI` * string -> string
+cyverse_getValue(*KVMap, *Key) = if cyverse_hasKey(*KVMap, *Key) then *KVMap.'*Key' else ''
+
+
+#
+# File Modes
+#
+
+# Indicates that a file was created
+cyverse_FILE_CREATE: string
+cyverse_FILE_CREATE = '1'
+
+# Indicates that a file was opened for writing
+cyverse_FILE_OPEN_WRITE: string
+cyverse_FILE_OPEN_WRITE = '3'
+
+
+#
+# File Open Flags
+#
+
+# Indicates that a replica's open mode is 'r', i.e., read-only
+cyverse_OPEN_FLAG_R: string
+cyverse_OPEN_FLAG_R = '0'
+
+# Indicates that a replica's open mode is 'r+' or 'a+' no create, i.e.,
+# read-write, where writes append.
+cyverse_OPEN_FLAG_RP: string
+cyverse_OPEN_FLAG_RP = '2'
+
+# Indicates that a replicas's open mode is 'w' no create, i.e., write-only,
+# where the replica is truncated.
+cyverse_OPEN_FLAG_W: string
+cyverse_OPEN_FLAG_W = '513'
+
+# Indicates that a replica's open mode is 'w' create, i.e., write-only, where
+# the replica need not exist, but if it does, it will be truncated.
+cyverse_OPEN_FLAG_W_CREATE: string
+cyverse_OPEN_FLAG_W_CREATE = '577'
+
+# Indicates that a replica's open mode is 'w+' no create, i.e., read-write,
+# where the replica is truncated.
+cyverse_OPEN_FLAG_WP: string
+cyverse_OPEN_FLAG_WP = '514'
+
+# Indicates that a replica's open mode is 'w+' create, i.e., read-write, where
+# the replica need not exist, but if it does, it will be truncated.
+cyverse_OPEN_FLAG_WP_CREATE: string
+cyverse_OPEN_FLAG_WP_CREATE = '578'
+
+# Indicates that a replica's open mode is 'a' no create, i.e., write-only, where
+# writes append.
+cyverse_OPEN_FLAG_A: string
+cyverse_OPEN_FLAG_A = '1'
+
+# Indicates that a replica's open mode is 'a' create, i.e., write-only, where
+# the replica need not exist and writes append.
+cyverse_OPEN_FLAG_A_CREATE: string
+cyverse_OPEN_FLAG_A_CREATE = '65'
+
+# Indicates that a replica's open mode is 'a+' create, i.e., read-write, where
+# the replica need not exist and writes append.
+cyverse_OPEN_FLAG_AP_CREATE: string
+cyverse_OPEN_FLAG_AP_CREATE = '66'
+
+# Determines if a data object was truncated on open.
+#
+# Parameters:
+#  OpenFlags  the open flag set
+#
+cyverse_replTruncated: string -> boolean
+cyverse_replTruncated(*OpenFlags) =
+	*OpenFlags == cyverse_OPEN_FLAG_W || *OpenFlags == cyverse_OPEN_FLAG_W_CREATE ||
+	*OpenFlags == cyverse_OPEN_FLAG_WP || *OpenFlags == cyverse_OPEN_FLAG_WP_CREATE
+
+
+#
 # These are the constants used by iRODS to identity the type of an entity.
 #
 
@@ -130,15 +227,14 @@ cyverse_getEntityType: forall X in {path string}, X -> string
 cyverse_getEntityType(*Entity) =
 	let *entity = str(*Entity) in
 	let *type = '' in
-	if errormsg(msiGetObjType(*entity, *type), *err) < 0
-	then let *_ = writeLine('serverLog', 'cyverse_getEntityType(*entity) -> *err') in ''
+	let *ec = errormsg(msiGetObjType(*entity, *type), *err) in
+	if *ec < 0 then let *_ = writeLine('serverLog', 'msiGetObjType(*entity) -> *ec: "*err"') in ''
 	else
 		if cyverse_isColl(*type) then cyverse_COLL
 		else if cyverse_isDataObj(*type) then cyverse_DATA_OBJ
 		else if cyverse_isResc(*type) then cyverse_RESC
 		else if cyverse_isUser(*type) then cyverse_USER
 		else *type
-
 
 # This function checks to see if a collection or data object is inside a user
 # collection managed by a service.
@@ -165,7 +261,7 @@ cyverse_isForSvc(*SvcUser, *SvcColl, *Path) =
 #  SvcUser   the iRODS user name used by the service
 #  Perm      the permission to grant. It should be 'null', 'read', 'write', or
 #            'own'.
-#  CollPath  the path to the collection of begin given write access to
+#  CollPath  the path to the collection of begin given access to
 #
 cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath) {
 	*path = str(*CollPath);
@@ -179,7 +275,7 @@ cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath) {
 #  SvcUser  the iRODS user name used by the service
 #  Perm     the permission to grant. It should be 'null', 'read', 'write', or
 #           'own'.
-#  ObjPath  the path to the data object of begin given write access to
+#  ObjPath  the path to the data object of begin given access to
 #
 cyverse_giveAccessDataObj(*SvcUser, *Perm, *ObjPath) {
 	*path = str(*ObjPath);
@@ -247,8 +343,8 @@ cyverse_ensureAccessOnMv(*SvcUser, *SvcColl, *Perm, *OldPath, *NewPath) {
 	}
 }
 
-
-# This rule sets a protected AVU on an entity as a rodsadmin user.
+# This rule sets a protected AVU on an entity as a rodsadmin user. The user that
+# caused the setting of the AVU needs at least read permission on the Entity.
 #
 # PARAMETERS:
 #  Entity  the name of a resource or user or the path of a collection or data

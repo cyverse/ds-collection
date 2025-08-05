@@ -26,18 +26,6 @@
           iadmin lg | grep --quiet --regexp='^pire$'
       changed_when: false
 
-    - name: Test create public collection
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: ils /testing/home/shared/eht &> /dev/null
-      changed_when: false
-
-    - name: Test create project collection
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: ils /testing/home/shared/bhpire &> /dev/null
-      changed_when: false
-
     - name: Verify PIRE manager is in PIRE group
       ansible.builtin.shell:
         executable: /bin/bash
@@ -46,10 +34,30 @@
           iadmin lg pire | grep --quiet --regexp='^pire_mgr#testing$'
       changed_when: false
 
-    - name: Verify project collection exists
+    - name: Verify collections exist
       ansible.builtin.shell:
         executable: /bin/bash
-        cmd: ils /testing/home/shared/bhpire &> /dev/null
+        cmd: ils '{{ item }}' &> /dev/null
+      loop:
+        - /testing/home/shared/eht
+        - /testing/home/shared/bhpire
+      changed_when: false
+
+    - name: Verify collections assigned to PIRE resource
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          num="$(iquest \
+            '%s' \
+            "select count(META_RESC_ATTR_ID)
+              where RESC_NAME = 'pireRes'
+                and META_RESC_ATTR_NAME = 'ipc::hosted-collection'
+                and META_RESC_ATTR_VALUE = '{{ item }}'
+                and META_RESC_ATTR_UNITS = 'required'" )"
+          (( num == 1 ))
+      loop:
+        - /testing/home/shared/eht
+        - /testing/home/shared/bhpire
       changed_when: false
 
     - name: Test give PIRE manager own permission on project collection

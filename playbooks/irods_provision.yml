@@ -48,7 +48,7 @@
           changed_when: resp.stdout is regex('^changed')
 
         - name: CentOS | lock irods packages to required version
-# XXX - yum_versionlock version 9.2.0 will not lock packages that are not installed unlike the
+# XXX - yum_versionlock version 10.6.0 will not lock packages that are not installed unlike the
 # `yum versionlock` command
 #           community.general.yum_versionlock:
 #             name:
@@ -60,16 +60,12 @@
 #               - irods-runtime-{{ _irods_version }}
 #               - irods-server-{{ _irods_version }}
 #             state: present
-# # XXX - Due to https://github.com/ansible-collections/community.general/issues/4470, this isn't
-# # idempotent.
-#           tags: non_idempotent
-# # XXX - ^^^
           ansible.builtin.command: yum versionlock add {{ item }}
           register: resp
           changed_when: 'resp.stdout is not regex("versionlock added: 0")'
           loop:
             - irods-*-{{ _irods_version }}
-   # XXX - yum versionlock on some CentOS 7 systems doesn't find irods-*-4.2.8.*
+   # XXX - yum versionlock on some CentOS 7 systems doesn't find irods-*-4.3.1.*
    #          - irods-*-{{ _irods_version }}.*
             - irods-netcdf-*-{{ _irods_version }}.*
             - irods-resource-*-{{ _irods_version }}.*
@@ -171,7 +167,7 @@
 
   handlers:
     - name: Restart iRODS if needed
-      when: _irods_restart
+      when: _irods_restart_allowed
       ansible.builtin.include_tasks: tasks/irods/restart.yml
       vars:
         restart_op: if running

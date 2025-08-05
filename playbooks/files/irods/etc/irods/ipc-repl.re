@@ -1,6 +1,23 @@
 # Replication logic
 #
-# Replication is controlled by AVUs attached to relevant root resources.
+# All data objects belong to at least on resource. The resource a data object's
+# primary replica belongs to depends on the data object's parent collection. The
+# resource residency policy for a given collection is either assigned to the
+# collection by an AVU or to one of its ancestral collections, with the policy
+# attached to its most recent ancestor taking precedent. Depending on the policy
+# attached to the parent collection, a user may force the primary replica to be
+# stored on a specific resource. By default, the primary replica is stored on
+# CyVerseRes.
+#
+# A data object may be replicated to a second resource. This may automatically
+# happen asynchronously, or a user may manually replicate the object
+# synchronously. Whether or not replication is allowed, and whether or not it
+# happens automatically depend on policy attached to the resource where its
+# primary replica is stored. All data stored on the CyVerseRes are automatically
+# asynchronously replicated to taccRes.
+#
+# All policy controlling replica residency and replication are controlled by the
+# following AVUs.
 #
 # ipc::hosted-collection COLL (forced|preferred)
 #  When attached to a resource RESC, this AVU indicates that data objects that
@@ -261,7 +278,7 @@ _repl_syncReplicas(*Object) {
       if (*dataSize > 1048576) {  # 1 MiB
         *idArg = execCmdArg(*Object);
         *replNumArg = execCmdArg(str(*replNum));
-        *sizeArg = execCmdArg(trimr(str(*dataSize), '.'));
+        *sizeArg = execCmdArg(trimr(str(*dataSize), "."));
         *argv = "*idArg *replNumArg *sizeArg";
         *err = errormsg(msiExecCmd('correct-size', *argv, "", "", "", *out), *msg);
 
@@ -618,42 +635,20 @@ _repl_findReplResc(*Resc) {
 #  SourceObject  (path) the absolute path to the collection or data object
 #                before it was moved
 #  DestObject    (path) the absolute path after it was moved
-
-# DEPRECATED
-_old_replEntityRename(*SourceObject, *DestObject) {
-  on (pire_replBelongsTo(/*DestObject)) {
-    if (!pire_replBelongsTo(/*SourceObject)) {
-      _scheduleMoves(*DestObject, pire_replIngestResc, pire_replReplResc);
-    }
-  }
-}
-_old_replEntityRename(*SourceObject, *DestObject) {
-  on (pire_replBelongsTo(/*SourceObject)) {
-    _scheduleMoves(*DestObject, _defaultIngestResc, _defaultReplResc);
-  }
-}
-# DEPRECATION NOTE: When the conditional versions are ready to be deleted, merge this into
-#                   replEntityRename.
-_old_replEntityRename(*SourceObject, *DestObject) {
-  (*srcResc, *_) = _repl_findResc(*SourceObject);
-
-  if (*srcResc != cyverse_DEFAULT_RESC) {
-    _repl_scheduleMoves(*DestObject, cyverse_DEFAULT_RESC, cyverse_DEFAULT_REPL_RESC);
-  }
-}
-
+#
 replEntityRename(*SourceObject, *DestObject) {
   (*destResc, *_) = _repl_findResc(*DestObject);
+  (*srcResc, *_) = _repl_findResc(*SourceObject);
 
   if (*destResc != cyverse_DEFAULT_RESC) {
-    (*srcResc, *_) = _repl_findResc(*SourceObject);
-
     if (*srcResc != *destResc) {
       (*destRepl, *_) = _repl_findReplResc(*destResc);
       _repl_scheduleMoves(*DestObject, *destResc, *destRepl);
     }
   } else {
-    _old_replEntityRename(*SourceObject, *DestObject);
+    if (*srcResc != cyverse_DEFAULT_RESC) {
+      _repl_scheduleMoves(*DestObject, cyverse_DEFAULT_RESC, cyverse_DEFAULT_REPL_RESC);
+    }
   }
 }
 
@@ -661,26 +656,21 @@ replEntityRename(*SourceObject, *DestObject) {
 # This rule ensures that the correct resource is chosen for first replica of a
 # newly created data object.
 #
-# Session Variables:
-#  objPath
+# Parameters:
+#  DataPath  (path) the path to the data object being created
 
 # DEPRECATED
-_ipcRepl_acSetRescSchemeForCreate {
-  on (pire_replBelongsTo(/$objPath)) {
-    _setDefaultResc(pire_replIngestResc);
-  }
-}
-_ipcRepl_acSetRescSchemeForCreate {
+_ipcRepl_acSetRescSchemeForCreate(*DataPath) {
   _setDefaultResc(_defaultIngestResc);
 }
 
-ipcRepl_acSetRescSchemeForCreate {
-  (*resc, *residency) = _repl_findResc($objPath);
+ipcRepl_acSetRescSchemeForCreate(*DataPath) {
+  (*resc, *residency) = _repl_findResc(*DataPath);
 
   if (*resc != cyverse_DEFAULT_RESC) {
     msiSetDefaultResc(*resc, *residency);
   } else {
-    _ipcRepl_acSetRescSchemeForCreate;
+    _ipcRepl_acSetRescSchemeForCreate(*DataPath);
   }
 }
 
@@ -688,41 +678,34 @@ ipcRepl_acSetRescSchemeForCreate {
 # This rule ensures that the correct resource is chosen for the second and
 # subsequent replicas of a data object.
 #
-# Session Variables:
-#  objPath
+# Parameters:
+#  DataPath  (path) the path to the data object being replicated
 
 # DEPRECATED
-_ipcRepl_acSetRescSchemeForRepl {
-  on (pire_replBelongsTo(/$objPath)) {
-    _setDefaultResc(pire_replReplResc);
-  }
-}
-_ipcRepl_acSetRescSchemeForRepl {
+_ipcRepl_acSetRescSchemeForRepl(*DataPath) {
   _setDefaultResc(_defaultReplResc);
 }
 
-ipcRepl_acSetRescSchemeForRepl {
+ipcRepl_acSetRescSchemeForRepl(*DataPath) {
   if (
     if errorcode(temporaryStorage.repl_replicate) < 0 then true
     else temporaryStorage.repl_replicate != 'REPL_FORCED_REPL_RESC'
   ) {
-    (*resc, *_) = _repl_findResc($objPath);
+    (*resc, *_) = _repl_findResc(*DataPath);
 
     if (*resc != cyverse_DEFAULT_RESC) {
       (*repl, *residency) = _repl_findReplResc(*resc);
       msiSetDefaultResc(*repl, *residency);
     } else {
-      _ipcRepl_acSetRescSchemeForRepl;
+      _ipcRepl_acSetRescSchemeForRepl(*DataPath);
     }
   }
 }
 
 
+# This rule ensures that uploaded files are replicated.
 
 # DEPRECATED
-_ipcRepl_put_old(*ObjPath, *DestResc, *New) {
-  on (pire_replBelongsTo(/*ObjPath)) {}
-}
 _ipcRepl_put_old(*ObjPath, *DestResc, *New) {
   _ipcRepl_createOrOverwrite_old(*ObjPath, *DestResc, *New, _defaultIngestResc, _defaultReplResc);
 }

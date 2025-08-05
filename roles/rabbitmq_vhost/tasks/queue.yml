@@ -1,0 +1,41 @@
+---
+# EXPECTED VARS:
+#
+# queue:
+#   name:                     required
+#   arguments:                optional
+#   auto_delete:              optional
+#   auto_expires:             optional
+#   bindings:                 optional
+#   dead_letter_exchange:     optional
+#   dead_letter_routing_key:  optional
+#   durable:                  optional
+#   max_length:               optional
+#   message_ttl:              optional
+#   state:                    optional
+
+- name: Queue | configure {{ queue.name }}
+  community.rabbitmq.rabbitmq_queue:
+    login_port: "{{ rabbitmq_vhost_mgmt_port | d(omit) }}"
+    login_user: "{{ rabbitmq_vhost_admin_username | d(omit) }}"
+    login_password: "{{ rabbitmq_vhost_admin_password | d(omit) }}"
+    vhost: "{{ rabbitmq_vhost_name }}"
+    name: "{{ queue.name }}"
+    state: "{{ queue.state | d(queue_default.state) }}"
+    auto_delete: "{{ queue.auto_delete | d(omit) }}"
+    auto_expires: "{{ queue.auto_expires | d(omit) }}"
+    dead_letter_exchange: "{{ queue.dead_letter_exchange | d(omit) }}"
+    dead_letter_routing_key: "{{ queue.dead_letter_routing_key | d(omit) }}"
+    durable: "{{ queue.durable | d(omit) }}"
+    max_length: "{{ queue.max_length | d(omit) }}"
+    message_ttl: "{{ queue.message_ttl | d(omit) }}"
+    arguments: "{{ queue.arguments | d(omit) }}"
+  no_log: true
+
+- name: Queue | bind
+  when: queue.state|d(queue_default.state) == "present"
+  ansible.builtin.include_tasks: bind.yml
+  vars:
+    destination: "{{ queue.name }}"
+    destination_type: queue
+    bindings: "{{ queue.bindings | d(queue_default.bindings) }}"

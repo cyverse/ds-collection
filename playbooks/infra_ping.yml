@@ -1,0 +1,7 @@
+---
+- name: Check ansible connectivity to hosts
+  hosts: all:!unmanaged_systems
+  gather_facts: false
+  tasks:
+    - name: Gather facts
+      ansible.builtin.setup:

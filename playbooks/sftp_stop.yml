@@ -1,0 +1,12 @@
+---
+- name: Stop the SFTP services
+  hosts: sftp
+  become: true
+  tags:
+    - no_testing
+  tasks:
+    - name: Stop sftpgo
+      ansible.builtin.service:
+        name: sftpgo
+        state: stopped
+        enabled: false

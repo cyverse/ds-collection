@@ -1,0 +1,30 @@
+---
+- name: Stop the WebDAV services
+  hosts: webdav
+  become: true
+  tags:
+    - no_testing
+  tasks:
+    - name: Stop purgeman
+      ansible.builtin.service:
+        name: purgeman
+        state: stopped
+        enabled: false
+
+    - name: Stop apache
+      ansible.builtin.service:
+        name: httpd
+        state: stopped
+        enabled: false
+
+    - name: Stop varnishncsa
+      ansible.builtin.service:
+        name: varnishncsa
+        state: stopped
+        enabled: false
+
+    - name: Stop varnish
+      ansible.builtin.service:
+        name: varnish
+        state: stopped
+        enabled: false

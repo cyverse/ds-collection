@@ -5,6 +5,47 @@
   become_user: "{{ _irods_service_account_name }}"
   run_once: true
   tasks:
+    - name: Ensure the rodsadmin group exists
+      become: false
+      delegate_to: localhost
+      cyverse.ds.irods_group:
+        group: rodsadmin
+        state: present
+        host: "{{ groups['irods_catalog'][0] }}"
+        port: "{{ _irods_zone_port }}"
+        admin_user: "{{ _irods_clerver_user }}"
+        admin_password: "{{ _irods_clerver_password }}"
+        zone: "{{ _irods_zone_name }}"
+
+    - name: Ensure the primary clerver account belongs to rodsadmin
+      become: false
+      delegate_to: localhost
+      cyverse.ds.irods_group_member:
+        group: rodsadmin
+        users:
+          - "{{ _irods_clerver_user }}"
+        state: present
+        host: "{{ groups['irods_catalog'][0] }}"
+        port: "{{ _irods_zone_port }}"
+        admin_user: "{{ _irods_clerver_user }}"
+        admin_password: "{{ _irods_clerver_password }}"
+        zone: "{{ _irods_zone_name }}"
+
+    - name: Ensure the rodsadmin home and trash folders don't exist
+      become: false
+      delegate_to: localhost
+      cyverse.ds.irods_collection:
+        path: /{{ _irods_zone_name }}/{{ item }}
+        state: absent
+        host: "{{ groups['irods_catalog'][0] }}"
+        port: "{{ _irods_zone_port }}"
+        admin_user: "{{ _irods_clerver_user }}"
+        admin_password: "{{ _irods_clerver_password }}"
+        zone: "{{ _irods_zone_name }}"
+      loop:
+        - home/rodsadmin
+        - trash/home/rodsadmin
+
     - name: Ensure public group's home is correct
       become: false
       delegate_to: localhost
@@ -17,12 +58,12 @@
         admin_password: "{{ _irods_clerver_password }}"
         zone: "{{ _irods_zone_name }}"
 
-    - name: Ensure public group's trash is correct
+    - name: Ensure public group's trash doesn't exist
       become: false
       delegate_to: localhost
-      cyverse.ds.irods_move:
-        source: /{{ _irods_zone_name }}/trash/home/public
-        destination: /{{ _irods_zone_name }}/trash/home/shared
+      cyverse.ds.irods_collection:
+        path: /{{ _irods_zone_name }}/trash/home/public
+        state: absent
         host: "{{ groups['irods_catalog'][0] }}"
         port: "{{ _irods_zone_port }}"
         admin_user: "{{ _irods_clerver_user }}"
@@ -62,8 +103,6 @@
         - /{{ _irods_zone_name }}/trash
         - /{{ _irods_zone_name }}/trash/home
         - /{{ _irods_zone_name }}/trash/home/{{ _irods_clerver_user }}
-        - /{{ _irods_zone_name }}/trash/home/shared
-
 
     - name: Initialize rodsadmin perms
       when: init_rodsadmin_perms | d(false)
@@ -80,7 +119,7 @@
             port: "{{ _irods_zone_port }}"
             admin_user: "{{ _irods_clerver_user }}"
             admin_password: "{{ _irods_clerver_password }}"
-          with_items:
+          loop:
             - /{{ _irods_zone_name }}
             - /{{ _irods_zone_name }}/home
             - /{{ _irods_zone_name }}/trash
@@ -97,7 +136,7 @@
             port: "{{ _irods_zone_port }}"
             admin_user: "{{ _irods_clerver_user }}"
             admin_password: "{{ _irods_clerver_password }}"
-          with_items:
+          loop:
             - /{{ _irods_zone_name }}/home
             - /{{ _irods_zone_name }}/trash/home
 
@@ -126,7 +165,7 @@
         admin_user: "{{ _irods_clerver_user }}"
         admin_password: "{{ _irods_clerver_password }}"
         zone: "{{ _irods_zone_name }}"
-      with_items:
+      loop:
         - /{{ _irods_zone_name }}
         - /{{ _irods_zone_name }}/home
         - /{{ _irods_zone_name }}/home/shared

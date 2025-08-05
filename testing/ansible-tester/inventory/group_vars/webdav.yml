@@ -1,10 +1,14 @@
 ---
+webdav_amqp_host: "{{ groups['amqp'][0] }}"
+
 webdav_cache_dir: /cache_vol
 webdav_cache_size: 500
 webdav_cache_max_file_size: 10
 
-webdav_purgeman_irods_user: rods
-webdav_purgeman_irods_password: password
+webdav_irods_username: rods
+webdav_irods_password: password
+
+webdav_restart_allowed: true
 
 webdav_tls_chain: "{{ tls_root_cert }}"
 webdav_tls_chain_file: /etc/httpd/testing.crt

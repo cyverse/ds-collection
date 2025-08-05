@@ -1,0 +1,77 @@
+---
+- name: Configure | ensure enough vm huge pages
+  ansible.posix.sysctl:
+    name: vm.nr_hugepages
+    value: "{{ postgresql_num_huge_pages }}"
+    state: present
+    sysctl_set: true
+  notify:
+    - Reboot
+  tags:
+    - no_testing
+
+- name: Configure | ensure vm.swappiness is 5
+  ansible.posix.sysctl:
+    name: vm.swappiness
+    value: '5'
+    state: present
+    sysctl_set: true
+  tags:
+    - no_testing
+
+- name: Configure | ensure postgres user owns home dir
+  ansible.builtin.file:
+    path: /var/lib/postgresql
+    state: directory
+    owner: postgres
+    group: postgres
+    recurse: true
+
+- name: Configure | ensure archive dir exists
+  ansible.builtin.file:
+    state: directory
+    path: "{{ postgresql_db_path }}/archive"
+    owner: postgres
+    group: postgres
+    mode: "0770"
+
+- name: Configure | ensure config dir exists
+  ansible.builtin.file:
+    state: directory
+    path: "{{ postgresql_conf_path }}/conf.d"
+    owner: postgres
+    group: postgres
+    mode: u+rx
+
+- name: Configure | template configs
+  ansible.builtin.template:
+    src: cyverse.conf.j2
+    dest: "{{ postgresql_conf_path }}/conf.d/cyverse.conf"
+    owner: postgres
+    group: postgres
+    mode: "0640"
+  notify:
+    - Restart postgres
+
+- name: Configure | ensure replication access access
+  community.postgresql.postgresql_pg_hba:
+    dest: "{{ postgresql_pg_hba }}"
+    contype: host
+    databases: replication
+    users: "{{ postgresql_replication_username }}"
+    source: "{{ item if item | ansible.utils.ipaddr else lookup('dig', item) }}/32"
+    method: md5
+  notify:
+    - Reload postgres
+  loop: >-
+    {{ [ postgresql_upstream_node ] + postgresql_downstream_nodes if postgresql_upstream_node else
+      postgresql_downstream_nodes }}
+
+- name: Configure | template pgpass file
+  ansible.builtin.template:
+    src: pgpass.j2
+    dest: /var/lib/postgresql/.pgpass
+    owner: postgres
+    group: postgres
+    mode: "0600"
+  when: postgresql_upstream_node or postgresql_downstream_nodes|length > 0

@@ -1,0 +1,98 @@
+---
+- name: Configure | retrieve facts
+  ansible.builtin.setup:
+
+- name: Configure | allowing proxy to listen on stats port
+  when: ansible_selinux.status == 'enabled'
+  community.general.seport:
+    ports: "{{ haproxy_stats_port }}"
+    proto: tcp
+    setype: tor_port_t
+
+- name: Configure | enabling SELinux booleans for proxy
+  when: ansible_selinux.status == 'enabled'
+  ansible.posix.seboolean:
+    name: haproxy_connect_any
+    state: true
+    persistent: true
+
+- name: Configure | configure rsyslog to listen on UDP socket
+  ansible.builtin.blockinfile:
+    path: /etc/rsyslog.conf
+    insertafter: "# Provides UDP syslog reception"
+    marker: "# {mark} DS MANAGED BLOCK (haproxy)"
+    block: |
+      $ModLoad imudp
+      $UDPServerRun 514
+      $UDPServerAddress 127.0.0.1
+  notify:
+    - Restart rsyslog
+
+- name: Configure | place rsyslog config for HAProxy
+  ansible.builtin.copy:
+    src: rsyslog-haproxy.conf
+    dest: "{{ haproxy_rsyslog_conf }}"
+    mode: u+r
+  notify:
+    - Restart rsyslog
+
+- name: Configure | place logrotate config for HAProxy
+  ansible.builtin.copy:
+    src: logrotate-haproxy
+    dest: /etc/logrotate.d/haproxy
+    mode: u+r
+
+- name: Configure | add TLS certificates
+  ansible.builtin.copy:
+    dest: "{{ haproxy_stats_tls_crt }}"
+    content: "{{ haproxy_stats_tls_crt_content }}"
+    mode: a+r
+  no_log: true
+  when:
+    - haproxy_stats_tls_crt | d(False)
+    - haproxy_stats_tls_crt_content | d(False)
+  notify:
+    - Reload haproxy
+
+- name: Configure | place static address lists
+  ansible.builtin.copy:
+    dest: /etc/haproxy/{{ item.file }}
+    owner: haproxy
+    mode: u+r
+    content: |
+      #
+      # Ansible managed
+      #
+
+      {% for h in item.addresses %}
+      {{  h if h|ansible.utils.ipaddr else lookup('dig', h) }}
+      {% endfor %}
+  loop:
+    - file: allow.lst
+      addresses: "{{ haproxy_allow_client_hosts }}"
+    - file: block.lst.template
+      addresses: "{{ haproxy_block_client_hosts }}"
+    - file: vip.lst
+      addresses: "{{ haproxy_vip_client_hosts }}"
+  notify:
+    - Reload haproxy
+
+- name: Configure | ensure block list exists
+  ansible.builtin.copy:
+    remote_src: true
+    src: /etc/haproxy/block.lst.template
+    dest: /etc/haproxy/block.lst
+    owner: haproxy
+    mode: u+r
+    force: false
+  notify:
+    - Restart haproxy
+
+- name: Configure | place haproxy config file
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    owner: haproxy
+    mode: u=r
+  notify:
+    - Reload haproxy

@@ -1,0 +1,105 @@
+---
+- name: Prepare for PostgreSQL
+  hosts: dbms
+  become: true
+  roles:
+    - role: adfinis_sygroup.grub
+      vars:
+        grub_console: false
+        grub_consoles: []
+        grub_serial: []
+        grub_timeout: 0
+        grub_disable_network_predictable_interface_names: false
+        grub_cmdline_linux_default_list:
+          - transparent_hugepage=never
+      tags: no_testing
+
+- name: Set up primary DBMS
+  hosts: dbms_primary
+  become: true
+  gather_facts: false
+  vars:
+    effective_cache_size: >-
+      {{ _dbms_effective_cache_size if _dbms_effective_cache_size else
+        (ansible_facts['memtotal_mb']|int // (2 * 1024)) }}GB
+    max_worker_processes: >-
+      {{ _dbms_max_worker_processes if _dbms_max_worker_processes else
+        ansible_facts['processor_nproc'] }}
+  roles:
+    - role: cyverse.ds.postgresql
+      vars:
+        postgresql_checkpoint_completion_target: "{{ _dbms_checkpoint_completion_target }}"
+        postgresql_checkpoint_timeout: "{{ _dbms_checkpoint_timeout }}min"
+        postgresql_effective_cache_size: "{{ effective_cache_size }}"
+        postgresql_extra_listen_addresses: "{{ ansible_facts['all_ipv4_addresses'] }}"
+        postgresql_listen_port: "{{ _dbms_port }}"
+        postgresql_log_line_prefix: "{{ _dbms_log_line_prefix }}"
+        postgresql_log_min_duration_statement: "{{ _dbms_log_min_duration }}"
+        postgresql_maintenance_work_mem: "{{ _dbms_maintenance_work_mem }}GB"
+        postgresql_max_connections: "{{ _dbms_max_connections }}"
+        postgresql_max_wal_size: "{{ _dbms_max_wal_size }}GB"
+        postgresql_min_wal_size: "{{ _dbms_min_wal_size }}GB"
+        postgresql_pg_hba: "{{ _dbms_pg_hba }}"
+        postgresql_random_page_cost: "{{ _dbms_random_page_cost }}"
+        postgresql_replication_password: "{{ _dbms_replication_password }}"
+        postgresql_replication_username: "{{ _dbms_replication_username }}"
+        postgresql_shared_buffers: "{{ ansible_facts['memtotal_mb']|int // 4 }}MB"
+        postgresql_standard_conforming_strings: 'off'
+        postgresql_work_mem: "{{ _dbms_work_mem }}MB"
+        postgresql_effective_io_concurrency: "{{ _dbms_effective_io_concurrency }}"
+        postgresql_max_worker_processes: "{{ max_worker_processes }}"
+        postgresql_max_parallel_workers: "{{ max_worker_processes }}"
+        postgresql_max_parallel_workers_per_gather: "{{ _dbms_max_parallel_workers_per_gather }}"
+        postgresql_max_parallel_maintenance_workers: "{{ _dbms_max_parallel_maintenance_workers }}"
+        postgresql_wal_buffers: 16MB
+        postgresql_num_huge_pages: "{{ _dbms_mem_num_huge_pages }}"
+        postgresql_huge_pages: "{{ 'on' if _dbms_mem_num_huge_pages|int > 0 else 'off' }}"
+        postgresql_downstream_nodes: "{{ groups['dbms_replicas'] }}"
+        postgresql_wal_keep_segments: "{{ _dbms_wal_keep_segments }}"
+        postgresql_restart_allowed: "{{ _dbms_restart_allowed }}"
+        postgresql_reboot_allowed: "{{ _dbms_reboot_allowed }}"
+
+- name: Set up replica DBMSs
+  hosts: dbms_replicas
+  become: true
+  gather_facts: false
+  vars:
+    effective_cache_size: >-
+      {{ _dbms_effective_cache_size if _dbms_effective_cache_size else
+        (ansible_facts['memtotal_mb']|int // (2 * 1024)) }}GB
+    max_worker_processes: >-
+      {{ _dbms_max_worker_processes if _dbms_max_worker_processes else
+        ansible_facts['processor_nproc'] }}
+  roles:
+    - role: cyverse.ds.postgresql
+      vars:
+        postgresql_checkpoint_completion_target: "{{ _dbms_checkpoint_completion_target }}"
+        postgresql_checkpoint_timeout: "{{ _dbms_checkpoint_timeout }}min"
+        postgresql_destroy_default_db_on_init: "{{ _dbms_replication_start }}"
+        postgresql_effective_cache_size: "{{ effective_cache_size }}"
+        postgresql_extra_listen_addresses: "{{ ansible_facts['all_ipv4_addresses'] }}"
+        postgresql_listen_port: "{{ _dbms_port }}"
+        postgresql_log_line_prefix: "{{ _dbms_log_line_prefix }}"
+        postgresql_log_min_duration_statement: "{{ _dbms_log_min_duration }}"
+        postgresql_maintenance_work_mem: "{{ _dbms_maintenance_work_mem }}GB"
+        postgresql_max_connections: "{{ _dbms_max_connections }}"
+        postgresql_max_wal_size: "{{ _dbms_max_wal_size }}GB"
+        postgresql_min_wal_size: "{{ _dbms_min_wal_size }}GB"
+        postgresql_pg_hba: "{{ _dbms_pg_hba }}"
+        postgresql_random_page_cost: "{{ _dbms_random_page_cost }}"
+        postgresql_replication_password: "{{ _dbms_replication_password }}"
+        postgresql_replication_username: "{{ _dbms_replication_username }}"
+        postgresql_shared_buffers: "{{ ansible_facts['memtotal_mb']|int // 4 }}MB"
+        postgresql_standard_conforming_strings: 'off'
+        postgresql_work_mem: "{{ _dbms_work_mem }}MB"
+        postgresql_effective_io_concurrency: "{{ _dbms_effective_io_concurrency }}"
+        postgresql_max_worker_processes: "{{ max_worker_processes }}"
+        postgresql_max_parallel_workers: "{{ max_worker_processes }}"
+        postgresql_max_parallel_workers_per_gather: "{{ _dbms_max_parallel_workers_per_gather }}"
+        postgresql_max_parallel_maintenance_workers: "{{ _dbms_max_parallel_maintenance_workers }}"
+        postgresql_wal_buffers: 16MB
+        postgresql_num_huge_pages: "{{ _dbms_mem_num_huge_pages }}"
+        postgresql_huge_pages: "{{ 'on' if _dbms_mem_num_huge_pages|int > 0 else 'off' }}"
+        postgresql_upstream_node: "{{ groups['dbms_primary'][0] }}"
+        postgresql_restart_allowed: "{{ _dbms_restart_allowed }}"
+        postgresql_reboot_allowed: "{{ _dbms_reboot_allowed }}"

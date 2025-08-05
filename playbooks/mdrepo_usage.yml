@@ -1,31 +1,23 @@
 ---
-- name: Add MD Repo rule logic
+- name: Remove MD Repo rule logic
   hosts: irods
   become: "{{ _irods_become_svc_acnt }}"
   become_user: "{{ _irods_service_account_name }}"
-  tasks:
-    - name: Add logic
-      when: _mdrepo_landing_colls | length > 0
-      block:
-        - name: Install command scripts
-          ansible.builtin.copy:
-            src: files/irods/mdrepo/var/lib/irods/msiExecCmd_bin/md-repo-touch-obj
-            dest: /var/lib/irods/msiExecCmd_bin/md-repo-touch-obj
-            mode: u+rx
+  pre_tasks:
+    - name: Remove mdrepo rule bases
+      ansible.builtin.file:
+        path: /etc/irods/{{ item }}
+        state: absent
+      notify: Reload rules
+      loop:
+        - mdrepo.re
+        - mdrepo-env.re
 
-        - name: Install mdrepo-env.re
-          ansible.builtin.template:
-            src: templates/irods/etc/irods/mdrepo-env.re.j2
-            dest: /etc/irods/mdrepo-env.re
-            mode: u+r
-          notify: Reload rules
-
-        - name: Install mdrepo.re
-          ansible.builtin.copy:
-            src: files/irods/etc/irods/mdrepo.re
-            dest: /etc/irods/mdrepo.re
-            mode: u+r
-          notify: Reload rules
+  post_tasks:
+    - name: Remove md-repo-touch-obj
+      ansible.builtin.file:
+        path: /var/lib/irods/msiExecCmd_bin/md-repo-touch-obj
+        state: absent
 
   handlers:
     - name: Reload rules

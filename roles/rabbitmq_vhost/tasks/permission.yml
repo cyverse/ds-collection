@@ -1,0 +1,28 @@
+---
+# EXPECTED VARS:
+#
+# user:
+#   name:            required
+#   configure_priv:  optional
+#   read_priv:       optional
+#   write_priv:      optional
+
+- name: Permission | retrieve tags for {{ user.name }}
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: |
+      set -o pipefail
+      rabbitmqctl {{ '-n ' ~ rabbitmq_vhost_node if rabbitmq_vhost_node is defined }} list_users \
+        | sed -n 's/^{{ user.name }}[[:space:]]*\[\(.*\)\]$/\1/p'
+  register: tag_resp
+  changed_when: false
+
+- name: Permission | configure permissions for {{ user.name }}
+  community.rabbitmq.rabbitmq_user:
+    node: "{{ rabbitmq_vhost_node | d(omit) }}"
+    user: "{{ user.name }}"
+    tags: "{{ tag_resp.stdout }}"
+    vhost: "{{ rabbitmq_vhost_name }}"
+    configure_priv: "{{ user.configure_priv | d(omit) }}"
+    read_priv: "{{ user.read_priv | d(omit) }}"
+    write_priv: "{{ user.write_priv | d(omit) }}"

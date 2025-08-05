@@ -1,7 +1,7 @@
 ---
 # restart_op  the type of restart to perform, either `always` or `if running`
 
-- name: Initialized test logging
+- name: Initialize test logging
   ansible.builtin.set_fact:
     _test_log: true
 
@@ -10,7 +10,6 @@
     _test_log: false
   tags:
     - no_testing
-
 
 - name: Restart iRODS | determine is iRODS configured
   when: restart_op != 'always'

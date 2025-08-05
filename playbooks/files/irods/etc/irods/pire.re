@@ -1,5 +1,8 @@
 # PIRE project policy
 #
+# Any data object put in the BH-PIRE or EHT project collection will be stored on
+# the BH-PIRE resource server. No other data objects may be stored there.
+#
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
@@ -7,46 +10,20 @@
 
 
 _pire_isForPire(*Path) =
-	let *strPath = str(*Path)
-	in *strPath like str(pire_PROJECT_BASE_COLL) ++ '/*' ||
-		*strPath like str(pire_PUBLIC_BASE_COLL) ++ '/*'
+	let *answer = false in
+	let *pireRes = pire_RESC in
+	let *_ = foreach( *rec in
+			SELECT META_RESC_ATTR_VALUE
+			WHERE RESC_NAME = *pireRes AND META_RESC_ATTR_NAME = 'ipc::hosted-collection'
+		) { *answer = *answer || (str(*Path) like *rec.META_RESC_ATTR_VALUE ++ '/*'); } in
+	*answer
 
 
-# Determines if the provided collection or data object belongs to the PIRE
-# project
-#
-# Parameters:
-#  Entity  the absolute path to the collection or data object
-#
-# Return:
-#  true if the collection or data object belongs to the project, otherwise false
-#
-pire_replBelongsTo : path -> boolean
-pire_replBelongsTo(*Entity) = _pire_isForPire(*Entity)
+### DYNAMIC PEPS ###
 
+## RESOURCE ##
 
-# Returns the resource where newly ingested files will be stored
-#
-# Return:
-#  a tuple where the first value is the name of the resource and the second is a
-#  flag indicating whether or not this resource choice may be overridden by the
-#  user.
-#
-pire_replIngestResc : string * boolean
-pire_replIngestResc = (pire_RESC, false)
-
-
-# Returns the resource where the second and subsequent replicas of a file will
-# be stored
-#
-# Return:
-#  a tuple where the first value is the name of the resource and the second is a
-#  flag indicating whether or not this resource choice may be overridden by the
-#  user.
-#
-pire_replReplResc : string * boolean
-pire_replReplResc = pire_replIngestResc
-
+# RESOLVE HIERARCHY
 
 # Restrict the PIRE resource to files in the PIRE collection
 #
@@ -59,10 +36,14 @@ pire_replReplResc = pire_replIngestResc
 #  PARSER    (`KeyValuePair_PI`) unused
 #  VOTE      (float) unused
 #
-# Error Codes:
-#  -32000 (SYS_INVALID_RESC_INPUT)  this is returned when an attempt is made to
-#                                   store an unauthorized file on the PIRE
-#                                   resource.
+# XXX - Because of https://github.com/irods/irods/issues/6463
+# # Error Codes:
+# #  -32000 (SYS_INVALID_RESC_INPUT)  this is returned when an error occurred in
+# #                                   one of the on branches of this rule
+# temporaryStorage:
+#  resource_resolve_hierarchy_err  this is used to store an error message when an attempt is made to
+#                                  to store a replica on the AVRA resource that should be.
+# XXX - ^^^
 #
 pep_resource_resolve_hierarchy_pre(*Instance, *Context, *OUT, *Op, *Host, *PARSER, *VOTE) {
 	on (
@@ -70,10 +51,14 @@ pep_resource_resolve_hierarchy_pre(*Instance, *Context, *OUT, *Op, *Host, *PARSE
 		&& *Context.resc_hier == pire_RESC
 		&& !_pire_isForPire(*Context.logical_path)
 	) {
-		*msg = 'CYVERSE ERROR: ' ++ pire_RESC ++ ' usage is limited to the EHT collection, '
-			++ str(pire_PUBLIC_BASE_COLL);
-
-		cut;
-		failmsg(-32000, *msg);
+		*msg = 'CYVERSE ERROR: ' ++ pire_RESC ++ ' usage is limited to the collections '
+			++ str(pire_PUBLIC_BASE_COLL) ++ ' and ' ++ str(pire_PROJECT_BASE_COLL) ++ '.';
+# XXX - Because of https://github.com/irods/irods/issues/6463, an error
+# happening in an `ON` condition needs to be captured and sent in the catch-all.
+# 		cut;
+# 		failmsg(-32000, *msg);
+		temporaryStorage.resource_resolve_hierarchy_err = *msg;
+		fail;
+# XXX - ^^^
 	}
 }

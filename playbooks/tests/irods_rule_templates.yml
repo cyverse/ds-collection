@@ -4,6 +4,8 @@
   gather_facts: false
   vars_files:
     - ../group_vars/all/irods.yml
+    - ../group_vars/all/avra.yml
+    - ../group_vars/all/pire.yml
   vars:
     avra_env: "{{ lookup('template', '../templates/irods/etc/irods/avra-env.re.j2') }}"
     cyverse_env: "{{ lookup('template', '../templates/irods/etc/irods/cyverse-env.re.j2') }}"
@@ -99,6 +101,7 @@
   gather_facts: false
   vars_files:
     - ../group_vars/all/irods.yml
+    - ../group_vars/all/avra.yml
   vars:
     avra_base_collection: base
     avra_resource_hierarchy:
@@ -116,6 +119,7 @@
   gather_facts: false
   vars_files:
     - ../group_vars/all/irods.yml
+    - ../group_vars/all/pire.yml
   vars:
     pire_resource_hierarchy:
       name: pireRes

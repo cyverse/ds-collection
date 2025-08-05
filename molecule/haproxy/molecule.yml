@@ -1,0 +1,24 @@
+---
+dependency:
+  name: galaxy
+  options:
+    requirements-file: requirements.yml
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: haproxy
+    pre_build_image: false
+    dockerfile: Dockerfile
+    privileged: true
+    command: /lib/systemd/systemd
+provisioner:
+  name: ansible
+  inventory:
+    hosts:
+      all:
+        vars:
+          haproxy_vip_client_hosts:
+            - 1.2.3.4
+            - data.cyverse.org
+            - 5.6.7.0/24

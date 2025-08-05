@@ -36,6 +36,9 @@
 # IRODS_ZONE_PORT             The main TCP port used by the zone for
 #                             communication.
 # IRODS_ZONE_USER             The main rodsadmin user.
+#
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
 
 set -o errexit -o nounset -o pipefail
 
@@ -47,12 +50,17 @@ main() {
 setup_irods() {
 	mk_unattended_install > /tmp/resolved_installation.json
 
-	# NOTE: This will fail, because the post-install test fails due to the default storage resource
-	# not existing yet.
-	if ! python3 /var/lib/irods/scripts/setup_irods.py --verbose \
+	# NOTE: This will fail, because there is no ICAT DBMS
+	if ! python3 /var/lib/irods/scripts/setup_irods.py --stdout --verbose \
 		--json_configuration_file=/tmp/resolved_installation.json
 	then
 		echo Ignoring expected failure >&2
+
+		sed 's/demoResc/'"$IRODS_DEFAULT_RESOURCE"'/g' /var/lib/irods/packaging/core.re.template \
+			> /etc/irods/core.re
+
+		cp /var/lib/irods/packaging/core.{dvm,fnm}.template /etc/irods
+		chown "$IRODS_SYSTEM_USER":"$IRODS_SYSTEM_GROUP" /etc/irods/core.*
 	fi
 
 	printf '\n' >> /var/lib/irods/.irods/irods_environment.json
@@ -72,7 +80,7 @@ mk_unattended_install() {
 			"agent_factory_watcher_sleep_time_in_seconds": 5,
 			"default_number_of_transfer_threads": 4,
 			"default_temporary_password_lifetime_in_seconds": 120,
-			"delay_rule_executors": [],
+			"delay_rule_executors": [ "$IRODS_HOST"],
 			"delay_server_sleep_time_in_seconds": 30,
 			"dns_cache": {
 				"cache_clearer_sleep_time_in_seconds": 600,

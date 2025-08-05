@@ -26,7 +26,8 @@ dstesting-consumer_configured_ubuntu-1.dstesting_default
 dstesting-consumer_unconfigured-1.dstesting_default
 
 [webdav]
-dstesting-apache-1.dstesting_default
+dstesting-webdav_configured-1.dstesting_default
+dstesting-webdav_unconfigured-1.dstesting_default
 
 [sftp]
 dstesting-sftp-1.dstesting_default

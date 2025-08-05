@@ -1,0 +1,10 @@
+---
+- name: Reboot servers
+  hosts: all:!unmanaged_systems:!localhost
+  become: true
+  tasks:
+    - name: Reboot if allowed
+      when: _infra_rebootable
+      ansible.builtin.reboot:
+      tags:
+        - no_testing

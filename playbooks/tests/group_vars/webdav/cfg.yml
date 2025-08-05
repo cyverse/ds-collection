@@ -1,0 +1,4 @@
+---
+head_dav_base: testing/base/
+
+webdav_irods_password: purgeman_pass
