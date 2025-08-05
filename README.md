@@ -79,5 +79,11 @@ The following actions need to be performed for each person who will be developin
    pip install --requirement requirements.txt
    ```
 
+1. The ansible collections and roles need to be installed.
+
+   ```shell
+   ansible-galaxy install --requirements-file requirements.yml
+   ```
+
 > [!IMPORTANT]
-> All VMs (including the Ansible Control Node, if that is a VM) shall install `rng-tools` using the playbook in `admin` directory called `install_rng_tools.yml`. This ensures that ansible tasks have efficient entropy in generating random numbers, preventing unexpected pauses in deployment.
+> All VMs (including the Ansible Control Node, if that is a VM) shall install `rng-tools` using the playbook `infra_rng_tools.yml`. This ensures that ansible tasks have efficient entropy in generating random numbers, preventing unexpected pauses in deployment.
