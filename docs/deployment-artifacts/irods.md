@@ -26,13 +26,13 @@ The following rules bases implement CyVerse-wide Data Store policy.
 
 The following files contain the policy that is independent of deployment environment.
 
+* [cve.re](../../playbooks/files/irods/etc/irods/cve.re) are workarounds for iRODS CVEs.
 * [cyverse.re](../../playbooks/files/irods/etc/irods/cyverse.re) hold shared logic callable from other rule bases.
 * [cyverse_core.re](../../playbooks/files/irods/etc/irods/cyverse_core.re) acts as a switchyard for PEPs, deferring to other rule bases for actual implementations.
 * [cyverse_encryption.re](../../playbooks/files/irods/etc/irods/cyverse_encryption.re) has the encryption enforcement logic.
 * [cyverse_json.re](../../playbooks/files/irods/etc/irods/cyverse_json.re) provides the logic for creating JSON documents.
-* [cve.re](../../playbooks/files/irods/etc/irods/cve.re) are workarounds for iRODS CVEs.
+* [cyverse_trash.re](../../playbooks/files/irods/etc/irods/cyverse_trash.re) has the trash timestamp management logic.
 * [ipc-repl.re](../../playbooks/files/irods/etc/irods/ipc-repl.re) has the resource residency and asynchronous replication logic.
-* [ipc-trash.re](../../playbooks/files/irods/etc/irods/ipc-trash.re) has the trash timestamp management logic.
 * [cyverse_logic.re](../../playbooks/files/irods/etc/irods/cyverse_logic.re) has the CyVerse policy logic not implemented in another rule base.
 * [cyverse_housekeeping.re](../../playbooks/files/irods/etc/irods/cyverse_housekeeping.re) provides the logic for the periodically run asynchronous tasks.
 

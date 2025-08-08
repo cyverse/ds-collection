@@ -13,8 +13,8 @@
 
 @include 'cyverse_logic'
 @include 'cyverse_encryption'
+@include 'cyverse_trash'
 @include 'ipc-repl'
-@include 'ipc-trash'
 
 # SERVICE SPECIFIC RULES
 #
