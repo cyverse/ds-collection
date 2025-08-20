@@ -69,5 +69,6 @@ EOF
 
 COPY irods-consumer/config/profile-irods.sh /etc/profile.d/irods.sh
 COPY irods-consumer/config/rsyslog-irods.conf /etc/rsyslog.conf
+COPY irods-consumer/config/logrotate-irods /etc/logrotate.d/irods
 
 CMD [ "/service.sh" ]
