@@ -4,7 +4,6 @@
   tasks:
     - name: Initialize facts
       ansible.builtin.set_fact:
-        _notifications_enabled: false
         _test_log: true
 
     - name: Enable notifications when not testing
