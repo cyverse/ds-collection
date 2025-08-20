@@ -8,20 +8,14 @@
 #
 # It requires the following environment variable to be defined.
 #
+# DBMS_HOST          The FQDN or IP address of the PostgreSQL server
+# DBMS_PORT          The TCP port the PostgreSQL will listen on.
 # IRODS_SYSTEM_USER  the system user who executes iRODS
-#
-# If there is a provider inside the container when it starts, the following
-# additional environment variables need to be defined.
-#
-# DBMS_HOST            The FQDN or IP address of the PostgreSQL server
-# DBMS_PORT            The TCP port the PostgreSQL will listen on.
-# IRODS_SYSTEM_GROUP   The default group of the service account
-# IRODS_ZONE_PASSWORD  The password used to authenticate the clerver user
 
 set -o errexit -o nounset -o pipefail
 
 main() {
-	if [ "$#" -lt 1 ]
+	if [[ "$#" -lt 1 ]]
 	then
 		printf 'Requires either "start" or "stop" as its first parameter\n' >&2
 		return 1
@@ -47,8 +41,10 @@ start() {
 	# Ensure that the correct user owns everything in /var/lib/irods and
 	# /etc/irods. If this isn't done, some of the ansible ownership tests will
 	# fail.
-	if [ -e /var/lib/irods/.irods/irods_environment.json ]
+	if [[ -e /var/lib/irods/.irods/irods_environment.json ]]
 	then
+		rsyslogd
+
 		until exec 3<> /dev/tcp/"$DBMS_HOST"/"$DBMS_PORT"
 		do
 			printf 'Waiting for DBMS\n'
@@ -71,9 +67,9 @@ start() {
 }
 
 stop() {
-	if sudo --login --user  "$IRODS_SYSTEM_USER"  imiscsvrinfo >& /dev/null
+	if sudo --login --user "$IRODS_SYSTEM_USER"  imiscsvrinfo >& /dev/null
 	then
-		sudo  --login --user  "$IRODS_SYSTEM_USER" /var/lib/irods/irodsctl stop
+		sudo --login --user "$IRODS_SYSTEM_USER" /var/lib/irods/irodsctl stop
 		rm /var/lock/subsys/irods
 	fi
 }

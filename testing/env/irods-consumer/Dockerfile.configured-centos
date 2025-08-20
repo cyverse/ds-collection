@@ -41,7 +41,12 @@ RUN \
 	yum --assumeyes install irods-icommands
 # XXX - ^^^
 	yum --assumeyes install \
-		irods-netcdf-client_modules irods-netcdf-icommands irods-netcdf-server_modules irods-server
+		irods-netcdf-client_modules \
+		irods-netcdf-icommands \
+		irods-netcdf-server_modules \
+		irods-server \
+		rsyslog
+
 	python3 -m pip install python-irodsclient
 
 ### Configure iRODS
@@ -63,5 +68,6 @@ RUN \
 EOF
 
 COPY irods-consumer/config/profile-irods.sh /etc/profile.d/irods.sh
+COPY irods-consumer/config/rsyslog-irods.conf /etc/rsyslog.conf
 
 CMD [ "/service.sh" ]

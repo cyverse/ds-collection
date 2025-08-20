@@ -62,7 +62,8 @@ RUN \
 		irods-netcdf-client_modules \
 		irods-netcdf-icommands \
 		irods-netcdf-server_modules \
-		irods-server
+		irods-server \
+		rsyslog
 
 ### Install libraries required by command scripts
 	pip3 install pika==1.1
@@ -82,5 +83,6 @@ RUN \
 EOF
 
 COPY irods-provider/config/profile-irods.sh /etc/profile.d/irods.sh
+COPY irods-provider/config/rsyslog-irods.conf /etc/rsyslog.conf
 
 CMD [ "/service.sh" ]
