@@ -44,29 +44,22 @@
 
 - name: Configure | add TLS certificates
   ansible.builtin.copy:
-    dest: "{{ haproxy_stats_tls_crt }}"
-    content: "{{ haproxy_stats_tls_crt_content }}"
+    dest: "{{ haproxy_tls_crt }}"
+    content: "{{ haproxy_tls_crt_content }}"
     mode: a+r
   no_log: true
   when:
-    - haproxy_stats_tls_crt | d(False)
-    - haproxy_stats_tls_crt_content | d(False)
+    - haproxy_tls_crt | d(False)
+    - haproxy_tls_crt_content | d(False)
   notify:
     - Reload haproxy
 
 - name: Configure | place static address lists
-  ansible.builtin.copy:
-    dest: /etc/haproxy/{{ item.file }}
+  ansible.builtin.template:
+    dest: /etc/haproxy/{{ _haproxy_address.file }}
+    src: address.lst.j2
     owner: haproxy
     mode: u+r
-    content: |
-      #
-      # Ansible managed
-      #
-
-      {% for h in item.addresses %}
-      {{  h if h|ansible.utils.ipaddr else lookup('dig', h) }}
-      {% endfor %}
   loop:
     - file: allow.lst
       addresses: "{{ haproxy_allow_client_hosts }}"
@@ -74,6 +67,8 @@
       addresses: "{{ haproxy_block_client_hosts }}"
     - file: vip.lst
       addresses: "{{ haproxy_vip_client_hosts }}"
+  loop_control:
+    loop_var: _haproxy_address
   notify:
     - Reload haproxy
 

@@ -10,9 +10,9 @@
     - name: Verify listeners.tcp.1 set correctly
       ansible.builtin.assert:
         that:
+          - rabbitmq_conf is search('^#\n# Ansible managed:')
           - rabbitmq_conf is search("listeners.tcp.1 = :::1" | regex_escape)
           - rabbitmq_conf is search("management.tcp.port = 2" | regex_escape)
-
 
 - name: Verify | test installation
   hosts: all

@@ -5,11 +5,18 @@
   vars_files:
     - ../../roles/haproxy/defaults/main.yml
   vars:
+    address: "{{ lookup('template', '../../roles/haproxy/templates/address.lst.j2') }}"
     haproxy: "{{ lookup('template', '../../roles/haproxy/templates/haproxy.cfg.j2') }}"
   tasks:
+    - name: Verify default address list expansion
+      ansible.builtin.assert:
+        that:
+          - address is search('^#\n# Ansible managed:')
+          - address is search('^#(\n#?)*')
+
     - name: Verify haproxy config is ansible managed
       ansible.builtin.assert:
-        that: haproxy is search('^#\n# Ansible managed')
+        that: haproxy is search('^#\n# Ansible managed:')
 
     - name: Verify haproxy config global section
       ansible.builtin.assert:
@@ -56,54 +63,74 @@
     - name: Verify haproxy config webdav listener
       ansible.builtin.assert:
         that:
-          - haproxy is search('\nlisten webdav\n(..[^\n]*\n)*  bind .* :80,:443\n')
+          - haproxy is search('\nlisten webdav\n(..[^\n]*\n)*  bind .* :80\n')
           - haproxy is search('\nlisten webdav\n(..[^\n]*\n)*  server .* 127.0.0.1\n')
+
+    - name: Verify haproxy config webdavs listener
+      ansible.builtin.assert:
+        that: haproxy is not search('\nlisten webdavs\n')
 
 - name: Verify | haproxy config template custom expansion
   hosts: localhost
   gather_facts: false
   vars_files:
     - ../../roles/haproxy/defaults/main.yml
+    - ../../roles/haproxy/vars/main.yml
     - vars/custom_haproxy_vars.yml
   vars:
-      haproxy: "{{ lookup('template', '../../roles/haproxy/templates/haproxy.cfg.j2') }}"
+    data_ip: "{{ lookup('dig', 'data.cyverse.org') }}"
+    address: "{{ lookup('template', '../../roles/haproxy/templates/address.lst.j2') }}"
+    haproxy: "{{ lookup('template', '../../roles/haproxy/templates/haproxy.cfg.j2') }}"
   tasks:
-    - name: Verify global section
+    - name: Verify address list ansible managed
+      ansible.builtin.assert:
+        that: address is search('^#\n# Ansible managed:')
+
+    - name: Verify address list entries
+      ansible.builtin.assert:
+        that:
+          - address is search('\n' ~ ('1.2.3.4' | regex_escape))
+          - address is search('\n' ~ ('2.0.0.0/8' | regex_escape))
+          - address is search('\n' ~ (data_ip | regex_escape))
+
+    - name: Verify haproxy config is ansible managed
+      ansible.builtin.assert:
+        that: haproxy is search('^#\n# Ansible managed:')
+
+    - name: Verify haproxy config global section
       ansible.builtin.assert:
         that:
           - haproxy is search('\nglobal\n(  [^\n]*\n)*  cpu-map +1/1-2 0-1\n')
           - haproxy is search('\nglobal\n(  [^\n]*\n)*  nbthread +2\n')
 
-    - name: Verify default section
+    - name: Verify haproxy config default section
       ansible.builtin.assert:
         that:
           - haproxy is search('\ndefaults\n(  [^\n]*\n)*  maxconn +1\n')
           - haproxy is search('\ndefaults\n(  [^\n]*\n)*  timeout queue +3s\n')
 
-    - name: Verify stats section
+    - name: Verify haproxy config stats section
       ansible.builtin.assert:
         that:
           - haproxy is search('\nlisten stats\n(  [^\n]*\n)*  bind +:4 ssl crt /path/to/tls.crt\n')
+          - haproxy is search('\nlisten stats\n(..[^\n]*\n)*  stats auth +ds:pass\n')
 
-    - name: Verify haproxy config stats section values
+    - name: Verify haproxy config stats values
       ansible.builtin.debug:
         msg: "TODO: implement {{ item }}"
-      with_items:
-        - stats auth
+      loop:
         - stats realm
 
     - name: TODO implement
       ansible.builtin.debug:
-        msg: "{{ item }} section tests"
-      with_items:
+        msg: "haproxy config {{ item }} section tests"
+      loop:
         - IRODS
         - SFTP
         - WEBDAV
 
 - name: Verify | set up HAProxy
   hosts: instance
-  vars:
-    data_ip: "{{ lookup('dig', 'data.cyverse.org') }}"
   tasks:
     - name: Retrieve installed packages
       ansible.builtin.package_facts:
@@ -171,31 +198,6 @@
         path: /etc/haproxy/vip.lst
       register: response
       failed_when: not response.stat.exists or not result.stat.roth
-
-    - name: Retrieve vip.lst
-      ansible.builtin.slurp:
-        src: /etc/haproxy/vip.lst
-      register: vip_encoded
-
-    - name: Decode vip.lst
-      ansible.builtin.set_fact:
-        vip: "{{ vip_encoded.content | b64decode }}"
-
-    - name: Verify vip.list is ansible managed
-      ansible.builtin.assert:
-        that: vip is search('^#\n# Ansible managed\n#\n')
-
-    - name: Verify the ip address passes through
-      ansible.builtin.assert:
-        that: vip is search('\n' ~ ('1.2.3.4'|regex_escape) ~ '\n')
-
-    - name: Verify the host name converted to address
-      ansible.builtin.assert:
-        that: vip is search('\n' ~ (data_ip|regex_escape) ~ '\n')
-
-    - name: Verify CIDR block passes through
-      ansible.builtin.assert:
-        that: vip is search('\n' ~ ('5.6.7.0/24'|regex_escape) ~ '\n')
 
     - name: Verify block list
       ansible.builtin.debug:

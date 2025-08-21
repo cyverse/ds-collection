@@ -31,17 +31,21 @@
         - cyverse_housekeeping.re
         - cyverse_json.re
         - cyverse_logic.re
-        - ipc-trash.re
+        - cyverse_trash.re
+        - ipc-repl.re
         - pire.re
         - pire-env.re
         - server_config.json
         - service_account.config
 
-    - name: Verify that ipc-encryption.re has been removed
+    - name: Verify that old rule bases have been removed
       ansible.builtin.stat:
-        path: /etc/irods/ipc-encryption.re
+        path: /etc/irods/{{ item }}
       register: resp
       failed_when: resp.stat.exists
+      loop:
+        - ipc-encryption.re
+        - ipc-trash.re
 
     - name: Verify irods_environment.json is in place
       ansible.builtin.stat:

@@ -44,11 +44,11 @@ class CyverseCoreTestCase(IrodsTestCase):
         """Set up the test case."""
         super().setUp()
         self.update_rulebase('cyverse_encryption.re', 'mocks/cyverse_encryption.re')
-        self.update_rulebase('ipc-trash.re', 'mocks/ipc-trash.re')
+        self.update_rulebase('cyverse_trash.re', 'mocks/cyverse_trash.re')
 
     def tearDown(self):
         """Tear down the test case."""
-        self.update_rulebase('ipc-trash.re', '../../files/irods/etc/irods/ipc-trash.re')
+        self.update_rulebase('cyverse_trash.re', '../../files/irods/etc/irods/cyverse_trash.re')
         self.update_rulebase(
             'cyverse_encryption.re', '../../files/irods/etc/irods/cyverse_encryption.re')
         super().tearDown()
@@ -158,7 +158,7 @@ class PepApiCollCreatePostTest(CyverseCoreTestCase):
             self.fail('cyverse_encryption_api_coll_create_post not called')
 
     def test_ipctrash_called(self):
-        """Test that the ipc-trash PEP is called."""
+        """Test that the cyverse_trash PEP is called."""
         if not self.verify_msg_logged('ipcTrash_api_coll_create_post'):
             self.fail('ipcTrash_api_coll_create_post not called')
 

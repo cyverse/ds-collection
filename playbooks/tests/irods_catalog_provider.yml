@@ -152,7 +152,8 @@
         - cyverse_housekeeping.re
         - cyverse_json.re
         - cyverse_logic.re
-        - ipc-trash.re
+        - cyverse_trash.re
+        - ipc-repl.re
         - pire.re
         - pire-env.re
         - server_config.json
