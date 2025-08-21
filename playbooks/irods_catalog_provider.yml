@@ -4,7 +4,6 @@
   tasks:
     - name: Initialize facts
       ansible.builtin.set_fact:
-        _notifications_enabled: false
         _test_log: true
 
     - name: Enable notifications when not testing
@@ -36,11 +35,6 @@
       tags:
         - no_testing
 
-    - name: Ensure parallel is installed
-      ansible.builtin.package:
-        name: parallel
-        state: present
-
     - name: Ensure pika installed
       ansible.builtin.pip:
         name: pika>=1.2
@@ -49,6 +43,22 @@
     - name: Provision CentOS
       when: ansible_distribution == 'CentOS'
       block:
+# XXX - python3-pyodbc required by irods-server but not available as system package in CentOS 7
+        - name: CentOS | Install pyodbc prerequisites
+          ansible.builtin.package:
+            name:
+              - gcc
+              - gcc-c++
+              - python3-devel
+              - unixODBC-devel
+            state: present
+
+        - name: CentOS | Install pyodbc
+          ansible.builtin.pip:
+            name: pyodbc
+            state: present
+# XXX - ^^^
+
         - name: CentOS | install mail client
           ansible.builtin.package:
             name: mailx

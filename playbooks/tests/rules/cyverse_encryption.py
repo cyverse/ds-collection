@@ -15,7 +15,7 @@ import unittest
 from irods.exception import CUT_ACTION_PROCESSED_ERR
 
 import test_rules
-from test_rules import IrodsTestCase, IrodsType
+from test_rules import IrodsTestCase, IrodsType, IrodsVal
 
 
 def setUpModule():  # pylint: disable=invalid-name
@@ -190,16 +190,6 @@ class CyverseEncryptionApiDataObjOpenPre(_CyverseEncryptionTestCase):
         self.irods.data_objects.unlink(obj, force=True)
 
 
-@test_rules.unimplemented
-class CyverseEncryptionApiDataObjOpenStatPre(_CyverseEncryptionTestCase):
-    """
-    Tests of cyverse_encryption_api_data_obj_open_stat_pre
-
-    NOTE: As of iRODS 4.3.1, the pep_api_data_obj_open_and_stat_pre PEP is not
-    called by any iRODS client.
-    """
-
-
 class CyverseEncryptionApiDataObjPutPre(_CyverseEncryptionTestCase):
     """Tests of cyverse_encryption_api_data_obj_put_pre"""
 
@@ -358,7 +348,6 @@ class CyverseEncryptionApiDataObjRenamePost(_CyverseEncryptionTestCase):
             self.fail("encryption::required AVU not set to 'true'")
         self.ensure_coll_absent(self._mv_enc_path)
 
-    @unittest.skip("")
     def test_coll_added_to_not_enc_coll(self):
         """
         Test that a collection added to a collection not requiring encryption doesn't receive the
@@ -379,8 +368,8 @@ class CyverseEncryptionApiStructFileExtAndRegPre(_CyverseEncryptionTestCase):
     """
 
 
-class Ipcencryptioncheckencryptionrequiredforcoll(_CyverseEncryptionTestCase):
-    """Tests of _ipcEncryptionCheckEncryptionRequiredForColl"""
+class CyverseEncryptionCheckrequiredcoll(_CyverseEncryptionTestCase):
+    """Tests of _cyverse_encryption_checkRequiredColl"""
 
     def setUp(self):
         super().setUp()
@@ -420,7 +409,7 @@ class Ipcencryptioncheckencryptionrequiredforcoll(_CyverseEncryptionTestCase):
             for n in IrodsTestCase.prep_path(dest_coll):
                 with self.subTest(o=o, n=n):
                     rule = self.mk_rule(
-                        f"_ipcEncryptionCheckEncryptionRequiredForColl({repr(o)}, {repr(n)})")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+                        f"_cyverse_encryption_checkRequiredColl({repr(o)}, {repr(n)})")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
                     test(rule)
 
     def _check_allowed(self, rule):
@@ -437,107 +426,177 @@ class Ipcencryptioncheckencryptionrequiredforcoll(_CyverseEncryptionTestCase):
             pass
 
 
-class Ipcencryptioncheckencryptionrequiredforcollinternal(_CyverseEncryptionTestCase):
-    """Tests of _ipcEncryptionCheckEncryptionRequiredForCollInternal"""
-
-    def setUp(self):
-        super().setUp()
-        self._not_enc_data = '/testing/home/rods/data'
-        self.ensure_obj_absent(self._not_enc_data)
-
-    def test_coll_with_enc_data(self):
-        """Verify that rule doesn't fail when collection only contains encrypted data"""
-        obj = '/testing/home/rods/data.enc'
-        self.irods.data_objects.create(obj)
-        self._for_str_path_combos(self._check_allowed)
-        self.irods.data_objects.unlink(obj, force=True)
-
-    def test_coll_with_not_enc_data(self):
-        """Verify that rule fails when collection contains unencrypted data in top level"""
-        self.irods.data_objects.create(self._not_enc_data)
-        self._for_str_path_combos(self._check_disallowed)
-        self.irods.data_objects.unlink(self._not_enc_data, force=True)
-
-    def test_coll_with_not_enc_data_sub_coll(self):
-        """Verify that the rule fails when collection contains unencrypted data in subcollection"""
-        coll = '/testing/home/rods/coll'
-        self.irods.collections.create(coll)
-        self.irods.data_objects.create(os.path.join(coll, 'data'))
-        self._for_str_path_combos(self._check_disallowed)
-        self.ensure_coll_absent(coll)
-
-    def _for_str_path_combos(self, test):
-        for o in IrodsTestCase.prep_path('/testing/home/rods'):
-            with self.subTest(o=o):
-                rule = self.mk_rule(
-                    f"_ipcEncryptionCheckEncryptionRequiredForCollInternal({repr(o)})")
-                test(rule)
-
-    def _check_allowed(self, rule):
-        try:
-            self.exec_rule(rule, IrodsType.NONE)
-        except CUT_ACTION_PROCESSED_ERR:
-            self.fail("rule failed")
-
-    def _check_disallowed(self, rule):
-        try:
-            self.exec_rule(rule, IrodsType.NONE)
-            self.fail("rule didn't fail")
-        except CUT_ACTION_PROCESSED_ERR:
-            pass
-
-
-class Ipcencryptioncheckencryptionrequiredfordataobj(_CyverseEncryptionTestCase):
-    """Tests of _ipcEncryptionCheckEncryptionRequiredForDataObj"""
+class CyverseEncryptionCheckrequireddataobj(_CyverseEncryptionTestCase):
+    """Tests of _cyverse_encryption_checkEncryptionRequiredForDataObj"""
 
     def test_enc_data_enc_required_path(self):
         """
         Verify doesn't fail for encrypted data when encryption required and path can have type path
         """
-        obj_path = os.path.join(self.enc_coll, 'data.enc')
-        rule = self.mk_rule(f"_ipcEncryptionCheckEncryptionRequiredForDataObj({obj_path})")
-        try:
-            self.exec_rule(rule, IrodsType.NONE)
-        except CUT_ACTION_PROCESSED_ERR:
-            self.fail("rule failed")
+        self._for_str_and_path(os.path.join(self.enc_coll, 'data.enc'), self._check_allowed)
 
     def test_not_enc_data_enc_required_path(self):
         """Verify fails for unencrypted data when encryption required and path can have type path"""
-        obj_path = os.path.join(self.enc_coll, 'data')
-        rule = self.mk_rule(f"_ipcEncryptionCheckEncryptionRequiredForDataObj({obj_path})")
+        self._for_str_and_path(os.path.join(self.enc_coll, 'data'), self._check_disallowed)
+
+    def test_enc_not_required_path(self):
+        """Verify it works when enc not required and path can have type path"""
+        self._for_str_and_path('/testing/home/rods/data', self._check_allowed)
+
+    def _for_str_and_path(self, obj_path, test):
+        for o in IrodsTestCase.prep_path(obj_path):
+            with self.subTest(o=o):
+                test(self.mk_rule(f"_cyverse_encryption_checkRequiredDataObj({repr(o)})"))  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+
+    def _check_allowed(self, rule):
         try:
             self.exec_rule(rule, IrodsType.NONE)
-            self.fail("rule passed")
+        except CUT_ACTION_PROCESSED_ERR:
+            self.fail("placement forbidden")
+
+    def _check_disallowed(self, rule):
+        try:
+            self.exec_rule(rule, IrodsType.NONE)
+            self.fail("placement allowed")
         except CUT_ACTION_PROCESSED_ERR:
             pass
 
-    @unittest.skip("not implemented")
-    def test_enc_not_required_path(self):
-        """Verify it works when enc not required and path can have type path"""
 
-    @unittest.skip("not implemented")
-    def test_str(self):
-        """Verify that path can have type str"""
+class CyverseEncryptionCopyparentavuEncRequired(_CyverseEncryptionTestCase):
+    """Tests of _cyverse_encryption_copyParentAvu when encryption is required"""
+
+    def setUp(self):
+        super().setUp()
+        self._parent = "/testing/home/rods/parent"
+        self._coll = os.path.join(self._parent, "coll")
+        self._child_coll = os.path.join(self._coll, "child_coll")
+        self.irods.collections.create(self._child_coll)
+        self._data = os.path.join(self._coll, "data")
+        self.irods.data_objects.create(self._data)
+        self._child_data = os.path.join(self._child_coll, "data")
+        self.irods.data_objects.create(self._child_data)
+        self.irods.collections.get(self._parent).metadata.set('encryption::required', 'true')  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+        self._mode = 'mode'
+        self.irods.collections.get(self._parent).metadata.set('encryption::mode', self._mode)  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+        self.exec_rule(
+            self.mk_rule(f"_cyverse_encryption_copyParentAvu({self._coll})"),
+            IrodsType.NONE)
+
+    def tearDown(self):
+        self.irods.collections.remove(self._parent, force=True)
+        super().tearDown()
+
+    def test_enc_required_set_on_coll(self):
+        """Test encryption::required AVU set on collection"""
+        self._verify_avu(self._coll, "encryption::required", "true")
+
+    def test_mode_set_on_coll(self):
+        """Test correct mode set on collection"""
+        self._verify_avu(self._coll, "encryption::mode", self._mode)
+
+    def test_enc_required_set_on_sub_coll(self):
+        """Test encryption::required AVU set on subcollections"""
+        self._verify_avu(self._child_coll, "encryption::required", "true")
+
+    def test_mode_set_on_sub_coll(self):
+        """Test correct mode set on subcollections"""
+        self._verify_avu(self._child_coll, "encryption::mode", self._mode)
+
+    def test_enc_required_not_set_on_data(self):
+        """Test encryption::required AVU not set on member data objects"""
+        try:
+            self.irods.data_objects.get(self._data).metadata.get_one("encryption::required")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+            self.fail("encryption::required set")
+        except KeyError:
+            pass
+
+    def test_mode_not_set_on_sub_data(self):
+        """Test not mode set on member data objects"""
+        try:
+            self.irods.data_objects.get(self._child_data).metadata.get_one("encryption::mode")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+            self.fail("encryption::mode set")
+        except KeyError:
+            pass
+
+    def _verify_avu(self, coll, attr, val):
+        try:
+            avu = self.irods.collections.get(coll).metadata.get_one(attr)  # type: ignore
+            if avu.value != val:
+                self.fail(f"{attr} set incorrectly")
+        except KeyError:
+            self.fail(f"{attr} not set")
 
 
-class CyverseEncryptionTests(_CyverseEncryptionTestCase):
-    """The cyverse_encryption.re tests"""
+class CyverseEncryptionCopyparentavuEncNotRequired(_CyverseEncryptionTestCase):
+    """Tests of _cyverse_encryption_copyParentAvu when encryption is not required"""
 
-    @unittest.skip("not implemented")
-    def test_ipcencryptioncopyavufromparent(self):
-        """Test _ipcEncryptionCopyAVUFromParent"""
+    def test_enc_required_not_set(self):
+        """Test encryption::required not set on collection when not set on parent"""
+        coll = "/testing/home/rods/coll"
+        self.irods.collections.create(coll)
+        self.exec_rule(self.mk_rule(f"_cyverse_encryption_copyParentAvu({coll})"), IrodsType.NONE)
+        try:
+            self.irods.collections.get(coll).metadata.get_one("encryption::required")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+            self.fail("encryption::required set")
+        except KeyError:
+            pass
+        self.ensure_coll_absent(coll)
 
-    @unittest.skip("not implemented")
-    def test_ipcencryptioncopyavufromparentinternal(self):
-        """Test _ipcEncryptionCopyAVUFromParentInternal"""
 
-    @unittest.skip("not implemented")
-    def test_ipcencryptionrejectbulkregifencryptionrequired(self):
-        """Test _ipcEncryptionRejectBulkRegIfEncryptionRequired"""
+class CyverseEncryptionRejectbulkregifencryptionrequired(_CyverseEncryptionTestCase):
+    """Tests of _cyverse_encryption_rejectBulkRegIfRequired"""
 
-    @unittest.skip("not implemented")
-    def test_ipcisencryptionrequired(self):
-        """Test _ipcIsEncryptionRequired"""
+    def test_required_path(self):
+        """
+        Test that it fails when the parent requires encryption and the collection is provided as a
+        path.
+        """
+        for p in IrodsTestCase.prep_path(os.path.join(self.enc_coll, 'coll')):
+            with self.subTest(p=p):
+                call = self.mk_rule(f"_cyverse_encryption_rejectBulkRegIfRequired({p})")
+                try:
+                    self.exec_rule(call, IrodsType.NONE)
+                    self.fail("should fail when encryption required")
+                except CUT_ACTION_PROCESSED_ERR:
+                    pass
+
+    def test_not_required_path(self):
+        """
+        Test that it succeeds when the parent doesn't require encryption and the collection is
+        provided as a path.
+        """
+        for p in IrodsTestCase.prep_path('/testing/home/rods/coll'):
+            with self.subTest(p=p):
+                call = self.mk_rule(f"_cyverse_encryption_rejectBulkRegIfRequired('{p}')")
+                try:
+                    self.exec_rule(call, IrodsType.NONE)
+                except CUT_ACTION_PROCESSED_ERR:
+                    self.fail("should not fail when encryption not required")
+
+
+class CyverseEncryptionRequired(_CyverseEncryptionTestCase):
+    """Tests of _cyverse_encryption_required"""
+
+    def test_attr_set_true_path(self):
+        """test when collection is provided as path with encryption::required set to true"""
+        for p in IrodsTestCase.prep_path(self.enc_coll):
+            with self.subTest(p=p):
+                self.fn_test('_cyverse_encryption_required', [p], IrodsVal.boolean(True))
+
+    def test_attr_set_false_path(self):
+        """test when collection is provided as path with encryption::required set to false"""
+        coll = '/testing/home/rods'
+        self.irods.collections.get(coll).metadata.set('encryption::required', 'false')  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+        for p in IrodsTestCase.prep_path(coll):
+            with self.subTest(p=p):
+                self.fn_test('_cyverse_encryption_required', [p], IrodsVal.boolean(False))
+        self.irods.collections.get(coll).metadata.remove('encryption::required', 'false', '')  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+
+    def test_attr_not_set_path(self):
+        """test when collection is provided as path with encryption::required unset"""
+        for p in IrodsTestCase.prep_path('/testing/home'):
+            with self.subTest(p=p):
+                self.fn_test('_cyverse_encryption_required', [p], IrodsVal.boolean(False))
 
 
 if __name__ == "__main__":

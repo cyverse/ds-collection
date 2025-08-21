@@ -127,7 +127,6 @@
               - uuid-runtime
             state: present
 
-
     - name: Install optional iRODS modules
       ansible.builtin.package:
         name: "{{ item }}"
@@ -138,7 +137,6 @@
         - irods-netcdf-icommands
         - irods-netcdf-server_modules
         - irods-resource-plugin-s3
-
 
     - name: Ensure iRODS attempts to start on boot
       ansible.builtin.service:
@@ -163,6 +161,11 @@
 
     - name: Ensure iRODS ownership
       ansible.builtin.import_tasks: tasks/irods/ensure_irods_ownership.yml
+
+    - name: Install rsyslog
+      ansible.builtin.package:
+        name: rsyslog
+        state: present
 
   handlers:
     - name: Restart iRODS if needed

@@ -8,17 +8,13 @@
   become: true
   become_flags: '-i'
   tasks:
-    - name: Verify parallel installed
-      ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
-      vars:
-        pkg: parallel
-
-    - name: Verify pika installed
+    - name: Verify python packages installed
       community.general.pip_package_info:
         clients: pip3
       register: pip_info
       failed_when: >-
-        'pika' not in pip_info.packages['pip3']
+        'pyodbc' not in pip_info.packages['pip3']
+        or 'pika' not in pip_info.packages['pip3']
         or pip_info.packages['pip3']['pika'][0]['version'] is version('1.2', '<')
 
     - name: Test provision CentOS
@@ -27,10 +23,13 @@
         - name: CentOS | verify correct packages installed
           ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
           loop:
+            - gcc
+            - gcc-c++
             - mailx
             - pgdg-redhat-repo
             - postgresql12
             - postgresql12-odbc
+            - unixODBC-devel
           loop_control:
             loop_var: pkg
 
@@ -153,7 +152,8 @@
         - cyverse_housekeeping.re
         - cyverse_json.re
         - cyverse_logic.re
-        - ipc-trash.re
+        - cyverse_trash.re
+        - ipc-repl.re
         - pire.re
         - pire-env.re
         - server_config.json
