@@ -8,10 +8,13 @@
   vars:
     cyverse_conf: "{{ lookup('template', '../../roles/postgresql/templates/cyverse.conf.j2') }}"
   tasks:
+    - name: Verify | cyverse.conf ansible managed
+      ansible.builtin.assert:
+        that: cyverse_conf is search('^#\n# Ansible managed:')
+
     - name: Verify | cyverse.conf default expansion
       ansible.builtin.assert:
-        that:
-          - cyverse_conf is search("\nlisten_addresses *= *'localhost'\n")
+        that: cyverse_conf is search("\nlisten_addresses *= *'localhost'\n")
 
     - name: Verify | cyverse.conf default expansion of connections and authentication
       ansible.builtin.debug:

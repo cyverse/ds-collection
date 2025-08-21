@@ -1,2 +1,4 @@
+{{ ansible_managed | comment }}
+
 listeners.tcp.1 = :::{{ rabbitmq_broker_port }}
 management.tcp.port = {{ rabbitmq_mgmt_port }}

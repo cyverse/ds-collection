@@ -130,8 +130,8 @@ Variable                                   | Required | Default                 
 `proxy_restart_allowed`                    | no       | false                                |         | Whether or not HAProxy can be restarted
 `proxy_rsyslog_conf`                       | no       | /etc/rsyslog.d/haproxy.conf          |         | the path to the rsyslog configuration file for HAProxy
 `proxy_stats_auth`                         | no       | null                                 |         | an object providing the authentication credentials for the HAProxy stats web interface _see below_
-`proxy_stats_tls_crt`                      | no       | null                                 |         | the absolute path to the TLS certificate chain used for securing the HAProxy stats web interface
-`proxy_stats_tls_crt_content`              | no       | null                                 |         | the content of the TLS certificate chain file
+`proxy_tls_crt`                            | no       | null                                 |         | the absolute path to the TLS certificate chain used for securing the HAProxy HTTPS connections
+`proxy_tls_crt_content`                    | no       | null                                 |         | the content of the TLS certificate chain file
 `proxy_irods_direct_max_conn`              | no       | 200                                  |         | the maximum number of connections to iRODS
 `proxy_irods_reconn_ports`                 | no       | 20000-20399                          |         | the range of TCP range of ports that need to be forwarded to iRODS for reconnections
 `proxy_sftp_port`                          | no       | 22                                   |         | the TCP port hosting the SFTP service whose communication will be forwarded to SFTPGo
