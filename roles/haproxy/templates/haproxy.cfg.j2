@@ -29,22 +29,22 @@ global
 
 defaults
   log                         global
-  maxconn                     {{ haproxy_default_max_conn }}
   mode                        tcp
+  maxconn                     {{ haproxy_default_max_conn }}
   retries                     3
+  timeout connect             10s
   timeout client-fin          1m
   timeout client              1d
   timeout server              1d
   timeout server-fin          1m
-  timeout connect             10s
 {% if haproxy_queue_timeout %}
   timeout queue               {{ haproxy_queue_timeout }}
 {% endif %}
-  option clitcpka
-  option srvtcpka
+  option tcplog
   option dontlognull
   option log-separate-errors
-  option tcplog
+  option clitcpka
+  option srvtcpka
 
 
 ##########################
@@ -52,31 +52,31 @@ defaults
 ##########################
 
 listen stats
-  mode                      http
-{% if haproxy_stats_tls_crt %}
-  bind                      :{{ haproxy_stats_port }} ssl crt {{ haproxy_stats_tls_crt }}
+  mode                   http
+{% if haproxy_tls_crt %}
+  bind                   :{{ haproxy_stats_port }} ssl crt {{ haproxy_tls_crt }}
 {% else %}
-  bind                      :{{ haproxy_stats_port }}
+  bind                   :{{ haproxy_stats_port }}
 {% endif %}
-  http-request use-service  prometheus-exporter if { path /metrics }
+  maxconn                10
+  timeout client         100s
+  timeout server         100s
+  timeout connect        100s
+  timeout queue          100s
+  option dontlog-normal
+  option http-use-htx
+  http-request           use-service prometheus-exporter if { path /metrics }
   stats enable
-  stats uri                 /stats
+  stats uri              /stats
 {% if haproxy_stats_auth %}
-  stats auth                {{ haproxy_stats_auth.username | default(_haproxy_default_stats_auth_username) }}:{{ haproxy_stats_auth.password }}
-{%   if haproxy_stats_auth.realm %}
-  stats realm               {{ haproxy_stats_auth.realm }}
+  stats auth             {{ haproxy_stats_auth.username | d(_haproxy_default_stats_auth_username) }}:{{ haproxy_stats_auth.password }}
+{%   if haproxy_stats_auth.realm | d(none) %}
+  stats realm            {{ haproxy_stats_auth.realm }}
 {%   endif %}
 {% endif %}
   stats hide-version
   stats show-legends
-  stats refresh             10s
-  maxconn                   10
-  timeout client            100s
-  timeout server            100s
-  timeout connect           100s
-  timeout queue             100s
-  option dontlog-normal
-  option http-use-htx
+  stats refresh          10s
 
 
 ##########################
@@ -150,26 +150,33 @@ listen sftp
 ##########################
 
 listen webdav
-  mode          http
-  bind          :{{ haproxy_webdav_port }}
-{% if haproxy_stats_tls_crt %}
-  http-request  redirect scheme https
+  mode            http
+  bind            :{{ haproxy_webdav_port }}
+  timeout client  2m
+  option httplog
+  acl             vip-src     src -f /etc/haproxy/vip.lst
+  acl             allowed     src -f /etc/haproxy/allow.lst
+  acl             blocked     src -f /etc/haproxy/block.lst
+  acl             block-conn  sc1_conn_cur gt 10
+  http-request    track-sc1 src table concurrency_st if !vip-src
+  http-request    deny if !vip-src !allowed blocked or block-conn
+{% if haproxy_tls_crt %}
+  http-request    redirect scheme https
 {% else %}
-  server        dav {{ haproxy_webdav_hosts[0] if haproxy_webdav_hosts[0]|ansible.utils.ipaddr else lookup('dig', haproxy_webdav_hosts[0]) }}
+  server          dav {{ haproxy_webdav_hosts[0] if haproxy_webdav_hosts[0]|ansible.utils.ipaddr else lookup('dig', haproxy_webdav_hosts[0]) }}
 {% endif %}
-  option httplog
 
-{% if haproxy_stats_tls_crt %}
+{% if haproxy_tls_crt %}
 listen webdavs
-  mode                       http
-  bind                       :{{ haproxy_webdav_tls_port }} ssl crt {{ haproxy_stats_tls_crt }}
-  acl                        vip-src     src -f /etc/haproxy/vip.lst
-  acl                        allowed     src -f /etc/haproxy/allow.lst
-  acl                        blocked     src -f /etc/haproxy/block.lst
-  acl                        block-conn  sc1_conn_cur gt 10
-  tcp-request inspect-delay  5s
-  tcp-request content        track-sc1 src table concurrency_st if !vip-src
-  tcp-request content        reject if !vip-src !allowed blocked or block-conn
-  server                     dav {{ haproxy_webdav_hosts[0] if haproxy_webdav_hosts[0]|ansible.utils.ipaddr else lookup('dig', haproxy_webdav_hosts[0]) }} ssl crt {{ haproxy_stats_tls_crt }} ca-file {{ haproxy_stats_tls_crt }}
+  mode            http
+  bind            :{{ haproxy_webdav_tls_port }} ssl crt {{ haproxy_tls_crt }}
+  timeout client  2m
   option httplog
+  acl             vip-src     src -f /etc/haproxy/vip.lst
+  acl             allowed     src -f /etc/haproxy/allow.lst
+  acl             blocked     src -f /etc/haproxy/block.lst
+  acl             block-conn  sc1_conn_cur gt 10
+  http-request    track-sc1 src table concurrency_st if !vip-src
+  http-request    deny if !vip-src !allowed blocked or block-conn
+  server          dav {{ haproxy_webdav_hosts[0] if haproxy_webdav_hosts[0]|ansible.utils.ipaddr else lookup('dig', haproxy_webdav_hosts[0]) }} ssl crt {{ haproxy_tls_crt }} ca-file {{ haproxy_tls_crt }}
 {% endif %}

@@ -12,8 +12,8 @@
         haproxy_queue_timeout: 10m
         haproxy_restart_allowed: "{{ _proxy_restart_allowed }}"
         haproxy_rsyslog_conf: "{{ _proxy_rsyslog_conf }}"
-        haproxy_stats_tls_crt: "{{ _proxy_stats_tls_crt }}"
-        haproxy_stats_tls_crt_content: "{{ _proxy_stats_tls_crt_content }}"
+        haproxy_tls_crt: "{{ _proxy_tls_crt }}"
+        haproxy_tls_crt_content: "{{ _proxy_tls_crt_content }}"
         haproxy_stats_auth: "{{ _proxy_stats_auth }}"
         haproxy_irods_reconn_ports: "{{ _proxy_irods_reconn_ports }}"
         haproxy_irods_host: "{{ groups['irods_catalog'][0] }}"
