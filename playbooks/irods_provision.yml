@@ -162,11 +162,6 @@
     - name: Ensure iRODS ownership
       ansible.builtin.import_tasks: tasks/irods/ensure_irods_ownership.yml
 
-    - name: Install rsyslog
-      ansible.builtin.package:
-        name: rsyslog
-        state: present
-
   handlers:
     - name: Restart iRODS if needed
       when: _irods_restart_allowed
