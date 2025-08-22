@@ -231,7 +231,9 @@
           fi
           readarray -t users <<< "$resp"
           for user in "${users[@]}"; do
-            iadmin moduser "$user" type rodsuser
+            # XXX - Due to https://github.com/irods/irods/issues/8233, iadmin cannot be used to
+            # change a user's type from ds-service to rodsuser
+            # iadmin moduser "$user" type rodsuser
             pubResp="$(iquest %s \
               "select count(USER_ID) where USER_GROUP_NAME = 'public' and USER_NAME ='$user'" )"
             if (( pubResp == 0 )); then
@@ -251,6 +253,33 @@
       register: resp
       changed_when: resp.stdout == 'changed'
 
+# XXX - Due to https://github.com/irods/irods/issues/8233, iadmin cannot be used to change a user's
+# type from ds-service to rodsuser
+- name: Change ds-service users to rodsuser type
+  hosts: dbms_primary
+  become: true
+  become_user: postgres
+  run_once: true
+  tasks:
+    - name: Change type
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          psql \
+            --dbname=ICAT \
+            --command="UPDATE r_user_main SET user_type_name = 'rodsuser' WHERE user_type_name = 'ds-service'"
+      changed_when: true
+      tags: non_idempotent
+
+
+- name: Remove ds-service
+  hosts: irods_catalog
+  become: "{{ _irods_become_svc_acnt }}"
+  become_user: "{{ _irods_service_account_name }}"
+  run_once: true
+  gather_facts: false
+  tasks:
+# XXX - ^^^
     - name: Ensure service user type doesn't exist
       cyverse.ds.irods_user_type:
         type: ds-service
