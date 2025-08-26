@@ -111,16 +111,15 @@
             -no_testing
           block:
             - name: Retrieve previous docker image
-              community.docker.docker_image:
+              community.docker.docker_image_pull:
                 name: cyverse/ds-irods-rs-onbuild
-                source: pull
               failed_when: false
               register: response
 
             - name: Re-tag previous image as local
-              cyverse.ds.docker_tag:
-                source: cyverse/ds-irods-rs-onbuild
-                target: "{{ _irods_rs_image }}"
+              community.docker.docker_image_tag:
+                name: cyverse/ds-irods-rs-onbuild
+                repository: "{{ _irods_rs_image }}"
               failed_when: false
 
         - name: Inspect previous docker image
@@ -139,14 +138,10 @@
             - no_testing
 
         - name: Build docker image
-          community.docker.docker_image:
+          community.docker.docker_image_build:
             name: "{{ _irods_rs_image }}"
-            source: build
-            build:
-              path: "{{ _irods_build_dir }}"
-              pull: true
+            path: "{{ _irods_build_dir }}"
             tag: "{{ build_time }}"
-            force_source: true
           register: response
           changed_when: >-
             response is succeeded
@@ -156,10 +151,9 @@
 
         - name: Remove duplicate docker image
           when: response is not changed
-          community.docker.docker_image:
+          community.docker.docker_image_remove:
             name: "{{ _irods_rs_image }}"
             tag: "{{ build_time }}"
-            state: absent
           tags:
             - no_testing
 
@@ -170,26 +164,23 @@
             - skip_ansible_lint
           block:
             - name: Tag new image as latest
-              cyverse.ds.docker_tag:
-                source: "{{ _irods_rs_image }}:{{ build_time }}"
-                target: "{{ _irods_rs_image }}:latest"
+              community.docker.docker_image_tag:
+                name: "{{ _irods_rs_image }}:{{ build_time }}"
+                repository: "{{ _irods_rs_image }}:latest"
 
             - name: Create published tag
               when: _irods_publish_rs_image | bool
-              cyverse.ds.docker_tag:
-                source: "{{ _irods_rs_image }}:{{ item }}"
-                target: cyverse/ds-irods-rs-onbuild:{{ item }}
-              with_items:
-                - "{{ build_time }}"
-                - latest
+              community.docker.docker_image_tag:
+                name: "{{ _irods_rs_image }}:{{ build_time }}"
+                repository:
+                  - cyverse/ds-irods-rs-onbuild:{{ build_time }}
+                  - cyverse/ds-irods-rs-onbuild:latest
 
             - name: Push published tag
               when: _irods_publish_rs_image | bool
-              community.docker.docker_image:
-                source: local
+              community.docker.docker_image_push:
                 name: cyverse/ds-irods-rs-onbuild
                 tag: "{{ item }}"
-                push: true
               with_items:
                 - "{{ build_time }}"
                 - latest
