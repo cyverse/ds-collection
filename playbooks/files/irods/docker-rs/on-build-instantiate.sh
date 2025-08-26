@@ -21,21 +21,21 @@
 # IRODS_RES_SERVER    the FQDN or address used by the grid to communicate with
 #                     this server
 # IRODS_STORAGE_RES   the unix file system resource to server
+#
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
 
 set -o errexit -o nounset -o pipefail
 
 main()
 {
   jq_in_place \
-    "( .host_entries[]                          |
-       select(.address_type == \"local\")       |
-       .addresses[]                             |
-       select(.address == \"_IRODS_RS_CNAME_\") |
-       .address
-     ) |= \"$IRODS_RES_SERVER\"" \
-    /etc/irods/hosts_config.json
-
-  jq_in_place ".zone_user |= \"$IRODS_CLERVER_USER\"" /etc/irods/server_config.json
+    "( .host_resolution.host_entries[]    |
+       select(.address_type == \"local\") |
+       .addresses
+     ) |= map(if . == \"_IRODS_RS_CNAME_\" then \"$IRODS_RES_SERVER\" else . end) |
+     .zone_user |= \"$IRODS_CLERVER_USER\"" \
+    /etc/irods/server_config.json
 
   jq_in_place \
     ".irods_cwd              |= sub(\"_IRODS_USER_NAME_\"; \"$IRODS_CLERVER_USER\") |
