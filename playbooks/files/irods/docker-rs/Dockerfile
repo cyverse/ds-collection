@@ -1,29 +1,42 @@
-FROM cyverse/irods:4.2.8
+FROM cyverse/irods:4.3.1
 
 ### Switch back to root for installation
 USER root
 
+RUN <<EOF
+	apt-get update
+	apt-get upgrade --yes
+
 ### Install support for UUID generation
-RUN yum --assumeyes install uuidd && \
+	apt-get install --yes uuid-runtime
+
 ### Install support for periphery script
-    yum --assumeyes install moreutils && \
+	apt-get install --yes moreutils
+
 ### Clean up installation artifacts
-    yum --assumeyes clean all && \
-    rm --force --recursive /var/cache/yum && \
+	apt-get clean
+
 ### Create vault base
-    mkdir /irods_vault
+	mkdir /irods_vault
+EOF
 
 ### Install cmd scripts and config files
 COPY var/lib/irods/ /var/lib/irods/
 COPY etc/irods/ /etc/irods/
-RUN chown --recursive irods:irods /etc/irods /var/lib/irods && \
-    chmod --recursive ug+rw /etc/irods /var/lib/irods && \
-    chmod ug+x /var/lib/irods/irodsctl /var/lib/irods/msiExecCmd_bin/*
+
+RUN <<EOF
+	chown --recursive irods:irods /etc/irods /var/lib/irods
+	chmod --recursive ug+rw /etc/irods /var/lib/irods
+	chmod ug+x /var/lib/irods/irodsctl /var/lib/irods/msiExecCmd_bin/*
+EOF
 
 ### Add script to handle start and stop extras
 COPY periphery.sh /periphery
-RUN chown irods:irods /periphery && \
-    chmod ug+x /periphery
+
+RUN <<EOF
+	chown irods:irods /periphery
+	chmod ug+x /periphery
+EOF
 
 EXPOSE 1247/tcp 1248/tcp 20000-20009/tcp 20000-20009/udp
 
@@ -43,8 +56,10 @@ ONBUILD ARG IRODS_HOST_UID
 ONBUILD ARG IRODS_RES_SERVER
 ONBUILD ARG IRODS_STORAGE_RES
 
-ONBUILD RUN /on-build-instantiate && \
-            rm --force /on-build-instantiate
+ONBUILD RUN <<EOF
+	/on-build-instantiate
+	rm --force /on-build-instantiate
+EOF
 
 ONBUILD USER irods-host-user
 ONBUILD ENV HOME=/var/lib/irods

@@ -29,9 +29,25 @@
       register: resp
       failed_when: not resp.stat.exists
 
+    - name: Retrieve encoded service_account.config
+      ansible.builtin.slurp:
+        src: /tmp/etc/irods/service_account.config
+      register: sa_encoded
+
+    - name: Decode service_account.config
+      ansible.builtin.set_fact:
+        service_account: "{{ sa_encoded.content | b64decode }}"
+
+    - name: Verify contents of service_account.config
+      ansible.builtin.assert:
+        that:
+          - service_account is search('\nIRODS_SERVICE_ACCOUNT_NAME=irods\n')
+
     - name: Verify service_account.config contents
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: "TODO: verify {{ item }}"
+      loop:
+        - IRODS_SERVICE_GROUP_NAME
 
     - name: Verify deposition of server_config.json
       ansible.builtin.stat:
