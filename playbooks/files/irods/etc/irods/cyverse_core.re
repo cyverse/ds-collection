@@ -602,7 +602,7 @@ pep_api_bulk_data_obj_reg_post(*Instance, *Comm, *BulkDataObjRegInp, *BULK_DATA_
 #
 pep_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
 	cyverse_encryption_api_coll_create_post(*Instance, *Comm, *CollCreateInp);
-	ipcTrash_api_coll_create_post(*Instance, *Comm, *CollCreateInp);
+	cyverse_trash_api_coll_create_post(*Instance, *Comm, *CollCreateInp);
 }
 
 
@@ -647,7 +647,7 @@ pep_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 #
 pep_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 	cyverse_logic_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat);
-	ipcTrash_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat);
+	cyverse_trash_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat);
 }
 
 
@@ -677,7 +677,7 @@ pep_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
 #
 pep_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 	cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
-	ipcTrash_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
+	cyverse_trash_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
 }
 
 
@@ -753,7 +753,7 @@ pep_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
 #  OpenStat    unknown
 #
 pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	cyverse_encryption_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat)
+	cyverse_encryption_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat);
 }
 
 
@@ -786,7 +786,8 @@ pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL
 pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
 	cyverse_logic_api_data_obj_put_post(
 		*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT);
-	ipcTrash_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT);
+	cyverse_trash_api_data_obj_put_post(
+		*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT);
 }
 
 
@@ -803,7 +804,7 @@ pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTA
 #
 pep_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp) {
 	cyverse_encryption_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp)
-	ipcTrash_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp);
+	cyverse_trash_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp);
 }
 
 # This is the post processing logic for when a data object is renamed through
@@ -817,7 +818,7 @@ pep_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp) {
 #
 pep_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
 	cyverse_encryption_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp)
-	ipcTrash_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp);
+	cyverse_trash_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp);
 }
 
 
@@ -833,7 +834,7 @@ pep_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
 #                    deleted
 #
 pep_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp) {
-	ipcTrash_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp);
+	cyverse_trash_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp);
 }
 
 # This is the post processing logic for when a data object is deleted through
@@ -846,7 +847,7 @@ pep_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp) {
 #                    deleted
 #
 pep_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp) {
-	ipcTrash_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp);
+	cyverse_trash_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp);
 }
 
 # This is the exception logic for when an API DATA_OBJ_UNLINK request fails.
@@ -858,7 +859,7 @@ pep_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp) {
 #                    deleted
 #
 pep_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp) {
-	ipcTrash_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp);
+	cyverse_trash_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp);
 }
 
 
@@ -938,7 +939,7 @@ pep_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
 #  CollOprStat  unknown
 #
 pep_api_rm_coll_pre(*Instance, *Comm, *RmCollInp, *CollOprStat) {
-	ipcTrash_api_rm_coll_pre(*Instance, *Comm, *RmCollInp, *CollOprStat);
+	cyverse_trash_api_rm_coll_pre(*Instance, *Comm, *RmCollInp, *CollOprStat);
 }
 
 # This is the exception logic for when an API RM_COLL request fails.
@@ -951,7 +952,7 @@ pep_api_rm_coll_pre(*Instance, *Comm, *RmCollInp, *CollOprStat) {
 #  CollOprStat  unknown
 #
 pep_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat) {
-	ipcTrash_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat);
+	cyverse_trash_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat);
 }
 
 
@@ -968,10 +969,10 @@ pep_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat) {
 #  StructFileExtAndRegInp  (`KeyValuePair_PI`) information about the struct file
 #
 pep_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp) {
-	# XXX - we need to comment out this block
-	# StructFileExtAndRegInp variable is not properly serialized due to a bug in iRODS < v4.3
-	# Github issue: https://github.com/irods/irods/issues/7413
-	#cyverse_encryption_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp);
+# XXX - StructFileExtAndRegInp variable is not properly serialized due to a bug in iRODS. Fixed in
+#       iRODS 4.3.2
+#	cyverse_encryption_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp);
+# XXX - ^^^
 }
 
 

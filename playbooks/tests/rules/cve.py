@@ -173,17 +173,16 @@ class PepApiDataObjPutPreTestP(_CveTest):
 
     def __init__(self, method: str):
         super().__init__(method)
-        self._file = None
         self._iput_resp = None
 
     def setUp(self):
         super().setUp()
-        self._file = NamedTemporaryFile(delete=False)
-        self._file.close()
+        file = NamedTemporaryFile(delete=False)
+        file.close()
         self.update_rulebase('cyverse_core.re', 'mocks/cyverse_core.re')
         iput = f"""
             echo '{test_rules.IRODS_PASSWORD}' \
-                | iput -p /var/lib/irods/tmp_file '{self._file.name}' '{_TEST_DATA}'
+                | iput -p /var/lib/irods/tmp_file '{file.name}' '{_TEST_DATA}'
         """
         resp = subprocess.run(
             iput,
@@ -224,22 +223,12 @@ class PepApiDataObjPutPreTestNoP(_CveTest):
 
     def __init__(self, method: str):
         super().__init__(method)
-        self._file = None
         self._iput_resp = None
 
     def setUp(self):
         super().setUp()
-        self._file = NamedTemporaryFile(delete=False)
-        self._file.close()
         self.update_rulebase('cyverse_core.re', 'mocks/cyverse_core.re')
-        resp = subprocess.run(
-            f"echo '{test_rules.IRODS_PASSWORD}' | iput '{self._file.name}' '{_TEST_DATA}'",
-            stdout=PIPE,
-            stderr=PIPE,
-            shell=True,
-            check=False,
-            encoding='utf-8')
-        self._iput_resp = resp.returncode
+        self.put_empty(_TEST_DATA)
 
     def tearDown(self):
         self.update_rulebase('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')
@@ -253,7 +242,7 @@ class PepApiDataObjPutPreTestNoP(_CveTest):
 
     def test_upload_succeeded(self):
         """Verify that a upload command succeeded"""
-        if self._iput_resp != 0:
+        if not self._iput_resp:
             self.fail("upload failed")
 
     def test_cyversecore_called(self):

@@ -7,9 +7,6 @@
 """Tests of cyverse_encryption.re rule logic."""
 
 import os
-import subprocess
-from subprocess import CalledProcessError
-from tempfile import NamedTemporaryFile
 import unittest
 
 from irods.exception import CUT_ACTION_PROCESSED_ERR
@@ -213,21 +210,7 @@ class CyverseEncryptionApiDataObjPutPre(_CyverseEncryptionTestCase):
             self.fail("Failed to upload unencrypted file to collection not requiring encryption")
 
     def _attempt_put(self, dest_coll: str, obj_name: str) -> bool:
-        with NamedTemporaryFile(delete=False) as file:
-            file.close()
-            obj = os.path.join(dest_coll, obj_name)
-            try:
-                subprocess.run(
-                    f"echo '{test_rules.IRODS_PASSWORD}' | iput '{file.name}' '{obj}'",
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    shell=True,
-                    check=True,
-                    encoding='utf-8')
-                self.ensure_obj_absent(obj)
-            except CalledProcessError:
-                return False
-            return True
+        return self.put_empty(os.path.join(dest_coll, obj_name))
 
 
 class CyverseEncryptionApiDataObjRenamePreData(_CyverseEncryptionTestCase):

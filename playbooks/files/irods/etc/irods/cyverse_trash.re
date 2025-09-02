@@ -67,7 +67,7 @@ _ipcTrash_manageTimeAVU(*action, *type, *path, *avuValue) {
 #  trash_timestamp_<PATH>  records the timestamp when the data object with
 #                          absolute path PATH is moved to trash
 #
-ipcTrash_api_data_obj_unlink_pre(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
+cyverse_trash_api_data_obj_unlink_pre(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
   if (errorcode(*DATAOBJUNLINKINP.forceFlag) != 0) {
     msiGetSystemTime(*timestamp, "");
     *dataObjPath = *DATAOBJUNLINKINP.obj_path;
@@ -99,7 +99,7 @@ ipcTrash_api_data_obj_unlink_pre(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
 #  trash_timestamp_<PATH>  provides the timestamp when the data object with
 #                          absolute path PATH is moved to trash
 #
-ipcTrash_api_data_obj_unlink_post(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
+cyverse_trash_api_data_obj_unlink_post(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
   *dataObjPath = *DATAOBJUNLINKINP.obj_path;
   *timestampVar = _ipcTrash_mkTimestampVar(/*dataObjPath);
   if (errorcode(temporaryStorage.'*timestampVar') == 0) {
@@ -135,7 +135,7 @@ ipcTrash_api_data_obj_unlink_post(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
 #  trash_timestamp_<PATH>  provides the timestamp for object with path PATH to
 #                          be removed
 #
-ipcTrash_api_data_obj_unlink_except(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
+cyverse_trash_api_data_obj_unlink_except(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
   *dataObjPath = *DATAOBJUNLINKINP.obj_path;
   *timestampVar = _ipcTrash_mkTimestampVar(/*dataObjPath);
   if (errorcode(temporaryStorage.'*timestampVar') == 0) {
@@ -157,7 +157,7 @@ ipcTrash_api_data_obj_unlink_except(*INSTANCE, *COMM, *DATAOBJUNLINKINP) {
 #  DATAOBJINPBBUF  (unknown) unused
 #  PORTAL_OPR_OUT  (unknown) unused
 #
-ipcTrash_api_data_obj_put_post(*INSTANCE, *COMM, *DATAOBJINP, *DATAOBJINPBBUF, *PORTALOPROUT) {
+cyverse_trash_api_data_obj_put_post(*INSTANCE, *COMM, *DATAOBJINP, *DATAOBJINPBBUF, *PORTALOPROUT) {
   *zone = cyverse_ZONE;
   if (*DATAOBJINP.obj_path like '/*zone/trash/*') {
     msiGetSystemTime(*timestamp, "");
@@ -180,7 +180,7 @@ ipcTrash_api_data_obj_put_post(*INSTANCE, *COMM, *DATAOBJINP, *DATAOBJINPBBUF, *
 #  trash_timestamp_<PATH>  records the timestamp when the collection with
 #                          absolute path PATH is moved to trash
 #
-ipcTrash_api_rm_coll_pre(*INSTANCE, *COMM, *RMCOLLINP, *COLLOPRSTAT) {
+cyverse_trash_api_rm_coll_pre(*INSTANCE, *COMM, *RMCOLLINP, *COLLOPRSTAT) {
   if (errorcode(*RMCOLLINP.forceFlag) != 0) {
     msiGetSystemTime(*timestamp, "");
     *collNamePath = *RMCOLLINP.coll_name;
@@ -204,7 +204,7 @@ ipcTrash_api_rm_coll_pre(*INSTANCE, *COMM, *RMCOLLINP, *COLLOPRSTAT) {
 #  trash_timestamp_<PATH>  records the timestamp when the collection with
 #                          absolute path PATH is moved to trash
 #
-ipcTrash_api_rm_coll_except(*INSTANCE, *COMM, *RMCOLLINP, *COLLOPRSTAT) {
+cyverse_trash_api_rm_coll_except(*INSTANCE, *COMM, *RMCOLLINP, *COLLOPRSTAT) {
   *collNamePath = *RMCOLLINP.coll_name;
   *timestampVar = _ipcTrash_mkTimestampVar(/*collNamePath);
   if (errorcode(temporaryStorage.'*timestampVar') == 0) {
@@ -220,7 +220,7 @@ ipcTrash_api_rm_coll_except(*INSTANCE, *COMM, *RMCOLLINP, *COLLOPRSTAT) {
 #  COMM           (`KeyValuePair_PI`) unused
 #  COLLCREATEINP  (`KeyValuePair_PI`) information related to the new collection
 #
-ipcTrash_api_coll_create_post(*INSTANCE, *COMM, *COLLCREATEINP) {
+cyverse_trash_api_coll_create_post(*INSTANCE, *COMM, *COLLCREATEINP) {
   *zone = cyverse_ZONE;
   *collNamePath = *COLLCREATEINP.coll_name;
   if (*collNamePath like '/*zone/trash/*') {
@@ -245,7 +245,7 @@ ipcTrash_api_coll_create_post(*INSTANCE, *COMM, *COLLCREATEINP) {
 #                           there is one for each deleted collection or data
 #                           object
 #
-ipcTrash_api_data_obj_rename_pre(*INSTANCE, *COMM, *DATAOBJRENAMEINP) {
+cyverse_trash_api_data_obj_rename_pre(*INSTANCE, *COMM, *DATAOBJRENAMEINP) {
   *zone = cyverse_ZONE;
   if (
     (*DATAOBJRENAMEINP.src_obj_path like '/*zone/trash/*')
@@ -290,7 +290,7 @@ ipcTrash_api_data_obj_rename_pre(*INSTANCE, *COMM, *DATAOBJRENAMEINP) {
 #                           there is one for each deleted collection or data
 #                           object
 #
-ipcTrash_api_data_obj_rename_post(*INSTANCE, *COMM, *DATAOBJRENAMEINP) {
+cyverse_trash_api_data_obj_rename_post(*INSTANCE, *COMM, *DATAOBJRENAMEINP) {
   *zone = cyverse_ZONE;
   *destObjPath = *DATAOBJRENAMEINP.dst_obj_path;
   if (*destObjPath like '/*zone/trash/*') {
@@ -319,7 +319,7 @@ ipcTrash_api_data_obj_rename_post(*INSTANCE, *COMM, *DATAOBJRENAMEINP) {
 #  DATAOBJCOPYINP  (`KeyValuePair_PI`) information related to copy operation
 #  TRANSSTAT       (unknown) unused
 #
-ipcTrash_api_data_obj_copy_post(*INSTANCE, *COMM, *DATAOBJCOPYINP, *TRANSSTAT) {
+cyverse_trash_api_data_obj_copy_post(*INSTANCE, *COMM, *DATAOBJCOPYINP, *TRANSSTAT) {
   *zone = cyverse_ZONE;
   *destObjPath = *DATAOBJCOPYINP.dst_obj_path;
   if (*destObjPath like '/*zone/trash/*') {
@@ -337,7 +337,7 @@ ipcTrash_api_data_obj_copy_post(*INSTANCE, *COMM, *DATAOBJCOPYINP, *TRANSSTAT) {
 #  DATAOBJINP  (`KeyValuePair_PI`) information related to the created data
 #              object
 #
-ipcTrash_api_data_obj_create_post(*INSTANCE, *COMM, *DATAOBJINP) {
+cyverse_trash_api_data_obj_create_post(*INSTANCE, *COMM, *DATAOBJINP) {
   *zone = cyverse_ZONE;
   *objPath = *DATAOBJINP.obj_path;
   if (*objPath like '/*zone/trash/*') {

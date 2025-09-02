@@ -7,12 +7,9 @@
 """Tests of cyverse_core.re rule logic."""
 
 import os
-import subprocess
-from subprocess import CalledProcessError
-from tempfile import NamedTemporaryFile
 import unittest
 
-from irods.exception import UserDoesNotExist
+from irods.exception import CAT_NO_ROWS_FOUND, CUT_ACTION_PROCESSED_ERR, UserDoesNotExist
 
 import test_rules
 from test_rules import IrodsTestCase, IrodsType
@@ -41,13 +38,11 @@ class CyverseCoreTestCase(IrodsTestCase):
         return self._test_file
 
     def setUp(self):
-        """Set up the test case."""
         super().setUp()
         self.update_rulebase('cyverse_encryption.re', 'mocks/cyverse_encryption.re')
         self.update_rulebase('cyverse_trash.re', 'mocks/cyverse_trash.re')
 
     def tearDown(self):
-        """Tear down the test case."""
         self.update_rulebase('cyverse_trash.re', '../../files/irods/etc/irods/cyverse_trash.re')
         self.update_rulebase(
             'cyverse_encryption.re', '../../files/irods/etc/irods/cyverse_encryption.re')
@@ -115,7 +110,7 @@ class AccreateuserzonecollectionsUser(CyverseCoreTestCase):
             self.fail(f'trash collection {trash} created for user {self._user_name}')
 
 
-class Acsetreservernumproc(CyverseCoreTestCase):
+class AcsetreservernumprocTest(CyverseCoreTestCase):
     """Test acSetReServerNumProc"""
 
     def setUp(self):
@@ -139,13 +134,11 @@ class PepApiCollCreatePostTest(CyverseCoreTestCase):
         self._test_coll = '/testing/home/rods/test_coll'
 
     def setUp(self):
-        """Add stubbed out version of cyverse_encryption.re to the server."""
         super().setUp()
         self._ensure_test_coll_absent()
         self.irods.collections.create(self._test_coll)
 
     def tearDown(self):
-        """Remove stubbed out version of cyverse_encryption.re from the server."""
         self._ensure_test_coll_absent()
         super().tearDown()
 
@@ -157,10 +150,37 @@ class PepApiCollCreatePostTest(CyverseCoreTestCase):
         if not self.verify_msg_logged('cyverse_encryption_api_coll_create_post'):
             self.fail('cyverse_encryption_api_coll_create_post not called')
 
-    def test_ipctrash_called(self):
+    def test_cyversetrash_called(self):
         """Test that the cyverse_trash PEP is called."""
-        if not self.verify_msg_logged('ipcTrash_api_coll_create_post'):
-            self.fail('ipcTrash_api_coll_create_post not called')
+        if not self.verify_msg_logged('cyverse_trash_api_coll_create_post'):
+            self.fail('cyverse_trash_api_coll_create_post not called')
+
+
+class PepApiDataObjCopyPostTest(CyverseCoreTestCase):
+    """Test pep_api_data_obj_copy_post"""
+
+    def __init__(self, method_name: str):
+        super().__init__(method_name)
+        self._test_copy = '/testing/home/rods/test_copy'
+
+    def setUp(self):
+        super().setUp()
+        self.irods.data_objects.create(self.artifact_file)
+
+    def tearDown(self):
+        self.ensure_obj_absent(self._test_copy)
+        self.ensure_obj_absent(self.artifact_file)
+        super().tearDown()
+
+    @unittest.skip("not implemented")
+    def test_cyverselogic_called(self):
+        """Test that the cyverse_logic version of the rule is called"""
+
+    def test_cyversetrash_called(self):
+        """Test that the cyverse_trash version of the rule is called"""
+        self.irods.data_objects.copy(self.artifact_file, self._test_copy)
+        if not self.verify_msg_logged('cyverse_trash_api_data_obj_copy_post'):
+            self.fail('cyverse_trash_api_data_obj_copy_post not called')
 
 
 class PepApiDataObjCopyPreTest(CyverseCoreTestCase):
@@ -186,16 +206,35 @@ class PepApiDataObjCopyPreTest(CyverseCoreTestCase):
             self.fail('cyverse_encryption_api_data_obj_copy_pre not called')
 
 
-class PepApiDataObjCreatePreTest(CyverseCoreTestCase):
-    """Test pep_api_data_obj_create_pre"""
+class PepApiDataObjCreatePostTest(CyverseCoreTestCase):
+    """Test pep_api_data_obj_create_post"""
 
     def setUp(self):
-        """Add stubbed out version of cyverse_encryption.re to the server."""
         super().setUp()
         self.irods.data_objects.create(self.artifact_file)
 
     def tearDown(self):
-        """Remove stubbed out version of cyverse_encryption.re from the server."""
+        self.ensure_obj_absent(self.artifact_file)
+        super().tearDown()
+
+    @unittest.skip("not implemented")
+    def test_cyverselogic_called(self):
+        """Test that the rule is called."""
+
+    def test_cyversetrash_called(self):
+        """Test that the rule is called."""
+        if not self.verify_msg_logged('cyverse_trash_api_data_obj_create_post'):
+            self.fail('cyverse_trash_api_data_obj_create_post not called')
+
+
+class PepApiDataObjCreatePreTest(CyverseCoreTestCase):
+    """Test pep_api_data_obj_create_pre"""
+
+    def setUp(self):
+        super().setUp()
+        self.irods.data_objects.create(self.artifact_file)
+
+    def tearDown(self):
         self.ensure_obj_absent(self.artifact_file)
         super().tearDown()
 
@@ -224,12 +263,10 @@ class PepApiDataObjOpenPreTest(CyverseCoreTestCase):
     """Test pep_api_data_obj_open_pre"""
 
     def setUp(self):
-        """Add stubbed out version of cyverse_encryption.re to the server."""
         super().setUp()
         self.irods.data_objects.create(self.artifact_file)
 
     def tearDown(self):
-        """Remove stubbed out version of cyverse_encryption.re from the server."""
         self.ensure_obj_absent(self.artifact_file)
         super().tearDown()
 
@@ -255,32 +292,16 @@ class PepApiDataObjOpenAndStatPreTest(CyverseCoreTestCase):
             self.fail('cyverse_encryption_api_data_obj_open_and_stat_pre not called')
 
 
-class PepApiDataObjPutPreTest(CyverseCoreTestCase):
-    """Test pep_api_data_obj_put_pre"""
+class PepApiDataObjPutTest(CyverseCoreTestCase):
+    """Tests pep_api_data_obj_put_*"""
 
     def setUp(self):
-        """Add stubbed out version of cyverse_encryption.re to the server."""
         super().setUp()
-        self._file = NamedTemporaryFile(delete=False)
-        self._file.close()
-        try:
-            cmd = f"""
-                echo '{test_rules.IRODS_PASSWORD}' | iput '{self._file.name}' '{self.artifact_file}'
-            """
-            subprocess.run(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                shell=True,
-                check=True,
-                encoding='utf-8')
-        except CalledProcessError as e:
-            raise RuntimeError(f"{e.stderr}") from e
+        if not self.put_empty(self.artifact_file):
+            raise RuntimeError(f"Failed to upload {self.artifact_file}")
 
     def tearDown(self):
-        """Remove stubbed out version of cyverse_encryption.re from the server."""
         self.ensure_obj_absent(self.artifact_file)
-        os.unlink(self._file.name)
         super().tearDown()
 
     def test_cyverseencryption_called(self):
@@ -288,8 +309,17 @@ class PepApiDataObjPutPreTest(CyverseCoreTestCase):
         if not self.verify_msg_logged('cyverse_encryption_api_data_obj_put_pre'):
             self.fail('cyverse_encryption_api_data_obj_put_pre not called')
 
+    @unittest.skip("not implemented")
+    def test_cyverselogic_called(self):
+        """Test that cyverse_logic's version of this rule is called."""
 
-class PepApiDataObjRename(CyverseCoreTestCase):
+    def test_cyversetrash_called(self):
+        """Test that cyverse_trash's version of this rule is called."""
+        if not self.verify_msg_logged('cyverse_trash_api_data_obj_put_post'):
+            self.fail('cyverse_trash_api_data_obj_put_post not called')
+
+
+class PepApiDataObjRenameTest(CyverseCoreTestCase):
     """Test pep_api_data_obj_rename_pre"""
 
     def __init__(self, method_name: str):
@@ -315,13 +345,66 @@ class PepApiDataObjRename(CyverseCoreTestCase):
         if not self.verify_msg_logged("cyverse_encryption_api_data_obj_rename_pre"):
             self.fail('cyverse_encryption_api_data_obj_rename_pre not called')
 
-    @unittest.skip("not implemented")
-    def test_ipctrash_post_called(self):
+    def test_cyversetrash_post_called(self):
         """Test that the cyverse_trash logic attached to the post PEP is called"""
+        if not self.verify_msg_logged("cyverse_trash_api_data_obj_rename_post"):
+            self.fail('cyverse_trash_api_data_obj_rename_post not called')
 
-    @unittest.skip("not implemented")
-    def test_ipctrash_pre_called(self):
+    def test_cyversetrash_pre_called(self):
         """Test that the cyverse_trash logic attached to the pre PEP is called"""
+        if not self.verify_msg_logged("cyverse_trash_api_data_obj_rename_pre"):
+            self.fail('cyverse_trash_api_data_obj_rename_pre not called')
+
+
+class PepApiDataObjUnlinkTest(CyverseCoreTestCase):
+    """Tests of pep_api_data_obj_unlink PEPs"""
+
+    def test_cyversetrash_except_called(self):
+        """Test that the cyverse_trash logic attached to the except version of this PEP is called"""
+        try:
+            self.irods.data_objects.unlink("/testing/home/irods/missing")
+        except CUT_ACTION_PROCESSED_ERR:
+            pass
+        if not self.verify_msg_logged("cyverse_trash_api_data_obj_unlink_except"):
+            self.fail('cyverse_trash_api_data_obj_unlink_except not called')
+
+    def test_cyversetrash_post_called(self):
+        """Test that the cyverse_trash logic attached to the post version of this  PEP is called"""
+        data = "/testing/home/rods/file"
+        self.irods.data_objects.create(data)
+        self.irods.data_objects.unlink(data)
+        if not self.verify_msg_logged("cyverse_trash_api_data_obj_unlink_post"):
+            self.fail('cyverse_trash_api_data_obj_unlink_post not called')
+
+    def test_cyversetrash_pre_called(self):
+        """Test that the cyverse_trash logic attached to the pre version of this  PEP is called"""
+        data = "/testing/home/rods/file"
+        self.irods.data_objects.create(data)
+        self.irods.data_objects.unlink(data)
+        if not self.verify_msg_logged("cyverse_trash_api_data_obj_unlink_pre"):
+            self.fail('cyverse_trash_api_data_obj_unlink_pre not called')
+
+
+class PepApiRmCollTest(CyverseCoreTestCase):
+    """Tests of pep_api_rm_coll PEPs"""
+
+    def test_cyversetrash_except_called(self):
+        """Test that the cyverse_trash logic attached to the except version of this PEP is called"""
+        try:
+            self.irods.collections.remove("/testing/home/irods/missing")
+        except CAT_NO_ROWS_FOUND:
+            pass
+        if not self.verify_msg_logged("cyverse_trash_api_rm_coll_except"):
+            self.fail('cyverse_trash_api_rm_coll_except not called')
+
+    def test_cyversetrash_pre_called(self):
+        """Test that the cyverse_trash logic attached to the pre version of this PEP is called"""
+        try:
+            self.irods.collections.remove("/testing/home/irods/missing")
+        except CAT_NO_ROWS_FOUND:
+            pass
+        if not self.verify_msg_logged("cyverse_trash_api_rm_coll_pre"):
+            self.fail('cyverse_trash_api_rm_coll_pre not called')
 
 
 @test_rules.unimplemented
@@ -449,22 +532,6 @@ class CyVerseCoreTest(CyverseCoreTestCase):
         """Test pep_api_data_obj_open_and_stat_pre"""
 
     @unittest.skip("not implemented")
-    def test_pepapidataobjputpost(self):
-        """Test pep_api_data_obj_put_post"""
-
-    @unittest.skip("not implemented")
-    def test_pepapiadataobjunlinkpre(self):
-        """Test pep_api_data_obj_unlink_pre"""
-
-    @unittest.skip("not implemented")
-    def test_pepapiadataobjunlinkpost(self):
-        """Test pep_api_data_obj_unlink_post"""
-
-    @unittest.skip("not implemented")
-    def test_pepapidataobjunlinkexcept(self):
-        """Test pep_api_data_obj_unlink_except"""
-
-    @unittest.skip("not implemented")
     def test_pepapidataobjwritepost(self):
         """Test pep_api_data_obj_write_post"""
 
@@ -483,10 +550,6 @@ class CyVerseCoreTest(CyverseCoreTestCase):
     @unittest.skip("not implemented")
     def test_pepapirmcollpre(self):
         """Test pep_api_rm_coll_pre"""
-
-    @unittest.skip("not implemented")
-    def test_pepapirmcollexcept(self):
-        """Test pep_api_rm_coll_except"""
 
     @unittest.skip("not implemented")
     def test_pepapitouchpost(self):
