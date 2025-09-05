@@ -1,3 +1,0 @@
----
-_cereus_collections: "{{ cereus_collections | d([]) }}"
-_cereus_resource_hierarchy: "{{ cereus_resource_hierarchy | d(_irods_resource_hierarchies[0]) }}"
