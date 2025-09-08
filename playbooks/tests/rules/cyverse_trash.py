@@ -14,7 +14,7 @@ from irods.exception import (
     CAT_COLLECTION_NOT_EMPTY, CAT_NO_ACCESS_PERMISSION, CUT_ACTION_PROCESSED_ERR)
 
 import test_rules
-from test_rules import IrodsTestCase
+from test_rules import IrodsTestCase, IrodsType
 
 
 def setUpModule():  # pylint: disable=invalid-name
@@ -25,6 +25,78 @@ def setUpModule():  # pylint: disable=invalid-name
 def tearDownModule():  # pylint: disable=invalid-name
     """Tear down the module."""
     test_rules.tearDownModule()
+
+
+class IpctrashManagetimeavuTest(IrodsTestCase):
+    """Tests of _ipcTrash_manageTimeAVU"""
+
+    def test_rm_timestamp_from_coll(self):
+        """Verify that it removes a timestamp AVU from a collection specified"""
+        coll_path = "/testing/home/rods"
+        for p in IrodsTestCase.prep_path(coll_path):
+            coll = self.irods.collections.get(coll_path)
+            coll.metadata.set("ipc::trash_timestamp", "timestamp")  # type: ignore
+            with self.subTest(p=p):
+                self.exec_rule(
+                    self.mk_rule(f"_ipcTrash_manageTimeAVU('rm', '-C', {p}, 'timestamp')"),
+                    IrodsType.NONE)
+            try:
+                self.irods.collections.get(coll_path).metadata.get_one("ipc::trash_timestamp")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+                self.fail("timestamp wasn't removed")
+            except KeyError:
+                pass
+
+    def test_rm_timestamp_from_data(self):
+        """Verify that it removes a timestamp AVU from a data object"""
+        obj_path = "/testing/home/rods/data"
+        self.irods.data_objects.create(obj_path).metadata.set("ipc::trash_timestamp", "timestamp")
+        for p in IrodsTestCase.prep_path(obj_path):
+            with self.subTest(p=p):
+                self.exec_rule(
+                    self.mk_rule(f"_ipcTrash_manageTimeAVU('rm', '-d', {p}, 'timestamp')"),
+                    IrodsType.NONE)
+                try:
+                    self.irods.data_objects.get(obj_path).metadata.get_one("ipc::trash_timestamp")
+                    self.fail("timestamp wasn't removed")
+                except KeyError:
+                    pass
+        self.ensure_obj_absent(obj_path)
+
+    def test_set_timestamp_on_coll(self):
+        """Verify that it sets a timestamp AVU on a collection"""
+        coll_path = "/testing/home/rods"
+        for p in IrodsTestCase.prep_path(coll_path):
+            with self.subTest(p=p):
+                self.exec_rule(
+                    self.mk_rule(f"_ipcTrash_manageTimeAVU('set', '-C', {p}, 'timestamp')"),
+                    IrodsType.NONE)
+            avus = self.irods.collections.get(coll_path).metadata  # type: ignore
+            try:
+                avu = avus.get_one("ipc::trash_timestamp")
+                if avu.value != 'timestamp':
+                    self.fail("incorrect timestamp set")
+            except KeyError:
+                self.fail("timestamp wasn't set")
+            avus.remove("ipc::trash_timestamp", "timestamp", "")
+
+    def test_set_timestamp_on_data(self):
+        """Verify that it sets a timestamp AVU on a data object"""
+        obj_path = "/testing/home/rods/data"
+        self.irods.data_objects.create(obj_path)
+        for p in IrodsTestCase.prep_path(obj_path):
+            with self.subTest(p=p):
+                self.exec_rule(
+                    self.mk_rule(f"_ipcTrash_manageTimeAVU('set', '-d', {p}, 'timestamp')"),
+                    IrodsType.NONE)
+            avus = self.irods.data_objects.get(obj_path).metadata  # type: ignore
+            try:
+                avu = avus.get_one("ipc::trash_timestamp")
+                if avu.value != 'timestamp':
+                    self.fail("incorrect timestamp set")
+            except KeyError:
+                self.fail("timestamp wasn't set")
+            avus.remove("ipc::trash_timestamp", "timestamp", "")
+        self.ensure_obj_absent(obj_path)
 
 
 class CyverseTrashApiCollCreatePostTest(IrodsTestCase):
@@ -241,10 +313,6 @@ class CyverseTrashTest(IrodsTestCase):
     @unittest.skip("not implemented")
     def test_ipctrash_mkobjdataidvar(self):
         """Test _ipcTrash_mkObjDataIdVar"""
-
-    @unittest.skip("not implemented")
-    def test_ipctrash_managetimeavu(self):
-        """Test _ipcTrash_manageTimeAVU"""
 
 
 if __name__ == "__main__":
