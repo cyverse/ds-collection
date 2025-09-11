@@ -32,8 +32,6 @@ Variable                                   | Required | Default                 
 `avra_base_collection`                     | no       |                                      |         | The base collection for the Avra project. If it isn't present no Avra rules will fire.
 `avra_manager`                             | no       | `irods_clerver_user`                 |         | The iRODS user who is responsible for Avra data.
 `avra_resource_hierarchy`                  | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the Avra project
-`cereus_collections`                       | no       | []                                   |         | A list of collections whose data belongs on the Cereus resource, each entry must be an absolute path
-`cereus_resource_hierarchy`                | no       | `irods_resource_hierarchies[0]`      |         | the Cereus resource used for hosting data for Cereus related projects
 `dbms_checkpoint_completion_target`        | no       | 0.9                                  |         | WAL checkpoint target duration fraction
 `dbms_checkpoint_timeout`                  | no       | 15                                   |         | WAL checkpoint timeout in minutes
 `dbms_effective_cache_size`                | no       | _see comment_                        |         | the value the query planner uses to estimate the total size of data caches in GiB, the default in 50% of the total memory
@@ -130,8 +128,8 @@ Variable                                   | Required | Default                 
 `proxy_restart_allowed`                    | no       | false                                |         | Whether or not HAProxy can be restarted
 `proxy_rsyslog_conf`                       | no       | /etc/rsyslog.d/haproxy.conf          |         | the path to the rsyslog configuration file for HAProxy
 `proxy_stats_auth`                         | no       | null                                 |         | an object providing the authentication credentials for the HAProxy stats web interface _see below_
-`proxy_stats_tls_crt`                      | no       | null                                 |         | the absolute path to the TLS certificate chain used for securing the HAProxy stats web interface
-`proxy_stats_tls_crt_content`              | no       | null                                 |         | the content of the TLS certificate chain file
+`proxy_tls_crt`                            | no       | null                                 |         | the absolute path to the TLS certificate chain used for securing the HAProxy HTTPS connections
+`proxy_tls_crt_content`                    | no       | null                                 |         | the content of the TLS certificate chain file
 `proxy_irods_direct_max_conn`              | no       | 200                                  |         | the maximum number of connections to iRODS
 `proxy_irods_reconn_ports`                 | no       | 20000-20399                          |         | the range of TCP range of ports that need to be forwarded to iRODS for reconnections
 `proxy_sftp_port`                          | no       | 22                                   |         | the TCP port hosting the SFTP service whose communication will be forwarded to SFTPGo

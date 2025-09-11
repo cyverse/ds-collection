@@ -238,8 +238,9 @@
     - name: Verify service_account.config is correct
       ansible.builtin.assert:
         that:
-          - service_account is search('IRODS_SERVICE_ACCOUNT_NAME=irods')
-          - service_account is search('IRODS_SERVICE_GROUP_NAME=irods')
+          - service_account is search('^#\n# Ansible managed:')
+          - service_account is search('\nIRODS_SERVICE_ACCOUNT_NAME=irods')
+          - service_account is search('\nIRODS_SERVICE_GROUP_NAME=irods')
 
 
 - name: Verify | irods_environment options
@@ -484,6 +485,7 @@
     - name: Verify service_account.config is correct
       ansible.builtin.assert:
         that:
+          - service_account is search('^#\n# Ansible managed:')
           - service_account is search('IRODS_SERVICE_ACCOUNT_NAME=custom')
           - service_account is search('IRODS_SERVICE_GROUP_NAME=custom')
 
@@ -503,6 +505,7 @@
     - name: Verify service_account.config is correct
       ansible.builtin.assert:
         that:
+          - service_account is search('^#\n# Ansible managed:')
           - service_account is search('IRODS_SERVICE_ACCOUNT_NAME=irods')
           - service_account is search('IRODS_SERVICE_GROUP_NAME=custom')
 

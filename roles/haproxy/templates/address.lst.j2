@@ -1,0 +1,5 @@
+{{ ansible_managed | comment }}
+
+{% for h in _haproxy_address.addresses | d([]) %}
+{{   h if h|ansible.utils.ipaddr else lookup('dig', h) }}
+{% endfor %}

@@ -21,7 +21,6 @@ haproxy_queue_timeout: null
 
 haproxy_stats_auth: null
 haproxy_stats_port: 8404
-haproxy_stats_tls_crt: null
 
 haproxy_restart_allowed: false
 
@@ -32,6 +31,9 @@ haproxy_sftp_check_period: "{{ haproxy_default_check_period }}"
 haproxy_sftp_hosts:
   - localhost
 haproxy_sftp_port: 22
+
+haproxy_tls_crt: null
+haproxy_tls_crt_content: null
 
 haproxy_vip_client_hosts: []
 
