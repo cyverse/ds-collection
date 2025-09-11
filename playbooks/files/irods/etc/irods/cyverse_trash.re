@@ -20,8 +20,7 @@
 # Return:
 #  the variable name to be used in temporaryStorage to store a timestamp value
 #
-_ipcTrash_mkTimestampVar: path -> string
-_ipcTrash_mkTimestampVar(*Path) = 'trash_timestamp_' ++ str(*Path)
+_cyverse_trash_mkTimestampVar(*Path) = 'trash_timestamp_' ++ str(*Path)
 
 # generates a unique variable name for a data object based on its absolute path,
 # the variable name is prefixed with "data_id_".
@@ -32,10 +31,9 @@ _ipcTrash_mkTimestampVar(*Path) = 'trash_timestamp_' ++ str(*Path)
 # Return:
 #  the variable name to be used in temporaryStorage to store a DATA_ID
 #
-_ipcTrash_mkObjDataIdVar: path -> string
-_ipcTrash_mkObjDataIdVar(*Path) = 'data_id_' ++ str(*Path)
+_cyverse_trash_mkDataIdVar(*Path) = 'data_id_' ++ str(*Path)
 
-_ipcTrash_manageTimeAVU(*Action, *Type, *Path, *Val) {
+_cyverse_trash_manageTimeAVU(*Action, *Type, *Path, *Val) {
 	*actionArg = execCmdArg(*Action);
 	*typeArg = execCmdArg(*Type);
 	*pathArg = execCmdArg(str(*Path));
@@ -47,7 +45,7 @@ _ipcTrash_manageTimeAVU(*Action, *Type, *Path, *Val) {
 	if (*err < 0) {
 		msiGetStderrInExecCmdOut(*out, *resp);
 		writeLine('serverLog', 'imeta-exec stderr: *resp');
-		writeLine('serverLog', '_ipcTrash_manageTimeAVU: *msg');
+		writeLine('serverLog', '_cyverse_trash_manageTimeAVU: *msg');
 		*err;
 	}
 }
@@ -72,13 +70,13 @@ cyverse_trash_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp) {
 	if (errorcode(*DataObjUnlinkInp.forceFlag) != 0) {
 		msiGetSystemTime(*timestamp, "");
 		*dataObjPath = *DataObjUnlinkInp.obj_path;
-		*timestampVar = _ipcTrash_mkTimestampVar(/*dataObjPath);
+		*timestampVar = _cyverse_trash_mkTimestampVar(/*dataObjPath);
 		temporaryStorage.'*timestampVar' = *timestamp;
-		_ipcTrash_manageTimeAVU("set", cyverse_DATA_OBJ, *dataObjPath, *timestamp);
+		_cyverse_trash_manageTimeAVU("set", cyverse_DATA_OBJ, *dataObjPath, *timestamp);
 		msiSplitPath(*dataObjPath, *coll, *file);
 
 		foreach(*row in SELECT DATA_ID WHERE COLL_NAME = '*coll' AND DATA_NAME = '*file') {
-			*dataIdVar = _ipcTrash_mkObjDataIdVar(/*dataObjPath);
+			*dataIdVar = _cyverse_trash_mkDataIdVar(*dataObjPath);
 			temporaryStorage.'*dataIdVar' = *row.DATA_ID;
 		}
 	}
@@ -102,13 +100,13 @@ cyverse_trash_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp) {
 #
 cyverse_trash_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp) {
 	*dataObjPath = *DataObjUnlinkInp.obj_path;
-	*timestampVar = _ipcTrash_mkTimestampVar(/*dataObjPath);
+	*timestampVar = _cyverse_trash_mkTimestampVar(/*dataObjPath);
 
 	if (errorcode(temporaryStorage.'*timestampVar') == 0) {
 		temporaryStorage.'*timestampVar' = "";
 	}
 
-	*dataIdVar = _ipcTrash_mkObjDataIdVar(/*dataObjPath);
+	*dataIdVar = _cyverse_trash_mkDataIdVar(*dataObjPath);
 
 	if (errorcode(temporaryStorage.'*dataIdVar') == 0) {
 		*dataIdVarTemp = temporaryStorage.'*dataIdVar';
@@ -123,7 +121,7 @@ cyverse_trash_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp) {
 					*parentCollPath = *parentCollPath ++ "/" ++ elem(*collNameList, *i);
 				}
 
-				_ipcTrash_manageTimeAVU("set", cyverse_COLL, *parentCollPath, *timestamp);
+				_cyverse_trash_manageTimeAVU("set", cyverse_COLL, *parentCollPath, *timestamp);
 			}
 		}
 	}
@@ -145,11 +143,11 @@ cyverse_trash_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp) {
 #
 cyverse_trash_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp) {
 	*dataObjPath = *DataObjUnlinkInp.obj_path;
-	*timestampVar = _ipcTrash_mkTimestampVar(/*dataObjPath);
+	*timestampVar = _cyverse_trash_mkTimestampVar(/*dataObjPath);
 
 	if (errorcode(temporaryStorage.'*timestampVar') == 0) {
 		if (temporaryStorage.'*timestampVar' != "") {
-			_ipcTrash_manageTimeAVU(
+			_cyverse_trash_manageTimeAVU(
 				"rm", cyverse_DATA_OBJ, *dataObjPath, temporaryStorage.'*timestampVar' );
 		}
 	}
@@ -173,7 +171,7 @@ cyverse_trash_api_data_obj_put_post(
 
 	if (*DataObjInp.obj_path like '/*zone/trash/*') {
 		msiGetSystemTime(*timestamp, "");
-		_ipcTrash_manageTimeAVU("set", cyverse_DATA_OBJ, *DataObjInp.obj_path, *timestamp);
+		_cyverse_trash_manageTimeAVU("set", cyverse_DATA_OBJ, *DataObjInp.obj_path, *timestamp);
 	}
 }
 
@@ -196,9 +194,9 @@ cyverse_trash_api_rm_coll_pre(*Instance, *Comm, *RmCollInp, *CollOprStat) {
 	if (errorcode(*RmCollInp.forceFlag) != 0) {
 		msiGetSystemTime(*timestamp, "");
 		*collNamePath = *RmCollInp.coll_name;
-		*timestampVar = _ipcTrash_mkTimestampVar(/*collNamePath);
+		*timestampVar = _cyverse_trash_mkTimestampVar(/*collNamePath);
 		temporaryStorage.'*timestampVar' = *timestamp;
-		_ipcTrash_manageTimeAVU("set", cyverse_COLL, *collNamePath, *timestamp);
+		_cyverse_trash_manageTimeAVU("set", cyverse_COLL, *collNamePath, *timestamp);
 	}
 }
 
@@ -218,10 +216,10 @@ cyverse_trash_api_rm_coll_pre(*Instance, *Comm, *RmCollInp, *CollOprStat) {
 #
 cyverse_trash_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat) {
 	*collNamePath = *RmCollInp.coll_name;
-	*timestampVar = _ipcTrash_mkTimestampVar(/*collNamePath);
+	*timestampVar = _cyverse_trash_mkTimestampVar(/*collNamePath);
 
 	if (errorcode(temporaryStorage.'*timestampVar') == 0) {
-		_ipcTrash_manageTimeAVU("rm", cyverse_COLL, *collNamePath, temporaryStorage.'*timestampVar');
+		_cyverse_trash_manageTimeAVU("rm", cyverse_COLL, *collNamePath, temporaryStorage.'*timestampVar');
 	}
 }
 
@@ -238,7 +236,7 @@ cyverse_trash_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
 
 	if (*collNamePath like '/*zone/trash/*') {
 		msiGetSystemTime(*timestamp, "");
-		_ipcTrash_manageTimeAVU("set", cyverse_COLL, *collNamePath, *timestamp);
+		_cyverse_trash_manageTimeAVU("set", cyverse_COLL, *collNamePath, *timestamp);
 	}
 }
 
@@ -265,7 +263,7 @@ cyverse_trash_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp) {
 		&& *DataObjRenameInp.dst_obj_path not like '/*zone/trash/*'
 	) {
 		*srcObjPath = *DataObjRenameInp.src_obj_path;
-		*timestampVar = _ipcTrash_mkTimestampVar(/*srcObjPath);
+		*timestampVar = _cyverse_trash_mkTimestampVar(/*srcObjPath);
 		msiGetObjType(*srcObjPath, *type);
 
 		if (cyverse_isColl(*type)) {
@@ -313,17 +311,17 @@ cyverse_trash_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
 
 	if (*destObjPath like '/*zone/trash/*') {
 		msiGetSystemTime(*timestamp, "");
-		_ipcTrash_manageTimeAVU("set", cyverse_getEntityType(*destObjPath), *destObjPath, *timestamp);
+		_cyverse_trash_manageTimeAVU("set", cyverse_getEntityType(*destObjPath), *destObjPath, *timestamp);
 	}
 	else if (
 		*DataObjRenameInp.src_obj_path like '/*zone/trash/*'
 		&& *DataObjRenameInp.dst_obj_path not like '/*zone/trash/*'
 	) {
 		*srcObjPath = *DataObjRenameInp.src_obj_path;
-		*timestampVar = _ipcTrash_mkTimestampVar(/*srcObjPath);
+		*timestampVar = _cyverse_trash_mkTimestampVar(/*srcObjPath);
 
 		if (errorcode(temporaryStorage.'*timestampVar') == 0) {
-			_ipcTrash_manageTimeAVU(
+			_cyverse_trash_manageTimeAVU(
 				"rm",
 				cyverse_getEntityType(*destObjPath),
 				*destObjPath,
@@ -347,7 +345,7 @@ cyverse_trash_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransSt
 
 	if (*destObjPath like '/*zone/trash/*') {
 		msiGetSystemTime(*timestamp, "");
-		_ipcTrash_manageTimeAVU("set", cyverse_DATA_OBJ, *destObjPath, *timestamp);
+		_cyverse_trash_manageTimeAVU("set", cyverse_DATA_OBJ, *destObjPath, *timestamp);
 	}
 }
 
@@ -366,6 +364,6 @@ cyverse_trash_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 
 	if (*objPath like '/*zone/trash/*') {
 		msiGetSystemTime(*timestamp, "");
-		_ipcTrash_manageTimeAVU("set", cyverse_DATA_OBJ, *objPath, *timestamp);
+		_cyverse_trash_manageTimeAVU("set", cyverse_DATA_OBJ, *objPath, *timestamp);
 	}
 }

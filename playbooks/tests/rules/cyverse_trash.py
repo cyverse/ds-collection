@@ -14,7 +14,7 @@ from irods.exception import (
     CAT_COLLECTION_NOT_EMPTY, CAT_NO_ACCESS_PERMISSION, CUT_ACTION_PROCESSED_ERR)
 
 import test_rules
-from test_rules import IrodsTestCase, IrodsType
+from test_rules import IrodsTestCase, IrodsType, IrodsVal
 
 
 def setUpModule():  # pylint: disable=invalid-name
@@ -27,8 +27,8 @@ def tearDownModule():  # pylint: disable=invalid-name
     test_rules.tearDownModule()
 
 
-class IpctrashManagetimeavuTest(IrodsTestCase):
-    """Tests of _ipcTrash_manageTimeAVU"""
+class CyverseTrashManagetimeavuTest(IrodsTestCase):
+    """Tests of _cyverse_trash_manageTimeAVU"""
 
     def test_rm_timestamp_from_coll(self):
         """Verify that it removes a timestamp AVU from a collection specified"""
@@ -38,7 +38,7 @@ class IpctrashManagetimeavuTest(IrodsTestCase):
             coll.metadata.set("ipc::trash_timestamp", "timestamp")  # type: ignore
             with self.subTest(p=p):
                 self.exec_rule(
-                    self.mk_rule(f"_ipcTrash_manageTimeAVU('rm', '-C', {p}, 'timestamp')"),
+                    self.mk_rule(f"_cyverse_trash_manageTimeAVU('rm', '-C', {p}, 'timestamp')"),
                     IrodsType.NONE)
             try:
                 self.irods.collections.get(coll_path).metadata.get_one("ipc::trash_timestamp")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
@@ -53,7 +53,7 @@ class IpctrashManagetimeavuTest(IrodsTestCase):
         for p in IrodsTestCase.prep_path(obj_path):
             with self.subTest(p=p):
                 self.exec_rule(
-                    self.mk_rule(f"_ipcTrash_manageTimeAVU('rm', '-d', {p}, 'timestamp')"),
+                    self.mk_rule(f"_cyverse_trash_manageTimeAVU('rm', '-d', {p}, 'timestamp')"),
                     IrodsType.NONE)
                 try:
                     self.irods.data_objects.get(obj_path).metadata.get_one("ipc::trash_timestamp")
@@ -68,7 +68,7 @@ class IpctrashManagetimeavuTest(IrodsTestCase):
         for p in IrodsTestCase.prep_path(coll_path):
             with self.subTest(p=p):
                 self.exec_rule(
-                    self.mk_rule(f"_ipcTrash_manageTimeAVU('set', '-C', {p}, 'timestamp')"),
+                    self.mk_rule(f"_cyverse_trash_manageTimeAVU('set', '-C', {p}, 'timestamp')"),
                     IrodsType.NONE)
             avus = self.irods.collections.get(coll_path).metadata  # type: ignore
             try:
@@ -86,7 +86,7 @@ class IpctrashManagetimeavuTest(IrodsTestCase):
         for p in IrodsTestCase.prep_path(obj_path):
             with self.subTest(p=p):
                 self.exec_rule(
-                    self.mk_rule(f"_ipcTrash_manageTimeAVU('set', '-d', {p}, 'timestamp')"),
+                    self.mk_rule(f"_cyverse_trash_manageTimeAVU('set', '-d', {p}, 'timestamp')"),
                     IrodsType.NONE)
             avus = self.irods.data_objects.get(obj_path).metadata  # type: ignore
             try:
@@ -97,6 +97,30 @@ class IpctrashManagetimeavuTest(IrodsTestCase):
                 self.fail("timestamp wasn't set")
             avus.remove("ipc::trash_timestamp", "timestamp", "")
         self.ensure_obj_absent(obj_path)
+
+
+class CyverseTrashFunctionsTest(IrodsTestCase):
+    """Tests of the functions defined in cyverse_trash.re"""
+
+    def test_mkdataidvar(self):
+        """Verify that _cyverse_trash_mkDataIdVar correctly forms the variable"""
+        data_path = "/path/to/obj"
+        for p in IrodsTestCase.prep_path(data_path):
+            with self.subTest(p=p):
+                self.fn_test(
+                    '_cyverse_trash_mkDataIdVar',
+                    [p],
+                    IrodsVal.string(f"data_id_{data_path}"))
+
+    def test_mktimestampvar(self):
+        """Verify that _cyverse_trash_mkTimestampVar correctly forms the variable"""
+        entity_path = "/path/to/entity"
+        for p in IrodsTestCase.prep_path(entity_path):
+            with self.subTest(p=p):
+                self.fn_test(
+                    '_cyverse_trash_mkTimestampVar',
+                    [p],
+                    IrodsVal.string(f"trash_timestamp_{entity_path}"))
 
 
 class CyverseTrashApiCollCreatePostTest(IrodsTestCase):
@@ -301,18 +325,6 @@ class CyverseTrashApiRmCollTest(IrodsTestCase):
         if 'ipc::trash_timestamp' not in coll.metadata:  # type: ignore
             self.fail('collection moved to trash did not receive timestamp')
         coll.remove(force=True)  # type: ignore
-
-
-class CyverseTrashTest(IrodsTestCase):
-    """Test the cyverse_trash.re rule-base"""
-
-    @unittest.skip("not implemented")
-    def test_ipctrash_mktimestampvar(self):
-        """Test _ipcTrash_mkTimestampVar"""
-
-    @unittest.skip("not implemented")
-    def test_ipctrash_mkobjdataidvar(self):
-        """Test _ipcTrash_mkObjDataIdVar"""
 
 
 if __name__ == "__main__":
