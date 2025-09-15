@@ -4,15 +4,12 @@
 # © 2024 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
-"""
-Provides an ansible module for creating and removing an iRODS group.
-"""
+""" Provides an ansible module for creating and removing an iRODS group. """
 
 import ssl
 from ansible.module_utils.basic import AnsibleModule
 
-from irods.exception import iRODSException
-from irods.models import UserGroup
+from irods.exception import GroupDoesNotExist, iRODSException
 from irods.session import iRODSSession
 
 
@@ -141,9 +138,22 @@ class _IRODSGroupModule:
         self._result = {
             'changed': False,
             'message': "",
-            'group': self._module.params["group"],
+            'group': self._module.params["group"],  # pyright: ignore[reportArgumentType]
         }
-        self._session = None
+        ssl_context = ssl.create_default_context(
+            purpose=ssl.Purpose.SERVER_AUTH,
+            cafile=None,
+            capath=None,
+            cadata=None)
+        ssl_settings = {"ssl_context": ssl_context}
+        self._session = iRODSSession(
+            host=self._module.params["host"],  # pyright: ignore[reportArgumentType]
+            port=self._module.params["port"],  # pyright: ignore[reportArgumentType]
+            user=self._module.params["admin_user"],  # pyright: ignore[reportArgumentType]
+            password=self._module.params["admin_password"],  # pyright: ignore[reportArgumentType]
+            zone=self._module.params["zone"],  # pyright: ignore[reportArgumentType]
+            **ssl_settings,  # pyright: ignore[reportArgumentType]
+        )
 
     def run(self):
         """
@@ -152,54 +162,42 @@ class _IRODSGroupModule:
         if self._module.check_mode:
             self._module.exit_json(**self._result)
             return
-        self._init_session()
-        if self._module.params["state"] == "present":
-            return self._group_present()
-        return self._group_absent()
+        if self._module.params["state"] == "present":  # pyright: ignore[reportArgumentType]
+            self.group_present()
+        self.group_absent()
 
-    def _init_session(self):
-        ssl_context = ssl.create_default_context(
-            purpose=ssl.Purpose.SERVER_AUTH,
-            cafile=None,
-            capath=None,
-            cadata=None)
-        ssl_settings = {"ssl_context": ssl_context}
-        self._session = iRODSSession(
-            host=self._module.params["host"],
-            port=self._module.params["port"],
-            user=self._module.params["admin_user"],
-            password=self._module.params["admin_password"],
-            zone=self._module.params["zone"],
-            **ssl_settings)
-
-    def _group_absent(self):
+    def group_absent(self):
+        """ Ensures that a group doesn't exist """
         try:
-            group_name = self._module.params["group"]
+            group_name = self._module.params["group"]  # pyright: ignore[reportArgumentType]
             if not self._group_exists(group_name):
                 self._success("Group does not exist")
                 return
-            self._session.user_groups.remove(group_name)
+            self._session.groups.remove(group_name)
             self._result["changed"] = True
             self._success("Group is removed")
         except iRODSException as exc:
-            self._fail("Unable to remove irods group {}".format(group_name), exc)
+            self._fail(f"Unable to remove irods group {group_name}", exc)
 
-    def _group_present(self):
+    def group_present(self):
+        """ Ensure that a group exists """
         try:
-            group_name = self._module.params["group"]
+            group_name = self._module.params["group"]  # pyright: ignore[reportArgumentType]
             if self._group_exists(group_name):
                 self._success("Group already exists")
                 return
-            self._session.user_groups.create(group_name)
+            self._session.groups.create(group_name)
             self._result["changed"] = True
             self._success("Group is created")
         except iRODSException as exc:
-            self._fail("Unable to create irods group {}".format(group_name), exc)
+            self._fail(f"Unable to create irods group {group_name}", exc)
 
     def _group_exists(self, group_name):
-        for result in self._session.query(UserGroup.id).filter(UserGroup.name == group_name):
+        try:
+            self._session.groups.get(group_name)
             return True
-        return False
+        except GroupDoesNotExist:
+            return False
 
     def _fail(self, msg, err=None):
         if self._session:

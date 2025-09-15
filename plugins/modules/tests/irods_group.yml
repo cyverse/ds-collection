@@ -20,7 +20,7 @@
     - name: Create group
       delegate_to: localhost
       become: false
-      irods_group:
+      cyverse.ds.irods_group:
         group: "{{ create_group }}"
         state: present
         host: "{{ inventory_hostname }}"
@@ -38,7 +38,9 @@
       changed_when: false
 
     - name: Remove group
-      irods_group:
+      delegate_to: localhost
+      become: false
+      cyverse.ds.irods_group:
         group: "{{ rm_group }}"
         state: absent
         host: "{{ ansible_hostname }}"
