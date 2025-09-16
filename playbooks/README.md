@@ -32,8 +32,6 @@ Variable                                   | Required | Default                 
 `avra_base_collection`                     | no       |                                      |         | The base collection for the Avra project. If it isn't present no Avra rules will fire.
 `avra_manager`                             | no       | `irods_clerver_user`                 |         | The iRODS user who is responsible for Avra data.
 `avra_resource_hierarchy`                  | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the Avra project
-`cereus_collections`                       | no       | []                                   |         | A list of collections whose data belongs on the Cereus resource, each entry must be an absolute path
-`cereus_resource_hierarchy`                | no       | `irods_resource_hierarchies[0]`      |         | the Cereus resource used for hosting data for Cereus related projects
 `dbms_checkpoint_completion_target`        | no       | 0.9                                  |         | WAL checkpoint target duration fraction
 `dbms_checkpoint_timeout`                  | no       | 15                                   |         | WAL checkpoint timeout in minutes
 `dbms_effective_cache_size`                | no       | _see comment_                        |         | the value the query planner uses to estimate the total size of data caches in GiB, the default in 50% of the total memory
