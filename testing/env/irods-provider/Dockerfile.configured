@@ -75,7 +75,7 @@ RUN \
 	/tmp/prep-svc-script
 
 ### Install testing support artifacts
-	pip3 --quiet install python-irodsclient
+	pip3 --quiet install 'python-irodsclient<3.2'
 
 ### Clean yum cache
 	yum clean all
