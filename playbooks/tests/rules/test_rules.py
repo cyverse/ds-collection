@@ -10,6 +10,9 @@ import enum
 from enum import Enum
 from os import environ, path
 import pprint
+import subprocess
+from subprocess import CalledProcessError
+from tempfile import NamedTemporaryFile
 from typing import Any, List, Optional, Tuple
 from unittest import TestCase
 
@@ -336,6 +339,22 @@ class IrodsTestCase(TestCase):
                 self.irods.users.create(username, 'rodsuser')
             else:
                 self.irods.users.create_with_password(username, password)
+
+    def put_empty(self, irods_path: str) -> bool:
+        """Create an empty file and upload to iRODS using iput"""
+        with NamedTemporaryFile(delete=False) as file:
+            file.close()
+            try:
+                subprocess.run(
+                    f"echo '{IRODS_PASSWORD}' | iput '{file.name}' '{irods_path}'",
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    shell=True,
+                    check=True,
+                    encoding='utf-8')
+            except CalledProcessError:
+                return False
+            return True
 
     def reload_rules(self) -> None:
         """Reloads the iRODS rule engine."""

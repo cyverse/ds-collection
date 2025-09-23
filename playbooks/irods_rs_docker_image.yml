@@ -141,6 +141,7 @@
           community.docker.docker_image_build:
             name: "{{ _irods_rs_image }}"
             path: "{{ _irods_build_dir }}"
+            pull: true
             tag: "{{ build_time }}"
           register: response
           changed_when: >-
