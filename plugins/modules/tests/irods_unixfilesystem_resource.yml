@@ -1,5 +1,5 @@
 ---
-- name: test irods_unixfilesystem_resource module
+- name: Test irods_unixfilesystem_resource module
   hosts: dstesting-consumer_configured_centos-1.dstesting_default
   become: true
   become_user: irods
@@ -11,24 +11,24 @@
     options_resc_context: context_message_here
     options_resc_status: up
   pre_tasks:
-    - name: create vaults
-      file:
+    - name: Create vaults
+      ansible.builtin.file:
         path: "{{ item }}"
         state: directory
         mode: ug=rwx
-      with_items:
+      loop:
         - "{{ default_resc_vault }}"
         - "{{ options_resc_vault }}"
 
   tasks:
-    - name: run script without optional vars
-      irods_unixfilesystem_resource:
+    - name: Run script without optional vars
+      cyverse.ds.irods_unixfilesystem_resource:
         name: "{{ default_resc_name }}"
         host: "{{ inventory_hostname }}"
         vault: "{{ default_resc_vault }}"
 
-    - name: run script with optional vars
-      irods_unixfilesystem_resource:
+    - name: Run script with optional vars
+      cyverse.ds.irods_unixfilesystem_resource:
         name: "{{ options_resc_name }}"
         host: "{{ inventory_hostname }}"
         vault: "{{ options_resc_vault }}"
@@ -36,8 +36,8 @@
         status: "{{ options_resc_status }}"
         init_free_space: true
 
-    - name: check resource names
-      shell: |
+    - name: Check resource names
+      ansible.builtin.shell: |
         set -o errexit
         test \
           "$(iquest %s "SELECT RESC_NAME WHERE RESC_NAME = '{{ default_resc_name }}'")" \
@@ -47,8 +47,8 @@
           = '{{ options_resc_name }}'
       changed_when: false
 
-    - name: check resource path
-      shell: |
+    - name: Check resource path
+      ansible.builtin.shell: |
         set -o errexit
         test \
           "$(iquest %s "SELECT RESC_VAULT_PATH WHERE RESC_NAME = '{{ default_resc_name }}'")" \
@@ -58,8 +58,8 @@
           = '{{ options_resc_vault }}'
       changed_when: false
 
-    - name: check resource host
-      shell: |
+    - name: Check resource host
+      ansible.builtin.shell: |
         set -o errexit
         test \
           "$(iquest %s "SELECT RESC_LOC WHERE RESC_NAME = '{{ default_resc_name }}'")" \
@@ -69,22 +69,22 @@
           = '{{ inventory_hostname }}'
       changed_when: false
 
-    - name: check resource context
-      shell: |
+    - name: Check resource context
+      ansible.builtin.shell: |
         test \
           "$(iquest %s "SELECT RESC_CONTEXT WHERE RESC_NAME = '{{ options_resc_name }}'")" \
           = '{{ options_resc_context }}'
       changed_when: false
 
-    - name: check resource status
-      shell: |
+    - name: Check resource status
+      ansible.builtin.shell: |
         test \
           "$(iquest %s "SELECT RESC_STATUS WHERE RESC_NAME = '{{ options_resc_name }}'")" \
           = '{{ options_resc_status }}'
       changed_when: false
 
-    - name: check free space initialized
-      shell: |
+    - name: Check free space initialized
+      ansible.builtin.shell: |
         test \
           "$(iquest %s "SELECT RESC_FREE_SPACE WHERE RESC_NAME = '{{ options_resc_name }}'")" != ''
       changed_when: false

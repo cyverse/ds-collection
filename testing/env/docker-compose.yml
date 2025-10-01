@@ -60,6 +60,8 @@ services:
         IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
     hostname: "$IRODS_PROVIDER_CONF_HOST"
     privileged: true
+    security_opt:
+      - apparmor=docker-default
     tty: true
     depends_on:
       - dbms_configured
@@ -73,6 +75,8 @@ services:
         IRODS_SYSTEM_GROUP: "$IRODS_PROVIDER_SYSTEM_GROUP"
     hostname: "$IRODS_PROVIDER_UNCONF_HOST"
     privileged: true
+    security_opt:
+      - apparmor=docker-default
     tty: true
 
   consumer_configured_centos:
@@ -91,6 +95,8 @@ services:
     hostname: "$IRODS_CONSUMER_CONF_CENTOS_HOST"
     privileged: true
     tty: true
+    security_opt:
+      - apparmor=docker-default
     depends_on:
       - provider_configured
 
@@ -109,6 +115,8 @@ services:
         IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
     hostname: "$IRODS_CONSUMER_CONF_UBUNTU_HOST"
     privileged: true
+    security_opt:
+      - apparmor=docker-default
     tty: true
     depends_on:
       - provider_configured
@@ -121,5 +129,7 @@ services:
         IRODS_CATALOG_PROVIDER: "$IRODS_PROVIDER_CONF_HOST"
     hostname: "${ENV_NAME}-consumer_unconfigured-1.${DOMAIN}"
     privileged: true
+    security_opt:
+      - apparmor=docker-default
     tty: true
     shm_size: 128mb

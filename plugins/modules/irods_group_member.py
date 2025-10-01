@@ -9,10 +9,11 @@ Provides an ansible module for adding and removing users from an iRODS group.
 """
 
 import ssl
+
 from ansible.module_utils.basic import AnsibleModule
 
 
-DOCUMENTATION = """
+DOCUMENTATION = r'''
 ---
 module: cyverse.ds.irods_group_member
 
@@ -61,9 +62,9 @@ options:
 
 author:
     - John Xu
-"""
+'''
 
-EXAMPLES = """
+EXAMPLES = r'''
 # Ensure the user is present in the group (group must already exist)
 - name: Add user to group
   irods_group_member:
@@ -89,9 +90,9 @@ EXAMPLES = """
     admin_user: rods
     admin_password: 1234
     zone: tempZone
-"""
+'''
 
-RETURN = """
+RETURN = r'''
 message:
     description: Performed operation
     type: str
@@ -100,12 +101,12 @@ users:
     description: users changed by the task
     type: list
     returned: always
-"""
+'''
 
 try:
     USE_IRODS_CLIENT = True
     from irods.session import iRODSSession
-    from irods.models import User, UserGroup
+    from irods.models import User, Group
 except ImportError:
     USE_IRODS_CLIENT = False
 
@@ -118,26 +119,52 @@ class IRODSGroupModule:
         """
         Initialize the module
         """
-
-        # define argument
-        self.module_args = dict(
-            group=dict(type="str", required=True),
-            users=dict(type="list", elements="str", required=True),
-            state=dict(type="str", required=True,
-                       choices=["present", "absent"]),
-
-            host=dict(type="str", required=True),
-            port=dict(type="int", required=True),
-            admin_user=dict(type="str", no_log=True, required=True),
-            admin_password=dict(type="str", no_log=True, required=True),
-            zone=dict(type="str", required=True),
-        )
-        # result
-        self.result = dict(
-            changed=False,
-            message="",
-            users=[]
-        )
+        self.module_args = {
+            "group": {
+                "type": "str",
+                "required": True,
+            },
+            "users": {
+                "type": "list",
+                "elements": "str",
+                "required": True,
+            },
+            "state": {
+                "type": "str",
+                "required": True,
+                "choices": [
+                    "present",
+                    "absent",
+                ]
+            },
+            "host": {
+                "type": "str",
+                "required": True,
+            },
+            "port": {
+                "type": "int",
+                "required": True,
+            },
+            "admin_user": {
+                "type": "str",
+                "no_log": True,
+                "required": True,
+            },
+            "admin_password": {
+                "type": "str",
+                "no_log": True,
+                "required": True,
+            },
+            "zone": {
+                "type": "str",
+                "required": True,
+            },
+        }
+        self.result = {
+            "changed": False,
+            "message": "",
+            "users": [],
+        }
 
         # init module
         self.module = AnsibleModule(
@@ -145,7 +172,17 @@ class IRODSGroupModule:
             supports_check_mode=True
         )
 
-        self.session = None
+        ssl_context = ssl.create_default_context(
+            purpose=ssl.Purpose.SERVER_AUTH, cafile=None, capath=None,
+            cadata=None)
+        ssl_settings = {"ssl_context": ssl_context}
+        self.session = iRODSSession(
+            host=self.module.params["host"],  # pyright: ignore[reportArgumentType]
+            port=self.module.params["port"],  # pyright: ignore[reportArgumentType]
+            user=self.module.params["admin_user"],  # pyright: ignore[reportArgumentType]
+            password=self.module.params["admin_password"],  # pyright: ignore[reportArgumentType]
+            zone=self.module.params["zone"],  # pyright: ignore[reportArgumentType]
+            **ssl_settings)  # pyright: ignore[reportArgumentType]
 
     def run(self):
         """
@@ -158,8 +195,6 @@ class IRODSGroupModule:
         # only-check mode
         if self.module.check_mode:
             self.module.exit_json(**self.result)
-
-        self.init_session()
 
         action = self.select_action()
         action()
@@ -193,27 +228,11 @@ class IRODSGroupModule:
         if not USE_IRODS_CLIENT:
             self._fail("python-irodsclient not installed")
 
-    def init_session(self):
-        """
-        Initialize the iRODS session with iRODS server
-        """
-        ssl_context = ssl.create_default_context(
-            purpose=ssl.Purpose.SERVER_AUTH, cafile=None, capath=None,
-            cadata=None)
-        ssl_settings = {"ssl_context": ssl_context}
-        self.session = iRODSSession(
-            host=self.module.params["host"],
-            port=self.module.params["port"],
-            user=self.module.params["admin_user"],
-            password=self.module.params["admin_password"],
-            zone=self.module.params["zone"],
-            **ssl_settings)
-
     def select_action(self):
         """
         Dispatch action according to the argument passed to the module
         """
-        if self.module.params["state"] == "present":
+        if self.module.params["state"] == "present":  # pyright: ignore[reportArgumentType]
             return self.member_present
         return self.member_absent
 
@@ -224,8 +243,8 @@ class IRODSGroupModule:
         The user and the group must already exists, module will fail if the
         user is missing.
         """
-        group_name = self.module.params["group"]
-        users = set(self.module.params["users"])
+        group_name = self.module.params["group"]  # pyright: ignore[reportArgumentType]
+        users = set(self.module.params["users"])  # pyright: ignore[reportArgumentType]
         self.result["users"] = []
 
         # group must already exist
@@ -260,8 +279,8 @@ class IRODSGroupModule:
         group if necessary.
         The iRODS group must exist, module will fail if absent.
         """
-        group_name = self.module.params["group"]
-        users = set(self.module.params["users"])
+        group_name = self.module.params["group"]  # pyright: ignore[reportArgumentType]
+        users = set(self.module.params["users"])  # pyright: ignore[reportArgumentType]
         self.result["users"] = []
 
         # group must already exist
@@ -294,62 +313,35 @@ class IRODSGroupModule:
         """
         Add a user to an iRODS group, fail if unable to add
         """
-        try:
-            self.session.user_groups.addmember(group_name, username)
-            self.result["changed"] = True
-        except Exception as exc:
-            # A broad catch on all exception type that could be raised by the
-            # call to irods module, since the possible exception types are
-            # not well documented.
-            self._fail("Unable to add user {} to irods group {}".format(username, group_name), exc)
+        self.session.groups.addmember(group_name, username)
+        self.result["changed"] = True
 
     def _remove_user_from_group(self, group_name, username):
         """
         Remove a user from an iRODS group, fail if unable to remove
         """
-        try:
-            self.session.user_groups.removemember(group_name, username)
-            self.result["changed"] = True
-        except Exception as exc:
-            # A broad catch on all exception type that could be raised by the
-            # call to irods module, since the possible exception types are
-            # not well documented.
-            self._fail("Unable to remove user {} from irods group {}".format(
-                username, group_name), exc)
+        self.session.groups.removemember(group_name, username)
+        self.result["changed"] = True
 
     def _is_user_in_group(self, group_name, username):
         """
         Check if an user is in the iRODS group
         """
-        try:
-            query = self.session.query(User.name, UserGroup.name)
-
-            for result in query:
-                if group_name == result[UserGroup.name] and username == result[User.name]:
-                    return True
-            return False
-        except Exception as exc:
-            # A broad catch on all exception type that could be raised by the
-            # call to irods module, since the possible exception types are
-            # not well documented.
-            self._fail("Unable to query user membership in irods group {}".format(group_name), exc)
+        query = self.session.query(User.name, Group.name)
+        for result in query:
+            if group_name == result[Group.name] and username == result[User.name]:
+                return True
+        return False
 
     def _group_exist(self, group_name):
         """
         Check if an iRODS group with given name exist
         """
-        try:
-            query = self.session.query(UserGroup.name)
-
-            for result in query:
-                if group_name == result[UserGroup.name]:
-                    return True
-            return False
-        except Exception as exc:
-            # A broad catch on all exception type that could be raised by the
-            # call to irods module, since the possible exception types are
-            # not well documented.
-            self._fail("Unable to query irods group {}".format(group_name), exc)
+        query = self.session.query(Group.name)
+        for result in query:
+            if group_name == result[Group.name]:
+                return True
+        return False
 
 
 def main():
