@@ -4,7 +4,7 @@
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
-"""Tests of ipc-repl.re rule logic."""
+"""Tests of cyverse_repl.re rule logic."""
 
 import unittest
 
@@ -23,8 +23,8 @@ class TestReplReplicate(IrodsTestCase):
         """Tests its handling of an object that not longer exists"""
 
 
-class TestIpcRepl(IrodsTestCase):
-    """Test ipc-repl.re"""
+class TestCyverseRepl(IrodsTestCase):
+    """Test cyverse_repl.re"""
 
     @unittest.skip("Not implemented")
     def test_mvreplicas(self):

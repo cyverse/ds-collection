@@ -31,8 +31,8 @@
         - cyverse_housekeeping.re
         - cyverse_json.re
         - cyverse_logic.re
+        - cyverse_repl.re
         - cyverse_trash.re
-        - ipc-repl.re
         - pire.re
         - pire-env.re
         - server_config.json
@@ -45,6 +45,7 @@
       failed_when: resp.stat.exists
       loop:
         - ipc-encryption.re
+        - ipc-repl.re
         - ipc-trash.re
 
     - name: Verify irods_environment.json is in place

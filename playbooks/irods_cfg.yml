@@ -144,7 +144,7 @@
         irods_cfg_zone_port: "{{ _irods_zone_port }}"
         irods_cfg_zone_user: "{{ _irods_clerver_user }}"
 
-- name: Remove ipc-encryption.re
+- name: Remove old rule files
   hosts: irods
   become: "{{ _irods_become_svc_acnt }}"
   become_user: "{{ _irods_service_account_name }}"
@@ -154,3 +154,7 @@
       ansible.builtin.file:
         path: /etc/irods/ipc-encryption.re
         state: absent
+      loop:
+        - cyverse_encryption.re
+        - cyverse_repl.re
+        - cyverse_trash.re

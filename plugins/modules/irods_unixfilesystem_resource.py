@@ -7,8 +7,11 @@
 """Provide irods_unixfilesystem_resource Ansible module"""
 
 import os
+
 from ansible.module_utils.basic import AnsibleModule
+
 from irods.exception import ResourceDoesNotExist
+from irods.resource import iRODSResource
 from irods.session import iRODSSession
 
 
@@ -86,19 +89,44 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
         """
         Initialize the module
         """
-        module_args = dict(
-            name=dict(type="str", required=True),
-            host=dict(type="str", required=True),
-            vault=dict(type="path", required=True),
-            context=dict(type="str", required=False, default=""),
-            status=dict(type="str", required=False, default="up"),
-            init_free_space=dict(type="bool", required=False, default=False),
-        )
-        self._module = AnsibleModule(
-            argument_spec=module_args, supports_check_mode=True)
-        self._result = dict(changed=False, response="", exc="", exc_msg="")
+        module_args = {
+            "name": {
+                "type": "str",
+                "required": True,
+            },
+            "host": {
+                "type": "str",
+                "required": True,
+            },
+            "vault": {
+                "type": "path",
+                "required": True,
+            },
+            "context": {
+                "type": "str",
+                "required": False,
+                "default": "",
+            },
+            "status": {
+                "type": "str",
+                "required": False,
+                "default": "up",
+            },
+            "init_free_space": {
+                "type": "bool",
+                "required": False,
+                "default": False,
+            },
+        }
+        self._module = AnsibleModule(argument_spec=module_args, supports_check_mode=True)
+        self._result = {
+            "changed": False,
+            "response": "",
+            "exc": "",
+            "exc_msg": "",
+        }
 
-    def run_module(self):
+    def run_module(self) -> None:
         """
         Main module operative function
         """
@@ -114,7 +142,7 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
                 self._result["exc"] = type(err.cause).__name__
                 self._result["exc_msg"] = str(err.cause)
             fail_msg = "\n".join(
-                filter(lambda x: x != "", [str(err), self._result["exc_msg"]]))
+                filter(lambda x: x != "", [str(err), str(self._result["exc_msg"])]))
             self._module.fail_json(msg=fail_msg, **self._result)
 
     def _init_session(self):
@@ -131,23 +159,23 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
         else:
             self._create_resource(session)
 
-    def _create_resource(self, session):
+    def _create_resource(self, session: iRODSSession) -> None:
         try:
             session.resources.create(
-                name=self._module.params["name"],
+                name=self._module.params["name"],  # pyright: ignore[reportArgumentType]
                 resource_type="unixfilesystem",
-                host=self._module.params["host"],
-                path=self._module.params["vault"],
-                context=self._module.params["context"],
+                host=self._module.params["host"],  # pyright: ignore[reportArgumentType]
+                path=self._module.params["vault"],  # pyright: ignore[reportArgumentType]
+                context=self._module.params["context"],  # pyright: ignore[reportArgumentType]
             )
             session.resources.modify(
-                name=self._module.params["name"],
+                name=self._module.params["name"],  # pyright: ignore[reportArgumentType]
                 attribute="status",
-                value=self._module.params["status"],
+                value=self._module.params["status"],  # pyright: ignore[reportArgumentType]
             )
-            if self._module.params["init_free_space"]:
+            if self._module.params["init_free_space"]:  # pyright: ignore[reportArgumentType]
                 session.resources.modify(
-                    name=self._module.params["name"],
+                    name=self._module.params["name"],  # pyright: ignore[reportArgumentType]
                     attribute="freespace",
                     value=self._get_free_space(),
                 )
@@ -156,31 +184,31 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
             msg = "unable to create resource"
             try:
                 if self._resource_exists(session):
-                    session.resources.remove(self._module.params["name"])
+                    session.resources.remove(self._module.params["name"])  # pyright: ignore[reportArgumentType] # noqa: E501 # pylint: disable=line-too-long
             except Exception:  # pylint: disable=broad-except
                 msg = "unable to fully create resource"
             raise _IRODSError(message=msg, cause=exc)  # pylint: disable=raise-missing-from # noqa
 
     def _resource_exists(self, session):
         try:
-            session.resources.get(self._module.params["name"])
+            session.resources.get(self._module.params["name"])  # pyright: ignore[reportArgumentType] # noqa: E501 # pylint: disable=line-too-long
             return True
         except ResourceDoesNotExist:
             return False
 
     def _verify_resource_same(self, session):
-        resc = session.resources.get(self._module.params["name"])
-        if resc.type != "unixfilesystem" and resc.type != "unix file system":
+        resc: iRODSResource = session.resources.get(self._module.params["name"])  # pyright: ignore[reportArgumentType] # noqa: E501 # pylint: disable=line-too-long
+        if resc.type not in ("unixfilesystem", "unix file system"):  # pyright: ignore[reportAttributeAccessIssue] # noqa: E501 # pylint: disable=line-too-long
             raise _IRODSError("Resource already exists with different type")
-        if resc.location != self._module.params["host"]:
+        if resc.location != self._module.params["host"]:  # pyright: ignore[reportAttributeAccessIssue,reportArgumentType] # noqa: E501 # pylint: disable=line-too-long
             raise _IRODSError("Resource already exists on different host")
-        if resc.vault_path != self._module.params["vault"]:
+        if resc.vault_path != self._module.params["vault"]:  # pyright: ignore[reportAttributeAccessIssue,reportArgumentType] # noqa: E501 # pylint: disable=line-too-long
             raise _IRODSError("Resource already exists in different vault")
-        if (resc.context or "") != self._module.params["context"]:
+        if (resc.context or "") != self._module.params["context"]:  # pyright: ignore[reportAttributeAccessIssue,reportArgumentType] # noqa: E501 # pylint: disable=line-too-long
             raise _IRODSError("Resource already exists with different context")
 
     def _get_free_space(self):
-        statvfs = os.statvfs(self._module.params["vault"])
+        statvfs = os.statvfs(self._module.params["vault"])  # pyright: ignore[reportArgumentType]
         return statvfs.f_frsize * statvfs.f_bfree
 
 

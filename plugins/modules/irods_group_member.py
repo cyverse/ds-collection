@@ -13,7 +13,7 @@ import ssl
 from ansible.module_utils.basic import AnsibleModule
 
 
-DOCUMENTATION = """
+DOCUMENTATION = r'''
 ---
 module: cyverse.ds.irods_group_member
 
@@ -62,9 +62,9 @@ options:
 
 author:
     - John Xu
-"""
+'''
 
-EXAMPLES = """
+EXAMPLES = r'''
 # Ensure the user is present in the group (group must already exist)
 - name: Add user to group
   irods_group_member:
@@ -90,9 +90,9 @@ EXAMPLES = """
     admin_user: rods
     admin_password: 1234
     zone: tempZone
-"""
+'''
 
-RETURN = """
+RETURN = r'''
 message:
     description: Performed operation
     type: str
@@ -101,12 +101,12 @@ users:
     description: users changed by the task
     type: list
     returned: always
-"""
+'''
 
 try:
     USE_IRODS_CLIENT = True
     from irods.session import iRODSSession
-    from irods.models import User, UserGroup
+    from irods.models import User, Group
 except ImportError:
     USE_IRODS_CLIENT = False
 
@@ -119,8 +119,6 @@ class IRODSGroupModule:
         """
         Initialize the module
         """
-
-        # define argument
         self.module_args = {
             "group": {
                 "type": "str",
@@ -162,7 +160,6 @@ class IRODSGroupModule:
                 "required": True,
             },
         }
-        # result
         self.result = {
             "changed": False,
             "message": "",
@@ -175,7 +172,17 @@ class IRODSGroupModule:
             supports_check_mode=True
         )
 
-        self.session = None
+        ssl_context = ssl.create_default_context(
+            purpose=ssl.Purpose.SERVER_AUTH, cafile=None, capath=None,
+            cadata=None)
+        ssl_settings = {"ssl_context": ssl_context}
+        self.session = iRODSSession(
+            host=self.module.params["host"],  # pyright: ignore[reportArgumentType]
+            port=self.module.params["port"],  # pyright: ignore[reportArgumentType]
+            user=self.module.params["admin_user"],  # pyright: ignore[reportArgumentType]
+            password=self.module.params["admin_password"],  # pyright: ignore[reportArgumentType]
+            zone=self.module.params["zone"],  # pyright: ignore[reportArgumentType]
+            **ssl_settings)  # pyright: ignore[reportArgumentType]
 
     def run(self):
         """
@@ -188,8 +195,6 @@ class IRODSGroupModule:
         # only-check mode
         if self.module.check_mode:
             self.module.exit_json(**self.result)
-
-        self.init_session()
 
         action = self.select_action()
         action()
@@ -222,22 +227,6 @@ class IRODSGroupModule:
         # python-irodsclient is required at this point
         if not USE_IRODS_CLIENT:
             self._fail("python-irodsclient not installed")
-
-    def init_session(self):
-        """
-        Initialize the iRODS session with iRODS server
-        """
-        ssl_context = ssl.create_default_context(
-            purpose=ssl.Purpose.SERVER_AUTH, cafile=None, capath=None,
-            cadata=None)
-        ssl_settings = {"ssl_context": ssl_context}
-        self.session = iRODSSession(
-            host=self.module.params["host"],  # pyright: ignore[reportArgumentType]
-            port=self.module.params["port"],  # pyright: ignore[reportArgumentType]
-            user=self.module.params["admin_user"],  # pyright: ignore[reportArgumentType]
-            password=self.module.params["admin_password"],  # pyright: ignore[reportArgumentType]
-            zone=self.module.params["zone"],  # pyright: ignore[reportArgumentType]
-            **ssl_settings)  # pyright: ignore[reportArgumentType]
 
     def select_action(self):
         """
@@ -338,10 +327,9 @@ class IRODSGroupModule:
         """
         Check if an user is in the iRODS group
         """
-        query = self.session.query(User.name, UserGroup.name)  # pyright: ignore[reportOptionalMemberAccess] # noqa: E501 # pylint: disable=line-too-long
-
+        query = self.session.query(User.name, Group.name)
         for result in query:
-            if group_name == result[UserGroup.name] and username == result[User.name]:
+            if group_name == result[Group.name] and username == result[User.name]:
                 return True
         return False
 
@@ -349,10 +337,9 @@ class IRODSGroupModule:
         """
         Check if an iRODS group with given name exist
         """
-        query = self.session.query(UserGroup.name)  # pyright: ignore[reportOptionalMemberAccess] # noqa: E501 # pylint: disable=line-too-long
-
+        query = self.session.query(Group.name)
         for result in query:
-            if group_name == result[UserGroup.name]:
+            if group_name == result[Group.name]:
                 return True
         return False
 
