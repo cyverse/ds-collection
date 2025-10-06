@@ -18,11 +18,21 @@
       register: resp
       failed_when: not (resp.stat.exists and resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
 
-    - name: Test install docker repo source
+    - name: Test docker repo source exists
+      ansible.builtin.stat:
+        path: /etc/apt/sources.list.d/docker.list
+      register: resp
+      failed_when: not (resp.stat.exists and resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
+
+    - name: Test docker repo source contents
       ansible.builtin.debug:
         msg: 'TODO: implement'
 
-    - name: Test install docker
+    - name: Test install required packages
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Test configure docker daemon for syslog
       ansible.builtin.debug:
         msg: 'TODO: implement'
 
@@ -214,5 +224,13 @@
         msg: 'TODO: implement'
 
     - name: Test copy docker-compose.yml
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Test configured rsyslog for iRODS
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Test configure log rotations for iRODS
       ansible.builtin.debug:
         msg: 'TODO: implement'

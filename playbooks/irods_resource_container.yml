@@ -1,7 +1,13 @@
 ---
-- name: Build image
+- name: Prepare apt repositories
   hosts: irods_resource_container
-  tasks:
+  pre_tasks:
+    - name: Enable notifications
+      ansible.builtin.set_fact:
+        _enable_notifications: true
+      tags:
+        - no_testing
+
     - name: Ensure keyrings folder exists
       ansible.builtin.file:
         path: /etc/apt/keyrings
@@ -29,12 +35,14 @@
           deb [arch={{ dpkg_resp.stdout }} signed-by=/etc/apt/keyrings/docker.asc]
           https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
         mode: a+r
+      notify: Update apt cache
 
-    - name: Update apt cache
+  tasks:
+    - name: Update stale apt cache
       ansible.builtin.apt:
-        update_cache: true
+        cache_valid_time: 86400
 
-    - name: Install docker
+    - name: Install required packages
       ansible.builtin.package:
         name:
           - docker-ce
@@ -42,6 +50,28 @@
           - containerd.io
           - docker-buildx-plugin
           - docker-compose-plugin
+          - logrotate
+          - rsyslog
+
+    - name: Ensure rsyslog is running
+      ansible.builtin.service:
+        name: rsyslog
+        enabled: true
+        state: started
+      tags: no_testing
+
+    - name: Configure docker daemon for syslog
+      ansible.builtin.copy:
+        dest: /etc/docker/daemon.json
+        content: |
+          {
+            "log-driver": "syslog",
+            "log-opts": {
+              "tag": "docker-{\{.Name}}"
+            }
+          }
+        mode: u+r
+      notify: Restart docker
 
     - name: Ensure docker is running
       ansible.builtin.service:
@@ -169,7 +199,43 @@
         owner: irods
         mode: u+r
 
-    - name: Build docker image
+    - name: Configure rsyslog for iRODS
+      ansible.builtin.copy:
+        dest: /etc/rsyslog.d/00-irods.conf
+        content: |
+          $FileCreateMode 0644
+          $DirCreateMode 0755
+          $Umask 0000
+          $template irods_format,"%msg%\n"
+          :programname,startswith,"docker-irods" /var/log/irods/irods.log;irods_format
+          & stop
+        mode: u+r
+      notify: Reload rsyslog
+
+    - name: Configure log rotations for iRODS
+      ansible.builtin.template:
+        src: irods/etc/logrotate.d/irods.j2
+        dest: /etc/logrotate.d/irods
+        mode: u+r
+
+    - name: Start docker image
       community.docker.docker_compose_v2:
         project_src: /var/lib/irods
       tags: no_testing
+
+  handlers:
+    - name: Reload rsyslog
+      when: _enable_notifications | d(false)
+      ansible.builtin.service:
+        name: rsyslog
+        state: reloaded
+
+    - name: Restart docker
+      when: _enable_notifications | d(false)
+      ansible.builtin.service:
+        name: docker
+        state: restarted
+
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: true

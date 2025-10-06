@@ -2,7 +2,7 @@
 name: cyverse
 
 services:
-  irods-catalog-consumer:
+  irods-rs:
     image: irods-rs
     env_file: .env
     build:
