@@ -133,3 +133,8 @@ services:
       - apparmor=docker-default
     tty: true
     shm_size: 128mb
+
+  consumer_containerized:
+    image: test-env-base:ubuntu2404
+    privileged: true
+    tty: true
