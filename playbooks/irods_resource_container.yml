@@ -1,6 +1,7 @@
 ---
 - name: Prepare apt repositories
   hosts: irods_resource_container
+  become: true
   pre_tasks:
     - name: Enable notifications
       ansible.builtin.set_fact:
@@ -99,6 +100,7 @@
         owner: irods
         mode: u+rwx
       loop:
+        - /irods_vault
         - /etc/irods
         - /var/lib/irods/.irods
         - /var/lib/irods/msiExecCmd_bin
@@ -137,6 +139,14 @@
           {{ _irods_default_number_of_transfer_threads }}
         irods_cfg_default_resource_name: "{{ _irods_default_resource }}"
         irods_cfg_federation: "{{ _irods_federation }}"
+        irods_cfg_host_entries: >-
+          {{ [] if _irods_host_aliases | count == 0 else
+            [
+              {
+                'address_type': 'local',
+                'addresses': [inventory_hostname] + _irods_host_aliases
+              }
+            ] }}
         irods_cfg_host: "{{ inventory_hostname }}"
         irods_cfg_negotiation_key: "{{ _irods_negotiation_key }}"
         irods_cfg_re:
@@ -207,10 +217,10 @@
           $DirCreateMode 0755
           $Umask 0000
           $template irods_format,"%msg%\n"
-          :programname,startswith,"docker-irods" /var/log/irods/irods.log;irods_format
+          :programname,startswith,"docker-cyverse-irods" /var/log/irods/irods.log;irods_format
           & stop
         mode: u+r
-      notify: Reload rsyslog
+      notify: Restart rsyslog
 
     - name: Configure log rotations for iRODS
       ansible.builtin.template:
@@ -224,16 +234,16 @@
       tags: no_testing
 
   handlers:
-    - name: Reload rsyslog
-      when: _enable_notifications | d(false)
-      ansible.builtin.service:
-        name: rsyslog
-        state: reloaded
-
     - name: Restart docker
       when: _enable_notifications | d(false)
       ansible.builtin.service:
         name: docker
+        state: restarted
+
+    - name: Restart rsyslog
+      when: _enable_notifications | d(false)
+      ansible.builtin.service:
+        name: rsyslog
         state: restarted
 
     - name: Update apt cache

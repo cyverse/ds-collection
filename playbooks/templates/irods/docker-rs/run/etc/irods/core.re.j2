@@ -1,5 +1,7 @@
 # The default implementation of the static iRODS PEPs.
 
+{{ ansible_managed | comment }}
+
 acPreConnect(*OUT) { *OUT="CS_NEG_REFUSE"; }
 
 acCreateUser {
