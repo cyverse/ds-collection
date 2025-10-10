@@ -1,0 +1,51 @@
+FROM ubuntu:22.04
+
+ARG IRODS_HOST_UID
+ARG IRODS_SERVER_PORT_RANGE_START
+ARG IRODS_SERVER_PORT_RANGE_END
+ARG IRODS_ZONE_PORT
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+COPY <<'EOF' /etc/apt/sources.list.d/renci-irods.list
+deb [arch=amd64] https://packages.irods.org/apt/ jammy main
+EOF
+
+RUN <<'EOF'
+	set -o errexit
+
+# Install dependencies
+	apt-get update
+	apt-get install --yes apt-utils ca-certificates gnupg wget
+	wget --quiet --output-document=- https://packages.irods.org/irods-signing-key.asc | apt-key add -
+	apt-get update
+	apt-get upgrade --yes
+
+# Install iRODS
+	apt-get install --yes irods-icommands=4.3.1 irods-runtime=4.3.1 irods-server=4.3.1
+
+	useradd --non-unique --user-group \
+		--comment='iRODS Administrator (host user)' \
+		--home-dir=/var/lib/irods \
+		--shell=/bin/bash \
+		--uid="$IRODS_HOST_UID" \
+		irods
+
+	mkdir --parents /irods_vault /etc/irods /var/lib/irods/.irods
+	chown --recursive irods:irods /etc/irods /var/lib/irods
+
+# Clean up packages
+	apt-get remove --yes wget
+	apt-get autoremove --yes
+	apt-get clean
+	rm --force --recursive /var/lib/apt/lists/* /tmp/*
+EOF
+
+VOLUME /irods_vault
+
+EXPOSE ${IRODS_ZONE_PORT}/tcp 1248/tcp
+EXPOSE ${IRODS_SERVER_PORT_RANGE_START}-${IRODS_SERVER_PORT_RANGE_END}/tcp
+EXPOSE ${IRODS_SERVER_PORT_RANGE_START}-${IRODS_SERVER_PORT_RANGE_END}/udp
+
+COPY --chmod=u+x entrypoint.sh .
+ENTRYPOINT [ "./entrypoint.sh" ]

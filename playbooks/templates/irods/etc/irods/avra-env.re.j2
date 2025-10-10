@@ -3,6 +3,8 @@
 # © 2024 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
+{{ ansible_managed | comment }}
+
 # the root resource used by AVRA
 avra_RESC : string
 avra_RESC = '{{ _avra_resource_hierarchy.name }}'

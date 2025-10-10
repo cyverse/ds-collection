@@ -8,6 +8,9 @@
 #  VERSION  the major version of the OS to configure.
 #
 # This script configures the common ansible requirements
+#
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
 
 set -o errexit -o nounset -o pipefail
 
@@ -54,7 +57,9 @@ main() {
 	update_pam_sshd_config
 	update_sshd_config
 	mkdir --parents /var/run/sshd
-	mkdir --mode 0700 /root/.ssh
+
+	# shellcheck disable=SC2174
+	mkdir --parents --mode=0700 /root/.ssh
 }
 
 # Install the required CentOS packages.
