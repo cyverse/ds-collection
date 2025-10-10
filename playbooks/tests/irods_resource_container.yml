@@ -58,7 +58,42 @@
       register: resp
       failed_when: not (resp.stat.exists and resp.stat.rusr)
 
+    - name: Test contents of docker/daemon.json
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
     - name: Test create iRODS user
+      ansible.builtin.user:
+        name: irods
+      check_mode: true
+      register: resp
+      failed_when: resp.state != 'present'
+
+    - name: Verify iRODS user comment
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify iRODS user is system account
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify iRODS user home folder
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify iRODS user home folder exists
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify iRODS user account shell
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify iRODS group exists
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify iRODS user belongs to docker group
       ansible.builtin.debug:
         msg: 'TODO: implement'
 

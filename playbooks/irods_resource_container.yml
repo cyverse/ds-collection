@@ -68,7 +68,7 @@
           {
             "log-driver": "syslog",
             "log-opts": {
-              "tag": "docker-{\{.Name}}"
+              "tag": {% raw %}"docker-{{.Name}}"{% endraw %}
             }
           }
         mode: u+r
