@@ -24,9 +24,20 @@
       register: resp
       failed_when: not (resp.stat.exists and resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
 
+    - name: Retrieve encoded docker.list
+      ansible.builtin.slurp:
+        src: /etc/apt/sources.list.d/docker.list
+      register: d_encoded
+
+    - name: Decode docker.list
+      ansible.builtin.set_fact:
+        docker: "{{ d_encoded.content | b64decode }}"
+
     - name: Test docker repo source contents
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      ansible.builtin.assert:
+        that:
+          - docker is regex('arch=amd64')
+          - docker is regex(' noble stable')
 
     - name: Test install required packages
       ansible.builtin.debug:
