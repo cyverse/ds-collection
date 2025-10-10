@@ -40,12 +40,23 @@
           - docker is regex(' noble stable')
 
     - name: Test install required packages
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
+      loop:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-buildx-plugin
+        - docker-compose-plugin
+        - logrotate
+        - rsyslog
+      loop_control:
+        loop_var: pkg
 
     - name: Test configure docker daemon for syslog
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      ansible.builtin.stat:
+        path: /etc/docker/daemon.json
+      register: resp
+      failed_when: not (resp.stat.exists and resp.stat.rusr)
 
     - name: Test create iRODS user
       ansible.builtin.debug:

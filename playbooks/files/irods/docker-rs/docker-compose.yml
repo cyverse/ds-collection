@@ -26,7 +26,7 @@ services:
         target: /etc/localtime
         read_only: true
       - type: bind
-        source: /irods_vault
+        source: ${IRODS_VAULT_PATH}
         target: /irods_vault
       - type: bind
         source: /etc/irods
