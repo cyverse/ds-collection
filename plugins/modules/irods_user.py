@@ -537,15 +537,18 @@ def main() -> None:
     """Entrypoint of the Ansible module"""
     ansible = AnsibleModule(argument_spec=_ARG_SPEC, supports_check_mode=True)
     result = {
-        'user': ansible.params['name'],
+        'user': ansible.params['name'],  # pyright: ignore[reportArgumentType]
         'changed': False
     }
     if ansible.check_mode:
         ansible.exit_json(**result)
-    request = Request(ansible.params)
-    with _IrodsImpl(request) as irods:
-        result['changed'] = irods_user(request, irods)
-    ansible.exit_json(**result)
+    try:
+        request = Request(ansible.params)  # pyright: ignore[reportArgumentType]
+        with _IrodsImpl(request) as irods:
+            result['changed'] = irods_user(request, irods)
+        ansible.exit_json(**result)
+    except RuntimeError as e:
+        ansible.fail_json(msg="unhandled exception", exception=e, **result)
 
 
 if __name__ == '__main__':
