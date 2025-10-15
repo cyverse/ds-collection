@@ -548,7 +548,7 @@ def main() -> None:
             result['changed'] = irods_user(request, irods)
         ansible.exit_json(**result)
     except iRODSException as e:
-        ansible.fail_json(msg="unhandled exception", exception=e, **result)
+        ansible.fail_json(msg=f"unhandled exception: {type(e)}", **ansible.params)  # pyright: ignore[reportCallIssue] # noqa: E501 # pylint: disable=line-too-long
 
 
 if __name__ == '__main__':
