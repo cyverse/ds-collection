@@ -19,7 +19,7 @@ from ansible.module_utils.basic import AnsibleModule
 
 from irods.access import iRODSAccess
 from irods.collection import iRODSCollection
-from irods.exception import CAT_INVALID_USER, UserDoesNotExist
+from irods.exception import CAT_INVALID_USER, iRODSException, UserDoesNotExist
 from irods.session import iRODSSession
 from irods.user import iRODSUser
 
@@ -547,7 +547,7 @@ def main() -> None:
         with _IrodsImpl(request) as irods:
             result['changed'] = irods_user(request, irods)
         ansible.exit_json(**result)
-    except RuntimeError as e:
+    except iRODSException as e:
         ansible.fail_json(msg="unhandled exception", exception=e, **result)
 
 
