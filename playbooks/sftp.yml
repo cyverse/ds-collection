@@ -26,7 +26,7 @@
         zone: "{{ _sftp_irods_zone }}"
 
     - name: Place TLS certificate chain file
-      when: _sftp_admin_tls_cert_chain
+      when: _sftp_admin_tls_cert_chain and _sftp_admin_tls_cert_chain_file
       ansible.builtin.copy:
         content: "{{ _sftp_admin_tls_cert_chain }}"
         dest: "{{ _sftp_admin_tls_cert_chain_file }}"
@@ -34,7 +34,7 @@
       notify: Restart sftpgo
 
     - name: Place TLS certificate key file
-      when: _sftp_admin_tls_key
+      when: _sftp_admin_tls_key and _sftp_admin_tls_key_file
       ansible.builtin.copy:
         content: "{{ _sftp_admin_tls_key }}"
         dest: "{{ _sftp_admin_tls_key_file }}"

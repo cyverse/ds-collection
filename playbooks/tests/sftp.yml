@@ -38,7 +38,7 @@
           - sftpgo_json.common.proxy_allowed[1] == '206.207.252.35'
           - sftpgo_json.data_provider.backups_path == '/sftpgo_vault/backups'
           - sftpgo_json.data_provider.users_base_dir == '/sftpgo_vault/data'
-          - sftpgo_json.httpd.bindings[0].certificate_file == '/etc/ssl/certs/dummy-chain.crt'
+          - sftpgo_json.httpd.bindings[0].certificate_file == ''
           - sftpgo_json.httpd.bindings[0].port == 18023
           - sftpgo_json.sftpd.bindings[0].port == 2022
 
