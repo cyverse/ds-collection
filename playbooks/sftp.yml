@@ -31,7 +31,7 @@
         content: "{{ _sftp_admin_tls_cert_chain }}"
         dest: "{{ _sftp_admin_tls_cert_chain_file }}"
         mode: a+r
-      notify: Reload sftpgo
+      notify: Restart sftpgo
 
     - name: Place TLS certificate key file
       when: _sftp_admin_tls_key
@@ -39,7 +39,7 @@
         content: "{{ _sftp_admin_tls_key }}"
         dest: "{{ _sftp_admin_tls_key_file }}"
         mode: ug+r
-      notify: Reload sftpgo
+      notify: Restart sftpgo
 
     - name: Check if sftpgo is already installed
       ansible.builtin.stat:
@@ -325,12 +325,6 @@
       when: notifications_enabled | d(false)
       ansible.builtin.systemd:
         daemon_reload: true
-
-    - name: Reload sftpgo
-      when: notifications_enabled | d(false)
-      ansible.builtin.service:
-        name: sftpgo
-        state: reloaded
 
     - name: Restart sftpgo
       when: notifications_enabled | d(false)
