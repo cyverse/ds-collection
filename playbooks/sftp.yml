@@ -29,7 +29,7 @@
       when: _sftp_admin_tls_cert_chain
       ansible.builtin.copy:
         content: "{{ _sftp_admin_tls_cert_chain }}"
-        path: "{{ _sftp_admin_tls_cert_chain_file }}"
+        dest: "{{ _sftp_admin_tls_cert_chain_file }}"
         mode: a+r
       notify: Reload sftpgo
 
@@ -37,7 +37,7 @@
       when: _sftp_admin_tls_key
       ansible.builtin.copy:
         content: "{{ _sftp_admin_tls_key }}"
-        path: "{{ _sftp_admin_tls_key_file }}"
+        dest: "{{ _sftp_admin_tls_key_file }}"
         mode: ug+r
       notify: Reload sftpgo
 

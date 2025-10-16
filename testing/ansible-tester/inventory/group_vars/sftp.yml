@@ -1,6 +1,8 @@
 ---
 sftp_admin_username: admin
 sftp_admin_password: admin
+sftp_admin_tls_cert_chain: "{{ tls_cert_default }}{{ tls_root_cert }}"
+sftp_admin_tls_key: "{{ tls_key_default }}"
 
 sftp_irods_admin_password: "{{ irods_admin_password }}"
 sftp_irods_auth_scheme: native
