@@ -330,7 +330,7 @@
       when: notifications_enabled | d(false)
       ansible.builtin.service:
         name: sftpgo
-        state: reload
+        state: reloaded
 
     - name: Restart sftpgo
       when: notifications_enabled | d(false)
