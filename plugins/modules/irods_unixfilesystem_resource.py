@@ -73,7 +73,6 @@ options:
     description: This is the password used to authenticate the iRODS account.
     required: true
     type: str
-    no_log: true
 
 requirements:
   - python-irodsclient
@@ -147,6 +146,7 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
             "password": {
                 "type": "str",
                 "required": True,
+                "no_log": True,
             },
         }
         self._module = AnsibleModule(argument_spec=module_args, supports_check_mode=True)

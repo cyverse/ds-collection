@@ -1,30 +1,59 @@
 ---
-- name: Update free space estimate
-  with_items: "{{ _irods_storage_resources }}"
+# This task file requires `resource_name` and `vault_path` be set.
+
+- name: Determine existing free space estimate
+  delegate_to: localhost
+  become: false
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: |
+      set -o errexit
+      export IRODS_HOST='{{ inventory_hostname }}'
+      export IRODS_PORT='{{ _irods_zone_port }}'
+      export IRODS_ZONE_NAME='{{ _irods_zone_name }}'
+      export IRODS_USER_NAME='{{ _irods_clerver_user }}'
+      iinit <<< '{{ _irods_clerver_password }}' > /dev/null
+      freeSpace="$(iquest '%s' "select RESC_FREE_SPACE where RESC_NAME = '{{ resource_name }}'")"
+      if [[ "$freeSpace" =~ "No rows found" ]]; then
+        printf 'Resource {{ resource_name }} does not exist\n' >&2
+        exit 1
+      fi
+      echo "$freeSpace"
+  register: estimate
+  changed_when: false
+
+- debug:
+    var: estimate.stdout
+
+- name: Determine actual free space
   ansible.builtin.shell:
     executable: /bin/bash
     cmd: |
       shopt -s lastpipe
       set -o pipefail
-      if ! resc="$(iadmin lr '{{ item.name }}')" || [[ "$resc" == 'No rows found' ]]; then
-        printf 'Resource {{ item.name }} does not exist\n' >&2
-        exit 1
-      fi
-      estFreeSpace="$(echo "$resc" | sed --quiet 's/free_space: //p')"
-      freeSpace="$(
-        df --portability --block-size 1 '{{ item.vault }}' | tail -1 | awk '{ print $4 }' )"
-      if [[ "$freeSpace" == "$estFreeSpace" ]]; then
-        exit 0
-      fi
-      if ! iadmin modresc '{{ item.name }}' freespace "$freeSpace"; then
-        exit 1
-      fi
-      printf changed
-  register: out
-  changed_when: out.stdout == 'changed'
-  tags:
+      df --portability --block-size 1 '{{ vault_path }}' | tail -1 | awk '{ print $4 }'
+  register: actual
+  changed_when: false
+
+- debug:
+    var: actual.stdout
+
+- name: Update free space estimate
+  when: estimate.stdout != actual.stdout
+  delegate_to: localhost
+  become: false
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: |
+      export IRODS_HOST='{{ inventory_hostname }}'
+      export IRODS_PORT='{{ _irods_zone_port }}'
+      export IRODS_ZONE_NAME='{{ _irods_zone_name }}'
+      export IRODS_USER_NAME='{{ _irods_clerver_user }}'
+      iadmin modresc '{{ resource_name }}' freespace '{{ estimate.stdout }}' \
+        <<< '{{ _irods_clerver_password }}'
+  changed_when: true
+  tags: non_idempotent
     # Even though this is technically idempotent, file systems are constantly be
     # changed by agents outside of this task. This means that a idempotency
     # check will likely fail, because of the file system being modified between
     # playbook runs by an external agent.
-    - non_idempotent
