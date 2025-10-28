@@ -13,13 +13,6 @@
         state: directory
       with_items: "{{ _irods_storage_resources }}"
 
-    - name: Install python modules for irods_unixfilesystem_resource
-      ansible.builtin.pip:
-        name: python-irodsclient
-        version: '3.1.1'
-        # NOTE: Version 3.2 doesn't work on CentOS 7 or Ubuntu 18.04
-
-
 - name: Create storage resources
   hosts: irods_resource
   become: "{{ _irods_become_svc_acnt }}"
@@ -32,5 +25,7 @@
         vault: "{{ item.vault }}"
         context: "{{ item.context }}"
         status: up
-        init_free_space: true
       with_items: "{{ _irods_storage_resources }}"
+
+- name: Initialize free space
+  ansible.builtin.import_playbook: irods_free_space.yml

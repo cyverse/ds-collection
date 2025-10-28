@@ -51,11 +51,6 @@ options:
     required: false
     default: "up"
     type: str
-  init_free_space:
-    description: whether or not to initialize freespace
-    required: false
-    default: false
-    type: bool
 
 requirements:
   - python-irodsclient
@@ -112,11 +107,6 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
                 "required": False,
                 "default": "up",
             },
-            "init_free_space": {
-                "type": "bool",
-                "required": False,
-                "default": False,
-            },
         }
         self._module = AnsibleModule(argument_spec=module_args, supports_check_mode=True)
         self._result = {
@@ -150,7 +140,7 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
             return iRODSSession(
                 irods_env_file='/var/lib/irods/.irods/irods_environment.json')
         except Exception as exc:  # pylint: disable=broad-except
-            raise _IRODSError(   # pylint: disable=raise-missing-from
+            raise _IRODSError(  # pylint: disable=raise-missing-from
                 message="unable to connect to iRODS server", cause=exc)
 
     def _ensure_resource_created(self, session):
@@ -173,12 +163,6 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
                 attribute="status",
                 value=self._module.params["status"],  # pyright: ignore[reportArgumentType]
             )
-            if self._module.params["init_free_space"]:  # pyright: ignore[reportArgumentType]
-                session.resources.modify(
-                    name=self._module.params["name"],  # pyright: ignore[reportArgumentType]
-                    attribute="freespace",
-                    value=self._get_free_space(),
-                )
             self._result["changed"] = True
         except Exception as exc:  # pylint: disable=broad-except
             msg = "unable to create resource"
@@ -206,10 +190,6 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
             raise _IRODSError("Resource already exists in different vault")
         if (resc.context or "") != self._module.params["context"]:  # pyright: ignore[reportAttributeAccessIssue,reportArgumentType] # noqa: E501 # pylint: disable=line-too-long
             raise _IRODSError("Resource already exists with different context")
-
-    def _get_free_space(self):
-        statvfs = os.statvfs(self._module.params["vault"])  # pyright: ignore[reportArgumentType]
-        return statvfs.f_frsize * statvfs.f_bfree
 
 
 def main():
