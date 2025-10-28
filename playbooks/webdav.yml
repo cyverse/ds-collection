@@ -192,7 +192,7 @@
             comment: >-
               This proxy handles TLS, corrects requests, enables caching, and anonymous access for
               XMLHttpRequests
-        apache_vhosts_template: ../../templates/webdav/etc/httpd/conf.d/vhosts.conf.j2
+        apache_vhosts_template: templates/webdav/etc/httpd/conf.d/vhosts.conf.j2
       tags:
         - no_testing
 
@@ -313,6 +313,20 @@
         - "files/webdav/etc/httpd/conf.modules.d/*"
       notify:
         - Restart httpd
+
+    - name: Remove outdated irods package lock version
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit -o pipefail
+          readarray -t irods_locks < <(yum versionlock list | sed --quiet '/^0:irods-/p')
+          for lock in "${irods_locks[@]}"; do
+            pkg="$(sed 's/0:\(irods-.*\)-[0-9\.]\+-.*/\1/' <<< "$lock")"
+            yum versionlock delete "$pkg" > /dev/null
+            echo changed
+          done
+      register: resp
+      changed_when: resp.stdout is regex('^changed')
 
     - name: Install davrods
       ansible.builtin.yum:

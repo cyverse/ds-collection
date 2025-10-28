@@ -26,6 +26,8 @@
         name: "{{ default_resc_name }}"
         host: "{{ inventory_hostname }}"
         vault: "{{ default_resc_vault }}"
+        zone: testing
+        password: password
 
     - name: Run script with optional vars
       cyverse.ds.irods_unixfilesystem_resource:
@@ -34,8 +36,12 @@
         vault: "{{ options_resc_vault }}"
         context: "{{ options_resc_context }}"
         status: "{{ options_resc_status }}"
-        init_free_space: true
+        port: 1247
+        zone: testing
+        username: rods
+        password: password
 
+  post_tasks:
     - name: Check resource names
       ansible.builtin.shell: |
         set -o errexit
@@ -81,10 +87,4 @@
         test \
           "$(iquest %s "SELECT RESC_STATUS WHERE RESC_NAME = '{{ options_resc_name }}'")" \
           = '{{ options_resc_status }}'
-      changed_when: false
-
-    - name: Check free space initialized
-      ansible.builtin.shell: |
-        test \
-          "$(iquest %s "SELECT RESC_FREE_SPACE WHERE RESC_NAME = '{{ options_resc_name }}'")" != ''
       changed_when: false

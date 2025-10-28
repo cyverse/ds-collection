@@ -1,0 +1,17 @@
+- name: Test update resource free space
+  hosts: irods_resource
+  become: true
+  become_user: irods
+  tasks:
+    - name: Verify resource free space set
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          if ! \
+            freeSpace="$(iquest '%s' "select RESC_FREE_SPACE where RESC_NAME = '{{ item.name }}'")"
+          then
+            exit 1
+          fi
+          test -n "$freeSpace"
+      changed_when: false
+      with_items: "{{ irods_storage_resources }}"

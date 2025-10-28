@@ -6,8 +6,6 @@
 
 """Provide irods_unixfilesystem_resource Ansible module"""
 
-import os
-
 from ansible.module_utils.basic import AnsibleModule
 
 from irods.exception import ResourceDoesNotExist
@@ -33,29 +31,48 @@ options:
     description: the name of the resource
     required: true
     type: str
+
   host:
     description: >
       the identity of the resource server that will host this resource
     required: true
     type: str
+
   vault:
     description: the absolute path to the root directory of the vault
     required: true
     type: path
+
   context:
     description: any context to attach to this resource
     required: false
     type: str
+
   status:
     description: starting status 'up' or 'down'
     required: false
     default: "up"
     type: str
-  init_free_space:
-    description: whether or not to initialize freespace
-    required: false
-    default: false
-    type: bool
+
+  port:
+    description: This is the TCP port to connect to.
+    default: 1247
+    type: int
+
+  zone:
+    description: This is the local zone served by iRODS.
+    required: true
+    type: str
+
+  username:
+    description: This is the iRODS rodsadmin account used when connecting.
+    default: rods
+    type: str
+
+  password:
+    description: This is the password used to authenticate the iRODS account.
+    required: true
+    type: str
 
 requirements:
   - python-irodsclient
@@ -112,10 +129,24 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
                 "required": False,
                 "default": "up",
             },
-            "init_free_space": {
-                "type": "bool",
+            "port": {
+                "type": "int",
                 "required": False,
-                "default": False,
+                "default": 1247,
+            },
+            "zone": {
+                "type": "str",
+                "required": True,
+            },
+            "username": {
+                "type": "str",
+                "required": False,
+                "default": "rods",
+            },
+            "password": {
+                "type": "str",
+                "required": True,
+                "no_log": True,
             },
         }
         self._module = AnsibleModule(argument_spec=module_args, supports_check_mode=True)
@@ -148,9 +179,14 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
     def _init_session(self):
         try:
             return iRODSSession(
-                irods_env_file='/var/lib/irods/.irods/irods_environment.json')
+                host=self._module.params["host"],  # pyright: ignore[reportArgumentType]
+                port=self._module.params["port"],  # pyright: ignore[reportArgumentType]
+                zone=self._module.params["zone"],  # pyright: ignore[reportArgumentType]
+                user=self._module.params["username"],  # pyright: ignore[reportArgumentType]
+                password=self._module.params["password"],  # pyright: ignore[reportArgumentType]
+            )
         except Exception as exc:  # pylint: disable=broad-except
-            raise _IRODSError(   # pylint: disable=raise-missing-from
+            raise _IRODSError(  # pylint: disable=raise-missing-from
                 message="unable to connect to iRODS server", cause=exc)
 
     def _ensure_resource_created(self, session):
@@ -173,12 +209,6 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
                 attribute="status",
                 value=self._module.params["status"],  # pyright: ignore[reportArgumentType]
             )
-            if self._module.params["init_free_space"]:  # pyright: ignore[reportArgumentType]
-                session.resources.modify(
-                    name=self._module.params["name"],  # pyright: ignore[reportArgumentType]
-                    attribute="freespace",
-                    value=self._get_free_space(),
-                )
             self._result["changed"] = True
         except Exception as exc:  # pylint: disable=broad-except
             msg = "unable to create resource"
@@ -206,10 +236,6 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
             raise _IRODSError("Resource already exists in different vault")
         if (resc.context or "") != self._module.params["context"]:  # pyright: ignore[reportAttributeAccessIssue,reportArgumentType] # noqa: E501 # pylint: disable=line-too-long
             raise _IRODSError("Resource already exists with different context")
-
-    def _get_free_space(self):
-        statvfs = os.statvfs(self._module.params["vault"])  # pyright: ignore[reportArgumentType]
-        return statvfs.f_frsize * statvfs.f_bfree
 
 
 def main():

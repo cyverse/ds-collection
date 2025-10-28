@@ -51,7 +51,7 @@
     - name: Create user
       become: false
       delegate_to: localhost
-      irods_user:
+      cyverse.ds.irods_user:
         name: test_user1
         type: rodsuser
         info: foo_bar
@@ -83,7 +83,7 @@
       changed_when: false
 
     - name: Update password
-      irods_user:
+      cyverse.ds.irods_user:
         name: "{{ existing_user }}"
         state: present
         password: rods321
@@ -102,7 +102,7 @@
       changed_when: false
 
     - name: Update type
-      irods_user:
+      cyverse.ds.irods_user:
         name: "{{ existing_user }}"
         type: rodsadmin
         state: present
@@ -119,7 +119,7 @@
       changed_when: false
 
     - name: Update user's info
-      irods_user:
+      cyverse.ds.irods_user:
         name: "{{ existing_user }}"
         info: bar_foo
         state: present
@@ -136,7 +136,7 @@
       changed_when: false
 
     - name: Remove user without data
-      irods_user:
+      cyverse.ds.irods_user:
         name: '{{ former_user }}'
         state: absent
         admin_user: rods
@@ -144,7 +144,7 @@
         zone: testing
 
     - name: Remove user with data
-      irods_user:
+      cyverse.ds.irods_user:
         name: "{{ former_user_data }}"
         state: absent
         force: true

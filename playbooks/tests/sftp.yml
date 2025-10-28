@@ -33,24 +33,19 @@
           - sftpgo_json.command.commands[0].env[11] == 'IRODS_SHARED=/zone/home/shared'
           - sftpgo_json.command.commands[0].env[12] == 'SFTPGO_HOME_PATH=/sftpgo_vault/data'
           - sftpgo_json.common.defender.blocklist|length == 0
+          - sftpgo_json.common.defender.safelist|length == 0
           - sftpgo_json.common.proxy_allowed[0] == '127.0.0.1'
           - sftpgo_json.common.proxy_allowed[1] == '206.207.252.35'
           - sftpgo_json.data_provider.backups_path == '/sftpgo_vault/backups'
           - sftpgo_json.data_provider.users_base_dir == '/sftpgo_vault/data'
+          - sftpgo_json.httpd.bindings[0].certificate_file == ''
           - sftpgo_json.httpd.bindings[0].port == 18023
           - sftpgo_json.sftpd.bindings[0].port == 2022
-
-    - name: Test sftpgo.json common.defender object contents
-      ansible.builtin.debug:
-        msg: TODO implement for {{ item }}
-      loop:
-        - safelist
 
     - name: Test sftpgo.json httpd.bindings[0] object contents
       ansible.builtin.debug:
         msg: "TODO: implement for {{ item }}"
       loop:
-        - certificate_file
         - certificate_key_file
 
 
