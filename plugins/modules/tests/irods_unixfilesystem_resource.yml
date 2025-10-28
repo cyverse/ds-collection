@@ -26,6 +26,8 @@
         name: "{{ default_resc_name }}"
         host: "{{ inventory_hostname }}"
         vault: "{{ default_resc_vault }}"
+        zone: testing
+        password: password
 
     - name: Run script with optional vars
       cyverse.ds.irods_unixfilesystem_resource:
@@ -34,6 +36,10 @@
         vault: "{{ options_resc_vault }}"
         context: "{{ options_resc_context }}"
         status: "{{ options_resc_status }}"
+        port: 1247
+        zone: testing
+        username: rods
+        password: password
 
   post_tasks:
     - name: Check resource names

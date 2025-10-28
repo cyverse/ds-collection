@@ -6,8 +6,6 @@
 
 """Provide irods_unixfilesystem_resource Ansible module"""
 
-import os
-
 from ansible.module_utils.basic import AnsibleModule
 
 from irods.exception import ResourceDoesNotExist
@@ -33,24 +31,49 @@ options:
     description: the name of the resource
     required: true
     type: str
+
   host:
     description: >
       the identity of the resource server that will host this resource
     required: true
     type: str
+
   vault:
     description: the absolute path to the root directory of the vault
     required: true
     type: path
+
   context:
     description: any context to attach to this resource
     required: false
     type: str
+
   status:
     description: starting status 'up' or 'down'
     required: false
     default: "up"
     type: str
+
+  port:
+    description: This is the TCP port to connect to.
+    default: 1247
+    type: int
+
+  zone:
+    description: This is the local zone served by iRODS.
+    required: true
+    type: str
+
+  username:
+    description: This is the iRODS rodsadmin account used when connecting.
+    default: rods
+    type: str
+
+  password:
+    description: This is the password used to authenticate the iRODS account.
+    required: true
+    type: str
+    no_log: true
 
 requirements:
   - python-irodsclient
@@ -107,6 +130,24 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
                 "required": False,
                 "default": "up",
             },
+            "port": {
+                "type": "int",
+                "required": False,
+                "default": 1247,
+            },
+            "zone": {
+                "type": "str",
+                "required": True,
+            },
+            "username": {
+                "type": "str",
+                "required": False,
+                "default": "rods",
+            },
+            "password": {
+                "type": "str",
+                "required": True,
+            },
         }
         self._module = AnsibleModule(argument_spec=module_args, supports_check_mode=True)
         self._result = {
@@ -138,7 +179,12 @@ class IRODSUnixResourceModule:  # pylint: disable=too-few-public-methods
     def _init_session(self):
         try:
             return iRODSSession(
-                irods_env_file='/var/lib/irods/.irods/irods_environment.json')
+                host=self._module.params["host"],  # pyright: ignore[reportArgumentType]
+                port=self._module.params["port"],  # pyright: ignore[reportArgumentType]
+                zone=self._module.params["zone"],  # pyright: ignore[reportArgumentType]
+                user=self._module.params["username"],  # pyright: ignore[reportArgumentType]
+                password=self._module.params["password"],  # pyright: ignore[reportArgumentType]
+            )
         except Exception as exc:  # pylint: disable=broad-except
             raise _IRODSError(  # pylint: disable=raise-missing-from
                 message="unable to connect to iRODS server", cause=exc)
