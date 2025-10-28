@@ -5,4 +5,8 @@
   become_user: "{{ _irods_service_account_name }}"
   tasks:
     - name: Set resource free space
-      ansible.builtin.import_tasks: tasks/irods/set_resc_free_space.yml
+      ansible.builtin.include_tasks: tasks/irods/set_resc_free_space.yml
+      vars:
+        resource_name: "{{ item.name }}"
+        vault_path: "{{ item.vault }}"
+      loop: "{{ _irods_storage_resources }}"
