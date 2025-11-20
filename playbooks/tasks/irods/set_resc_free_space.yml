@@ -3,7 +3,6 @@
 
 - name: Determine existing free space estimate
   delegate_to: localhost
-  become: false
   ansible.builtin.shell:
     executable: /bin/bash
     cmd: |
@@ -35,7 +34,6 @@
 - name: Update free space estimate
   when: estimate.stdout != actual.stdout
   delegate_to: localhost
-  become: false
   ansible.builtin.shell:
     executable: /bin/bash
     cmd: |
@@ -43,7 +41,7 @@
       export IRODS_PORT='{{ _irods_zone_port }}'
       export IRODS_ZONE_NAME='{{ _irods_zone_name }}'
       export IRODS_USER_NAME='{{ _irods_clerver_user }}'
-      iadmin modresc '{{ resource_name }}' freespace '{{ estimate.stdout }}' \
+      iadmin modresc '{{ resource_name }}' free_space '{{ actual.stdout }}' \
         <<< '{{ _irods_clerver_password }}'
   changed_when: true
   tags: non_idempotent

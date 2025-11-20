@@ -1,16 +1,7 @@
 ---
-- name: Test create storage resources
-  hosts: irods_resource
+- name: Test create vaults
+  hosts: irods_resource_native:!unmanaged_systems
   become: true
-  become_user: irods
-  strategy: linear
-  vars:
-    expected_resources: "{{
-      groups['irods_resource']
-        | map('extract', hostvars, 'irods_storage_resources')
-        | flatten
-        | map(attribute='name')
-        | union(['bundleResc']) }}"
   tasks:
     - name: Test create vault directory
       ansible.builtin.stat:
@@ -25,30 +16,38 @@
         or not response.stat.xusr
       with_items: "{{ irods_storage_resources }}"
 
-    - name: Determine installed pip packages
-      community.general.pip_package_info:
-        clients: pip3
-      register: pip_info
-
-    - name: Verify python modules for irods_unixfilesystem_resource installed
-      when:
-        - "'python-irodsclient' not in pip_info.packages['pip3']"
-        - pip_info.packages['pip3']['python-irodsclient'].version is version_compare('2.0.0', '<')
-      ansible.builtin.fail:
-
-    - name: Test define storage resource  # noqa: run-once[task]
+- name: Test create storage resources
+  hosts: irods_resource_native
+  vars:
+    expected_resources: "{{
+      groups['irods_resource']
+        | map('extract', hostvars)
+        | flatten
+        | selectattr('irods_storage_resources', 'defined')
+        | map(attribute='irods_storage_resources')
+        | flatten
+        | map(attribute='name')
+        | union(['bundleResc']) }}"
+  tasks:
+    - name: Test define storage resource
+      delegate_to: localhost
       run_once: true
-      ansible.builtin.command:
-        cmd: iquest '%s' "select RESC_NAME where RESC_TYPE_NAME = 'unixfilesystem'"
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          iinit <<< password > /dev/null
+          iquest '%s' "select RESC_NAME where RESC_TYPE_NAME = 'unixfilesystem'"
       register: response
       changed_when: false
       failed_when: >-
         response.stdout_lines | symmetric_difference(expected_resources) | list | length > 0
 
     - name: Verify context is correct
+      delegate_to: localhost
       ansible.builtin.shell:
         executable: /bin/bash
         cmd: |
+          iinit <<< password > /dev/null
           if ! context="$(iquest '%s' "select RESC_CONTEXT where RESC_NAME = '{{ item.name }}'")"
           then
             exit 1
@@ -58,9 +57,11 @@
       with_items: "{{ irods_storage_resources }}"
 
     - name: Verify status has been initialized
+      delegate_to: localhost
       ansible.builtin.shell:
         executable: /bin/bash
         cmd: |
+          iinit <<< password > /dev/null
           if ! status="$(iquest '%s' "select RESC_STATUS where RESC_NAME = '{{ item.name }}'")"
           then
             exit 1
