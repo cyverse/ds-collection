@@ -23,7 +23,7 @@
 
 
 - name: Test common file deposition
-  hosts: irods_resource:!irods_catalog
+  hosts: irods_resource_native:!irods_catalog
   become: true
   become_user: irods
   tasks:

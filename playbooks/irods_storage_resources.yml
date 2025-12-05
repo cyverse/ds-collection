@@ -1,6 +1,6 @@
 ---
 - name: Create vaults
-  hosts: irods_resource:!unmanaged_systems
+  hosts: irods_resource_native:!unmanaged_systems
   become: true
   tasks:
     - name: Create vault directory
@@ -14,7 +14,7 @@
       with_items: "{{ _irods_storage_resources }}"
 
 - name: Create storage resources
-  hosts: irods_resource
+  hosts: irods_resource_native
   tasks:
     - name: Define storage resource
       delegate_to: localhost

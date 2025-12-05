@@ -14,15 +14,12 @@
 
 - name: Create clerver user
   hosts: irods_resource:!irods_catalog
-  become: "{{ _irods_become_svc_acnt }}"
-  become_user: "{{ _irods_service_account_name }}"
   vars:
     admin_user: "{{ hostvars[groups['irods_catalog'][0]]['_irods_clerver_user'] }}"
     admin_password: "{{ hostvars[groups['irods_catalog'][0]]['_irods_clerver_password'] }}"
   tasks:
     - name: Create clerver user
       delegate_to: localhost
-      become: false
       cyverse.ds.irods_user:
         name: "{{ _irods_clerver_user }}"
         type: rodsadmin
@@ -36,7 +33,6 @@
 
     - name: Ensure clerver user is in group rodsadmin
       delegate_to: localhost
-      become: false
       cyverse.ds.irods_group_member:
         group: rodsadmin
         users:
@@ -48,6 +44,13 @@
         admin_password: "{{ admin_password }}"
         zone: "{{ _irods_zone_name }}"
 
+
+- name: Configure iRODS
+  hosts: irods_resource_native:!irods_catalog
+  become: "{{ _irods_become_svc_acnt }}"
+  become_user: "{{ _irods_service_account_name }}"
+  gather_facts: false
+  tasks:
     - name: Set up iRODS
       ansible.builtin.include_role:
         name: cyverse.ds.irods_cfg

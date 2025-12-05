@@ -37,3 +37,4 @@ dstesting-webdav_configured-1.dstesting_default
 [unmanaged_systems]
 localhost
 dstesting-amqp-1.dstesting_default
+dstesting-consumer_containerized-1.dstesting_default
