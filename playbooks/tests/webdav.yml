@@ -297,6 +297,17 @@
       register: resp
       failed_when: resp.stat.exists
 
+    - name: Test lock irods-runtime
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          if ! yum versionlock list | grep --quiet 'irods-runtime'; then
+            printf 'irods-runtime not locked\n' >&2
+            exit 1
+          fi
+      changed_when: false
+
     - name: Test add davrods irods directory contents
       ansible.builtin.stat:
         path: /etc/httpd/irods/{{ item }}
