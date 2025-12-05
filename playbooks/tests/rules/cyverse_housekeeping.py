@@ -8,13 +8,31 @@
 
 import unittest
 
-import test_rules
 from test_rules import IrodsTestCase
 
 
-@test_rules.unimplemented
 class TestCyverseHousekeeping(IrodsTestCase):
     """Tests of cyverse_housekeeping.re"""
+
+    @unittest.skip("not implemented")
+    def test_cyversehousekeepingscheduleperiodicpolicy(self):
+        """Test _cyverse_housekeeping_schedulePeriodicPolicy"""
+
+    @unittest.skip("not implemented")
+    def test_cyversehousekeepingrecheduleperiodicpolicy(self):
+        """Test _cyverse_housekeeping_reschedulePeriodicPolicy"""
+
+    @unittest.skip("not implemented")
+    def test_quotas(self):
+        """Test quota logic"""
+
+    @unittest.skip("not implemented")
+    def test_storage_free_space(self):
+        """Test storage free space logic"""
+
+    @unittest.skip("not implemented")
+    def test_trash_removal(self):
+        """Test trash removal logic"""
 
 
 if __name__ == "__main__":
