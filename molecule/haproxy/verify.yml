@@ -116,11 +116,23 @@
           - haproxy is search('\nlisten stats\n(..[^\n]*\n)*  stats auth +ds:pass\n')
           - haproxy is not search('\nlisten stats\n(  [^\n]*\n)*  stats realm')
 
+    - name: Verify irods_main frontend
+      ansible.builtin.debug:
+        msg: "TODO: test bind"
+
+    - name: Verify haproxy config irods section
+      ansible.builtin.debug:
+        msg: "TODO: implement for {{ item }}"
+      loop:
+        - irods_reconn
+        - irods_throttled
+        - irods_indirect
+        - irods_direct
+
     - name: "TODO: implement"
       ansible.builtin.debug:
         msg: "haproxy config {{ item }} section tests"
       loop:
-        - IRODS
         - SFTP
         - WEBDAV
 
