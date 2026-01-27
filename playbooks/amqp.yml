@@ -3,6 +3,16 @@
   hosts: amqp
   become: true
   roles:
+    - role: cyverse.ds.firewalld
+      vars:
+        firewalld_service_name: amqp
+        firewalld_service_ports: "{{ _amqp_broker_port }}"
+        firewalld_admin_hosts: "{{ _admin_hosts }}"
+        firewalld_system_hosts:
+          - "{{ groups['irods_catalog'] }}"
+          - "{{ groups['webdav'] }}"
+        firewalld_external_hosts: "{{ _amqp_external_clients }}"
+
     - role: cyverse.ds.rabbitmq
       vars:
         rabbitmq_admin_username: "{{ _amqp_admin_username }}"

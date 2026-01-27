@@ -1,0 +1,4 @@
+---
+firewalld_network_interface: "{{ ansible_default_ipv4.alias }}"
+firewalld_external_hosts: []
+firewalld_system_hosts: []

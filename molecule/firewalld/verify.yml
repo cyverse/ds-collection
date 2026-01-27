@@ -1,0 +1,180 @@
+---
+- name: Verify config file expansion
+  hosts: localhost
+  gather_facts: false
+  vars:
+    firewalld_network_interface: if0
+    firewalld_service_name: test_svc
+    firewalld_service_ports:
+      - 1
+      - 2/udp
+      - 3-5/sctp
+    firewalld_admin_hosts:
+      - 1.1.1.1
+      - data.cyverse.org
+      - 1.1.2.0/24
+    firewalld_system_hosts:
+      - 1.2.1.1
+      - data.cyverse.org
+      - 1.2.2.0/24
+    firewalld_external_hosts:
+      - 2.1.1.1
+      - data.cyverse.org
+      - 0.0.0.0/0
+    ipset_admin: "{{ lookup('template', '../../roles/firewalld/templates/ipset_admin.xml.j2') }}"
+    ipset_external: "{{ lookup(
+      'template', '../../roles/firewalld/templates/ipset_external.xml.j2') }}"
+    ipset_system: "{{ lookup('template', '../../roles/firewalld/templates/ipset_system.xml.j2') }}"
+    service: "{{ lookup('template', '../../roles/firewalld/templates/service.xml.j2') }}"
+    zone_block: "{{ lookup('template', '../../roles/firewalld/templates/zone_block.xml.j2') }}"
+    zone_maintenance: "{{ lookup(
+      'template', '../../roles/firewalld/templates/zone_maintenance.xml.j2') }}"
+    zone_operation: "{{ lookup(
+      'template', '../../roles/firewalld/templates/zone_operation.xml.j2') }}"
+  tasks:
+    - name: Verify contents of ipsets/admin.xml
+      ansible.builtin.assert:
+        that:
+          - ipset_admin is search('<!--[^>]+Ansible managed:[^<]+-->')
+          - ipset_admin is search('<short>test_svc_admin</short>')
+          - ipset_admin is search('<entry>1.1.1.1</entry>')
+          - ipset_admin is search('<entry>206.207.252.35</entry>')
+          - ipset_admin is search('<entry>1.1.2.0/24</entry>')
+
+    - name: Verify contents of ipsets/external.xml
+      ansible.builtin.assert:
+        that:
+          - ipset_external is search('<!--[^>]+Ansible managed:[^<]+-->')
+          - ipset_external is search('<short>test_svc_external</short>')
+          - ipset_external is search('<entry>2.1.1.1</entry>')
+          - ipset_external is search('<entry>206.207.252.35</entry>')
+          - ipset_external is search('<entry>0.0.0.0/0</entry>')
+
+    - name: Verify contents of ipsets/system.xml
+      ansible.builtin.assert:
+        that:
+          - ipset_system is search('<!--[^>]+Ansible managed:[^<]+-->')
+          - ipset_system is search('<short>test_svc_system</short>')
+          - ipset_system is search('<entry>1.2.1.1</entry>')
+          - ipset_system is search('<entry>206.207.252.35</entry>')
+          - ipset_system is search('<entry>1.2.2.0/24</entry>')
+
+    - name: Verify contents of services/service.xml
+      ansible.builtin.assert:
+        that:
+          - service is search('<!--[^>]+Ansible managed:[^<]+-->')
+          - service is search('<short>test_svc</short>')
+          - service is search('<port protocol="tcp" port="1"/>')
+          - service is search('<port protocol="udp" port="2"/>')
+          - service is search('<port protocol="sctp" port="3-5"/>')
+
+    - name: Verify contents of zones/block.xml
+      ansible.builtin.assert:
+        that:
+          - zone_block is search('<!--[^>]+Ansible managed:[^<]+-->')
+          - zone_block is search('<interface name="if0"/>')
+
+    - name: Verify contents of zones/maintenance.xml
+      ansible.builtin.assert:
+        that:
+          - zone_maintenance is search('<!--[^>]+Ansible managed:[^<]+-->')
+          - zone_maintenance is search('<short>test_svc_maintenance</short>')
+          - zone_maintenance is search('<source ipset="test_svc_admin"/>')
+
+    - name: Verify contents of zones/operation.xml
+      ansible.builtin.assert:
+        that:
+          - zone_operation is search('<!--[^>]+Ansible managed:[^<]+-->')
+          - zone_operation is search('<short>test_svc_operation</short>')
+          - zone_operation is search('<service name="test_svc"/>')
+
+
+- name: Verify deposition
+  hosts: all
+  tasks:
+    - name: Retrieve installed package info
+      ansible.builtin.package_facts:
+
+    - name: Verify ansible required packages installed
+      ansible.builtin.assert:
+        that:
+          - "'firewalld' in ansible_facts.packages"
+          - "'iproute2' in ansible_facts.packages"
+          - "'python3-firewall' in ansible_facts.packages"
+
+    - name: Verify ufw not installed
+      ansible.builtin.assert:
+        that: "'ufw' not in ansible_facts.packages"
+
+    - name: Retrieve service info
+      ansible.builtin.service_facts:
+
+    - name: Verify firewalld is enabled
+      ansible.builtin.assert:
+        that: ansible_facts.services['firewalld.service'].status == 'enabled'
+
+    - name: Verify service description installed
+      ansible.builtin.stat:
+        path: /etc/firewalld/{{ item }}
+      register: resp
+      failed_when: >-
+        not resp.stat.exists
+        or resp.stat.pw_name != 'root'
+        or resp.stat.gr_name != 'root'
+        or not resp.stat.rusr
+      loop:
+        - ipsets/svc_external.xml
+        - ipsets/svc_admin.xml
+        - ipsets/svc_system.xml
+        - services/svc.xml
+        - zones/block.xml
+        - zones/svc_maintenance.xml
+        - zones/svc_operation.xml
+
+
+- name: Verify mode changes
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Retrieve maintenance_operation.xml
+      ansible.builtin.slurp:
+        src: /etc/firewalld/zones/maintenance_operation.xml
+      register: maintenance_encoded
+
+    - name: Decode maintenance_operation.xml
+      ansible.builtin.set_fact:
+        maintenance: "{{ maintenance_encoded.content | b64decode }}"
+
+    - name: Verify maintenance_operation.xml has no allowed sources
+      ansible.builtin.assert:
+        that: maintenance is not search('<source ')
+
+    - name: Retrieve testing_operation.xml
+      ansible.builtin.slurp:
+        src: /etc/firewalld/zones/testing_operation.xml
+      register: testing_encoded
+
+    - name: Decode testing_operation.xml
+      ansible.builtin.set_fact:
+        testing: "{{ testing_encoded.content | b64decode }}"
+
+    - name: Verify testing_operation.xml only allows system sources
+      ansible.builtin.assert:
+        that:
+          - testing is search('<source ipset="testing_system"/>')
+          - testing is not search('<source ipset="testing_external"/>')
+
+    - name: Retrieve operation_operation.xml
+      ansible.builtin.slurp:
+        src: /etc/firewalld/zones/operation_operation.xml
+      register: operation_encoded
+
+    - name: Decode operation_operation.xml
+      ansible.builtin.set_fact:
+        operation: "{{ operation_encoded.content | b64decode }}"
+
+    - name: Verify operation_operation.xml only allows system sources
+      ansible.builtin.assert:
+        that:
+          - operation is search('<source ipset="operation_system"/>')
+          - operation is search('<source ipset="operation_external"/>')

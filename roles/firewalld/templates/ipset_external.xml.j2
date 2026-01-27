@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+{{ ansible_managed | ansible.builtin.comment('xml') }}
+
+<ipset type="hash:ip">
+  <short>{{ firewalld_service_name }}_external</short>
+  <description>The set of hosts external to the system that require access</description>
+{% for host in [ firewalld_external_hosts ] | flatten %}
+  <entry>{{ host if host | ansible.utils.ipaddr else lookup('dig', host) }}</entry>
+{% endfor %}
+</ipset>

@@ -21,9 +21,11 @@ These folder contains all of the playbooks used to deploy and configure a CyVers
 
 Variable                                   | Required | Default                              | Choices | Comments
 ------------------------------------------ | -------- | ------------------------------------ | ------- | --------
+`admin_hosts`                              | no       | `[ 'localhost' ]`                    |         | The set of hosts allowed unfettered access to the Data Store hosts for administration, FQDN, IP address, or CIDR
 `amqp_admin_username`                      | no       | guest                                |         | The AMQP broker admin user
 `amqp_admin_password`                      | no       | guest                                |         | The password for `amqp_admin_username`
 `amqp_broker_port`                         | no       | 5672                                 |         | The port used by the broker
+`amqp_external_clients`                    | no       | []                                   |         | The set of hosts external to the Data Store that are AMQP clients, FQDN, IP address, or CIDR
 `amqp_irods_exchange`                      | no       | irods                                |         | The AMQP exchange used by iRODS to publish events
 `amqp_irods_username`                      | no       | `amqp_admin_username`                |         | The user iRODS uses to connect to the AMQP vhost
 `amqp_irods_password`                      | no       | `amqp_admin_password`                |         | The password iRODS uses to connect to the AMQP vhost
