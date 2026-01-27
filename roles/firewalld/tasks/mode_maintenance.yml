@@ -1,0 +1,9 @@
+---
+- name: Remove all access
+  ansible.builtin.template:
+    src: templates/zone_operation.xml.j2
+    dest: /etc/firewalld/zones/{{ firewalld_service_name }}_operation.xml
+    owner: root
+    group: root
+    mode: u+r
+  notify: Reload firewalld

@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+{{ ansible_managed | ansible.builtin.comment('xml') }}
+
+<ipset type="hash:ip">
+  <short>{{ firewalld_service_name }}_admin</short>
+  <description>The set of hosts that can perform administrative actions</description>
+{% for host in [ firewalld_admin_hosts ] | flatten %}
+  <entry>{{ host if host | ansible.utils.ipaddr else lookup('dig', host) }}</entry>
+{% endfor %}
+</ipset>

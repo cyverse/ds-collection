@@ -1,0 +1,12 @@
+---
+driver:
+  name: docker
+platforms:
+  - name: instance
+    image: firewalld
+    pre_build_image: false
+    dockerfile: Dockerfile
+    command: /lib/systemd/systemd
+    privileged: true
+provisioner:
+  name: ansible
