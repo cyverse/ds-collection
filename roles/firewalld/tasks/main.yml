@@ -16,7 +16,7 @@
     name: ufw
     state: absent
 
-- name: Ensure firewalld is installed installed
+- name: Ensure firewalld is installed
   ansible.builtin.package:
     name: firewalld
     state: present
