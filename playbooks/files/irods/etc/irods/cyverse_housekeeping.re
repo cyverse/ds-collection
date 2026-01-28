@@ -25,16 +25,7 @@
 
 _cyverse_housekeeping_schedulePeriodicPolicy(*RuleName, *Freq, *Desc) {
 	writeLine('serverLog', 'DS: scheduling *Desc');
-# XXX - The rule engine plugin must be specified. This is fixed in iRODS 4.2.9. See
-#       https://github.com/irods/irods/issues/5413.
-# 	eval(``delay('<PLUSET>0s</PLUSET><EF>*Freq</EF>') {`` ++ *RuleName ++ ``}`` );
-	eval(
-		``delay(
-			'<INST_NAME>irods_rule_engine_plugin-irods_rule_language-instance</INST_NAME>
-			<PLUSET>0s</PLUSET>
-			<EF>*Freq</EF>'
-		) {`` ++ *RuleName ++ ``}`` );
-# XXX - ^^^
+	eval(``delay('<PLUSET>0s</PLUSET><EF>*Freq</EF>') {`` ++ *RuleName ++ ``}`` );
 }
 
 _cyverse_housekeeping_reschedulePeriodicPolicy(*RuleName, *Freq, *Desc) {
@@ -146,11 +137,7 @@ _cyverse_housekeeping_rmTrashColl(*CutOffTimestamp, *SUCCEEDED) {
 	writeLine('serverLog', 'DS: Starting collection removal from trash');
 	*SUCCEEDED = true;
 	*zone = cyverse_ZONE;
-# XXX - Because of https://github.com/irods/irods/issues/6918
-# 	*rmOpts = "";
-# 	msiAddKeyValToMspStr("irodsAdminRmTrash", "", *rmOpts);
 	*rmOpts = 'irodsAdminRmTrash='
-# XXX - ^^^
 
 	# The results are sorted in reverse order to ensure a subcollection with a
 	# timestamp is deleted before its parent, which also has a timestamp. If the
@@ -194,11 +181,7 @@ _cyverse_housekeeping_rmTrashData(*CutOffTimestamp, *SUCCEEDED) {
 		*rowCollName = *row.COLL_NAME;
 		*rowDataName = *row.DATA_NAME;
 		*absDataPath = *rowCollName ++ "/" ++ *rowDataName;
-# XXX - Because of https://github.com/irods/irods/issues/6918
-# 		*rmOpts = "";
-#		msiAddKeyValToMspStr("irodsAdminRmTrash", "", *rmOpts);
 		*rmOpts = 'irodsAdminRmTrash='
-# XXX - ^^^
 		msiAddKeyValToMspStr("objPath", *absDataPath, *rmOpts);
 		*status = errorcode(msiDataObjUnlink(*rmOpts, *_));
 		if (*status == 0) {
