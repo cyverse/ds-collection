@@ -22,7 +22,6 @@
     - name: Configure iRODS service
       ansible.builtin.import_role:
         name: cyverse.ds.irods_cfg
-        tasks_from: setup_irods.yml
       vars:
         irods_cfg_catalog_provider_hosts:
           - "{{ inventory_hostname }}"
@@ -91,7 +90,6 @@
     - name: Configure iRODS service
       ansible.builtin.import_role:
         name: cyverse.ds.irods_cfg
-        tasks_from: setup_irods.yml
       vars:
         irods_cfg_catalog_provider_hosts: "{{ groups['irods_catalog'] }}"
         irods_cfg_catalog_service_role: consumer
@@ -154,7 +152,3 @@
       ansible.builtin.file:
         path: /etc/irods/ipc-encryption.re
         state: absent
-      loop:
-        - cyverse_encryption.re
-        - cyverse_repl.re
-        - cyverse_trash.re
