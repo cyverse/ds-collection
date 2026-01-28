@@ -1231,10 +1231,6 @@ pep_database_mod_data_obj_meta_post(*Instance, *Context, *OUT, *DataObjInfo, *Re
 #                                                  indicate the upload completed
 #
 pep_database_reg_data_obj_post(*Instance, *Context, *OUT, *DataObjInfo) {
-# XXX - These fields are empty. See https://github.com/irods/irods/issues/5554
-	*DataObjInfo.data_owner_name = *Context.user_user_name;
-	*DataObjInfo.data_owner_zone = *Context.user_rods_zone;
-# XXX - ^^^
 # XXX - Because of https://github.com/irods/irods/issues/5870,
 # *DataObjInfo.logical_path cannot directly be converted to a path.
 # 	*pathVar = _cyverse_core_mkDataObjSessVar(/*DataObjInfo.logical_path);
