@@ -105,6 +105,13 @@
         - /var/lib/irods/.irods
         - /var/lib/irods/msiExecCmd_bin
 
+    - name: Add irodsctl adapter
+      ansible.builtin.copy:
+        src: files/irods/docker-rs/irodsctl
+        dest: /var/lib/irods/irodsctl
+        owner: irods
+        mode: u+rx
+
     - name: Copy required iRODS runtime config files
       ansible.builtin.copy:
         src: files/irods/docker-rs/run/etc/irods/{{ item }}
