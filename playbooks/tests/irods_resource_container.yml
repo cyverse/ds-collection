@@ -67,17 +67,9 @@
         name: irods
       check_mode: true
       register: resp
-      failed_when: resp.state != 'present'
+      failed_when: resp.state != 'present' or resp.uid >= 1000 or resp.home != '/var/lib/irods'
 
     - name: Verify iRODS user comment
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Verify iRODS user is system account
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Verify iRODS user home folder
       ansible.builtin.debug:
         msg: 'TODO: implement'
 
