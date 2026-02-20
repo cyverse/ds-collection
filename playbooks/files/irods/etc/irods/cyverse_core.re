@@ -130,12 +130,6 @@ acSetRescSchemeForRepl {
 	ipcRepl_acSetRescSchemeForRepl($objPath);
 }
 
-# Set maximum number of rule engine processes
-#
-acSetReServerNumProc {
-	msiSetReServerNumProc(str(cyverse_MAX_NUM_RE_PROCS));
-}
-
 
 #
 # PRE-PROC
