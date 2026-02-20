@@ -1733,9 +1733,6 @@ cyverse_logic_acPreProcForModifyAVUMetadata(
 #  ClientUsername  (string) the client user performing the modification
 #  ClientZone      (string) the authentication zone for the client user
 #
-# XXX: Due to a bug in iRODS 4.2.8, when a unitless AVU is modified to have a new attribute name,
-#      value, and unit in a single call, the new unit is not passed in.
-#
 cyverse_logic_acPreProcForModifyAVUMetadata(
 	*Opt,
 	*EntityType,

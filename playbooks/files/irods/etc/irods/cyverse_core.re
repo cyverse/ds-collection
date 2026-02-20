@@ -209,9 +209,6 @@ acPreProcForModifyAVUMetadata(*Option, *ItemType, *ItemName, *AName, *AValue, *A
 #  userNameClient
 #  rodsZoneClient
 #
-# XXX: Due to a bug in iRODS 4.2.8, when a unitless AVU is modified to have a new attribute name,
-#      value, and unit in a single call, *NAUnit will be empty.
-#
 acPreProcForModifyAVUMetadata(
 	*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, *NAName, *NAValue, *NAUnit
 ) {
@@ -395,9 +392,6 @@ acPostProcForModifyAVUMetadata(*Option, *ItemType, *ItemName, *AName, *AValue, *
 # Session Variables:
 #  userNameClient
 #  rodsZoneClient
-#
-# XXX: Due to a bug in iRODS 4.2.8, when a unitless AVU is modified to have a new attribute name,
-#      value, and unit in a single call, *NAUnit will be empty.
 #
 acPostProcForModifyAVUMetadata(
 	*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, *NAName, *NAValue, *NAUnit
