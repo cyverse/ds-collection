@@ -74,28 +74,6 @@ acDataDeletePolicy {
 	cyverse_logic_acDataDeletePolicy($objPath);
 }
 
-# This rule applies the collection delete policies for a collection being
-# administratively deleted.
-#
-# Parameters:
-#  ParColl    (string) the absolute path to the parent collection of the
-#              collection being deleted
-#  ChildColl  (string) the name of collection being deleted
-#
-# Session Variables:
-#  rodsZoneClient
-#  userNameClient
-#
-# XXX: `iadmin rmdir` does not trigger this PEP in iRODS 4.2.8
-acDeleteCollByAdmin(*ParColl, *ChildColl) {
-	*status = errormsg(
-		cyverse_logic_acDeleteCollByAdmin(*ParColl, *ChildColl, $userNameClient, $rodsZoneClient),
-		*msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	msiDeleteCollByAdmin(*ParColl, *ChildColl);
-}
-
 # This rule applies the collection delete polices for a home or trash collection
 # being administratively deleted. This rule overrides the
 # acDeleteCollByAdminIfPresent rule in core.re. It is called indirectly by the
