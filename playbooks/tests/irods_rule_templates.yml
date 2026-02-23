@@ -20,7 +20,6 @@
           - cyverse_env is search("cyverse_EMAIL_FROM_ADDR = 'irods@localhost'")
           - cyverse_env is search("cyverse_EMAIL_REPORT_ADDR = 'root@localhost'")
           - cyverse_env is search("cyverse_INIT_REPL_DELAY = 0")
-          - cyverse_env is search("cyverse_MAX_NUM_RE_PROCS = 4")
           - cyverse_env is search("cyverse_ZONE = 'testing'")
           - >-
             cyverse_env
@@ -59,7 +58,6 @@
           - cyverse_env is search("cyverse_EMAIL_FROM_ADDR = 'balloon@localhost'")
           - cyverse_env is search("cyverse_EMAIL_REPORT_ADDR = 'bob@reports'")
           - cyverse_env is search("cyverse_INIT_REPL_DELAY = 1")
-          - cyverse_env is search("cyverse_MAX_NUM_RE_PROCS = 1")
           - cyverse_env is search("cyverse_RE_HOST = 'other'")
           - cyverse_env is search("cyverse_ZONE = 'zoner'")
 

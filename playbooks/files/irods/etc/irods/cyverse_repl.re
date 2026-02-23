@@ -536,7 +536,7 @@ _repl_syncReplicas_workaround(*Object) {
         <PLUSET>28800s</PLUSET>
         <EF>0s REPEAT 0 TIMES</EF> ' )
     {#_repl_syncReplicas
-      _repl__syncReplicas_workaround(*Object);
+      _repl_syncReplicas_workaround(*Object);
     }
   }
 }
@@ -664,7 +664,7 @@ _ipcRepl_acSetRescSchemeForCreate(*DataPath) {
   _setDefaultResc(_defaultIngestResc);
 }
 
-ipcRepl_acSetRescSchemeForCreate(*DataPath) {
+cyverse_repl_acSetRescSchemeForCreate(*DataPath) {
   (*resc, *residency) = _repl_findResc(*DataPath);
 
   if (*resc != cyverse_DEFAULT_RESC) {
@@ -686,7 +686,7 @@ _ipcRepl_acSetRescSchemeForRepl(*DataPath) {
   _setDefaultResc(_defaultReplResc);
 }
 
-ipcRepl_acSetRescSchemeForRepl(*DataPath) {
+cyverse_repl_acSetRescSchemeForRepl(*DataPath) {
   if (
     if errorcode(temporaryStorage.repl_replicate) < 0 then true
     else temporaryStorage.repl_replicate != 'REPL_FORCED_REPL_RESC'
@@ -730,7 +730,7 @@ _ipcRepl_put(*ObjPath, *DestResc, *New) {
 #  DATA_OBJ_INFO  (`KeyValuePair_PI`) information related to the created data
 #                 object
 #
-ipcRepl_dataObjCreated(*User, *Zone, *DATA_OBJ_INFO) {
+cyverse_repl_dataObjCreated(*User, *Zone, *DATA_OBJ_INFO) {
   _ipcRepl_put(*DATA_OBJ_INFO.logical_path, hd(split(*DATA_OBJ_INFO.resc_hier, ';')), true);
 }
 
@@ -743,7 +743,7 @@ ipcRepl_dataObjCreated(*User, *Zone, *DATA_OBJ_INFO) {
 #  DATA_OBJ_INFO  (`KeyValuePair_PI`) information related to the created data
 #                 object
 #
-ipcRepl_dataObjModified(*User, *Zone, *DATA_OBJ_INFO) {
+cyverse_repl_dataObjModified(*User, *Zone, *DATA_OBJ_INFO) {
   _ipcRepl_put(*DATA_OBJ_INFO.logical_path, hd(split(*DATA_OBJ_INFO.resc_hier, ';')), false);
 }
 
