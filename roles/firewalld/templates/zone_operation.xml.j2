@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+{{ ansible_managed | ansible.builtin.comment('xml') }}
+
+<zone target="ACCEPT">
+  <short>{{ firewalld_service_name }}_operation</short>
+  <description>All hosts that are allowed to access the hosted services.</description>
+  <service name="{{ firewalld_service_name }}"/>
+</zone>

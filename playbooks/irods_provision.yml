@@ -1,6 +1,6 @@
 ---
 - name: Provision for iRODS
-  hosts: irods:!unmanaged_systems
+  hosts: irods:!irods_resource_container:!unmanaged_systems
   become: true
   tasks:
     - name: Provision CentOS

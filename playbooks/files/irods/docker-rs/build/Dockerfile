@@ -7,6 +7,10 @@ ARG IRODS_ZONE_PORT
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+COPY <<'EOF' /etc/timezone
+America/Phoenix
+EOF
+
 COPY <<'EOF' /etc/apt/sources.list.d/renci-irods.list
 deb [arch=amd64] https://packages.irods.org/apt/ jammy main
 EOF
@@ -24,11 +28,14 @@ RUN <<'EOF'
 # Install iRODS
 	apt-get install --yes irods-icommands=4.3.1 irods-runtime=4.3.1 irods-server=4.3.1
 
-	useradd --non-unique --user-group \
+	groupadd --non-unique --system --gid="$IRODS_HOST_UID" irods
+
+	useradd --non-unique --system \
+		--uid="$IRODS_HOST_UID" \
+		--gid="$IRODS_HOST_UID" \
 		--comment='iRODS Administrator (host user)' \
 		--home-dir=/var/lib/irods \
 		--shell=/bin/bash \
-		--uid="$IRODS_HOST_UID" \
 		irods
 
 	mkdir --parents /irods_vault /etc/irods /var/lib/irods/.irods

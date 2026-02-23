@@ -1,0 +1,24 @@
+---
+- name: Converge
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Configure firewalld
+      ansible.builtin.include_role:
+        name: cyverse.ds.firewalld
+        tasks_from: main.yml
+      vars:
+        firewalld_service_name: svc
+        firewalld_service_ports: 1
+        firewalld_admin_hosts: 1.2.3.4
+
+    - name: Trigger mode {{ firewalld_service_name }}
+      ansible.builtin.include_role:
+        name: cyverse.ds.firewalld
+        tasks_from: mode_{{ firewalld_service_name }}.yml
+      loop:
+        - testing
+        - operation
+        - maintenance
+      loop_control:
+        loop_var: firewalld_service_name
