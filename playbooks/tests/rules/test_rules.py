@@ -363,16 +363,17 @@ class IrodsTestCase(TestCase):
             self._irods = None
         self.ssh.exec_command("touch /etc/irods/core.re")
 
-    def update_rulebase(self, rulebase: str, local_path: str) -> None:
+    def update_rulebase(self, rulebases: List[Tuple[str, str]]) -> None:
         """
         Updates a rulebase on the iRODS server.
 
         Parameters:
-            rulebase    the name of the rulebase to update
-            local_path  the path to the local rulebase file relative to this module
+            rulebases  a list of tuples of rulebases to updated and the paths to their local files
+                relative to this module
         """
-        abs_local_path = path.join(path.dirname(__file__), local_path)
-        self.scp.put(abs_local_path, f'/etc/irods/{rulebase}')
+        for (rulebase, local_path) in rulebases:
+            abs_local_path = path.join(path.dirname(__file__), local_path)
+            self.scp.put(abs_local_path, f'/etc/irods/{rulebase}')
         self.reload_rules()
 
     def fn_test(self, fn: str, args: List[IrodsVal], exp_res: IrodsVal) -> None:

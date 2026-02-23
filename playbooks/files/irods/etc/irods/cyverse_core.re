@@ -117,7 +117,7 @@ acPreConnect(*OUT) {
 #  objPath
 #
 acSetRescSchemeForCreate {
-	ipcRepl_acSetRescSchemeForCreate($objPath);
+	cyverse_repl_acSetRescSchemeForCreate($objPath);
 }
 
 # This rule sets the default resource selection scheme for the replica of a
@@ -127,7 +127,7 @@ acSetRescSchemeForCreate {
 #  objPath
 #
 acSetRescSchemeForRepl {
-	ipcRepl_acSetRescSchemeForRepl($objPath);
+	cyverse_repl_acSetRescSchemeForRepl($objPath);
 }
 
 
@@ -983,7 +983,6 @@ _cyverse_core_mkDataObjSessVar(*Path) = 'ipc-data-obj-' ++ str(*Path)
 
 # XXX - Because of https://github.com/irods/irods/issues/5540
 # _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo) {
-# 	*path = *DataObjInfo.logical_path;
 # 	*err = errormsg(cyverse_logic_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
 # 	if (*err < 0) {
 # 		writeLine('serverLog', *msg);
@@ -992,13 +991,12 @@ _cyverse_core_mkDataObjSessVar(*Path) = 'ipc-data-obj-' ++ str(*Path)
 # 	if (*err < 0) {
 # 		writeLine('serverLog', *msg);
 # 	}
-# 	*err = errormsg(ipcRepl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
+# 	*err = errormsg(cyverse_repl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
 # 	if (*err < 0) {
 # 		writeLine('serverLog', *msg);
 #	}
 # }
 _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo, *Step) {
-	*path = *DataObjInfo.logical_path;
 	*err = errormsg(cyverse_logic_dataObjCreated(*User, *Zone, *DataObjInfo, *Step), *msg);
 	if (*err < 0) {
 		writeLine('serverLog', *msg);
@@ -1012,7 +1010,7 @@ _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo, *Step) {
 	}
 
 	if (*Step != 'START') {
-		*err = errormsg(ipcRepl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
+		*err = errormsg(cyverse_repl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
 		if (*err < 0) {
 			writeLine('serverLog', *msg);
 		}
@@ -1021,13 +1019,7 @@ _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo, *Step) {
 # XXX - ^^^
 
 _cyverse_core_dataObjModified(*User, *Zone, *DataObjInfo) {
-	*path = *DataObjInfo.logical_path;
-	*err = errormsg(cyverse_logic_dataObjMod(*User, *Zone, *DataObjInfo), *msg);
-	if (*err < 0) {
-		writeLine('serverLog', *msg);
-	}
-
-	*err = errormsg(ipcRepl_dataObjModified(*User, *Zone, *DataObjInfo), *msg);
+	*err = errormsg(cyverse_repl_dataObjModified(*User, *Zone, *DataObjInfo), *msg);
 	if (*err < 0) {
 		writeLine('serverLog', *msg);
 	}

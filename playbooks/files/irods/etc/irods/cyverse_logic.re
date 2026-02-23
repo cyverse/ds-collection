@@ -877,12 +877,6 @@
 # asynchronously.
 #
 #
-#### NUMBER OF RULE ENGINE PROCESSES
-#
-# The number of rule engine processes is configured using the rule base constant
-# `cyverse_MAX_NUM_RE_PROCS`.
-#
-#
 #### PROTECTED AVUS
 #
 # Any AVU attribute that begins with `ipc` can only be modified by rodsadmin
@@ -2545,7 +2539,9 @@ cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 # *DataObjInp:
 #   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
 #
-cyverse_logic_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
+cyverse_logic_api_data_obj_put_post(
+	*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT
+) {
 	*path = cyverse_getValue(*DataObjInp, 'obj_path');
 
 	if (*path == '') {

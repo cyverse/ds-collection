@@ -1,0 +1,2 @@
+---
+_admin_hosts: "{{ admin_hosts | d(['localhost']) }}"

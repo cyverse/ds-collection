@@ -114,20 +114,39 @@
         that:
           - haproxy is search('\nlisten stats\n(  [^\n]*\n)*  bind +:4 ssl crt /path/to/tls.crt\n')
           - haproxy is search('\nlisten stats\n(..[^\n]*\n)*  stats auth +ds:pass\n')
+          - haproxy is not search('\nlisten stats\n(  [^\n]*\n)*  stats realm')
 
-    - name: Verify haproxy config stats values
+    - name: Verify irods_main frontend
       ansible.builtin.debug:
-        msg: "TODO: implement {{ item }}"
-      loop:
-        - stats realm
+        msg: "TODO: test bind"
 
-    - name: TODO implement
+    - name: Verify haproxy config irods section
+      ansible.builtin.debug:
+        msg: "TODO: implement for {{ item }}"
+      loop:
+        - irods_reconn
+        - irods_throttled
+        - irods_indirect
+        - irods_direct
+
+    - name: "TODO: implement"
       ansible.builtin.debug:
         msg: "haproxy config {{ item }} section tests"
       loop:
-        - IRODS
         - SFTP
         - WEBDAV
+
+- name: Verify | haproxy config template custom stats expansion
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Verify stats auth custom username
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
+    - name: Verify custom stats realm
+      ansible.builtin.debug:
+        msg: "TODO: implement"
 
 - name: Verify | set up HAProxy
   hosts: instance
@@ -142,15 +161,15 @@
 
     - name: Test install socat
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: "TODO: implement"
 
     - name: Test allowing proxy to listen on stats port
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: "TODO: implement"
 
     - name: Test enabling SELinux booleans for proxy
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: "TODO: implement"
 
     - name: Test change rsyslog.conf block Id to proxy
       ansible.builtin.command: >-
@@ -183,9 +202,9 @@
 
     - name: Test TLS certificates file
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: "TODO: implement"
 
-    - name: Verify allow list
+    - name: Verify allow list template
       ansible.builtin.debug:
         msg: "TODO: implement"
 
@@ -199,10 +218,10 @@
       register: response
       failed_when: not response.stat.exists or not result.stat.roth
 
-    - name: Verify block list
+    - name: Verify allow and block lists
       ansible.builtin.debug:
         msg: "TODO: implement"
 
     - name: Test place haproxy config file
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: "TODO: implement"
