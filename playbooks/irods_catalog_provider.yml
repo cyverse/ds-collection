@@ -65,8 +65,15 @@
             state: present
 
         - name: CentOS | install PostgreSQL 12 repository
-          ansible.builtin.yum:
-            name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+          ansible.builtin.copy:
+            dest: /etc/yum.repos.d/pgdg-12.repo
+            mode: a+r
+            content: |
+              [pgdg12-archive]
+              name=PostgreSQL 12 RPMs for RHEL/Rocky Linux/AlmaLinux/CentOS 7
+              baseurl=https://yum-archive.postgresql.org/12/redhat/rhel-7-x86_64
+              enabled=1
+              gpgcheck=0
 
         - name: CentOS | install PostgreSQL 12 clients are installed
           ansible.builtin.package:
