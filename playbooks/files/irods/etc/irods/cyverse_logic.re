@@ -1958,6 +1958,31 @@ cyverse_logic_acPostProcForModifyAVUMetadata(
 	}
 }
 
+# This rule sets the rodsadmin group permission of a collection when a
+# collection is created by an administrative means, i.e. iadmin mkuser. It also
+# assigns a UUID and pushes a collection.add message into the irods exchange.
+#
+# Parameters:
+#  ParCollPath     (string) the absolute path to the parent of the collection
+#                  being created
+#  CollName        (string) the name of the collection being created
+#  ClientUsername  (string) the client user performing the modification
+#  ClientZone      (string) the authentication zone for the client user
+#
+cyverse_logic_acCreateCollByAdmin(*ParCollPath, *CollName, *ClientUsername, *ClientZone) {
+	*coll = *ParCollPath ++ '/' ++ *CollName;
+	*perm = _cyverse_logic_resolveAdmPerm(*coll);
+
+	*err = errormsg(msiSetACL('default', 'admin:*perm', 'rodsadmin', *coll), *msg);
+	if (*err < 0) {
+		writeLine('serverLog', *msg);
+	}
+
+	*uuid = '';
+	_cyverse_logic_ensureUUID(cyverse_COLL, *coll, *ClientUsername, *ClientZone, *uuid);
+	_cyverse_logic_sendCollAdd(*uuid, *coll, *ClientUsername, *ClientZone);
+}
+
 # This rule makes the admin owner of any created collection. It also assigns a
 # UUID and publishes a collection.add message to the irods exchange. This rule
 # is not applied to collections created when a TAR file is expanded. (i.e.
@@ -1977,24 +2002,6 @@ cyverse_logic_acPostProcForCollCreate(*CollPath, *ClientUsername, *ClientZone) {
 	*uuid = '';
 	_cyverse_logic_ensureUUID(cyverse_COLL, *CollPath, *ClientUsername, *ClientZone, *uuid);
 	_cyverse_logic_sendCollAdd(*uuid, *CollPath, *ClientUsername, *ClientZone);
-}
-
-# This rule pushes a collection.rm message into the irods exchange.
-#
-# Parameters:
-#  ParCollPath     (string) the absolute path to the parent collection of the
-#                  collection being deleted
-#  CollName        (string) the name of collection being deleted
-#  ClientUsername  (string) the client user performing the modification
-#  ClientZone      (string) the authentication zone for the client user
-#
-cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName, *ClientUsername, *ClientZone) {
-	*path = *ParCollPath ++ '/' ++ *CollName;
-	*uuid = _cyverse_logic_getCollUUID(*path);
-
-	if (*uuid != '') {
-		_cyverse_logic_sendEntityRm(cyverse_COLL, *uuid, *path, *ClientUsername, *ClientZone);
-	}
 }
 
 # This rule pushes a collection.rm message into the irods exchange.
