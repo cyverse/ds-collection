@@ -365,6 +365,7 @@
         - dav-anon/index.html
         - dav-anon/testing/index.html
         - dav-anon/testing/commons/index.html
+        - errors/moved_project.html
       register: resp
       failed_when: not resp.stat.exists
 

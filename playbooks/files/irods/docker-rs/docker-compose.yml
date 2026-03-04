@@ -18,11 +18,7 @@ services:
     shm_size: 500mb
     volumes:
       - type: bind
-        source: /etc/timezone
-        target: /etc/timezone
-        read_only: true
-      - type: bind
-        source: /etc/localtime
+        source: /usr/share/zoneinfo/America/Phoenix
         target: /etc/localtime
         read_only: true
       - type: bind

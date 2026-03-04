@@ -339,7 +339,7 @@ class CyverseGiveaccesscoll(CyverseTestCase):
 
 
 class CyVerseGiveaccessdataobj(CyverseTestCase):
-    """Tests of  cyverse_giveAccessDataObj"""
+    """Tests of cyverse_giveAccessDataObj"""
 
     def setUp(self):
         super().setUp()
@@ -435,7 +435,7 @@ class CyverseEnsureaccessoncreatedataobj(CyverseTestCase):
 
 
 class CyverseEnsureaccessonmv(CyverseTestCase):
-    """Tests of cyverse_ensureAccessOnMov"""
+    """Tests of cyverse_ensureAccessOnMv"""
 
     def setUp(self):
         super().setUp()

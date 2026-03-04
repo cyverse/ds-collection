@@ -877,12 +877,6 @@
 # asynchronously.
 #
 #
-#### NUMBER OF RULE ENGINE PROCESSES
-#
-# The number of rule engine processes is configured using the rule base constant
-# `cyverse_MAX_NUM_RE_PROCS`.
-#
-#
 #### PROTECTED AVUS
 #
 # Any AVU attribute that begins with `ipc` can only be modified by rodsadmin
@@ -1733,9 +1727,6 @@ cyverse_logic_acPreProcForModifyAVUMetadata(
 #  ClientUsername  (string) the client user performing the modification
 #  ClientZone      (string) the authentication zone for the client user
 #
-# XXX: Due to a bug in iRODS 4.2.8, when a unitless AVU is modified to have a new attribute name,
-#      value, and unit in a single call, the new unit is not passed in.
-#
 cyverse_logic_acPreProcForModifyAVUMetadata(
 	*Opt,
 	*EntityType,
@@ -2011,24 +2002,6 @@ cyverse_logic_acPostProcForCollCreate(*CollPath, *ClientUsername, *ClientZone) {
 	*uuid = '';
 	_cyverse_logic_ensureUUID(cyverse_COLL, *CollPath, *ClientUsername, *ClientZone, *uuid);
 	_cyverse_logic_sendCollAdd(*uuid, *CollPath, *ClientUsername, *ClientZone);
-}
-
-# This rule pushes a collection.rm message into the irods exchange.
-#
-# Parameters:
-#  ParCollPath     (string) the absolute path to the parent collection of the
-#                  collection being deleted
-#  CollName        (string) the name of collection being deleted
-#  ClientUsername  (string) the client user performing the modification
-#  ClientZone      (string) the authentication zone for the client user
-#
-cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName, *ClientUsername, *ClientZone) {
-	*path = *ParCollPath ++ '/' ++ *CollName;
-	*uuid = _cyverse_logic_getCollUUID(*path);
-
-	if (*uuid != '') {
-		_cyverse_logic_sendEntityRm(cyverse_COLL, *uuid, *path, *ClientUsername, *ClientZone);
-	}
 }
 
 # This rule pushes a collection.rm message into the irods exchange.
@@ -2573,7 +2546,9 @@ cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 # *DataObjInp:
 #   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
 #
-cyverse_logic_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
+cyverse_logic_api_data_obj_put_post(
+	*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT
+) {
 	*path = cyverse_getValue(*DataObjInp, 'obj_path');
 
 	if (*path == '') {

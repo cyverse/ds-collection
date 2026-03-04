@@ -74,28 +74,6 @@ acDataDeletePolicy {
 	cyverse_logic_acDataDeletePolicy($objPath);
 }
 
-# This rule applies the collection delete policies for a collection being
-# administratively deleted.
-#
-# Parameters:
-#  ParColl    (string) the absolute path to the parent collection of the
-#              collection being deleted
-#  ChildColl  (string) the name of collection being deleted
-#
-# Session Variables:
-#  rodsZoneClient
-#  userNameClient
-#
-# XXX: `iadmin rmdir` does not trigger this PEP in iRODS 4.2.8
-acDeleteCollByAdmin(*ParColl, *ChildColl) {
-	*status = errormsg(
-		cyverse_logic_acDeleteCollByAdmin(*ParColl, *ChildColl, $userNameClient, $rodsZoneClient),
-		*msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	msiDeleteCollByAdmin(*ParColl, *ChildColl);
-}
-
 # This rule applies the collection delete polices for a home or trash collection
 # being administratively deleted. This rule overrides the
 # acDeleteCollByAdminIfPresent rule in core.re. It is called indirectly by the
@@ -139,7 +117,7 @@ acPreConnect(*OUT) {
 #  objPath
 #
 acSetRescSchemeForCreate {
-	ipcRepl_acSetRescSchemeForCreate($objPath);
+	cyverse_repl_acSetRescSchemeForCreate($objPath);
 }
 
 # This rule sets the default resource selection scheme for the replica of a
@@ -149,13 +127,7 @@ acSetRescSchemeForCreate {
 #  objPath
 #
 acSetRescSchemeForRepl {
-	ipcRepl_acSetRescSchemeForRepl($objPath);
-}
-
-# Set maximum number of rule engine processes
-#
-acSetReServerNumProc {
-	msiSetReServerNumProc(str(cyverse_MAX_NUM_RE_PROCS));
+	cyverse_repl_acSetRescSchemeForRepl($objPath);
 }
 
 
@@ -236,9 +208,6 @@ acPreProcForModifyAVUMetadata(*Option, *ItemType, *ItemName, *AName, *AValue, *A
 # Session Variables:
 #  userNameClient
 #  rodsZoneClient
-#
-# XXX: Due to a bug in iRODS 4.2.8, when a unitless AVU is modified to have a new attribute name,
-#      value, and unit in a single call, *NAUnit will be empty.
 #
 acPreProcForModifyAVUMetadata(
 	*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, *NAName, *NAValue, *NAUnit
@@ -423,9 +392,6 @@ acPostProcForModifyAVUMetadata(*Option, *ItemType, *ItemName, *AName, *AValue, *
 # Session Variables:
 #  userNameClient
 #  rodsZoneClient
-#
-# XXX: Due to a bug in iRODS 4.2.8, when a unitless AVU is modified to have a new attribute name,
-#      value, and unit in a single call, *NAUnit will be empty.
 #
 acPostProcForModifyAVUMetadata(
 	*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, *NAName, *NAValue, *NAUnit
@@ -1017,7 +983,6 @@ _cyverse_core_mkDataObjSessVar(*Path) = 'ipc-data-obj-' ++ str(*Path)
 
 # XXX - Because of https://github.com/irods/irods/issues/5540
 # _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo) {
-# 	*path = *DataObjInfo.logical_path;
 # 	*err = errormsg(cyverse_logic_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
 # 	if (*err < 0) {
 # 		writeLine('serverLog', *msg);
@@ -1026,13 +991,12 @@ _cyverse_core_mkDataObjSessVar(*Path) = 'ipc-data-obj-' ++ str(*Path)
 # 	if (*err < 0) {
 # 		writeLine('serverLog', *msg);
 # 	}
-# 	*err = errormsg(ipcRepl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
+# 	*err = errormsg(cyverse_repl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
 # 	if (*err < 0) {
 # 		writeLine('serverLog', *msg);
 #	}
 # }
 _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo, *Step) {
-	*path = *DataObjInfo.logical_path;
 	*err = errormsg(cyverse_logic_dataObjCreated(*User, *Zone, *DataObjInfo, *Step), *msg);
 	if (*err < 0) {
 		writeLine('serverLog', *msg);
@@ -1046,7 +1010,7 @@ _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo, *Step) {
 	}
 
 	if (*Step != 'START') {
-		*err = errormsg(ipcRepl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
+		*err = errormsg(cyverse_repl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
 		if (*err < 0) {
 			writeLine('serverLog', *msg);
 		}
@@ -1055,13 +1019,7 @@ _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo, *Step) {
 # XXX - ^^^
 
 _cyverse_core_dataObjModified(*User, *Zone, *DataObjInfo) {
-	*path = *DataObjInfo.logical_path;
-	*err = errormsg(cyverse_logic_dataObjMod(*User, *Zone, *DataObjInfo), *msg);
-	if (*err < 0) {
-		writeLine('serverLog', *msg);
-	}
-
-	*err = errormsg(ipcRepl_dataObjModified(*User, *Zone, *DataObjInfo), *msg);
+	*err = errormsg(cyverse_repl_dataObjModified(*User, *Zone, *DataObjInfo), *msg);
 	if (*err < 0) {
 		writeLine('serverLog', *msg);
 	}

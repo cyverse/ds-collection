@@ -4,6 +4,8 @@
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
+@include 'cyverse_repl'
+
 pep_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 	writeLine('serverLog', "cyverse_core: pep_api_data_obj_copy_pre called");
 }
@@ -14,4 +16,11 @@ pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL
 
 pep_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp) {
 	writeLine('serverLog', "cyverse_core: pep_api_data_obj_unlink_pre called");
+}
+
+pep_resource_resolve_hierarchy_pre(*Instance, *Context, *OUT, *Op, *Host, *PARSER, *VOTE) {
+	if (errorcode(temporaryStorage.repl_replicate) == 0) {
+		writeLine('serverLog', temporaryStorage.repl_replicate);
+	}
+	writeLine('serverLog', "cyverse_core: pep_resource_resolve_hierarchy_pre called");
 }
