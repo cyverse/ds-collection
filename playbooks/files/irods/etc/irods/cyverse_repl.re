@@ -159,12 +159,12 @@ _mvReplicas(*Object, *IngestResc, *ReplResc) {
 
     if (!*replFail) {
       # Once a replica exists on all the project's resource, remove the other replicas
-      foreach (*rec in SELECT DATA_RESC_HIER, RESC_NAME WHERE DATA_ID = '*Object') {
+      foreach (*rec in SELECT DATA_RESC_HIER, DATA_REPL_NUM WHERE DATA_ID = '*Object') {
         *rescHier = *rec.DATA_RESC_HIER;
-        *rescName = *rec.RESC_NAME;
+        *replNum = *rec.DATA_REPL_NUM;
 
         if (!(*rescHier like regex '^(*ingestName|*replName)(;.*)?$')) {
-          if (errorcode(msiDataObjTrim(*dataPath, *rescName, 'null', '1', 'null', *status)) < 0) {
+          if (errorcode(msiDataObjTrim(*dataPath, 'null', *replNum, '1', 'null', *status)) < 0) {
             _repl_logMsg('failed to trim replica of *Object on *rescHier (*status)');
             *replFail = true;
           }
@@ -208,12 +208,12 @@ _repl_mvReplicas(*Object, *IngestName, *ReplName) {
     }
 
     # Once a replica exists on all the project's resource, remove the other replicas
-    foreach (*rec in SELECT DATA_RESC_HIER, RESC_NAME WHERE DATA_ID = '*Object') {
+    foreach (*rec in SELECT DATA_RESC_HIER, DATA_REPL_NUM WHERE DATA_ID = '*Object') {
       *rescHier = *rec.DATA_RESC_HIER;
-      *rescName = *rec.RESC_NAME;
+      *replNum = *rec.DATA_REPL_NUM;
 
       if (!(*rescHier like regex '^(*IngestName|*ReplName)(;.*)?$')) {
-        if (errorcode(msiDataObjTrim(*dataPath, *rescName, 'null', '1', 'null', *status)) < 0) {
+        if (errorcode(msiDataObjTrim(*dataPath, 'null', *replNum, '1', 'null', *status)) < 0) {
           _repl_logMsg('failed to trim replica of *Object on *rescHier (*status)');
           *replFail = true;
         }
@@ -612,16 +612,21 @@ _repl_findResc(*DataPath) {
 # Given a resource, this rule determines the list of resources that
 # asynchronously replicate its replicas.
 _repl_findReplResc(*Resc) {
-  *repl = cyverse_DEFAULT_REPL_RESC;
-  *residency = 'preferred';
+  if (*Resc == cyverse_DEFAULT_RESC) {
+    (*repl, *opt) = _defaultReplResc;
+    *residency = if *opt then 'preferred' else 'forced';
+  } else {
+    *repl = *Resc;
+    *residency = 'preferred';
 
-  foreach (*record in SELECT META_RESC_ATTR_VALUE, META_RESC_ATTR_UNITS
-                      WHERE RESC_NAME = *Resc AND META_RESC_ATTR_NAME = 'ipc::replica-resource') {
-    *repl = *record.META_RESC_ATTR_VALUE;
-    *residency = *record.META_RESC_ATTR_UNITS;
+    foreach (*record in SELECT META_RESC_ATTR_VALUE, META_RESC_ATTR_UNITS
+                        WHERE RESC_NAME = *Resc AND META_RESC_ATTR_NAME = 'ipc::replica-resource') {
+      *repl = *record.META_RESC_ATTR_VALUE;
+      *residency = *record.META_RESC_ATTR_UNITS;
+    }
   }
 
-  *result =(*repl, *residency);
+  *result = (*repl, *residency);
   *result;
 }
 
