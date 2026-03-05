@@ -2260,22 +2260,16 @@ cyverse_logic_dataObjMetaMod(*Username, *Zone, *Path) {
 # the checksum of replica on *BulkOpInp.resc_hier for each entry of
 # *BulkOpInp.logical_path.
 #
-# DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
+# DATA OBJ CREATE MSG PUBLISHING ALGORITHM:
 #
-# If *BulkOpInp.forceFlag is not set, then all data objects are new, so publish
-# a data object add message for each one of them. Otherwise, there is no
-# difference in the contents of *BulkOpInp between when a data object is created
-# and when it is modified. For each data object, if the create time is less than
-# the modification time time, publish a data object modification message,
-# otherwise publish a data object create message.
+# For each data object uploaded, publish a data object create message.
 #
 # *BulkOpInp:
-#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#gafeecbd87f6ba164e8c1d189c42a8c93e
+#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gafeecbd87f6ba164e8c1d189c42a8c93e
 #
 # N.B. This can be triggered by `iput -b -r`.
 # N.B. `-k` adds `regChksum` to BulkOpInp.
 # N.B. `-K` adds `verifyChksum` to BULKOPRINP.
-# N.B. Overwriting a replica that has a checksum clears the checksum.
 # N.B. `-X` handled transparently
 # N.B. large files are not passed through rcBulkDataObjPut
 #
@@ -2291,29 +2285,13 @@ cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpIn
 		}
 	}
 
-	# data object creation and modification message publishing policy
+	# data object creation message publishing policy
 	*authorName = cyverse_getValue(*Comm, 'user_user_name');
 	*authorZone = cyverse_getValue(*Comm, 'user_rods_zone');
-	*mayOverwrite = cyverse_hasKey(*BulkOpInp, 'forceFlag');
 	foreach (*key in *BulkOpInp) {
 		if (*key like 'logical_path_*') {
 			*dataPath = cyverse_getValue(*BulkOpInp, *key);
-			*idx = triml(*key, 'logical_path_');
-			if (*mayOverwrite) {
-				msiSplitPath(*dataPath, *collPath, *dataName);
-				foreach ( *rec in
-					SELECT DATA_CREATE_TIME, DATA_MODIFY_TIME
-					WHERE COLL_NAME == *collPath AND DATA_NAME == *dataName
-				) {
-					if (*rec.DATA_CREATE_TIME == *rec.DATA_MODIFY_TIME) {
-						_cyverse_logic_notifyDataObjCreated(*dataPath, *authorName, *authorZone);
-					} else {
-						_cyverse_logic_notifyDataObjMod(*dataPath, *authorName, *authorZone);
-					}
-				}
-			} else {
-				_cyverse_logic_notifyDataObjCreated(*dataPath, *authorName, *authorZone);
-			}
+			_cyverse_logic_notifyDataObjCreated(*dataPath, *authorName, *authorZone);
 		}
 	}
 }
