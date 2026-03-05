@@ -2297,17 +2297,6 @@ cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpIn
 }
 
 
-# BULK_DATA_OBJ_REG
-
-# N.B. This isn't used by iCommands or any official API as of iRODS 4.2.10, so
-# let's not implement it.
-#
-cyverse_logic_api_bulk_data_obj_reg_post(
-	*Instance, *Comm, *BulkDataObjRegInp, *BULK_DATA_OBJ_REG_OUT
-) {
-}
-
-
 # CHKSUM ALGORITHM:
 #
 # If neither *DataObjCopyInp.regChksum nor *DataObjCopyInp.verifyChksum exist,
