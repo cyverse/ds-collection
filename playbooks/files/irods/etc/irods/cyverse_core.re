@@ -540,7 +540,7 @@ pep_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
 # BULK_DATA_OBJ_REG
 
 # This is the post processing logic for when the replicas of a group of data
-# objects through the API using a BULK_DATA_OBJ_PUT request.
+# objects through the API using a BULK_DATA_OBJ_REG request.
 #
 # Parameters:
 #  Instance               (string) unknown
@@ -550,9 +550,15 @@ pep_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
 #                         replica registration
 #  BULK_DATA_OBJ_REG_OUT  unknown
 #
+# N.B. This isn't used by iCommands or any official API as of iRODS 4.2.10, so
+# let's not implement it.
+#
 pep_api_bulk_data_obj_reg_post(*Instance, *Comm, *BulkDataObjRegInp, *BULK_DATA_OBJ_REG_OUT) {
-	cyverse_logic_api_bulk_data_obj_reg_post(
-		*Instance, *Comm, *BulkDataObjRegInp, *BULK_DATA_OBJ_REG_OUT);
+	*msg =
+		'pep_api_bulk_data_obj_reg_post(*Instance, Comm, BulkDataObjRegInp, BULK_DATA_OBJ_REG_OUT)'
+		++ ' called';
+
+	writeLine('serverLog', *msg);
 }
 
 
