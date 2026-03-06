@@ -1464,14 +1464,14 @@ _cyverse_logic_notifyDataObjMod(*Path, *AuthorName, *AuthorZone) {
 		*info = _cyverse_logic_retrieveDataInfo(*Path);
 
 		_cyverse_logic_sendDataObjMod(
-			*AuthorName,
-			*AuthorZone,
 			*id,
 			*Path,
 			*info.ownerName,
 			*info.ownerZone,
 			double(*info.'size'),
-			*info.'type' );
+			*info.'type',
+			*AuthorName,
+			*AuthorZone );
 	}
 }
 
@@ -2359,7 +2359,7 @@ cyverse_logic_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransSt
 # data object create message.
 
 # *DataObjInp:
-#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#gab5b8db16a4951cf048e88c8538d8aa56
+#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gab5b8db16a4951cf048e88c8538d8aa56
 #
 cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 	temporaryStorage.dataObjClose_objPath = cyverse_getValue(*DataObjInp, 'obj_path');
@@ -2428,7 +2428,7 @@ cyverse_logic_api_data_obj_create_and_stat_post(*Instance, *Comm, *DataObjInp, *
 # the path to publish the correct message.
 
 # *DataObjInp:
-#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#gab869f78a9d131b1e973d425cd1ebf1f2
+#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gab869f78a9d131b1e973d425cd1ebf1f2
 #
 cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
 	*flags = cyverse_getValue(*DataObjInp, 'open_flags');
@@ -2455,7 +2455,7 @@ cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
 }
 
 # *DataObjWriteInp:
-#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#gaaa88dd8ad00161d5c48115bebbe6866c
+#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gaaa88dd8ad00161d5c48115bebbe6866c
 #
 cyverse_logic_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf) {
 
@@ -2468,7 +2468,7 @@ cyverse_logic_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataO
 
 
 # *DataObjCloseInp:
-#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#ga9dcea65009d7cc49ed0106f88540f431
+#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga9dcea65009d7cc49ed0106f88540f431
 #
 cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 	*path = cyverse_getValue(temporaryStorage, 'dataObjClose_objPath');
