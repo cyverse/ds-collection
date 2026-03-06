@@ -2310,7 +2310,7 @@ cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpIn
 # (OPEN FOR WRITE)
 #
 # *DataObjCopyInp:
-#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#gaad62fbc609d67726e15e7330bbbdf98d
+#   https://docs.irods.org/4.3,1/doxygen/group__data__object.html#gaad62fbc609d67726e15e7330bbbdf98d
 #
 cyverse_logic_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 	*destPath = cyverse_getValue(*DataObjCopyInp, 'dst_obj_path');
@@ -2352,7 +2352,7 @@ cyverse_logic_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransSt
 #
 # DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
 #
-# Alway publish a data object create message. Store the path to the data object
+# Always publish a data object create message. Store the path to the data object
 # in temporaryStorage using the key `dataObjClose_objPath`. Also, set the
 # temporaryStorage key `dataObjClose_created` to some value. `data_obj_close`
 # will use the existence of this key and the other object's path to publish a
@@ -2371,12 +2371,6 @@ cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 
 	# data object creation message publishing policy
 	temporaryStorage.dataObjClose_created = 'created';
-}
-
-# N.B. This isn't used by iCommands or any official API as of iRODS 4.2.10
-#
-cyverse_logic_api_data_obj_create_and_stat_post(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
 }
 
 

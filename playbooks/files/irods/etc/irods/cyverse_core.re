@@ -666,8 +666,12 @@ pep_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 #              object
 #  OpenStat    unknown
 #
+# N.B. This isn't used by iCommands or any official API as of iRODS 4.2.10
+#
 pep_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat);
+	writeLine(
+		'serverLog',
+		'pep_api_data_obj_create_and_stat_pre(*Instance, Comm, DataObjInp, *OpenStat) called' );
 }
 
 # This is the post processing logic for when an attempt is made to create a data
@@ -681,8 +685,12 @@ pep_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 #              object
 #  OpenStat    unknown
 #
+# N.B. This isn't used by iCommands or any official API as of iRODS 4.2.10
+#
 pep_api_data_obj_create_and_stat_post(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	cyverse_logic_api_data_obj_create_and_stat_post(*Instance, *Comm, *DataObjInp, *OpenStat);
+	writeLine(
+		'serverLog',
+		'pep_api_data_obj_create_and_stat_post(*Instance, Comm, DataObjInp, *OpenStat) called' );
 }
 
 
@@ -724,8 +732,12 @@ pep_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
 #  DataObjInp  (`KeyValuePair_PI`) information related to the data object
 #  OpenStat    unknown
 #
+# N.B. This isn't used by iCommands or any official API as of iRODS 4.2.8
+#
 pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	cyverse_encryption_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat);
+	writeLine(
+		'serverLog',
+		'pep_api_data_obj_open_and_stat_pre(*Instance, Comm, DataObjInp, *OpenStat) called' );
 }
 
 
