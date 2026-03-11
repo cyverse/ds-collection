@@ -215,7 +215,11 @@ class CyverseTrashApiDataObjRenameTest(IrodsTestCase):
         """
         self._check_mv('/testing/home/rods/obj', '/testing/home/rods/mv', self._fail_if_timestamp)
 
-    def test_mv_into_trash(self):
+    @unittest.skip("not implemented")
+    def test_mv_coll_into_trash(self):
+        """Verify that a collection moved into trash gets a trash timestamp"""
+
+    def test_mv_obj_into_trash(self):
         """Verify that a data object moved into trash gets a timestamp AVU"""
         self._check_mv(
             '/testing/home/rods/obj', '/testing/trash/home/rods/obj', self._fail_if_no_timestamp)
@@ -239,7 +243,14 @@ class CyverseTrashApiDataObjRenameTest(IrodsTestCase):
             self.fail('data timestamp not updated on move')
         mv_obj.unlink(force=True)
 
-    def test_mv_out_of_trash(self):
+    @unittest.skip("not implemented")
+    def test_mv_coll_out_of_trash(self):
+        """
+        Verify that a collection moved out of trash has its trash timestamp removed. Also all member
+        collections and data objects have any trash timestamps removed.
+        """
+
+    def test_mv_obj_out_of_trash(self):
         """Verify that a data object moved out of trash has its trash AVU removed"""
         self._check_mv(
             '/testing/trash/home/rods/obj', '/testing/home/rods/obj', self._fail_if_timestamp)
