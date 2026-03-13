@@ -224,6 +224,7 @@ cyverse_trash_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat) {
 	}
 }
 
+
 # When a collection is created in trash, this sets a trash timestamp on it.
 #
 # Parameters:
@@ -315,8 +316,7 @@ cyverse_trash_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
 		msiGetSystemTime(*timestamp, "");
 		_cyverse_trash_manageTimeAVU(
 			"set", cyverse_getEntityType(*destObjPath), *destObjPath, *timestamp );
-	}
-	else if (
+	} else if (
 		*DataObjRenameInp.src_obj_path like '/*zone/trash/*' && *destObjPath not like '/*zone/trash/*'
 	) {
 		*srcObjPath = *DataObjRenameInp.src_obj_path;
@@ -341,12 +341,12 @@ cyverse_trash_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
 					"rm", cyverse_DATA_OBJ, *objPath, *rec.META_DATA_ATTR_VALUE );
 			}
 
-			foreach (*rec in
+			foreach ( *rec in
 				SELECT COLL_NAME, META_COLL_ATTR_VALUE
 				WHERE COLL_NAME LIKE '*destObjPath/%' AND META_COLL_ATTR_NAME = 'ipc::trash_timestamp'
 			) {
 				_cyverse_trash_manageTimeAVU(
-					"rm", cyverse_COLL, *rec.COLL_NAME, *rec.META_DATA_ATTR_VALUE );
+					"rm", cyverse_COLL, *rec.COLL_NAME, *rec.META_COLL_ATTR_VALUE );
 			}
 		}
 	}
