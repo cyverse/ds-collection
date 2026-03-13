@@ -142,15 +142,87 @@ cyverse_housekeeping_rescheduleStorageFreeSpaceDetermination {
 # TRASH REMOVAL
 #
 
-_cyverse_housekeeping_rmTrashColl(*CutOffTimestamp, *SUCCEEDED) {
-	writeLine('serverLog', 'DS: Starting collection removal from trash');
-	*SUCCEEDED = true;
-	*zone = cyverse_ZONE;
+_cyverse_housekeeping_getCollTrashTS(*Coll) =
+	let *ts = '' in
+	let *_ = foreach ( *rec in
+			SELECT META_COLL_ATTR_VALUE
+			WHERE COLL_NAME = *coll AND META_COLL_ATTR_NAME = 'ipc::trash_timestamp'
+		) {
+			*ts = *rec.META_COLL_ATTR_VALUE;
+		} in
+	*ts
+
+_cyverse_housekeeping_rmColl(*Coll) {
 # XXX - Because of https://github.com/irods/irods/issues/6918
 # 	*rmOpts = "";
 # 	msiAddKeyValToMspStr("irodsAdminRmTrash", "", *rmOpts);
 	*rmOpts = 'irodsAdminRmTrash='
 # XXX - ^^^
+
+	*status = errorcode(msiRmColl(*Coll, *rmOpts, *_));
+
+	*msg = if *status == 0
+		then "Removed trash collection *Coll"
+		else "Unable to remove trash collection *Coll, error code returned *status";
+
+	writeLine("serverLog", "DS: *msg");
+	*status;
+}
+
+_cyverse_housekeeping_rmTrashColl(*Coll, *CutOffTimestamp, *SUCCEEDED) {
+	*SUCCEEDED = true;
+
+	*tsDataCnt = 0;
+	foreach ( *dataRec in
+		SELECT COUNT(DATA_ID)
+		WHERE COLL_NAME = *Coll || LIKE '*coll/%' AND META_DATA_ATTR_NAME = 'ipc::trash_timestamp'
+	) {
+		*tsDataCnt = int(*dataRec.DATA_ID);
+	}
+
+	if (*tsDataCnt > 0) {
+		return;
+	}
+
+	*tsChildCollCnt = 0;
+	foreach ( *childCollRec in
+		SELECT COUNT(COLL_ID)
+		WHERE COLL_PARENT_NAME = *Coll || LIKE '*coll/%'
+			AND META_COLL_ATTR_NAME = 'ipc::trash_timestamp'
+	) {
+		*tsChildCollCnt = int(*childCollRec.COLL_ID);
+	}
+
+	if (*tsChildCollCnt > 0) {
+		return;
+	}
+
+	*ts = _cyverse_housekeeping_getCollTrashTS(*Coll);
+
+	if (*ts == '') {
+		*parent = *Coll;
+		*parentTs = '';
+		while (*parent like '/*zone/trash/home/%/%/%' && *parentTs == '') {
+			*parent = trimr(*parent, "/");
+			*parentTS = _cyverse_housekeeping_getCollTrashTS(*parent);
+		}
+
+		if (*parentTS != '') {
+			return;
+		}
+	}
+
+	if (*ts == '' || *ts <= *CutOffTimestamp) {
+		if (errorcode(_cyverse_housekeeping_rmColl(*coll)) != 0) {
+			*SUCCEEDED = false;
+		}
+	}
+}
+
+_cyverse_housekeeping_rmTrashColls(*CutOffTimestamp, *SUCCEEDED) {
+	writeLine('serverLog', 'DS: Starting collection removal from trash');
+	*SUCCEEDED = true;
+	*zone = cyverse_ZONE;
 
 	# The results are sorted in reverse order to ensure a subcollection with a
 	# timestamp is deleted before its parent, which also has a timestamp. If the
@@ -159,24 +231,11 @@ _cyverse_housekeeping_rmTrashColl(*CutOffTimestamp, *SUCCEEDED) {
 	# removal run to fail. This happens, because the call to delete the parent
 	# also deletes the child. Sort the results by collection path in descending
 	# order, lists a child collection before its parent.
-	foreach( *row in
-		SELECT META_COLL_ATTR_VALUE, ORDER_DESC(COLL_NAME)
-		WHERE COLL_NAME like '/*zone/trash/%'
-			AND META_COLL_ATTR_NAME = 'ipc::trash_timestamp'
-			AND META_COLL_ATTR_VALUE <= *CutOffTimestamp
+	foreach ( *collRec in
+		SELECT ORDER_DESC(COLL_NAME) WHERE COLL_PARENT_NAME like '/*zone/trash/home/%'
 	) {
-		*ts = *row.META_COLL_ATTR_VALUE;
-		*rowCollName = *row.COLL_NAME;
-		*status = errorcode(msiRmColl(*rowCollName, *rmOpts, *_));
-		if (*status == 0) {
-			writeLine(
-				"serverLog", "DS: Removed trash collection - *rowCollName with trash timestamp - *ts" );
-		} else {
-			writeLine(
-				"serverLog",
-				"DS: Unable to remove trash collection - *rowCollName, error code returned *status" );
-			*SUCCEEDED = false;
-		}
+		_cyverse_housekeeping_rmTrashColl(*collRec.COLL_NAME, *CutOffTimestamp, *rmSucceeded);
+		*SUCCEEDED = *SUCCEEDED && *rmSucceeded;
 	}
 }
 
@@ -214,6 +273,19 @@ _cyverse_housekeeping_rmTrashData(*CutOffTimestamp, *SUCCEEDED) {
 	}
 }
 
+_cyverse_housekeeping_rmTrashOrphan(*SUCCEEDED) {
+	*SUCCEEDED = true;
+	*orphan = '/' ++ cyverse_ZONE ++ '/trash/orphan';
+
+	foreach (*orphanRec in SELECT COUNT(COLL_ID) WHERE COLL_NAME = *orphan) {
+		if (int(*orphanRec.COLL_ID) > 0) {
+			if (errorcode(_cyverse_housekeeping_rmColl(*orphan)) != 0) {
+				*SUCCEEDED = false;
+			}
+		}
+	}
+}
+
 # This rule deletes all collections and data objects that have the
 # ipc::trash_timestamp AVU set to a time that is at least 30 days in the past.
 # It sends an email indicating whether or not it succeeded. It is safe to be run
@@ -233,9 +305,11 @@ cyverse_housekeeping_rmTrash {
 	# the month_timestamp string.
 	*monthTimestamp = '0'++'*intMonthTimestamp';
 
-	_cyverse_housekeeping_rmTrashColl(*monthTimestamp, *rmCollSuccess);
 	_cyverse_housekeeping_rmTrashData(*monthTimestamp, *rmDataSuccess);
-	if (*rmCollSuccess && *rmDataSuccess) {
+	_cyverse_housekeeping_rmTrashColls(*monthTimestamp, *rmCollSuccess);
+	_cyverse_housekeeping_rmTrashOrphan(*rmOrphanSuccess);
+
+	if (*rmDataSuccess && *rmCollSuccess && *rmOrphanSuccess) {
 		*subject = cyverse_ZONE ++ ' trash removal succeeded';
 		*body = 'SSIA';
 	} else {
