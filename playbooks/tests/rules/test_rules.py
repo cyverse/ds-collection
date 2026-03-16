@@ -19,6 +19,7 @@ from unittest import TestCase
 from irods.access import iRODSAccess
 from irods.message import RErrorStack
 from irods.models import User
+from irods.path import iRODSPath
 from irods.rule import Rule
 from irods.session import iRODSSession
 from paramiko import AutoAddPolicy, SSHClient
@@ -308,7 +309,7 @@ class IrodsTestCase(TestCase):
             self._ssh = _connect_ssh()
         return self._ssh
 
-    def ensure_coll_absent(self, coll_path: str) -> None:
+    def ensure_coll_absent(self, coll_path: str | iRODSPath) -> None:
         """
         Ensures that a collection is not in iRODS
 
