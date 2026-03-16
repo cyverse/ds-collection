@@ -12,6 +12,7 @@ import unittest
 from irods.access import iRODSAccess
 from irods.exception import (
     CAT_COLLECTION_NOT_EMPTY, CAT_NO_ACCESS_PERMISSION, CUT_ACTION_PROCESSED_ERR)
+from irods.path import iRODSPath
 
 import test_rules
 from test_rules import IrodsTestCase, IrodsType, IrodsVal
@@ -213,16 +214,27 @@ class CyverseTrashApiDataObjRenameTest(IrodsTestCase):
         Verify that a data object moved doesn't get a trash AVU when both the source and destination
         are outside of trash.
         """
-        self._check_mv('/testing/home/rods/obj', '/testing/home/rods/mv', self._fail_if_timestamp)
+        self._check_obj_mv(
+            '/testing/home/rods/obj', '/testing/home/rods/mv', self._fail_if_obj_timestamp)
 
-    @unittest.skip("not implemented")
     def test_mv_coll_into_trash(self):
         """Verify that a collection moved into trash gets a trash timestamp"""
+        coll_path = iRODSPath(self.irods.zone, 'home', self.irods.username, 'coll')
+        coll = self.irods.collections.create(coll_path)
+        trash_path = iRODSPath(self.irods.zone, 'trash', 'home', self.irods.username, 'coll')
+        if coll:
+            coll.move(trash_path)
+        coll = self.irods.collections.get(trash_path)
+        if not coll or 'ipc::trash_timestamp' not in coll.metadata:
+            self.fail('collection did not receive trash timestamp')
+        self.ensure_coll_absent(trash_path)
 
     def test_mv_obj_into_trash(self):
         """Verify that a data object moved into trash gets a timestamp AVU"""
-        self._check_mv(
-            '/testing/home/rods/obj', '/testing/trash/home/rods/obj', self._fail_if_no_timestamp)
+        self._check_obj_mv(
+            '/testing/home/rods/obj',
+            '/testing/trash/home/rods/obj',
+            self._fail_if_no_obj_timestamp)
 
     def test_mv_inside_trash(self):
         """
@@ -252,28 +264,28 @@ class CyverseTrashApiDataObjRenameTest(IrodsTestCase):
 
     def test_mv_obj_out_of_trash(self):
         """Verify that a data object moved out of trash has its trash AVU removed"""
-        self._check_mv(
-            '/testing/trash/home/rods/obj', '/testing/home/rods/obj', self._fail_if_timestamp)
+        self._check_obj_mv(
+            '/testing/trash/home/rods/obj', '/testing/home/rods/obj', self._fail_if_obj_timestamp)
 
-    def _fail_if_no_timestamp(self, obj):
+    def _fail_if_no_obj_timestamp(self, obj):
         if 'ipc::trash_timestamp' not in self.irods.data_objects.get(obj).metadata:
             self.fail('data did not receive trash timestamp')
 
-    def _fail_if_timestamp(self, obj):
+    def _fail_if_obj_timestamp(self, obj):
         if 'ipc::trash_timestamp' in self.irods.data_objects.get(obj).metadata:
             self.fail('data received trash timestamp')
 
-    def _check_mv(self, src, dest, test):
+    def _check_obj_mv(self, src, dest, test):
         self.irods.data_objects.create(src)
         self.irods.data_objects.move(src, dest)
         test(dest)
         self.irods.data_objects.unlink(dest, force=True)
 
 
-class CyverseTrashApiDataObjUnlinkTest(IrodsTestCase):
-    """Tests of cyverse_trash_api_data_obj_unlink PEPs"""
+class CyverseTrashApiDataObjUnlinkFailureTest(IrodsTestCase):
+    """Test of cyverse_trash_api_data_obj_unlink failure"""
 
-    def test_failed_move_to_trash(self):
+    def test(self):
         """Verify that a data object that couldn't be moved to trash doesn't get a timestamp"""
         user = 'user'
         obj = path.join('/testing/home', user, 'data')
@@ -299,13 +311,42 @@ class CyverseTrashApiDataObjUnlinkTest(IrodsTestCase):
                 obj.unlink(force=True)
             self.irods.users.remove(user)
 
-    def test_successful_move_to_trash(self):
+
+class CyverseTrashApiDataObjUnlinkSuccessTest(IrodsTestCase):
+    """Tests of cyverse_trash_api_data_obj_unlink success"""
+
+    def __init__(self, methodName: str) -> None:
+        super().__init__(methodName)
+        self._coll_path = None
+        self._trash_coll_path = None
+
+    def setUp(self):
+        super().setUp()
+        self._coll_path = iRODSPath(self.irods.zone, "home", self.irods.username, "coll")
+        self._trash_coll_path = iRODSPath(
+            self.irods.zone, 'trash', 'home', self.irods.username, 'coll')
+        self.irods.collections.create(self._coll_path)
+        self.irods.data_objects.create(iRODSPath(self._coll_path, 'data')).unlink()
+
+    def tearDown(self):
+        if self._trash_coll_path:
+            self.ensure_coll_absent(self._trash_coll_path)
+        if self._coll_path:
+            self.ensure_coll_absent(self._coll_path)
+        super().tearDown()
+
+    def test_coll_timestamp(self):
+        """Verify that the created parent trash collection gets a timestamp"""
+        coll = self.irods.collections.get(self._trash_coll_path)
+        if not coll or 'ipc::trash_timestamp' not in coll.metadata:
+            self.fail('created trash collection did not receive timestamp')
+
+    def test_obj_timestamp(self):
         """Verify that a data object that was moved to trash gets a timestamp"""
-        self.irods.data_objects.create('/testing/home/rods/data').unlink()
-        obj = self.irods.data_objects.get('/testing/trash/home/rods/data')
+        obj = self.irods.data_objects.get(
+            iRODSPath(self.irods.zone, 'trash', 'home', self.irods.username, 'coll', 'data'))
         if 'ipc::trash_timestamp' not in obj.metadata:
             self.fail('data moved to trash did not receive timestamp')
-        obj.unlink(force=True)
 
 
 class CyverseTrashApiRmCollTest(IrodsTestCase):

@@ -121,6 +121,7 @@ cyverse_trash_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp) {
 					*parentCollPath = *parentCollPath ++ "/" ++ elem(*collNameList, *i);
 				}
 
+				msiGetSystemTime(*timestamp, "");
 				_cyverse_trash_manageTimeAVU("set", cyverse_COLL, *parentCollPath, *timestamp);
 			}
 		}
