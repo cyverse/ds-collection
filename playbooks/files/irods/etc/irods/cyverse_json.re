@@ -249,7 +249,7 @@ _cyverse_json_deserializeNumber(*Serial) =
 		if *Serial like '.*' then
 			_cyverse_json_extractDigits(*numStrBuf ++ '.', _cyverse_json_strTl(*Serial))
 		else (*numStrBuf, *Serial) in
-	cyverse_json_deserialize_val(json_num(double(*numStrBuf)), *Serial)
+	cyverse_json_deserialize_val(cyverse_json_num(double(*numStrBuf)), *Serial)
 
 _cyverse_json_deserializeNull: string -> cyverse_json_deserialize_res(cyverse_json_val)
 _cyverse_json_deserializeNull(*Serial) =

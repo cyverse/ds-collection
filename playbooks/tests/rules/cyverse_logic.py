@@ -12,7 +12,7 @@ from test_rules import IrodsTestCase, IrodsVal
 
 
 class TestCyverseLogicContains(IrodsTestCase):
-    """Tests of the _cyverse_logic_contains"""
+    """Tests of _cyverse_logic_contains"""
 
     def test_item_not_in_list(self):
         """Verify that it returns false when item not in list"""
@@ -20,6 +20,13 @@ class TestCyverseLogicContains(IrodsTestCase):
             '_cyverse_logic_contains',
             [IrodsVal.string("missing"), IrodsVal.string_list([])],
             IrodsVal.boolean(False))
+
+    def test_item_in_singleton_list(self):
+        """Verify that it returns true when item in list with only one item"""
+        self.fn_test(
+            '_cyverse_logic_contains',
+            [IrodsVal.string("item"), IrodsVal.string_list(["item"])],
+            IrodsVal.boolean(True))
 
     @unittest.skip("not implemented")
     def test_item_first(self):
