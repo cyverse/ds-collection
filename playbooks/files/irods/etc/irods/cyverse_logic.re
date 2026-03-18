@@ -911,7 +911,6 @@
 # © 2021 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
-@include 'cyverse_json'
 
 #
 # LISTS

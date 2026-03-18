@@ -12,20 +12,12 @@ cyverse_encryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *Tra
 	writeLine('serverLog', "cyverse_encryption_api_data_obj_copy_pre called");
 }
 
-cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	writeLine('serverLog', "cyverse_encryption_api_data_obj_create_and_stat_pre called");
-}
-
 cyverse_encryption_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
 	writeLine('serverLog', "cyverse_encryption_api_data_obj_create_pre called");
 }
 
 cyverse_encryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
 	writeLine('serverLog', "cyverse_encryption_api_data_obj_open_pre called");
-}
-
-cyverse_encryption_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	writeLine('serverLog', "cyverse_encryption_api_data_obj_open_and_stat_pre called");
 }
 
 cyverse_encryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp) {

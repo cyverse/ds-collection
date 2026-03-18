@@ -26,8 +26,16 @@ class CyverseJsonListTest(IrodsTestCase):
     """Test the list functions in cyverse_json.re"""
 
     @unittest.skip("not implemented")
-    def test_revaccum(self):
-        """test the _cyverse_json_revAccum"""
+    def test_revaccum_empty(self):
+        """test _cyverse_json_revAccum with empty list"""
+
+    @unittest.skip("not implemented")
+    def test_revaccum_one(self):
+        """test _cyverse_json_revAccum with list containing one item"""
+
+    @unittest.skip("not implemented")
+    def test_revaccum_two(self):
+        """test _cyverse_json_revAccum with list containing two items"""
 
     @unittest.skip("not implemented")
     def test_rev(self):

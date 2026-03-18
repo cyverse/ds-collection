@@ -10,6 +10,7 @@
 
 # The shared logic usable by the Data Store and other service rules.
 @include 'cyverse'
+@include 'cyverse_json'
 
 @include 'cyverse_logic'
 @include 'cyverse_encryption'
