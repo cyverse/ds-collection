@@ -160,7 +160,7 @@ The WebDAV service is implemented by apache using the davrods module. It is conf
 
    Here's the complete definition of the concurrency limit enforcing WebDAV proxy.
 
-   ```harpoxy
+   ```haproxy
    listen webdav
       mode                    http
       bind                    :443 ssl crt /etc/ssl/private/example.org.pem
