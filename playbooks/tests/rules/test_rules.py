@@ -133,6 +133,35 @@ class IrodsType(Enum):
     def _fmt_str(value: str) -> str:
         return f'"{value}"'
 
+    def restore(self, fmtVal: Optional[str]) -> Any:
+        if fmtVal is None:
+            return None
+        if self == IrodsType.BOOLEAN:
+            if fmtVal.lower() == "true":
+                return True
+            else:
+                return False
+        if self == IrodsType.INTEGER:
+            return int(fmtVal)
+        if self == IrodsType.NONE:
+            return None
+        if self == IrodsType.PATH:
+            return fmtVal
+        if self == IrodsType.STRING:
+            return IrodsType._restore_str(fmtVal)
+        return IrodsType._restore_str_list(fmtVal)
+
+    @staticmethod
+    def _restore_str_list(fmtVal: str) -> list[str]:
+        value = []
+        for strVal in fmtVal.removeprefix("list(").removesuffix(")").split(','):
+            value.append(IrodsType._restore_str(strVal.strip(' ')))
+        return value
+
+    @staticmethod
+    def _restore_str(fmtVal: str) -> str:
+        return fmtVal.strip("'\"")
+
 
 class IrodsVal:
     """This holds a value to pass into an iRODS rule."""
@@ -212,7 +241,7 @@ class IrodsVal:
         """
         return IrodsVal(IrodsType.STRING_LIST, val)
 
-    def __init__(self, irods_type, val):
+    def __init__(self, irods_type, val: Optional[bool | int | str | list[str]]):
         self._type = irods_type
         self._irods_val = irods_type.format(val)
 
@@ -386,9 +415,28 @@ class IrodsTestCase(TestCase):
             args     the list of input parameters to pass to the function
             exp_res  the expected result of the function call
         """
-        rule = self.mk_rule(f"writeLine('stdout', {fn}({', '.join(map(repr, args))}))")
+        irodsFn = f"*resp = {fn}({', '.join(map(repr, args))});"
+        if exp_res.type == IrodsType.STRING_LIST:
+            irodsResFmt = """
+                *res = "";
+                foreach (*e in *resp)  {
+                    if (strlen(*res) > 0) {
+                        *res = *res ++ ", ";
+                    }
+                    *res = *res ++ "'*e'";
+                }
+                *res = "list(" ++ *res ++ ")";
+            """
+        else:
+            irodsResFmt = "*res = *resp;"
+        ruleSrc = f"""
+            {irodsFn}
+            {irodsResFmt}
+            writeLine('stdout', *res);
+        """
         try:
-            self.assertEqual(self.exec_rule(rule, exp_res.type), exp_res)
+            act_res = self.exec_rule(self.mk_rule(ruleSrc), exp_res.type)
+            self.assertEqual(act_res, exp_res)
         except _RuleExecFailure as ref:
             self.fail(str(ref))
 
@@ -428,7 +476,9 @@ class IrodsTestCase(TestCase):
         if err_buf:
             raise _RuleExecFailure(err_buf.rstrip(b'\0').decode('utf-8'))
         buf = output.MsParam_PI[0].inOutStruct.stdoutBuf.buf
-        return IrodsVal(res_type, buf.rstrip(b'\0').decode('utf-8').rstrip("\n"))
+        return IrodsVal(
+            res_type,
+            res_type.restore(buf.rstrip(b'\0').decode('utf-8').rstrip('\n')))
 
     def tail_rods_log(self, num_lines: int = 0) -> list[str]:
         """

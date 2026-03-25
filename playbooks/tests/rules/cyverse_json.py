@@ -9,7 +9,7 @@
 import unittest
 
 import test_rules
-from test_rules import IrodsTestCase
+from test_rules import IrodsTestCase, IrodsVal
 
 
 def setUpModule():  # pylint: disable=invalid-name
@@ -25,13 +25,24 @@ def tearDownModule():  # pylint: disable=invalid-name
 class CyverseJsonListTest(IrodsTestCase):
     """Test the list functions in cyverse_json.re"""
 
-    @unittest.skip("not implemented")
     def test_revaccum_empty(self):
         """test _cyverse_json_revAccum with empty list"""
+        revAcc = IrodsVal.string_list(["hi"])
+        self.fn_test("_cyverse_json_revAccum", [revAcc, IrodsVal.string_list([])], revAcc)
 
     @unittest.skip("not implemented")
-    def test_revaccum_one(self):
-        """test _cyverse_json_revAccum with list containing one item"""
+    def test_revaccum_one_empty_rev(self):
+        """
+        test _cyverse_json_revAccum with list containing one item and an empty
+        reverse list
+        """
+
+    @unittest.skip("not implemented")
+    def test_revaccum_one_nonempty_rev(self):
+        """
+        test _cyverse_json_revAccum with list containing one item and a
+        non-empty reverse list
+        """
 
     @unittest.skip("not implemented")
     def test_revaccum_two(self):
