@@ -285,7 +285,7 @@ _cyverse_json_deserializeObject(*Serial) =
 		| cyverse_json_deserialize_val(*fields, *Serial) =>
 			let *Serial = _cyverse_json_trimLeadingSpace(*Serial) in
 			if *Serial like '}*' then
-				cyverse_json_deserialize_val(json_obj(*fields), _cyverse_json_strTl(*Serial))
+				cyverse_json_deserialize_val(cyverse_json_obj(*fields), _cyverse_json_strTl(*Serial))
 			else cyverse_json_deserialize_err(
 				'missing end of object', cyverse_json_obj(*fields), *Serial)
 
