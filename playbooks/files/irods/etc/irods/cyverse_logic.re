@@ -2638,11 +2638,16 @@ cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput) {
 	if (*path != '') {
 
 		# checksum policy
-		(*input, *err) = match cyverse_json_deserialize(*JsonInput.buf) with
+# XXX - As of iRODS 4.3.1, *JsonInput buffer ends with a serialized NUL, i.e., the string '\x00'
+# 		(*input, *err) = match cyverse_json_deserialize(*JsonInput.buf) with
+# 			| cyverse_json_deserialize_val(*i, *_) => (*i, "")
+# 			| cyverse_json_deserialize_err(*err, *partial, *_) => (*partial, *err);
+		(*input, *err) = match cyverse_json_deserialize(trimr(*JsonInput.buf, '\\x00')) with
 			| cyverse_json_deserialize_val(*i, *_) => (*i, "")
 			| cyverse_json_deserialize_err(*err, *partial, *_) => (*partial, *err);
+# XXX - ^^^
 		if (*err != "") {
-			failmsg(-1, *err);
+			failmsg(-1, "cyverse_logic_api_replica_close_post: *err");
 		}
 		*chksumComputed = match cyverse_json_getValue(*input, 'compute_checksum') with
 			| cyverse_json_empty => false
