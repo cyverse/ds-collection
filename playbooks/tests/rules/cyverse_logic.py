@@ -28,13 +28,19 @@ class TestCyverseLogicContains(IrodsTestCase):
             [IrodsVal.string("item"), IrodsVal.string_list(["item"])],
             IrodsVal.boolean(True))
 
-    @unittest.skip("not implemented")
     def test_item_first(self):
         """Verify that it returns true when item is first in list"""
+        self.fn_test(
+            '_cyverse_logic_contains',
+            [IrodsVal.string("item"), IrodsVal.string_list(["item", "last"])],
+            IrodsVal.boolean(True))
 
-    @unittest.skip("not implemented")
     def test_item_last(self):
         """Verify that it returns true when item is last in list"""
+        self.fn_test(
+            '_cyverse_logic_contains',
+            [IrodsVal.string("item"), IrodsVal.string_list(["first", "item"])],
+            IrodsVal.boolean(True))
 
 
 class TestCyVerseLogic(IrodsTestCase):
