@@ -2296,6 +2296,8 @@ cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpIn
 }
 
 
+# DATA_OBJ_COPY
+
 # CHKSUM ALGORITHM:
 #
 # If neither *DataObjCopyInp.regChksum nor *DataObjCopyInp.verifyChksum exist,
@@ -2356,6 +2358,9 @@ cyverse_logic_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransSt
 # temporaryStorage key `dataObjClose_created` to some value. `data_obj_close`
 # will use the existence of this key and the other object's path to publish a
 # data object create message.
+
+
+# DATA_OBJ_CREATE
 
 # *DataObjInp:
 #   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gab5b8db16a4951cf048e88c8538d8aa56
@@ -2420,6 +2425,9 @@ cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 # message should be published. `data_obj_close` will use the flags along with
 # the path to publish the correct message.
 
+
+# DATA_OBJ_OPEN
+
 # *DataObjInp:
 #   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gab869f78a9d131b1e973d425cd1ebf1f2
 #
@@ -2447,6 +2455,9 @@ cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
 	}
 }
 
+
+# DATA_OBJ_WRITE
+
 # *DataObjWriteInp:
 #   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gaaa88dd8ad00161d5c48115bebbe6866c
 #
@@ -2459,6 +2470,8 @@ cyverse_logic_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataO
 	temporaryStorage.dataObjClose_modified = 'modified';
 }
 
+
+# DATA_OBJ_CLOSE
 
 # *DataObjCloseInp:
 #   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga9dcea65009d7cc49ed0106f88540f431
@@ -2491,6 +2504,8 @@ cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 	}
 }
 
+
+# DATA_OBJ_PUT
 
 # CHKSUM ALGORITHM:
 #
@@ -2531,6 +2546,8 @@ cyverse_logic_api_data_obj_put_post(
 	}
 }
 
+
+# PHY_PATH_REG
 
 # CHKSUM ALGORITHM:
 #
@@ -2591,6 +2608,9 @@ cyverse_logic_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp) {
 # N.B. When a data object with a checksum is overwritten, modified or append
 #      to, the checksum is cleared.
 
+
+# REPLICA_OPEN
+
 # *DataObjInp: https://docs.irods.org/4.2.10/doxygen/structDataObjInp.html
 #
 cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
@@ -2609,17 +2629,24 @@ cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT)
 	}
 }
 
+
+# REPLICA_CLOSE
+
 cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput) {
 	*path = cyverse_getValue(temporaryStorage, 'replica_dataObjPath');
 
 	if (*path != '') {
 
 		# checksum policy
-		*chksumComputed = match cyverse_json_deserialize(*JsonInput.buf) with
-			| cyverse_json_deserialize_val(*input, *_) =>
-				match cyverse_json_getValue(*input, 'compute_checksum') with
-					| cyverse_json_empty => false
-					| cyverse_json_bool(*v) => *v;
+		(*input, *err) = match cyverse_json_deserialize(*JsonInput.buf) with
+			| cyverse_json_deserialize_val(*i, *_) => (*i, "")
+			| cyverse_json_deserialize_err(*err, *partial, *_) => (*partial, *err);
+		if (*err != "") {
+			failmsg(-1, *err);
+		}
+		*chksumComputed = match cyverse_json_getValue(*input, 'compute_checksum') with
+			| cyverse_json_empty => false
+			| cyverse_json_bool(*v) => *v;
 		if (!*chksumComputed) {
 			_cyverse_logic_ensureReplicaChecksum(
 				*path, cyverse_getValue(temporaryStorage, 'replica_rescHier') );
@@ -2640,6 +2667,8 @@ cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput) {
 	}
 }
 
+
+# TOUCH
 
 # CHKSUM ALGORITHM:
 #
