@@ -43,12 +43,24 @@ class TestCyverseLogicContains(IrodsTestCase):
             IrodsVal.boolean(True))
 
 
-class TestCyVerseLogic(IrodsTestCase):
-    """Test cyverse_logic.re"""
+class TestCyverseLogicIcatIds(IrodsTestCase):
+    """Tests of ICAT Ids logic"""
 
     @unittest.skip("not implemented")
-    def test_icat_ids(self):
-        """Test the private ICAT Ids rule logic"""
+    def test_getcollid(self):
+        """Test _cyverse_logic_getCollId"""
+
+    @unittest.skip("not implemented")
+    def test_getdataobjid(self):
+        """Test _cyverse_logic_getDataObjId"""
+
+    @unittest.skip("not implemented")
+    def test_getid(self):
+        """Test _cyverse_logic_getId"""
+
+
+class TestCyVerseLogic(IrodsTestCase):
+    """Test cyverse_logic.re"""
 
     @unittest.skip("not implemented")
     def test_user_info(self):
