@@ -2519,7 +2519,7 @@ cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 # (OPEN FOR WRITE)
 #
 # *DataObjInp:
-#   https://docs.irods.org/4.2.10/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
+#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
 #
 cyverse_logic_api_data_obj_put_post(
 	*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT
@@ -2611,7 +2611,7 @@ cyverse_logic_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp) {
 
 # REPLICA_OPEN
 
-# *DataObjInp: https://docs.irods.org/4.2.10/doxygen/structDataObjInp.html
+# *DataObjInp: https://docs.irods.org/4.3.1/doxygen/structDataObjInp.html
 #
 cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
 	*path = cyverse_getValue(*DataObjInp, 'obj_path');
@@ -2620,7 +2620,7 @@ cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT)
 		temporaryStorage.replica_dataObjPath = *path;
 
 		# checksum policy
-		temporaryStorage.replica_rescHier = cyverse_getValue(*DataObjInp, 'destRescName');
+		temporaryStorage.replica_rescHier = cyverse_getValue(*DataObjInp, 'resc_hier');
 
 		# data object creation and modification message publishing policy
 		temporaryStorage.replica_openType =

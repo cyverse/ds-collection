@@ -8,6 +8,8 @@
 
 import unittest
 
+from irods.path import iRODSPath
+
 from test_rules import IrodsTestCase, IrodsVal
 
 
@@ -46,9 +48,19 @@ class TestCyverseLogicContains(IrodsTestCase):
 class TestCyverseLogicIcatIds(IrodsTestCase):
     """Tests of ICAT Ids logic"""
 
+    def test_getcollid_path(self):
+        """Test _cyverse_logic_getCollId with path"""
+        zone_path = iRODSPath(self.irods.zone)
+        zone = self.irods.collections.get(zone_path)
+        if zone:
+            self.fn_test(
+                '_cyverse_logic_getCollId', [IrodsVal.path(zone_path)], IrodsVal.integer(zone.id))
+        else:
+            self.fail("zone collection is missing")
+
     @unittest.skip("not implemented")
-    def test_getcollid(self):
-        """Test _cyverse_logic_getCollId"""
+    def test_getcollid_str(self):
+        """Test _cyverse_logic_getCollId with string"""
 
     @unittest.skip("not implemented")
     def test_getdataobjid(self):
