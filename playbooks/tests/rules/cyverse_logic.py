@@ -59,13 +59,20 @@ class TestCyverseLogicIcatIds(IrodsTestCase):
         else:
             self.fail("zone collection is missing")
 
-    @unittest.skip("not implemented")
     def test_getcollid_missing(self):
         """Test _cyverse_logic_getCollId with the collection doesn't exist"""
+        self.fn_test(
+            '_cyverse_logic_getCollId',
+            [IrodsVal.string(iRODSPath("missing"))],
+            IrodsVal.integer(-1))
 
     @unittest.skip("not implemented")
-    def test_getdataobjid(self):
-        """Test _cyverse_logic_getDataObjId"""
+    def test_getdataobjid_present(self):
+        """Test _cyverse_logic_getDataObjId when data object is present"""
+
+    @unittest.skip("not implemented")
+    def test_getdataobjid_missing(self):
+        """Test _cyverse_logic_getDataObjId when data object is not present"""
 
     @unittest.skip("not implemented")
     def test_getid(self):

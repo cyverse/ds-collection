@@ -2691,8 +2691,17 @@ cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput) {
 # If that's the case, publish a data object create message
 #
 cyverse_logic_api_touch_post(*Instance, *Comm, *JsonInput) {
-	*input = match cyverse_json_deserialize(*JsonInput.buf) with
-		| cyverse_json_deserialize_val(*v, *_) => *v;
+# XXX - As of iRODS 4.3.1, *JsonInput buffer ends with a serialized NUL, i.e., the string '\x00'
+# 	(*input, *err) = match cyverse_json_deserialize(*JsonInput.buf) with
+# 		| cyverse_json_deserialize_val(*v, *_) => (*v, "")
+# 		| cyverse_json_deserialize_err(*e, *part, *_) => (*part, *e);
+	(*input, *err) = match cyverse_json_deserialize(trimr(*JsonInput.buf, '\\x00')) with
+		| cyverse_json_deserialize_val(*v, *_) => (*v, "")
+		| cyverse_json_deserialize_err(*e, *part, *_) => (*part, *e);
+# XXX - ^^^
+	if (*err != "") {
+		failmsg(-1, "cyverse_logic_api_touch_post: *err");
+	}
 
 	*dataPath = match cyverse_json_getValue(*input, 'logical_path') with
 		| cyverse_json_empty => ''
