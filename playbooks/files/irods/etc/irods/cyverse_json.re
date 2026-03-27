@@ -124,7 +124,7 @@ _cyverse_json_serializeScalarsAccum: list string * list cyverse_json_val -> list
 _cyverse_json_serializeScalarsAccum(*RevSerialized, *Raw) =
 	if size(*Raw) == 0 then _cyverse_json_rev(*RevSerialized)
 	else _cyverse_json_serializeScalarsAccum(
-		cons(json_serialize(hd(*Raw)), *RevSerialized), tl(*Raw) )
+		cons(cyverse_json_serialize(hd(*Raw)), *RevSerialized), tl(*Raw) )
 
 _cyverse_json_serializeScalars: list cyverse_json_val -> list string
 _cyverse_json_serializeScalars(*Raw) = _cyverse_json_serializeScalarsAccum(list(), *Raw)
@@ -222,15 +222,15 @@ _cyverse_json_deserializeArray(*Serial) =
 		| cyverse_json_deserialize_val(*elmts, *Serial) =>
 			let *Serial = _cyverse_json_trimLeadingSpace(*Serial) in
 			if *Serial like ']*' then
-				cyverse_json_deserialize_val(json_array(*elmts), _cyverse_json_strTl(*Serial))
+				cyverse_json_deserialize_val(cyverse_json_array(*elmts), _cyverse_json_strTl(*Serial))
 			else cyverse_json_deserialize_err(
 				'missing end of array', cyverse_json_array(*elmts), *Serial)
 
 _cyverse_json_deserializeBoolean: string -> cyverse_json_deserialize_res(cyverse_json_val)
 _cyverse_json_deserializeBoolean(*Serial) =
 	if *Serial like 'false*' then
-		cyverse_json_deserialize_val(json_bool(false), _cyverse_json_substrRem(*Serial, 5))
-	else cyverse_json_deserialize_val(json_bool(true), _cyverse_json_substrRem(*Serial, 4))
+		cyverse_json_deserialize_val(cyverse_json_bool(false), _cyverse_json_substrRem(*Serial, 5))
+	else cyverse_json_deserialize_val(cyverse_json_bool(true), _cyverse_json_substrRem(*Serial, 4))
 
 _cyverse_json_extractDigits: string * string -> string * string
 _cyverse_json_extractDigits(*Buf, *Serial) =
@@ -253,7 +253,7 @@ _cyverse_json_deserializeNumber(*Serial) =
 
 _cyverse_json_deserializeNull: string -> cyverse_json_deserialize_res(cyverse_json_val)
 _cyverse_json_deserializeNull(*Serial) =
-	cyverse_json_deserialize_val(json_null, _cyverse_json_substrRem(*Serial, 4))
+	cyverse_json_deserialize_val(cyverse_json_null, _cyverse_json_substrRem(*Serial, 4))
 
 _cyverse_json_deserializeObjectAccum :
 	list (string * cyverse_json_val) * string ->
@@ -319,7 +319,7 @@ _cyverse_json_deserializeString(*Serial) =
 		| cyverse_json_deserialize_err(*msg, *val, *Serial) =>
 			cyverse_json_deserialize_err(*msg, cyverse_json_empty, *Serial)
 		| cyverse_json_deserialize_val(*val, *Serial) =>
-			cyverse_json_deserialize_val(json_str(*val), *Serial)
+			cyverse_json_deserialize_val(cyverse_json_str(*val), *Serial)
 
 _cyverse_json_deserializeValue: string -> cyverse_json_deserialize_res(cyverse_json_val)
 _cyverse_json_deserializeValue(*Serial) =
@@ -353,7 +353,7 @@ _cyverse_json_deserializeField(*Serial) =
 cyverse_json_deserialize: string -> cyverse_json_deserialize_res(cyverse_json_val)
 cyverse_json_deserialize(*Serial) =
 	let *Serial = _cyverse_json_trimLeadingSpace(*Serial) in
-	if *Serial == '' then cyverse_json_deserialize_val(json_empty, *Serial)
+	if *Serial == '' then cyverse_json_deserialize_val(cyverse_json_empty, *Serial)
 	else
 		let *res = _cyverse_json_deserializeValue(*Serial) in
 		match *res with
