@@ -48,19 +48,20 @@ class TestCyverseLogicContains(IrodsTestCase):
 class TestCyverseLogicIcatIds(IrodsTestCase):
     """Tests of ICAT Ids logic"""
 
-    def test_getcollid_path(self):
-        """Test _cyverse_logic_getCollId with path"""
+    def test_getcollid(self):
+        """Test _cyverse_logic_getCollId"""
         zone_path = iRODSPath(self.irods.zone)
         zone = self.irods.collections.get(zone_path)
         if zone:
-            self.fn_test(
-                '_cyverse_logic_getCollId', [IrodsVal.path(zone_path)], IrodsVal.integer(zone.id))
+            for p in IrodsTestCase.prep_path(zone_path):
+                with self.subTest(p=p):
+                    self.fn_test('_cyverse_logic_getCollId', [p], IrodsVal.integer(zone.id))
         else:
             self.fail("zone collection is missing")
 
     @unittest.skip("not implemented")
-    def test_getcollid_str(self):
-        """Test _cyverse_logic_getCollId with string"""
+    def test_getcollid_missing(self):
+        """Test _cyverse_logic_getCollId with the collection doesn't exist"""
 
     @unittest.skip("not implemented")
     def test_getdataobjid(self):

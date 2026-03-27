@@ -2694,22 +2694,22 @@ cyverse_logic_api_touch_post(*Instance, *Comm, *JsonInput) {
 	*input = match cyverse_json_deserialize(*JsonInput.buf) with
 		| cyverse_json_deserialize_val(*v, *_) => *v;
 
-	*dataPath = match json_getValue(*input, 'logical_path') with
+	*dataPath = match cyverse_json_getValue(*input, 'logical_path') with
 		| cyverse_json_empty => ''
 		| cyverse_json_str(*s) => *s;
 
 	if (*dataPath != '') {
 		*options = cyverse_json_getValue(*input, 'options');
 
-		*noCreate = match json_getValue(*options, 'no_create') with
+		*noCreate = match cyverse_json_getValue(*options, 'no_create') with
 			| cyverse_json_empty => false
 			| cyverse_json_bool(*b) => *b;
 
-		*replNumSet = match json_getValue(*options, 'replica_number') with
+		*replNumSet = match cyverse_json_getValue(*options, 'replica_number') with
 			| cyverse_json_empty => false
 			| cyverse_json_num(*n) => true;
 
-		*rescNameSet = match json_getValue(*options, 'leaf_resource_name') with
+		*rescNameSet = match cyverse_json_getValue(*options, 'leaf_resource_name') with
 			| cyverse_json_empty => false
 			| cyverse_json_str(*_) => true;
 
