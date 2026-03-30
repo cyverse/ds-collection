@@ -2723,23 +2723,35 @@ cyverse_logic_api_touch_post(*Instance, *Comm, *JsonInput) {
 			| cyverse_json_str(*_) => true;
 
 		if (!*noCreate && !*replNumSet && !*rescNameSet) {
-
-			# checksum policy
 			msiSplitPath(*dataPath, *collPath, *dataName);
+			*createTime = '';
+			*modifyTime = '';
 			foreach ( *rec in
-				SELECT DATA_CHECKSUM, DATA_RESC_HIER
+				SELECT DATA_CREATE_TIME, DATA_MODIFY_TIME
 				WHERE COLL_NAME = *collPath AND DATA_NAME = *dataName
 			) {
-				if (*rec.DATA_CHECKSUM == '') {
-					_cyverse_logic_ensureReplicaChecksum(*dataPath, *rec.DATA_RESC_HIER);
-				}
+				*createTime = *rec.DATA_CREATE_TIME;
+				*modifyTime = *rec.DATA_MODIFY_TIME;
 			}
 
-			# data object creation and modification message publishing policy
-			_cyverse_logic_notifyDataObjCreated(
-				*dataPath,
-				cyverse_getValue(*Comm, 'user_user_name'),
-				cyverse_getValue(*Comm, 'user_rods_zone') );
+			if (*createTime != '' && *createTime == *modifyTime) {
+
+				# checksum policy
+				foreach ( *rec in
+					SELECT DATA_CHECKSUM, DATA_RESC_HIER
+					WHERE COLL_NAME = *collPath AND DATA_NAME = *dataName
+				) {
+					if (*rec.DATA_CHECKSUM == '') {
+						_cyverse_logic_ensureReplicaChecksum(*dataPath, *rec.DATA_RESC_HIER);
+					}
+				}
+
+				# data object creation and modification message publishing policy
+				_cyverse_logic_notifyDataObjCreated(
+					*dataPath,
+					cyverse_getValue(*Comm, 'user_user_name'),
+					cyverse_getValue(*Comm, 'user_rods_zone') );
+			}
 		}
 	}
 }
