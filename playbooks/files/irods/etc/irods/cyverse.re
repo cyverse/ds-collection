@@ -63,7 +63,7 @@ cyverse_rmPrefix(*Orig, *Prefixes) =
 #  Key    the key to check for
 #
 cyverse_hasKey: `KeyValPair_PI` * string -> boolean
-cyverse_hasKey(*KVMap, *Key) = errorcode(*KVMap.'*Key') == 0
+cyverse_hasKey(*KVMap, *Key) = if errorcode(*KVMap."*Key") == 0 then *KVMap."*Key" != '' else false
 
 
 # Retrieves the value of the given key from the given map. If the key isn't

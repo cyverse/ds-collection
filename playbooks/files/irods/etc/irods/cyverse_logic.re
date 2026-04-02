@@ -1120,26 +1120,21 @@ _cyverse_logic_ensureUUID(*EntityType, *EntityPath, *ClientName, *ClientZone, *U
 # ACTION TRACKING
 #
 
-_cyverse_logic_mkActionKey(*EntityId) = str(*EntityId) ++ '-ROOT_ACTION'
+_cyverse_logic_mkActionKey(*EntityId) = 'cyverse_logic' ++ str(*EntityId) ++ '-ROOT_ACTION'
 
 _cyverse_logic_isCurrentAction(*EntityId, *Action) =
-	let *key = _cyverse_logic_mkActionKey(*EntityId) in
-	if errorcode(temporaryStorage."*key") != 0 then false else temporaryStorage."*key" == *Action
+	cyverse_getValue(temporaryStorage, _cyverse_logic_mkActionKey(*EntityId)) == *Action
 
 _cyverse_logic_registerAction(*EntityId, *Action) {
 	*key = _cyverse_logic_mkActionKey(*EntityId);
-	if (if errorcode(temporaryStorage."*key") != 0 then true else temporaryStorage."*key" == '') {
+	if (!cyverse_hasKey(temporaryStorage, *key)) {
 		temporaryStorage."*key" = *Action;
 	}
 }
 
 _cyverse_logic_unregisterAction(*EntityId, *Action) {
 	*key = _cyverse_logic_mkActionKey(*EntityId);
-	if (
-		if errorcode(temporaryStorage."*key") != 0 then false else temporaryStorage."*key" == *Action
-	) {
-		temporaryStorage."*key" = '';
-	}
+	temporaryStorage."*key" = '';
 }
 
 
@@ -2023,10 +2018,10 @@ cyverse_logic_acDeleteCollByAdminIfPresent(*ParCollPath, *CollName, *ClientUsern
 #  *CollPath  (path) the path to the collection
 #
 # temporaryStorage:
-#  '*CollPath'  writes the UUID here
+#  'cyverse_logic_*CollPath'  writes the UUID here
 #
 cyverse_logic_acPreprocForRmColl(*CollPath) {
-	temporaryStorage.'*CollPath' = _cyverse_logic_getCollUUID(*CollPath);
+	temporaryStorage."cyverse_logic_*CollPath" = _cyverse_logic_getCollUUID(*CollPath);
 }
 
 # This rule publishes a removal message for a collection.
@@ -2037,10 +2032,10 @@ cyverse_logic_acPreprocForRmColl(*CollPath) {
 #  ClientZone      (string) the authentication zone for the client user
 #
 # temporaryStorage:
-#  '*CollPath'  reads the UUID from here
+#  'cyverse_logic_*CollPath'  reads the UUID from here
 #
 cyverse_logic_acPostProcForRmColl(*CollPath, *ClientUsername, *ClientZone) {
-	*uuid = temporaryStorage.'*CollPath';
+	*uuid = cyverse_getValue(temporaryStorage, "cyverse_logic_*CollPath");
 
 	if (*uuid != '') {
 		_cyverse_logic_sendEntityRm(cyverse_COLL, *uuid, *CollPath, *ClientUsername, *ClientZone);
@@ -2074,10 +2069,10 @@ cyverse_logic_acPostProcForDataCopyReceived(*StoreResc) {
 #  DataPath  (path) the path to the data object being deleted
 #
 # temporaryStorage:
-#  '*DataPath'  writes the UUID here
+#  'cyverse_logic_*DataPath'  writes the UUID here
 #
 cyverse_logic_acDataDeletePolicy(*DataPath) {
-	temporaryStorage.'*DataPath' = _cyverse_logic_getDataObjUUID(*DataPath);
+	temporaryStorage."cyverse_logic_*DataPath" = _cyverse_logic_getDataObjUUID(*DataPath);
 }
 
 # This rule publishes a removal message for a data object.
@@ -2088,10 +2083,10 @@ cyverse_logic_acDataDeletePolicy(*DataPath) {
 #  ClientZone      (string) the authentication zone for the client user
 #
 # temporaryStorage:
-#  '*DataPath' reads the UUID from here
+#  'cyverse_logic_*DataPath' reads the UUID from here
 #
 cyverse_logic_acPostProcForDelete(*DataPath, *ClientUsername, *ClientZone) {
-	*uuid = temporaryStorage.'*DataPath';
+	*uuid = cyverse_getValue(temporaryStorage, "cyverse_logic_*DataPath");
 
 	if (*uuid != '') {
 		_cyverse_logic_sendEntityRm(cyverse_DATA_OBJ, *uuid, *DataPath, *ClientUsername, *ClientZone);
@@ -2263,15 +2258,6 @@ cyverse_logic_dataObjMetaMod(*Username, *Zone, *Path) {
 #
 # For each data object uploaded, publish a data object create message.
 #
-# *BulkOpInp:
-#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gafeecbd87f6ba164e8c1d189c42a8c93e
-#
-# N.B. This can be triggered by `iput -b -r`.
-# N.B. `-k` adds `regChksum` to BulkOpInp.
-# N.B. `-K` adds `verifyChksum` to BULKOPRINP.
-# N.B. `-X` handled transparently
-# N.B. large files are not passed through rcBulkDataObjPut
-#
 cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
 
 	# checksum policy
@@ -2310,9 +2296,6 @@ cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpIn
 # create message, otherwise publish a data object mod message. openType of 3
 # (OPEN FOR WRITE)
 #
-# *DataObjCopyInp:
-#   https://docs.irods.org/4.3,1/doxygen/group__data__object.html#gaad62fbc609d67726e15e7330bbbdf98d
-#
 cyverse_logic_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 	*destPath = cyverse_getValue(*DataObjCopyInp, 'dst_obj_path');
 
@@ -2340,171 +2323,6 @@ cyverse_logic_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransSt
 }
 
 
-# data_obj_create and data_obj_close are used together
-#
-# CHKSUM ALGORITHM:
-#
-# Always compute checksum. Store the path to the data object and the selected
-# resource hierarchy for its replica in temporaryStorage using the keys
-# `dataObjClose_objPath` and `dataObjClose_selectedHierarchy`, respectively.
-# Also, set the temporaryStorage key `dataObjClose_needsChecksum` to some value.
-# `data_obj_close` will use the existence of this key and the other two values
-# to compute the checksum of the indicated replica.
-#
-# DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
-#
-# Always publish a data object create message. Store the path to the data object
-# in temporaryStorage using the key `dataObjClose_objPath`. Also, set the
-# temporaryStorage key `dataObjClose_created` to some value. `data_obj_close`
-# will use the existence of this key and the other object's path to publish a
-# data object create message.
-
-
-# DATA_OBJ_CREATE
-
-# *DataObjInp:
-#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gab5b8db16a4951cf048e88c8538d8aa56
-#
-cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
-	temporaryStorage.dataObjClose_objPath = cyverse_getValue(*DataObjInp, 'obj_path');
-
-	# checksum policy
-	temporaryStorage.dataObjClose_selectedHierarchy = cyverse_getValue(
-		*DataObjInp, 'selected_hierarchy' );
-	temporaryStorage.dataObjClose_needsChecksum = 'checksum';
-
-	# data object creation message publishing policy
-	temporaryStorage.dataObjClose_created = 'created';
-}
-
-
-# data_obj_open, data_obj_write, and data_obj_close are used together
-#
-# How *DataObjInp.open_flags maps to the open mode, and what this means when
-# combined with the value of *DataObjInp.openType.
-#
-#    case open_flags)
-#       'r': do nothing
-#       'r+': a write is possible
-#       'w':
-#           no create: truncated
-#           create:  created or truncated
-#       'w+':
-#           no create: truncated
-#           create: created or truncated
-#       'a':
-#           no create: a write is possible
-#           create: possibly created and a write is possible
-#       'a+':
-#           no create: indistinct from r+
-#           create:  possibly created and a write is possible
-#
-# CHECKSUM ALGORITHM:
-#
-# A checksum can only be computed after the replica has been modified, so this
-# needs to happen in data_obj_close. Only when a change occurs does a checksum
-# need to be computed. A change won't occur if the open mode was 'r'. If the
-# mode isn't 'r', store the data object's path and the resource holding its
-# replica for use by data_obj_close. A change definitely occurred when a replica
-# is created or truncated, so if this happens, store a flag to let
-# `data_obj_close` know that it needs to perform a checksum. If a replica is
-# written to, it has also been modified, so `data_obj_write` needs to store a
-# flag to let `data_obj_close` know this has happened.
-#
-# DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
-#
-# The decision on whether or not to publish a message will occur in
-# `data_obj_close`. Only when a change occurs does a message need to be
-# published. A change won't occur if the open mode was 'r'. If the mode isn't
-# 'r', store the data object's path and for use by `data_obj_close`. A change
-# definitely occurred when a data object is created or truncated. If an object
-# is created, store a flag indicating that a create message should be published.
-# If an existing object was truncated, store a flag indicating that a modify
-# message should be published. If an object is written to, it has also been
-# modified, so `data_obj_write` needs to store the flag indicated a modify
-# message should be published. `data_obj_close` will use the flags along with
-# the path to publish the correct message.
-
-
-# DATA_OBJ_OPEN
-
-# *DataObjInp:
-#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gab869f78a9d131b1e973d425cd1ebf1f2
-#
-cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
-	*flags = cyverse_getValue(*DataObjInp, 'open_flags');
-
-	if (*flags != cyverse_OPEN_FLAG_R) {
-		temporaryStorage.dataObjClose_objPath = cyverse_getValue(*DataObjInp, 'obj_path');
-
-		# checksum policy
-		temporaryStorage.dataObjClose_selectedHierarchy = cyverse_getValue(
-			*DataObjInp, 'selected_hierarchy' );
-		if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
-			temporaryStorage.dataObjClose_needsChecksum = 'checksum';
-		} else if (cyverse_replTruncated(*flags)) {
-			temporaryStorage.dataObjClose_needsChecksum = 'checksum';
-		}
-
-		# data object creation and modification message publishing policy
-		if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
-			temporaryStorage.dataObjClose_created = 'created';
-		} else if (cyverse_replTruncated(*flags)) {
-			temporaryStorage.dataObjClose_modified = 'modified';
-		}
-	}
-}
-
-
-# DATA_OBJ_WRITE
-
-# *DataObjWriteInp:
-#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gaaa88dd8ad00161d5c48115bebbe6866c
-#
-cyverse_logic_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf) {
-
-	# checksum policy
-	temporaryStorage.dataObjClose_needsChecksum = 'checksum';
-
-	# data object creation and modification message publishing policy
-	temporaryStorage.dataObjClose_modified = 'modified';
-}
-
-
-# DATA_OBJ_CLOSE
-
-# *DataObjCloseInp:
-#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga9dcea65009d7cc49ed0106f88540f431
-#
-cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
-	*path = cyverse_getValue(temporaryStorage, 'dataObjClose_objPath');
-
-	if (*path != '') {
-
-		# checksum policy
-		if (cyverse_getValue(temporaryStorage, 'dataObjClose_needsChecksum') != '') {
-			*resc = cyverse_getValue(temporaryStorage, 'dataObjClose_selectedHierarchy');
-			_cyverse_logic_ensureReplicaChecksum(*path, *resc);
-		}
-		temporaryStorage.dataObjClose_selectedHierarchy = '';
-		temporaryStorage.dataObjClose_needsChecksum = '';
-
-		# data object creation and modification message publishing policy
-		*authorName = cyverse_getValue(*Comm, 'user_user_name');
-		*authorZone = cyverse_getValue(*Comm, 'user_rods_zone');
-		if (cyverse_getValue(temporaryStorage, 'dataObjClose_created') != '') {
-			_cyverse_logic_notifyDataObjCreated(*path, *authorName, *authorZone);
-		} else if (cyverse_getValue(temporaryStorage, 'dataObjClose_modified') != '') {
-			_cyverse_logic_notifyDataObjMod(*path, *authorName, *authorZone);
-		}
-		temporaryStorage.dataObjClose_created = '';
-		temporaryStorage.dataObjClose_modified = '';
-
-		temporaryStorage.dataObjClose_objPath = '';
-	}
-}
-
-
 # DATA_OBJ_PUT
 
 # CHKSUM ALGORITHM:
@@ -2517,9 +2335,6 @@ cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 # If *DataObjInp.openType == 1 (CREATE) then publish a data object create
 # message, otherwise publish a data object mod message. openType of 3
 # (OPEN FOR WRITE)
-#
-# *DataObjInp:
-#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
 #
 cyverse_logic_api_data_obj_put_post(
 	*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT
@@ -2617,13 +2432,13 @@ cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT)
 	*path = cyverse_getValue(*DataObjInp, 'obj_path');
 
 	if (*path != '') {
-		temporaryStorage.replica_dataObjPath = *path;
+		temporaryStorage.cyverse_logic_replica_dataObjPath = *path;
 
 		# checksum policy
-		temporaryStorage.replica_rescHier = cyverse_getValue(*DataObjInp, 'resc_hier');
+		temporaryStorage.cyverse_logic_replica_rescHier = cyverse_getValue(*DataObjInp, 'resc_hier');
 
 		# data object creation and modification message publishing policy
-		temporaryStorage.replica_openType =
+		temporaryStorage.cyverse_logic_replica_openType =
 			if cyverse_hasKey(*DataObjInp, 'openType') then cyverse_getValue(*DataObjInp, 'openType')
 			else cyverse_FILE_OPEN_WRITE;
 	}
@@ -2633,7 +2448,7 @@ cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT)
 # REPLICA_CLOSE
 
 cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput) {
-	*path = cyverse_getValue(temporaryStorage, 'replica_dataObjPath');
+	*path = cyverse_getValue(temporaryStorage, 'cyverse_logic_replica_dataObjPath');
 
 	if (*path != '') {
 
@@ -2654,21 +2469,23 @@ cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput) {
 			| cyverse_json_bool(*v) => *v;
 		if (!*chksumComputed) {
 			_cyverse_logic_ensureReplicaChecksum(
-				*path, cyverse_getValue(temporaryStorage, 'replica_rescHier') );
+				*path, cyverse_getValue(temporaryStorage, 'cyverse_logic_replica_rescHier') );
 		}
-		temporaryStorage.replica_rescHier = '';
+		temporaryStorage.cyverse_logic_replica_rescHier = '';
 
 		# data object creation and modification message publishing policy
 		*authorName = cyverse_getValue(*Comm, 'user_user_name');
 		*authorZone = cyverse_getValue(*Comm, 'user_rods_zone');
-		if (cyverse_getValue(temporaryStorage, 'replica_openType') == cyverse_FILE_CREATE) {
+		if (
+			cyverse_getValue(temporaryStorage, 'cyverse_logic_replica_openType') == cyverse_FILE_CREATE
+		) {
 			_cyverse_logic_notifyDataObjCreated(*path, *authorName, *authorZone);
 		} else {
 			_cyverse_logic_notifyDataObjMod(*path, *authorName, *authorZone);
 		}
-		temporaryStorage.replica_openType = '';
+		temporaryStorage.cyverse_logic_replica_openType = '';
 
-		temporaryStorage.replica_dataObjPath = '';
+		temporaryStorage.cyverse_logic_replica_dataObjPath = '';
 	}
 }
 
@@ -2753,5 +2570,172 @@ cyverse_logic_api_touch_post(*Instance, *Comm, *JsonInput) {
 					cyverse_getValue(*Comm, 'user_rods_zone') );
 			}
 		}
+	}
+}
+
+
+# data_obj_create and data_obj_close are used together
+#
+# CHKSUM ALGORITHM:
+#
+# Always compute checksum. Store the path to the data object and the selected
+# resource hierarchy for its replica in temporaryStorage using the keys
+# `cyverse_logic_dataObjClose_objPath` and `dataObjClose_selectedHierarchy`,
+# respectively. Also, set the temporaryStorage key
+# `cyverse_logic_dataObjClose_needsChecksum` to some value. `data_obj_close`
+# will use the existence of this key and the other two values to compute the
+# checksum of the indicated replica.
+#
+# DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
+#
+# Always publish a data object create message. Store the path to the data object
+# in temporaryStorage using the key `cyverse_logic_dataObjClose_objPath`. Also,
+# set the temporaryStorage key `cyverse_logic_dataObjClose_created` to some
+# value. `data_obj_close` will use the existence of this key and the other
+# object's path to publish a data object create message.
+
+
+# DATA_OBJ_CREATE
+
+# *DataObjInp:
+#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gab5b8db16a4951cf048e88c8538d8aa56
+#
+cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
+	temporaryStorage.cyverse_logic_dataObjClose_objPath = cyverse_getValue(*DataObjInp, 'obj_path');
+
+	# checksum policy
+	temporaryStorage.cyverse_logic_dataObjClose_selectedHierarchy = cyverse_getValue(
+		*DataObjInp, 'selected_hierarchy' );
+	temporaryStorage.cyverse_logic_dataObjClose_needsChecksum = 'checksum';
+
+	# data object creation message publishing policy
+	temporaryStorage.cyverse_logic_dataObjClose_created = 'created';
+}
+
+
+# data_obj_open, data_obj_write, and data_obj_close are used together
+#
+# How *DataObjInp.open_flags maps to the open mode, and what this means when
+# combined with the value of *DataObjInp.openType.
+#
+#    case open_flags)
+#       'r': do nothing
+#       'r+': a write is possible
+#       'w':
+#           no create: truncated
+#           create:  created or truncated
+#       'w+':
+#           no create: truncated
+#           create: created or truncated
+#       'a':
+#           no create: a write is possible
+#           create: possibly created and a write is possible
+#       'a+':
+#           no create: indistinct from r+
+#           create:  possibly created and a write is possible
+#
+# CHECKSUM ALGORITHM:
+#
+# A checksum can only be computed after the replica has been modified, so this
+# needs to happen in data_obj_close. Only when a change occurs does a checksum
+# need to be computed. A change won't occur if the open mode was 'r'. If the
+# mode isn't 'r', store the data object's path and the resource holding its
+# replica for use by data_obj_close. A change definitely occurred when a replica
+# is created or truncated, so if this happens, store a flag to let
+# `data_obj_close` know that it needs to perform a checksum. If a replica is
+# written to, it has also been modified, so `data_obj_write` needs to store a
+# flag to let `data_obj_close` know this has happened.
+#
+# DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
+#
+# The decision on whether or not to publish a message will occur in
+# `data_obj_close`. Only when a change occurs does a message need to be
+# published. A change won't occur if the open mode was 'r'. If the mode isn't
+# 'r', store the data object's path and for use by `data_obj_close`. A change
+# definitely occurred when a data object is created or truncated. If an object
+# is created, store a flag indicating that a create message should be published.
+# If an existing object was truncated, store a flag indicating that a modify
+# message should be published. If an object is written to, it has also been
+# modified, so `data_obj_write` needs to store the flag indicated a modify
+# message should be published. `data_obj_close` will use the flags along with
+# the path to publish the correct message.
+
+
+# DATA_OBJ_OPEN
+
+# *DataObjInp:
+#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gab869f78a9d131b1e973d425cd1ebf1f2
+#
+cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
+	*flags = cyverse_getValue(*DataObjInp, 'open_flags');
+
+	if (*flags != cyverse_OPEN_FLAG_R) {
+		temporaryStorage.cyverse_logic_dataObjClose_objPath = cyverse_getValue(
+			*DataObjInp, 'obj_path' );
+
+		# checksum policy
+		temporaryStorage.cyverse_logic_dataObjClose_selectedHierarchy = cyverse_getValue(
+			*DataObjInp, 'selected_hierarchy' );
+		if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
+			temporaryStorage.cyverse_logic_dataObjClose_needsChecksum = 'checksum';
+		} else if (cyverse_replTruncated(*flags)) {
+			temporaryStorage.cyverse_logic_dataObjClose_needsChecksum = 'checksum';
+		}
+
+		# data object creation and modification message publishing policy
+		if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
+			temporaryStorage.cyverse_logic_dataObjClose_created = 'created';
+		} else if (cyverse_replTruncated(*flags)) {
+			temporaryStorage.cyverse_logic_dataObjClose_modified = 'modified';
+		}
+	}
+}
+
+
+# DATA_OBJ_WRITE
+
+# *DataObjWriteInp:
+#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gaaa88dd8ad00161d5c48115bebbe6866c
+#
+cyverse_logic_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf) {
+
+	# checksum policy
+	temporaryStorage.cyverse_logic_dataObjClose_needsChecksum = 'checksum';
+
+	# data object creation and modification message publishing policy
+	temporaryStorage.cyverse_logic_dataObjClose_modified = 'modified';
+}
+
+
+# DATA_OBJ_CLOSE
+
+# *DataObjCloseInp:
+#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga9dcea65009d7cc49ed0106f88540f431
+#
+cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
+	*path = cyverse_getValue(temporaryStorage, 'cyverse_logic_dataObjClose_objPath');
+
+	if (*path != '') {
+
+		# checksum policy
+		if (cyverse_getValue(temporaryStorage, 'cyverse_logic_dataObjClose_needsChecksum') != '') {
+			*resc = cyverse_getValue(temporaryStorage, 'cyverse_logic_dataObjClose_selectedHierarchy');
+			_cyverse_logic_ensureReplicaChecksum(*path, *resc);
+		}
+		temporaryStorage.cyverse_logic_dataObjClose_selectedHierarchy = '';
+		temporaryStorage.cyverse_logic_dataObjClose_needsChecksum = '';
+
+		# data object creation and modification message publishing policy
+		*authorName = cyverse_getValue(*Comm, 'user_user_name');
+		*authorZone = cyverse_getValue(*Comm, 'user_rods_zone');
+		if (cyverse_getValue(temporaryStorage, 'cyverse_logic_dataObjClose_created') != '') {
+			_cyverse_logic_notifyDataObjCreated(*path, *authorName, *authorZone);
+		} else if (cyverse_getValue(temporaryStorage, 'cyverse_logic_dataObjClose_modified') != '') {
+			_cyverse_logic_notifyDataObjMod(*path, *authorName, *authorZone);
+		}
+		temporaryStorage.cyverse_logic_dataObjClose_created = '';
+		temporaryStorage.cyverse_logic_dataObjClose_modified = '';
+
+		temporaryStorage.cyverse_logic_dataObjClose_objPath = '';
 	}
 }

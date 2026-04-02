@@ -104,12 +104,12 @@ _repl_replicate(*Object, *RescName) {
   if (*objPath == '') {
     _repl_logMsg('data object *Object no longer exists');
   } else {
-    temporaryStorage.repl_replicate = 'REPL_FORCED_REPL_RESC';
+    temporaryStorage.cyverse_repl_replicate = 'REPL_FORCED_REPL_RESC';
 
     *err = errormsg(
       msiDataObjRepl(*objPath, 'backupRescName=*RescName++++verifyChksum=', *status), *msg);
 
-    temporaryStorage.repl_replicate = '';
+    temporaryStorage.cyverse_repl_replicate = '';
 
     if (*err < 0){
       if (*err == -808000 || *err == -817000) {
@@ -309,14 +309,14 @@ _defaultReplResc = (cyverse_DEFAULT_REPL_RESC, true)
 
 _delayTime : int
 _delayTime =
-  let *_ = if (errorcode(temporaryStorage.repl_delayTime) < 0) {
-      temporaryStorage.repl_delayTime = str(cyverse_INIT_REPL_DELAY);
+  let *_ = if (!cyverse_hasKey(temporaryStorage, 'cyverse_repl_delayTime')) {
+      temporaryStorage.cyverse_repl_delayTime = str(cyverse_INIT_REPL_DELAY);
     } in
-  int(temporaryStorage.repl_delayTime);
+  int(temporaryStorage.cyverse_repl_delayTime);
 
 
 _incDelayTime {
-  temporaryStorage.repl_delayTime = str(1 + int(temporaryStorage.repl_delayTime));
+  temporaryStorage.cyverse_repl_delayTime = str(1 + int(temporaryStorage.cyverse_repl_delayTime));
 }
 
 
@@ -434,26 +434,32 @@ _scheduleMoves(*Entity, *IngestResc, *ReplResc) {
 }
 
 
+_cyverse_repl_scheduleCollMove(*Coll, *IngestName, *ReplName) {
+  *coll = str(*Coll);
+
+  foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = *coll || LIKE '*coll/%') {
+    *dataId = *rec.DATA_ID;
+    _repl_scheduleMv(*dataId, *IngestName, *ReplName);
+  }
+}
+
+
+_cyverse_repl_scheduleDataMove(*Data, *IngestName, *ReplName) {
+  msiSplitPath(str(*Data), *collPath, *dataName);
+
+  foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = '*collPath' AND DATA_NAME = '*dataName') {
+    _repl_scheduleMv(*rec.DATA_ID, *IngestName, *ReplName);
+  }
+}
+
+
 _repl_scheduleMoves(*Entity, *IngestName, *ReplName) {
-  *entity = str(*Entity);
-  *type = cyverse_getEntityType(*entity);
+  *type = cyverse_getEntityType(*Entity);
 
   if (cyverse_isColl(*type)) {
-    # if the entity is a collection
-    foreach (*collPat in list(*entity, *entity ++ '/%')) {
-      foreach (*rec in SELECT DATA_ID WHERE COLL_NAME LIKE '*collPat') {
-        *dataId = *rec.DATA_ID;
-        _repl_scheduleMv(*dataId, *IngestName, *ReplName);
-      }
-    }
+    _cyverse_repl_scheduleCollMove(*Entity, *IngestName, *ReplName);
   } else if (cyverse_isDataObj(*type)) {
-    # if the entity is a data object
-    msiSplitPath(*entity, *collPath, *dataName);
-
-    foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = '*collPath' AND DATA_NAME = '*dataName') {
-      *dataId = *rec.DATA_ID;
-      _repl_scheduleMv(*dataId, *IngestName, *ReplName);
-    }
+    _cyverse_repl_scheduleDataMove(*Entity, *IngestName, *ReplName);
   }
 }
 
@@ -582,7 +588,7 @@ _setDefaultResc(*Resource) {
 }
 
 
-# Given an absolute path to a collection, this rule determines the resource
+# Given an absolute path to a data object, this rule determines the resource
 # where member data objects have their primary replicas stored. It returns a
 # two-tuple with the first is element is the name of the resource, and the
 # second is the value 'forced' or 'preferred'. 'forced' means that the user
@@ -628,6 +634,24 @@ _repl_findReplResc(*Resc) {
 
   *result = (*repl, *residency);
   *result;
+}
+
+
+# DEPRECATED
+_ipcRepl_put_old(*ObjPath, *DestResc, *New) {
+  _ipcRepl_createOrOverwrite_old(*ObjPath, *DestResc, *New, _defaultIngestResc, _defaultReplResc);
+}
+
+_ipcRepl_put(*ObjPath, *DestRescHier, *New) {
+  (*ingestResc, *_) = _repl_findResc(*ObjPath);
+  *destResc = hd(split(*DestRescHier, ';'));
+
+  if (*ingestResc != cyverse_DEFAULT_RESC) {
+    (*replResc, *_) = _repl_findReplResc(*ingestResc);
+    _ipcRepl_createOrOverwrite(*ObjPath, *destResc, *New, *ingestResc, *replResc);
+  } else {
+    _ipcRepl_put_old(*ObjPath, *destResc, *New);
+  }
 }
 
 
@@ -692,10 +716,7 @@ _ipcRepl_acSetRescSchemeForRepl(*DataPath) {
 }
 
 cyverse_repl_acSetRescSchemeForRepl(*DataPath) {
-  if (
-    if errorcode(temporaryStorage.repl_replicate) < 0 then true
-    else temporaryStorage.repl_replicate != 'REPL_FORCED_REPL_RESC'
-  ) {
+  if (cyverse_getValue(temporaryStorage, 'cyverse_repl_replicate') != 'REPL_FORCED_REPL_RESC') {
     (*resc, *_) = _repl_findResc(*DataPath);
 
     if (*resc != cyverse_DEFAULT_RESC) {
@@ -704,25 +725,6 @@ cyverse_repl_acSetRescSchemeForRepl(*DataPath) {
     } else {
       _ipcRepl_acSetRescSchemeForRepl(*DataPath);
     }
-  }
-}
-
-
-# This rule ensures that uploaded files are replicated.
-
-# DEPRECATED
-_ipcRepl_put_old(*ObjPath, *DestResc, *New) {
-  _ipcRepl_createOrOverwrite_old(*ObjPath, *DestResc, *New, _defaultIngestResc, _defaultReplResc);
-}
-
-_ipcRepl_put(*ObjPath, *DestResc, *New) {
-  (*ingestResc, *_) = _repl_findResc(*ObjPath);
-
-  if (*ingestResc != cyverse_DEFAULT_RESC) {
-    (*replResc, *_) = _repl_findReplResc(*ingestResc);
-    _ipcRepl_createOrOverwrite(*ObjPath, *DestResc, *New, *ingestResc, *replResc);
-  } else {
-    _ipcRepl_put_old(*ObjPath, *DestResc, *New);
   }
 }
 
@@ -740,18 +742,351 @@ cyverse_repl_dataObjCreated(*User, *Zone, *DATA_OBJ_INFO) {
 }
 
 
-# This rule ensures that modifications to a file are synced to all replicas.
+# BULK_DATA_OBJ_PUT
+
+# This ensures that a bulk uploaded data object is replicated.
 #
 # Parameters:
-#  User           (string) unused
-#  Zone           (string) unused
-#  DATA_OBJ_INFO  (`KeyValuePair_PI`) information related to the created data
-#                 object
+#  Instance       (string) unknown
+#  Comm           (`KeyValuePair_PI`) user connection and auth information
+#  BulkOpInp      (`KeyValuePair_PI`) information related to the bulk upload
+#  BulkOpInpBBuf  (unknown) may contain the contents of the uploaded files
 #
-cyverse_repl_dataObjModified(*User, *Zone, *DATA_OBJ_INFO) {
-  _ipcRepl_put(*DATA_OBJ_INFO.logical_path, hd(split(*DATA_OBJ_INFO.resc_hier, ';')), false);
+cyverse_repl_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
+  *rescHier = cyverse_getValue(*BulkOpInp, 'resc_hier');
+
+  foreach (*key in *BulkOpInp) {
+    if (*key like 'logical_path_*') {
+      _ipcRepl_put(cyverse_getValue(*BulkOpInp, *key), *rescHier, true);
+    }
+  }
 }
 
+
+# DATA_OBJ_COPY
+
+# This ensures that a copy of a data object is replicated, if a data object is
+
+# overwritten, the other replicas are synced.
+#
+# Parameters:
+#  Instance        (string) unknown
+#  Comm            (`KeyValuePair_PI`) user connection and auth information
+#  DataObjCopyInp  (`KeyValuePair_PI`) information related to copy operation
+#  TransStat       unknown
+#
+cyverse_repl_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
+  _ipcRepl_put(
+    cyverse_getValue(*DataObjCopyInp, 'dst_obj_path'),
+    cyverse_getValue(*DataObjCopyInp, 'dst_resc_hier'),
+    cyverse_getValue(*DataObjCopyInp, 'dst_openType') == cyverse_FILE_CREATE );
+}
+
+
+# DATA_OBJ_PUT
+
+# This ensures that an uploaded data object is replicated, if a data object is
+# overwritten, the other replicas are synced.
+#
+# Parameters:
+#  Instance        (string) unknown
+#  Comm            (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp      (`KeyValuePair_PI`) information related to the data object
+#  DataObjInpBBuf  (unknown) may contain the contents of the file being uploaded
+#  PORTAL_OPR_OUT  unknown
+#
+cyverse_repl_api_data_obj_put_post(
+  *Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT
+) {
+  _ipcRepl_put(
+    cyverse_getValue(*DataObjInp, 'obj_path'),
+    cyverse_getValue(*DataObjInp, 'resc_hier'),
+    cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE );
+}
+
+
+# DATA_OBJ_RENAME
+
+# This ensures that when a data object is moved, if required, the replicas are
+# moved to appropriate resources.
+#
+# Parameters:
+#  Instance          (string) unknown
+#  Comm              (`KeyValuePair_PI`) user connection and auth information
+#  DataObjRenameInp  (`KeyValuePair_PI`) information about the data object and
+#                    its old path
+#
+cyverse_repl_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
+  *dstPath = cyverse_getValue(*DataObjRenameInp, 'dst_obj_path');
+  (*dstResc, *_) = _repl_findResc(*dstPath);
+  (*srcResc, *_) = _repl_findResc(cyverse_getValue(*DataObjRenameInp, 'src_obj_path'));
+
+  if (*dstResc != cyverse_DEFAULT_RESC) {
+    if (*srcResc != *dstResc) {
+      (*dstRepl, *_) = _repl_findReplResc(*dstResc);
+    }
+  } else {
+    if (*srcResc != cyverse_DEFAULT_RESC) {
+      *dstRepl = cyverse_DEFAULT_REPL_RESC;
+    }
+  }
+
+  if (*dstResc != *srcResc) {
+    *srcType = int(cyverse_getValue(*DataObjRenameInp, 'src_opr_type'));
+
+    if (*srcType == 11) {  # data object
+      _repl_scheduleDataMove(*dstPath, *dstResc, *dstRepl);
+    } else if (*srcType == 12) {  # collection
+      _repl_scheduleCollMove(*dstPath, *dstResc, *dstRepl);
+    }
+  }
+}
+
+
+# PHY_PATH_REG
+
+# This ensures that when a data object is created via registration of a replica,
+# that is properly replicated. If a replica was added to an existing data
+# object, it ensures the other replicas are synced.
+#
+# Parameters:
+#  Instance       (string) unknown
+#  Comm           (`KeyValuePair_PI`) user connection and auth information
+#  PhyPathRegInp  (`KeyValuePair_PI`) information related to the physical path
+#                 registration
+#
+cyverse_repl_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp) {
+  _ipcRepl_put(
+    cyverse_getValue(*PhyPathRegInp, 'obj_path'),
+    cyverse_getValue(*PhyPathRegInp, 'resc_hier'),
+    !cyverse_hasKey(*PhyPathRegInp, 'regRepl') );
+}
+
+
+# TOUCH
+
+# This ensures that a data object created by itouch, that is replicated.
+#
+# Parameters:
+#  Instance   (string) unknown
+#  Comm       (`KeyValuePair_PI`) user connection and auth information
+#  JsonInput  (string) a JSON-serialized description of the touch request
+#
+cyverse_repl_api_touch_post(*Instance, *Comm, *JsonInput) {
+# XXX - As of iRODS 4.3.1, *JsonInput buffer ends with a serialized NUL, i.e., the string '\x00'
+#   (*input, *_) = match cyverse_json_deserialize(*JsonInput.buf) with
+#     | cyverse_json_deserialize_val(*v, *_) => (*v, "")
+  (*input, *_) = match cyverse_json_deserialize(trimr(*JsonInput.buf, '\\x00')) with
+    | cyverse_json_deserialize_val(*v, *_) => (*v, "");
+# XXX - ^^^
+
+  *dataPath = match cyverse_json_getValue(*input, 'logical_path') with
+    | cyverse_json_empty => ''
+    | cyverse_json_str(*s) => *s;
+
+  if (*dataPath != '') {
+    *options = cyverse_json_getValue(*input, 'options');
+
+    *noCreate = match cyverse_json_getValue(*options, 'no_create') with
+      | cyverse_json_empty => false
+      | cyverse_json_bool(*b) => *b;
+
+    *replNumSet = match cyverse_json_getValue(*options, 'replica_number') with
+      | cyverse_json_empty => false
+      | cyverse_json_num(*n) => true;
+
+    *rescNameSet = match cyverse_json_getValue(*options, 'leaf_resource_name') with
+      | cyverse_json_empty => false
+      | cyverse_json_str(*_) => true;
+
+    if (!*noCreate && !*replNumSet && !*rescNameSet) {
+      msiSplitPath(*dataPath, *collPath, *dataName);
+
+      foreach(*rec in SELECT DATA_RESC_HIER WHERE COLL_NAME = *collPath AND DATA_NAME = *dataName) {
+        _ipcRepl_put(*dataPath, *rec.DATA_RESC_HIER, true);
+      }
+    }
+  }
+}
+
+
+# DATA_OBJ_CREATE
+#
+# NB: This PEP is used together with DATA_OBJ_CLOSE
+
+# When a data object is created using a DATA_OBJ_CREATE request, ensure that it
+# is replicated. This stores the data object path in temporaryStorage using the
+# key `cyverse_repl_dataObjClose_objPath`. The selected resource hierarchy for
+# its replica using the key `cyverse_repl_dataObjClose_selectedHierarchy`. The
+# key `cyverse_repl_dataObjClose_created` is set to 'created'. The replication
+# logic will be triggered in the DATA_OBJ_CLOSE PEP.
+#
+# Parameters:
+#  Instance    (string) unknown
+#  Comm        (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp  (`KeyValuePair_PI`) information related to the created data
+#              object
+#
+cyverse_repl_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
+  temporaryStorage.cyverse_repl_dataObjClose_objPath = cyverse_getValue(*DataObjInp, 'obj_path');
+  temporaryStorage.cyverse_repl_dataObjClose_rescHier = cyverse_getValue(
+    *DataObjInp, 'selected_hierarchy' );
+  temporaryStorage.cyverse_repl_dataObjClose_created = 'created';
+}
+
+
+# DATA_OBJ_OPEN
+#
+# NB: This PEP is used together with DATA_OBJ_CLOSE and possibly DATA_OBJ_WRITE.
+
+# When a data object is created using a DATA_OBJ_OPEN request, ensure that it
+# is replicated. If an existing object is modified, ensure that its replicas are
+# synced. This stores the data object path in temporaryStorage using the
+# key `cyverse_repl_dataObjClose_objPath`. The selected resource hierarchy for
+# its replica using the key `cyverse_repl_dataObjClose_selectedHierarchy`. The
+# key `cyverse_repl_dataObjClose_created` is set to 'created' if the data object
+# was created. The key `cyverse_repl_dataObjClose_modified` is set to `modified`
+# if the data object was truncated. The replication logic will be triggered in
+# the DATA_OBJ_CLOSE PEP.
+#
+# Parameters:
+#  Instance    (string) unknown
+#  Comm        (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp  (`KeyValuePair_PI`) information related to the data object
+#
+cyverse_repl_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
+  *flags = cyverse_getValue(*DataObjInp, 'open_flags');
+
+  if (*flags != cyverse_OPEN_FLAG_R) {
+    temporaryStorage.cyverse_repl_dataObjClose_objPath = cyverse_getValue(*DataObjInp, 'obj_path');
+    temporaryStorage.cyverse_repl_dataObjClose_rescHier = cyverse_getValue(
+      *DataObjInp, 'selected_hierarchy' );
+    if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
+      temporaryStorage.cyverse_repl_dataObjClose_created = 'created';
+    }
+    if (cyverse_replTruncated(*flags)) {
+      temporaryStorage.cyverse_repl_dataObjClose_modified = 'modified';
+    }
+  }
+}
+
+
+# DATA_OBJ_WRITE
+#
+# NB: This PEP is used together with either DATA_OBJ_OPEN and DATA_OBJ_CLOSE.
+
+# When a data object is modified by a DATA_OBJ_WRITE request, the
+# temporaryStorage key `cyverse_repl_dataObjClose_modified` is set to
+# 'modified'.
+#
+# Parameters:
+#  Instance             (string) unknown
+#  Comm                 (`KeyValuePair_PI`) user connection and auth information
+#  DataObjWriteInp      (`KeyValuePair_PI`) information about the write request
+#  DataObjWriteInpBBuf  (unknown) the contents that were added to the object
+#
+cyverse_repl_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf) {
+  temporaryStorage.cyverse_repl_dataObjClose_modified = 'modified';
+}
+
+
+# DATA_OBJ_CLOSE
+#
+# NB: This PEP is used together with one of DATA_OBJ_CREATE or DATA_OBJ_OPEN and
+#     possibly DATA_OBJ_WRITE.
+
+# This ensures that a data object created by a CREATE or OPEN is properly
+# replicated. If a data object is modified by a OPEN+WRITE, it ensures all of
+# the replicas are synced.
+#
+# Parameters:
+#  Instance         (string) unknown
+#  Comm             (`KeyValuePair_PI`) user connection and auth information
+#  DataObjCloseInp  (`KeyValuePair_PI`) information related to the data object
+#                   close request
+#
+cyverse_repl_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
+  *path = cyverse_getValue(temporaryStorage, 'cyverse_repl_dataObjClose_objPath');
+
+  if (*path != '') {
+    *destResc = cyverse_getValue(temporaryStorage, 'cyverse_repl_dataObjClose_rescHier');
+
+    *needsRepl = false;
+    if (cyverse_getValue(temporaryStorage, 'cyverse_repl_dataObjClose_created') == 'created') {
+      *new = true;
+      *needsRepl = true;
+    } else if (
+      cyverse_getValue(temporaryStorage, 'cyverse_repl_dataObjClose_modified') == 'modified'
+    ) {
+      *new = false;
+      *needsRepl = true;
+    }
+
+    if (*needsRepl) {
+      _ipcRepl_put(*path, *destResc, *new);
+    }
+
+    temporaryStorage.cyverse_repl_dataObjClose_objPath = '';
+    temporaryStorage.cyverse_repl_dataObjClose_rescHier = '';
+    temporaryStorage.cyverse_repl_dataObjClose_created = '';
+    temporaryStorage.cyverse_repl_dataObjClose_modified = '';
+  }
+}
+
+
+# REPLICA_OPEN
+#
+# NB: This PEP is used together with REPLICA_CLOSE
+
+# This is the post processing logic for when a data object replica is opened
+# through the API using a REPLICA_OPEN request.
+#
+# Parameters:
+#  Instance     (string) unknown
+#  Comm         (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp   (`KeyValuePair_PI`) information about the data object
+#  JSON_OUTPUT  unknown
+#
+cyverse_repl_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
+  *path = cyverse_getValue(*DataObjInp, 'obj_path');
+
+  if (*path != '') {
+    temporaryStorage.cyverse_repl_replica_dataObjPath = *path;
+    temporaryStorage.cyverse_repl_replica_rescHier = cyverse_getValue(*DataObjInp, 'resc_hier');
+    temporaryStorage.cyverse_repl_replica_openType =
+      if cyverse_hasKey(*DataObjInp, 'openType') then cyverse_getValue(*DataObjInp, 'openType')
+      else cyverse_FILE_OPEN_WRITE;
+  }
+}
+
+
+# REPLICA_CLOSE
+#
+# NB: This PEP is used together with REPLICA_OPEN
+
+# This is ensures that a data object created by istream is properly replicated.
+# If a data object is modified, it ensures all of the replicas are synced.
+#
+# Parameters:
+#  Instance   (string) unknown
+#  Comm       (`KeyValuePair_PI`) user connection and auth information
+#  JsonInput  (string) a JSON-serialized description of the replica change
+#
+cyverse_repl_api_replica_close_post(*Instance, *Comm, *JsonInput) {
+  *path = cyverse_getValue(temporaryStorage, 'cyverse_repl_replica_dataObjPath');
+
+  if (*path != '') {
+    *destResc = cyverse_getValue(temporaryStorage, 'cyverse_repl_replica_rescHier');
+    *openType = cyverse_getValue(temporaryStorage, 'cyverse_repl_replica_openType');
+    _ipcRepl_put(*path, *destResc, *openType == cyverse_FILE_CREATE);
+    temporaryStorage.cyverse_repl_replica_dataObjPath = '';
+    temporaryStorage.cyverse_repl_replica_rescHier = '';
+    temporaryStorage.cyverse_repl_replica_openType = '';
+  }
+}
+
+
+# RESOURCE
 
 # This rule is provides the preprocessing logic for determine which  storage
 # resource to choose for a replica. It is meant for project specific
@@ -770,13 +1105,9 @@ cyverse_repl_dataObjModified(*User, *Zone, *DATA_OBJ_INFO) {
 #  VOTE       (float) unused
 #
 # temporaryStorage:
-#  repl_replicate  this value is read to see if replication is forced to a
-#                  specific resource
+#  cyverse_repl_replicate  this value is read to see if replication is forced to
+#                          a specific resource
 #
 pep_resource_resolve_hierarchy_pre(*INSTANCE, *CONTEXT, *OUT, *OPERATION, *HOST, *PARSER, *VOTE) {
-  on (
-    if errorcode(temporaryStorage.repl_replicate) == 0
-    then temporaryStorage.repl_replicate == 'REPL_FORCED_REPL_RESC'
-    else false
-  ) {}
+  on (cyverse_getValue(temporaryStorage, 'cyverse_repl_replicate') == 'REPL_FORCED_REPL_RESC') {}
 }

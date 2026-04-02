@@ -13,7 +13,7 @@ import pprint
 import subprocess
 from subprocess import CalledProcessError
 from tempfile import NamedTemporaryFile
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Mapping, Optional, Tuple
 from unittest import TestCase
 
 from irods.access import iRODSAccess
@@ -98,9 +98,10 @@ def _connect_ssh() -> SSHClient:
 class IrodsType(Enum):
     """This class encodes values as a given iRODS type for passing to an iRODS rule."""
 
+    NONE = enum.auto()
     BOOLEAN = enum.auto()
     INTEGER = enum.auto()
-    NONE = enum.auto()
+    KEY_VAL_PAIR = enum.auto()
     PATH = enum.auto()
     STRING = enum.auto()
     STRING_LIST = enum.auto()
@@ -115,56 +116,83 @@ class IrodsType(Enum):
         Returns:
             the formatted value
         """
-        if value is None:
+        if value is None or self == IrodsType.NONE:
             return None
         if self == IrodsType.BOOLEAN:
             return str(value).lower()
         if self == IrodsType.INTEGER:
             return str(value)
-        if self == IrodsType.NONE:
-            return None
+        if self == IrodsType.KEY_VAL_PAIR:
+            return "++++".join([key + "=" + value[key] for key in value])
         if self == IrodsType.PATH:
             return str(value)
         if self == IrodsType.STRING:
             return IrodsType._fmt_str(value)
-        return 'list(' + ','.join(map(IrodsType._fmt_str, value)) + ')'
+        if self == IrodsType.STRING_LIST:
+            return 'list(' + ','.join(map(IrodsType._fmt_str, value)) + ')'
+        return None
 
     @staticmethod
     def _fmt_str(value: str) -> str:
         return f'"{value}"'
 
-    def restore(self, fmtVal: Optional[str]) -> Any:
-        if fmtVal is None:
+    def restore(self, fmt_val: Optional[str]) -> Any:
+        """recovers an iRODS value from a string"""
+        if fmt_val is None or self == IrodsType.NONE:
             return None
         if self == IrodsType.BOOLEAN:
-            if fmtVal.lower() == "true":
-                return True
-            else:
-                return False
+            return IrodsType._restore_boolean(fmt_val)
         if self == IrodsType.INTEGER:
-            return int(fmtVal)
-        if self == IrodsType.NONE:
-            return None
+            return int(fmt_val)
+        if self == IrodsType.KEY_VAL_PAIR:
+            return IrodsType._restore_key_val_pair(fmt_val)
         if self == IrodsType.PATH:
-            return fmtVal
+            return fmt_val
         if self == IrodsType.STRING:
-            return IrodsType._restore_str(fmtVal)
-        return IrodsType._restore_str_list(fmtVal)
+            return IrodsType._restore_str(fmt_val)
+        if self == IrodsType.STRING_LIST:
+            return IrodsType._restore_str_list(fmt_val)
+        return None
 
     @staticmethod
-    def _restore_str_list(fmtVal: str) -> list[str]:
+    def _restore_boolean(fmt_val: str) -> bool:
+        if fmt_val.lower() == "true":
+            return True
+        else:
+            return False
+
+    @staticmethod
+    def _restore_key_val_pair(fmt_val: str) -> Mapping[str, str]:
+        res = {}
+        for kv in fmt_val.split("++++"):
+            k, v = kv.split("=", 1)
+            res[k] = v
+        return res
+
+    @staticmethod
+    def _restore_str_list(fmt_val: str) -> list[str]:
         value = []
-        for strVal in fmtVal.removeprefix("list(").removesuffix(")").split(','):
-            value.append(IrodsType._restore_str(strVal.strip(' ')))
+        for str_val in fmt_val.removeprefix("list(").removesuffix(")").split(','):
+            value.append(IrodsType._restore_str(str_val.strip(' ')))
         return value
 
     @staticmethod
-    def _restore_str(fmtVal: str) -> str:
-        return fmtVal.strip("'\"")
+    def _restore_str(fmt_val: str) -> str:
+        return fmt_val.strip("'\"")
 
 
 class IrodsVal:
     """This holds a value to pass into an iRODS rule."""
+
+    @staticmethod
+    def none() -> "IrodsVal":
+        """
+        Construct an empty result
+
+        Return:
+            An IrodsVal of type IrodsType.NONE
+        """
+        return IrodsVal(IrodsType.NONE, None)
 
     @staticmethod
     def boolean(val: bool) -> "IrodsVal":
@@ -193,14 +221,17 @@ class IrodsVal:
         return IrodsVal(IrodsType.INTEGER, val)
 
     @staticmethod
-    def none() -> "IrodsVal":
+    def key_val_pair(val: Mapping[str, str]) -> "IrodsVal":
         """
-        Construct an empty result
+        Construct an iRODS key value pair mapping.
+
+        Parameters:
+            val  an dictionary
 
         Return:
-            An IrodsVal of type IrodsType.NONE
+            An IrodsVal of type IrodsType.KEY_VAL_PAIR
         """
-        return IrodsVal(IrodsType.NONE, None)
+        return IrodsVal(IrodsType.KEY_VAL_PAIR, val)
 
     @staticmethod
     def path(irods_path: str) -> "IrodsVal":
@@ -241,7 +272,7 @@ class IrodsVal:
         """
         return IrodsVal(IrodsType.STRING_LIST, val)
 
-    def __init__(self, irods_type, val: Optional[bool | int | str | list[str]]):
+    def __init__(self, irods_type, val: Optional[bool | int | str | list[str] | Mapping[str, str]]):
         self._type = irods_type
         self._irods_val = irods_type.format(val)
 
@@ -415,9 +446,9 @@ class IrodsTestCase(TestCase):
             args     the list of input parameters to pass to the function
             exp_res  the expected result of the function call
         """
-        irodsFn = f"*resp = {fn}({', '.join(map(repr, args))});"
+        irods_fn = f"*resp = {fn}({', '.join(map(repr, args))});"
         if exp_res.type == IrodsType.STRING_LIST:
-            irodsResFmt = """
+            irods_res_fmt = """
                 *res = "";
                 foreach (*e in *resp)  {
                     if (strlen(*res) > 0) {
@@ -428,14 +459,14 @@ class IrodsTestCase(TestCase):
                 *res = "list(" ++ *res ++ ")";
             """
         else:
-            irodsResFmt = "*res = *resp;"
-        ruleSrc = f"""
-            {irodsFn}
-            {irodsResFmt}
+            irods_res_fmt = "*res = *resp;"
+        rule_src = f"""
+            {irods_fn}
+            {irods_res_fmt}
             writeLine('stdout', *res);
         """
         try:
-            act_res = self.exec_rule(self.mk_rule(ruleSrc), exp_res.type)
+            act_res = self.exec_rule(self.mk_rule(rule_src), exp_res.type)
             self.assertEqual(act_res, exp_res)
         except _RuleExecFailure as ref:
             self.fail(str(ref))
