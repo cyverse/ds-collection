@@ -192,8 +192,12 @@ class CyverseCorePrivateTest(CyverseCoreTestCase):
     """Test the private entities in cyverse_core.re rule base"""
 
     @unittest.skip("not implemented")
-    def test_getobjpath(self):
-        """Test _cyverse_core_getObjPath """
+    def test_getobjpath_path_missing(self):
+        """Test _cyverse_core_getObjPath with logical_path not set"""
+
+    @unittest.skip("not implemented")
+    def test_getobjpath_path_provided(self):
+        """Test _cyverse_core_getObjPath with logical_path set"""
 
     @unittest.skip("not implemented")
     def test_mkdataobjsessvar(self):
@@ -419,8 +423,8 @@ class PepApiDataObjCreateAndStatPreTest(CyverseCoreTestCase):
         """Test that cyverse_encryption's version of this rule"""
         self.exec_rule(
             self.mk_rule("pep_api_data_obj_create_and_stat_pre('', '', '', '')"), IrodsType.NONE)
-        if not self.verify_msg_logged('cyverse_encryption_api_data_obj_create_and_stat_pre'):
-            self.fail('cyverse_encryption_api_data_obj_create_and_stat_pre not called')
+        if not self.verify_msg_logged('pep_api_data_obj_create_and_stat_pre'):
+            self.fail('pep_api_data_obj_create_and_stat_pre call not logged')
 
 
 class PepApiDataObjOpenPreTest(CyverseCoreTestCase):
@@ -452,8 +456,8 @@ class PepApiDataObjOpenAndStatPreTest(CyverseCoreTestCase):
         """Test that cyverse_encryption's version of this rule"""
         self.exec_rule(
             self.mk_rule("pep_api_data_obj_open_and_stat_pre('', '', '', '')"), IrodsType.NONE)
-        if not self.verify_msg_logged('cyverse_encryption_api_data_obj_open_and_stat_pre'):
-            self.fail('cyverse_encryption_api_data_obj_open_and_stat_pre not called')
+        if not self.verify_msg_logged('pep_api_data_obj_open_and_stat_pre'):
+            self.fail('pep_api_data_obj_open_and_stat_pre call not logged')
 
 
 class PepApiDataObjPutTest(CyverseCoreTestCase):

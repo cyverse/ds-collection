@@ -9,7 +9,7 @@
 import unittest
 
 import test_rules
-from test_rules import IrodsTestCase
+from test_rules import IrodsTestCase, IrodsVal
 
 
 def setUpModule():  # pylint: disable=invalid-name
@@ -25,16 +25,37 @@ def tearDownModule():  # pylint: disable=invalid-name
 class CyverseJsonListTest(IrodsTestCase):
     """Test the list functions in cyverse_json.re"""
 
-    @unittest.skip("not implemented")
-    def test_revaccum(self):
-        """test the _cyverse_json_revAccum"""
+    def test_revaccum_empty(self):
+        """test _cyverse_json_revAccum with empty list"""
+        rev_acc = IrodsVal.string_list(["hi"])
+        self.fn_test("_cyverse_json_revAccum", [rev_acc, IrodsVal.string_list([])], rev_acc)
 
-    @unittest.skip("not implemented")
+    def test_revaccum_one_empty_rev(self):
+        """
+        test _cyverse_json_revAccum with list containing one item and an empty
+        reverse list
+        """
+        item = IrodsVal.string_list(["hi"])
+        self.fn_test("_cyverse_json_revAccum", [IrodsVal.string_list([]), item], item)
+
+    def test_revaccum_one_nonempty_rev(self):
+        """
+        test _cyverse_json_revAccum with list containing one item and a
+        non-empty reverse list
+        """
+        self.fn_test(
+            "_cyverse_json_revAccum",
+            [IrodsVal.string_list(["1"]), IrodsVal.string_list(["2"])],
+            IrodsVal.string_list(["2", "1"]))
+
     def test_rev(self):
         """test the _cyverse_json_rev"""
+        self.fn_test(
+            "_cyverse_json_rev",
+            [IrodsVal.string_list(["a", "b"])],
+            IrodsVal.string_list(["b", "a"]))
 
 
-@test_rules.unimplemented
 class CyverseJsonStringTest(IrodsTestCase):
     """Test the string functions in cyverse_json.re"""
 

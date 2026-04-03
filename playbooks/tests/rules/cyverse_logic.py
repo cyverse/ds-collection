@@ -8,11 +8,13 @@
 
 import unittest
 
+from irods.path import iRODSPath
+
 from test_rules import IrodsTestCase, IrodsVal
 
 
 class TestCyverseLogicContains(IrodsTestCase):
-    """Tests of the _cyverse_logic_contains"""
+    """Tests of _cyverse_logic_contains"""
 
     def test_item_not_in_list(self):
         """Verify that it returns false when item not in list"""
@@ -21,21 +23,72 @@ class TestCyverseLogicContains(IrodsTestCase):
             [IrodsVal.string("missing"), IrodsVal.string_list([])],
             IrodsVal.boolean(False))
 
-    @unittest.skip("not implemented")
+    def test_item_in_singleton_list(self):
+        """Verify that it returns true when item in list with only one item"""
+        self.fn_test(
+            '_cyverse_logic_contains',
+            [IrodsVal.string("item"), IrodsVal.string_list(["item"])],
+            IrodsVal.boolean(True))
+
     def test_item_first(self):
         """Verify that it returns true when item is first in list"""
+        self.fn_test(
+            '_cyverse_logic_contains',
+            [IrodsVal.string("item"), IrodsVal.string_list(["item", "last"])],
+            IrodsVal.boolean(True))
 
-    @unittest.skip("not implemented")
     def test_item_last(self):
         """Verify that it returns true when item is last in list"""
+        self.fn_test(
+            '_cyverse_logic_contains',
+            [IrodsVal.string("item"), IrodsVal.string_list(["first", "item"])],
+            IrodsVal.boolean(True))
+
+
+class TestCyverseLogicIcatIds(IrodsTestCase):
+    """Tests of ICAT Ids logic"""
+
+    def test_getcollid_present(self):
+        """Test _cyverse_logic_getCollId"""
+        zone_path = iRODSPath(self.irods.zone)
+        zone = self.irods.collections.get(zone_path)
+        if zone:
+            for p in IrodsTestCase.prep_path(zone_path):
+                with self.subTest(p=p):
+                    self.fn_test('_cyverse_logic_getCollId', [p], IrodsVal.integer(zone.id))
+        else:
+            self.fail("zone collection is missing")
+
+    def test_getcollid_missing(self):
+        """Test _cyverse_logic_getCollId with the collection doesn't exist"""
+        self.fn_test(
+            '_cyverse_logic_getCollId',
+            [IrodsVal.string(iRODSPath("missing"))],
+            IrodsVal.integer(-1))
+
+    def test_getdataobjid_present(self):
+        """Test _cyverse_logic_getDataObjId when data object is present"""
+        obj_path = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
+        obj = self.irods.data_objects.create(obj_path)
+        for p in IrodsTestCase.prep_path(obj_path):
+            with self.subTest(p=p):
+                self.fn_test('_cyverse_logic_getDataObjId', [p], IrodsVal.integer(obj.id))  # pylint: disable=no-member,line-too-long # type: ignore # noqa: E501
+        obj.unlink(force=True)
+
+    def test_getdataobjid_missing(self):
+        """Test _cyverse_logic_getDataObjId when data object is not present"""
+        self.fn_test(
+            '_cyverse_logic_getDataObjId',
+            [IrodsVal.string(iRODSPath("missing"))],
+            IrodsVal.integer(-1))
+
+    @unittest.skip("not implemented")
+    def test_getid(self):
+        """Test _cyverse_logic_getId"""
 
 
 class TestCyVerseLogic(IrodsTestCase):
     """Test cyverse_logic.re"""
-
-    @unittest.skip("not implemented")
-    def test_icat_ids(self):
-        """Test the private ICAT Ids rule logic"""
 
     @unittest.skip("not implemented")
     def test_user_info(self):

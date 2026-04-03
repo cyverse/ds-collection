@@ -14,6 +14,7 @@ from irods.access import iRODSAccess
 from irods.collection import iRODSCollection
 from irods.data_object import iRODSDataObject
 from irods.exception import UserDoesNotExist
+from irods.path import iRODSPath
 from irods.rule import Rule
 from irods.session import iRODSSession
 
@@ -157,9 +158,18 @@ class CyverseRmprefix(CyverseTestCase):
 class CyverseKeyvalpairMsTTests(CyverseTestCase):
     """Tests of `KEYVALPAIR_MS_T` functions"""
 
+    def test_cyverse_haskey_no_key(self):
+        """test cyverse_hasKey when key not present"""
+        rule_src = """
+            *kvp.key = 'val';
+            writeLine('stdout', if cyverse_hasKey(*kvp, 'missing') then 'true' else 'false');
+        """
+        self.assertEqual(
+            self.exec_rule(self.mk_rule(rule_src), IrodsType.BOOLEAN), IrodsVal.boolean(False))
+
     @unittest.skip("not implemented")
-    def test_cyverse_haskey(self):
-        """test cyverse_hasKey"""
+    def test_cyverse_haskey_key(self):
+        """test cyverse_hasKey when key present"""
 
     @unittest.skip("not implemented")
     def test_cyverse_getvalue(self):
@@ -259,12 +269,13 @@ class CyverseGetentitytype(CyverseTestCase):
 
     def test_data_obj(self):
         """Test with data object"""
-        obj = '/testing/home/rods/test_obj'
-        self.irods.data_objects.create(obj)
-        for p in IrodsTestCase.prep_path(obj):
+        obj_path = iRODSPath(self.irods.zone, 'home', self.irods.username, 'test_obj')
+        self.ensure_obj_absent(obj_path)
+        obj = self.irods.data_objects.create(obj_path)
+        for p in IrodsTestCase.prep_path(obj_path):
             with self.subTest(p=p):
                 self.fn_test('cyverse_getEntityType', [p], IrodsVal.string('-d'))
-        self.irods.data_objects.unlink(obj, force=True)
+        obj.unlink(force=True)
 
     def test_resc(self):
         """Test with resource"""

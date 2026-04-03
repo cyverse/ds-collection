@@ -58,20 +58,33 @@
       register: resp
       failed_when: not (resp.stat.exists and resp.stat.rusr)
 
+    - name: Retrieve encoded daemon.json
+      ansible.builtin.slurp:
+        src: /etc/docker/daemon.json
+      register: d_encoded
+
+    - name: Decode daemon.json
+      ansible.builtin.set_fact:
+        daemon: "{{ d_encoded.content | b64decode }}"
+
+    - name: Define expected tag value
+      ansible.builtin.set_fact:
+        exp_tag: '{{ "{% raw %}docker-{{.Name}}{% endraw %}" }}'
+
     - name: Test contents of docker/daemon.json
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      ansible.builtin.assert:
+        that: daemon['log-opts']['tag'] == exp_tag
 
     - name: Test create iRODS user
       ansible.builtin.user:
         name: irods
       check_mode: true
       register: resp
-      failed_when: resp.state != 'present' or resp.uid >= 1000 or resp.home != '/var/lib/irods'
-
-    - name: Verify iRODS user comment
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      failed_when: >-
+        resp.state != 'present'
+        or resp.comment != 'iRODS Administrator'
+        or resp.uid >= 1000
+        or resp.home != '/var/lib/irods'
 
     - name: Verify iRODS user home folder exists
       ansible.builtin.debug:
@@ -99,12 +112,16 @@
         or not resp.stat.pw_name == 'irods'
         or not (resp.stat.rusr and resp.stat.wusr and resp.stat.xusr)
 
-    - name: Test create iRODS configuration directories
+    - name: Test create iRODS configuration directories remaining
       ansible.builtin.debug:
         msg: 'TODO: implement for {{ item }}'
       loop:
         - /etc/irods
         - /var/lib/irods/.irods
+
+    - name: Test add irodsctl adapter
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
 
     - name: Test copy required iRODS runtime config files
       ansible.builtin.debug:

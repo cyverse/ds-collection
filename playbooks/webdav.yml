@@ -354,9 +354,11 @@
           set -o errexit -o pipefail
           readarray -t irods_locks < <(yum versionlock list | sed --quiet '/^0:irods-/p')
           for lock in "${irods_locks[@]}"; do
-            pkg="$(sed 's/0:\(irods-.*\)-[0-9\.]\+-.*/\1/' <<< "$lock")"
-            yum versionlock delete "$pkg" > /dev/null
-            echo changed
+            if ! [[ "$lock" =~ irods-runtime-4\.3\.0 ]]; then
+              pkg="$(sed 's/0:\(irods-.*\)-[0-9\.]\+-.*/\1/' <<< "$lock")"
+              yum versionlock delete "$pkg" > /dev/null
+              echo changed
+            fi
           done
       register: resp
       changed_when: resp.stdout is regex('^changed')
@@ -365,6 +367,17 @@
       ansible.builtin.yum:
         name: https://github.com/UtrechtUniversity/davrods/releases/download/4.3.0_1.5.0/davrods-4.3.0_1.5.0-1.rpm
         state: present
+
+    - name: Lock irods-runtime
+# XXX - yum_versionlock version 10.6.0 will not lock packages that are not installed unlike the
+# `yum versionlock` command
+#       community.general.yum_versionlock:
+#         name: irods-runtime
+#         state: present
+      ansible.builtin.command: yum versionlock add irods-runtime
+      register: resp
+      changed_when: 'resp.stdout is regex("versionlock added: 1")'
+# XXX - ^^^
 
     - name: Configure iRODS environment
       ansible.builtin.include_role:
