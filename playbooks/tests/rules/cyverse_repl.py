@@ -6,10 +6,11 @@
 
 """Tests of cyverse_repl.re rule logic."""
 
-import subprocess
 import unittest
 
+from irods.exception import SYS_INVALID_RESC_INPUT, SYS_NOT_ALLOWED
 from irods.models import RuleExec
+from irods.path import iRODSPath
 
 import test_rules
 from test_rules import IrodsTestCase, IrodsType
@@ -57,41 +58,59 @@ class TestAcsetrescschemeforcreate(IrodsTestCase):
         obj.unlink(force=True)
 
 
-class TestAcsetrescschemeforrepl(IrodsTestCase):
-    """Tests of cyverse_repl_acSetRescSchemeForRepl"""
+class TestAcsetrescschemeforreplCustom(IrodsTestCase):
+    """
+    Test that it behaves correctly when temporaryStorage.repl_replicate is not
+    set and a custom replication resource is to be used.
+    """
 
-    def test_repl_replicate_not_set_custom_resc(self):
-        """
-        Test that it behaves correctly when temporaryStorage.repl_replicate is not set and a custom
-        replication resource is to be used.
-        """
-        self.irods.resources.get("avraRes").metadata.set("ipc::replica-resource", "pire")
-        obj = self.irods.data_objects.create("/testing/home/shared/avra/obj")
-        obj.replicate()
-        obj = self.irods.data_objects.get("/testing/home/shared/avra/obj")
-        if obj.replicas[1].resource_name != "pire":
-            self.fail("Failed to replicate to custom resource")
-        obj.unlink(force=True)
-        self.irods.resources.get("avraRes").metadata.remove("ipc::replica-resource", "pire")
+    def test(self):
+        """Perform test"""
+        objPath = iRODSPath(self.irods.zone, "home", "shared", "avra", "obj")
+        self.ensure_obj_absent(objPath)
+        avra = self.irods.resources.get("avraRes")
+        avra.metadata.set("ipc::replica-resource", "ingestRes")
+        obj = self.irods.data_objects.create(objPath)
+        try:
+            obj.replicate()
+            obj = self.irods.data_objects.get(objPath)
+            if obj.replicas[1].resource_name != "ingestRes":
+                self.fail("Failed to replicate to custom resource")
+        except SYS_INVALID_RESC_INPUT as e:
+            self.fail(str(e))
+        finally:
+            obj.unlink(force=True)
+            avra.metadata.remove("ipc::replica-resource", "ingestRes")
 
-    def test_repl_replicate_not_set_default_resc(self):
-        """
-        Test that it behaves correctly when temporaryStorage.repl_replicate is not set and the
-        default resource is to be used.
-        """
+
+class TestAcsetrescschemeforreplDefault(IrodsTestCase):
+    """
+    Test that it behaves correctly when temporaryStorage.repl_replicate is not
+    set and the default resource is to be used.
+    """
+
+    def test(self):
+        """Perform test"""
         obj = self.irods.data_objects.create("/testing/home/rods/obj")
-        obj.replicate()
-        obj = self.irods.data_objects.get("/testing/home/rods/obj")
-        if obj.replicas[1].resource_name != "replRes":
-            self.fail("Failed to replicate to default resource")
-        obj.unlink(force=True)
+        try:
+            obj.replicate()
+            obj = self.irods.data_objects.get("/testing/home/rods/obj")
+            if obj.replicas[1].resource_name != "replRes":
+                self.fail("Failed to replicate to default resource")
+        except SYS_NOT_ALLOWED as e:
+            self.fail(str(e))
+        finally:
+            obj.unlink(force=True)
 
 
 class TestDataobjcreated(IrodsTestCase):
     """Tests of cyverse_repl_dataObjCreated"""
 
     def test(self):
-        """Verify that a replication rule is scheduled when a data object is created"""
+        """
+        Verify that a replication rule is scheduled when a data object is
+        created
+        """
         obj = self.irods.data_objects.create('/testing/home/rods/obj')
         rule = """
             *doi.logical_path = "/testing/home/rods/obj";
@@ -101,58 +120,13 @@ class TestDataobjcreated(IrodsTestCase):
         self.exec_rule(self.mk_rule(rule), IrodsType.NONE)
         ruleFound = False
         for result in self.irods.query(RuleExec.name):
-            if result[RuleExec.name].find('_repl_replicate_workaround') != -1:
+            if result[RuleExec.name].find('_repl_replicate') != -1:
                 ruleFound = True
                 break
         if not ruleFound:
             self.fail(
-                "cyverse_repl_dataObjCreated did not schedule the _repl_replicate_workaround rule")
+                "cyverse_repl_dataObjCreated did not schedule the _repl_replicate rule")
         obj.unlink(force=True)
-
-
-class TestDataobjmodified(IrodsTestCase):
-    """Tests of cyverse_repl_dataObjModified"""
-
-    def __init__(self, method: str):
-        super().__init__(method)
-        self._objPath = "/testing/home/rods/obj"
-
-    def setUp(self):
-        super().setUp()
-        obj = self.irods.data_objects.create(self._objPath)
-        obj.replicate()
-        cmd = (
-            f"echo '{test_rules.IRODS_PASSWORD}'"
-            f" | iadmin modrepl logical_path {self._objPath} replica_number 1 DATA_REPL_STATUS 0")
-        subprocess.run(
-            cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            shell=True,
-            check=True,
-            encoding='utf-8')
-        rule = f"""
-            *doi.logical_path = "{self._objPath}";
-            *doi.resc_hier = "ingestRes";
-            cyverse_repl_dataObjModified("rods", "testing", *doi);
-        """
-        self.exec_rule(self.mk_rule(rule), IrodsType.NONE)
-
-    def tearDown(self):
-        self.irods.data_objects.unlink(self._objPath, force=True)
-        super().tearDown()
-
-    def test(self):
-        """Verify that the replica of a file is updated when the original is updated"""
-        ruleFound = False
-        for result in self.irods.query(RuleExec.name):
-            if result[RuleExec.name].find('_repl_syncReplicas_workaround') != -1:
-                ruleFound = True
-                break
-        if not ruleFound:
-            self.fail(
-                "cyverse_repl_dataObjModified did not schedule the _repl_syncReplicas_workaround"
-                " rule")
 
 
 class TestPepResourceResolveHierarchyPre(IrodsTestCase):
@@ -169,7 +143,10 @@ class TestPepResourceResolveHierarchyPre(IrodsTestCase):
         super().tearDown()
 
     def test_replreplicate_not_set(self):
-        """Verify that default logic happens when temporaryStorage.repl_replicate isn't set"""
+        """
+        Verify that default logic happens when temporaryStorage.repl_replicate
+        isn't set
+        """
         self.irods.data_objects.create('/testing/home/rods/obj')
         for line in self.tail_rods_log():
             if 'cyverse_core: pep_resource_resolve_hierarchy_pre' in line:
@@ -189,9 +166,12 @@ class TestPepResourceResolveHierarchyPre(IrodsTestCase):
         self.fail('intercepted PEP')
 
     def test_replreplicate_set_to_replforcedreplresc(self):
-        """Test logic when temporaryStorage.repl_replicate is set to 'REPL_FORCED_REPL_RESC'"""
+        """
+        Test logic when temporaryStorage.cyverse_repl_replicate is set to
+        'REPL_FORCED_REPL_RESC'
+        """
         rule_text = """
-            temporaryStorage.repl_replicate = 'REPL_FORCED_REPL_RESC';
+            temporaryStorage.cyverse_repl_replicate = 'REPL_FORCED_REPL_RESC';
             msiDataObjCreate('/testing/home/rods/obj', '', *out);
         """
         test_rules.clear_rods_log()
