@@ -167,13 +167,32 @@ class CyverseKeyvalpairMsTTests(CyverseTestCase):
         self.assertEqual(
             self.exec_rule(self.mk_rule(rule_src), IrodsType.BOOLEAN), IrodsVal.boolean(False))
 
-    @unittest.skip("not implemented")
     def test_cyverse_haskey_key(self):
         """test cyverse_hasKey when key present"""
+        rule_src = """
+            *kvp.key = 'val';
+            writeLine('stdout', if cyverse_hasKey(*kvp, 'key') then 'true' else 'false');
+        """
+        self.assertEqual(
+            self.exec_rule(self.mk_rule(rule_src), IrodsType.BOOLEAN), IrodsVal.boolean(True))
 
-    @unittest.skip("not implemented")
-    def test_cyverse_getvalue(self):
-        """test cyverse_getValue"""
+    def test_cyverse_getvalue_no_key(self):
+        """test cyverse_getValue when key not present"""
+        rule_src = """
+            *kvp.key = 'val';
+            writeLine('stdout', cyverse_getValue(*kvp, 'missing'));
+        """
+        self.assertEqual(
+            self.exec_rule(self.mk_rule(rule_src), IrodsType.STRING), IrodsVal.string(''))
+
+    def test_cyverse_getvalue_key(self):
+        """test cyverse_getValue when key present"""
+        rule_src = """
+            *kvp.key = 'val';
+            writeLine('stdout', cyverse_getValue(*kvp, 'key'));
+        """
+        self.assertEqual(
+            self.exec_rule(self.mk_rule(rule_src), IrodsType.STRING), IrodsVal.string('val'))
 
 
 @test_rules.unimplemented
@@ -288,6 +307,11 @@ class CyverseGetentitytype(CyverseTestCase):
     def test_unknown(self):
         """Test with something that can't be identified"""
         self.fn_test('cyverse_getEntityType', [IrodsVal.string('garbage')], IrodsVal.string(''))
+
+
+@test_rules.unimplemented
+class CyverseDBIdTests(CyverseTestCase):
+    """Tests of ICAT DB Id logic"""
 
 
 class CyverseIsforsvc(CyverseTestCase):

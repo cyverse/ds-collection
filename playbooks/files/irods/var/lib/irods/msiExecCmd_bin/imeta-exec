@@ -3,7 +3,7 @@
 # Calls imeta with the given parameters
 #
 # Usage:
-#  imeta ARGS...
+#  imeta-exec ARGS...
 #
 # Arguments:
 #  ARGS  a list of arguments to pass directly to imeta in the format received

@@ -67,7 +67,9 @@
         - correct-size
         - delete-scheduled-rule
         - generate-uuid
+        - ichksum-exec
         - imeta-exec
+        - iquest-exec
         - send-mail
 
     - name: Verify old config do not exist

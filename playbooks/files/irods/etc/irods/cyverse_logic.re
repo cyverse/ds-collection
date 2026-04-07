@@ -932,19 +932,9 @@ _cyverse_logic_getCollId(*Path) =
 	let *_ = foreach (*rec in SELECT COLL_ID WHERE COLL_NAME = *path) { *id = int(*rec.COLL_ID) } in
 	*id
 
-_cyverse_logic_getDataObjId(*Path) =
-	let *collPath = '' in
-	let *dataObjName = '' in
-	let *_ = msiSplitPath(str(*Path), *collPath, *dataObjName) in
-	let *id = -1 in
-	let *_ = foreach ( *rec in
-			SELECT DATA_ID WHERE COLL_NAME = *collPath AND DATA_NAME = *dataObjName
-		) { *id = int(*rec.DATA_ID) } in
-	*id
-
 _cyverse_logic_getId(*Path) =
 	if cyverse_isColl(cyverse_getEntityType(*Path)) then _cyverse_logic_getCollId(*Path)
-	else _cyverse_logic_getDataObjId(*Path)
+	else cyverse_getDataId(*Path)
 
 
 #
@@ -986,21 +976,33 @@ _cyverse_logic_getNewAVUSetting(*Orig, *Prefix, *Candidates) =
 # rule doesn't fail if the replica to checksum no longer exists.
 #
 # Parameters:
-#  DataObjId  the DB Id of the data object of interest
-#  ReplNum    the replica number that will be check summed
+#  DataId   the DB Id of the data object of interest
+#  ReplNum  the replica number that will be check summed
 #
-cyverse_logic_chksumRepl(*DataObjId, *ReplNum) {
-	*dataObjPath = '';
-	foreach (*rec in
-		SELECT COLL_NAME, DATA_NAME WHERE DATA_ID = '*DataObjId' AND DATA_REPL_NUM = '*ReplNum'
-	) {
-		*dataObjPath = *rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME;
-	}
+cyverse_logic_chksumRepl(*DataId, *ReplNum) {
+	*dataPath = cyverse_getDataPath(*DataId);
 
-	if (*dataObjPath != '') {
-		msiAddKeyValToMspStr('forceChksum', '', *opts);
-		msiAddKeyValToMspStr('replNum', str(*ReplNum), *opts);
-		msiDataObjChksum(*dataObjPath, *opts, *_);
+	if (*dataPath != "") {
+# XXX - As of iRODS 4.3.1, deferred rules don't propagate ticket information
+# 		msiAddKeyValToMspStr('forceChksum', '', *opts);
+# 		msiAddKeyValToMspStr('replNum', str(*ReplNum), *opts);
+# 		msiDataObjChksum(*dataPath, *opts, *_);
+		*admArg = execCmdArg('-M');
+		*forceArg = execCmdArg('-f');
+		*replArg = execCmdArg("-n *ReplNum");
+		*dataArg = execCmdArg(*dataPath);
+		*argStr = '*admArg *forceArg *replArg *dataArg';
+		*status = errormsg(msiExecCmd('ichksum-exec', *argStr, '', '', '', *resp), *err);
+
+		if (*status < 0) {
+			msiGetStderrInExecCmdOut(*resp, *msg);
+
+			writeLine(
+				'serverLog', 'failed to compute checksum for *DataId (*dataPath): *err (*msg)' );
+		}
+
+		*status;
+# XXX - ^^^
 	}
 }
 
@@ -1013,7 +1015,7 @@ _cyverse_logic_needsChecksum(*DataObjOpInp) =
 
 # Schedule a task for computing the checksum of a given replica of a given data object
 _cyverse_logic_schedChksumRepl(*DataObjPath, *ReplNum) {
-	*dataObjId = _cyverse_logic_getDataObjId(*DataObjPath)
+	*dataObjId = cyverse_getDataId(*DataObjPath)
 
 	delay(
 		'<INST_NAME>irods_rule_engine_plugin-irods_rule_language-instance</INST_NAME>' ++
@@ -2103,7 +2105,7 @@ cyverse_logic_acPostProcForDelete(*DataPath, *ClientUsername, *ClientZone) {
 #
 cyverse_logic_acPostProcForOpen(*DataPath, *DataSize, *ClientUsername, *ClientZone) {
 	*me = 'cyverse_logic_acPostProcForOpen';
-	*id = _cyverse_logic_getDataObjId(*DataPath);
+	*id = cyverse_getDataId(*DataPath);
 
 	if (*id >= 0) {
 		_cyverse_logic_registerAction(*id, *me);
@@ -2231,7 +2233,7 @@ cyverse_logic_dataObjCreated(*Username, *Zone, *DataObjInfo, *Step) {
 #
 cyverse_logic_dataObjMetaMod(*Username, *Zone, *Path) {
 	*me = 'cyverse_logic_dataObjMetadataMod';
-	*id = _cyverse_logic_getDataObjId(*Path);
+	*id = cyverse_getDataId(*Path);
 
 	if (*id >= 0) {
 		_cyverse_logic_registerAction(*id, *me);

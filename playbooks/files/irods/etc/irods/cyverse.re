@@ -236,6 +236,62 @@ cyverse_getEntityType(*Entity) =
 		else if cyverse_isUser(*type) then cyverse_USER
 		else *type
 
+
+#
+# Logic for working with ICAT DB Ids
+#
+
+# Looks up data object's DB Id
+#
+# PARAMETERS:
+#  Path  the absolute path to the data object
+#
+# RETURNS:
+#  It returns the DB Id if the object exists, otherwise it return -1.
+#
+cyverse_getDataId: forall X in {path string}, X -> int
+cyverse_getDataId(*Path) =
+	let *collPath = '' in
+	let *dataObjName = '' in
+	let *_ = msiSplitPath(str(*Path), *collPath, *dataObjName) in
+	let *id = -1 in
+	let *_ = foreach ( *rec in
+			SELECT DATA_ID WHERE COLL_NAME = *collPath AND DATA_NAME = *dataObjName
+		) { *id = int(*rec.DATA_ID) } in
+	*id
+
+# Looks up a data object's path given its DB Id
+#
+# PARAMETERS:
+#  Id  the object's ICAT DB Id
+#
+# RETURNS:
+#  It return the absolute path to the object if it exists, otherwise it returns /
+#
+cyverse_getDataPath: int -> string
+cyverse_getDataPath(*Id) =
+# XXX - As of iRODS 4.3.1, deferred rules don't propagate ticket information
+# 	let *path = '' in
+# 	let *_ = foreach (*rec in SELECT COLL_NAME, DATA_NAME WHERE DATA_ID = '*Id') {
+# 			*path = *rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME;
+# 		} in
+# 	*path
+	let *fmtArg = execCmdArg('%s/%s') in
+	let *queryArg = execCmdArg("select COLL_NAME, DATA_NAME where DATA_ID = '*Id'") in
+	let *argStr = '*fmtArg *queryArg' in
+	let *status = errormsg(msiExecCmd('iquest-exec', *argStr, '', '', '', *resp), *err) in
+	if *status < 0
+		then
+			let *_ = msiGetStderrInExecCmdOut(*resp, *msg) in
+			let *_ = writeLine('serverLog', 'failed to resolve data object *Id: *err (*msg)') in
+			''
+		else
+			let *_ = msiGetStdoutInExecCmdOut(*resp, *path) in
+			let *path = trimr(*path, '\n') in
+			*path
+# XXX - ^^^
+
+
 # This function checks to see if a collection or data object is inside a user
 # collection managed by a service.
 #
