@@ -9,7 +9,9 @@ Here are the command scripts executable through the `msiExecCmd` microservice.
 * [amqp-topic-send](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/amqp-topic-send) publishes audit messages to a RabbitMQ broker.
 * [delete-scheduled-rule](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/delete-scheduled-rule) removes a rule execution from the rule queue.
 * [generate-uuid](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/generate-uuid) generates a time-based UUID.
+* [ichksum-exec](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/ichksum-exec) calls ichksum.
 * [imeta-exec](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/imeta-exec) calls imeta.
+* [iquest-exec](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/iquest-exec)  calls iquest.
 * [send-mail](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/send-mail) sends an email message.
 
 ## Rule Files

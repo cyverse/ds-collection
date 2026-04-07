@@ -96,10 +96,7 @@
 _repl_replicate(*Object, *RescName) {
   _repl_logMsg('replicating data object *Object to *RescName');
 
-  *objPath = '';
-  foreach (*rec in SELECT COLL_NAME, DATA_NAME WHERE DATA_ID = '*Object') {
-    *objPath = *rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME;
-  }
+  *objPath = cyverse_getDataPath(*Object);
 
   if (*objPath == '') {
     _repl_logMsg('data object *Object no longer exists');
@@ -107,7 +104,7 @@ _repl_replicate(*Object, *RescName) {
     temporaryStorage.cyverse_repl_replicate = 'REPL_FORCED_REPL_RESC';
 
     *err = errormsg(
-      msiDataObjRepl(*objPath, 'backupRescName=*RescName++++verifyChksum=', *status), *msg);
+      msiDataObjRepl(*objPath, 'backupRescName=*RescName++++verifyChksum=', *status), *msg );
 
     temporaryStorage.cyverse_repl_replicate = '';
 
@@ -137,10 +134,7 @@ _repl_replicate(*Object, *RescName) {
 _mvReplicas(*Object, *IngestResc, *ReplResc) {
   _repl_logMsg('moving replicas of data object *Object');
 
-  *dataPath = '';
-  foreach (*rec in SELECT COLL_NAME, DATA_NAME WHERE DATA_ID = '*Object') {
-    *dataPath = *rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME;
-  }
+  *dataPath = cyverse_getDataPath(*Object);
 
   if (*dataPath != '') {
     *replFail = false;
@@ -185,10 +179,7 @@ _mvReplicas(*Object, *IngestResc, *ReplResc) {
 _repl_mvReplicas(*Object, *IngestName, *ReplName) {
   _repl_logMsg('moving replicas of data object *Object');
 
-  *dataPath = '';
-  foreach (*rec in SELECT COLL_NAME, DATA_NAME WHERE DATA_ID = '*Object') {
-    *dataPath = *rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME;
-  }
+  *dataPath = cyverse_getDataPath(*Object);
 
   if (*dataPath != '') {
     *replFail = false;
@@ -233,16 +224,16 @@ _repl_mvReplicas(*Object, *IngestName, *ReplName) {
 _repl_syncReplicas(*Object) {
   _repl_logMsg('syncing replicas of data object *Object');
 
-  *dataPath = '';
-  foreach (*rec in SELECT COLL_NAME, DATA_NAME WHERE DATA_ID = '*Object') {
-    *dataPath = *rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME;
-  }
+  *dataPath = cyverse_getDataPath(*Object);
 
   if (*dataPath == '') {
     _repl_logMsg('data object *Object no longer exists');
   } else {
-    *err = errormsg(
-      msiDataObjRepl(*dataPath, 'all=++++updateRepl=++++verifyChksum=', *status), *msg );
+    msiAddKeyValToMspStr('all', '', *opts);
+    msiAddKeyValToMspStr('irodsAdmin', '', *opts);
+    msiAddKeyValToMspStr('updateRepl', '', *opts);
+    msiAddKeyValToMspStr('verifyChksum', '', *opts);
+    *err = errormsg(msiDataObjRepl(*dataPath, *opts, *status), *msg);
 
     if (*err < 0 && *err != -808000) {
       _repl_logMsg('failed to sync replicas of data object *Object trying again in 8 hours');
@@ -305,27 +296,25 @@ _repl_scheduleMv(*Object, *IngestName, *ReplName) {
 
 # DEPRECATED
 _scheduleMoves(*Entity, *IngestResc, *ReplResc) {
-  *entity = str(*Entity);
   (*ingestName, *ingestOptional) = *IngestResc;
   (*replName, *replOptional) = *ReplResc;
-  *type = cyverse_getEntityType(*entity);
+  *type = cyverse_getEntityType(*Entity);
 
   if (cyverse_isColl(*type)) {
     # if the entity is a collection
-    foreach (*collPat in list(*entity, *entity ++ '/%')) {
-      foreach (*rec in SELECT DATA_ID WHERE COLL_NAME LIKE '*collPat') {
-        *dataId = *rec.DATA_ID;
-        _scheduleMv(*dataId, *ingestName, str(*ingestOptional), *replName, str(*replOptional));
-      }
+    *entity = str(*Entity);
+
+    foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = *entity || LIKE '*entity/%') {
+      _scheduleMv(*rec.DATA_ID, *ingestName, str(*ingestOptional), *replName, str(*replOptional));
     }
   } else if (cyverse_isDataObj(*type)) {
     # if the entity is a data object
-    msiSplitPath(*entity, *collPath, *dataName);
-
-    foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = '*collPath' AND DATA_NAME = '*dataName') {
-      *dataId = *rec.DATA_ID;
-      _scheduleMv(*dataId, *ingestName, str(*ingestOptional), *replName, str(*replOptional));
-    }
+    _scheduleMv(
+      cyverse_getDataId(*Entity),
+      *ingestName,
+      str(*ingestOptional),
+      *replName,
+      str(*replOptional) );
   }
 }
 
@@ -341,11 +330,7 @@ _cyverse_repl_scheduleCollMove(*Coll, *IngestName, *ReplName) {
 
 
 _cyverse_repl_scheduleDataMove(*Data, *IngestName, *ReplName) {
-  msiSplitPath(str(*Data), *collPath, *dataName);
-
-  foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = '*collPath' AND DATA_NAME = '*dataName') {
-    _repl_scheduleMv(*rec.DATA_ID, *IngestName, *ReplName);
-  }
+  _repl_scheduleMv(cyverse_getDataId(*Data), *IngestName, *ReplName);
 }
 
 
@@ -391,33 +376,25 @@ _repl_scheduleSyncReplicas(*Object) {
 
 # DEPRECATED
 _ipcRepl_createOrOverwrite_old(*DataPath, *DestResc, *New, *IngestResc, *ReplResc) {
-  msiSplitPath(*DataPath, *collName, *dataName);
+  *dataId = cyverse_getDataId(*DataPath);
 
-  foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = '*collName' AND DATA_NAME = '*dataName') {
-    *dataId = *rec.DATA_ID;
-
-    if (*New) {
-      (*ingestName, *optional) = *IngestResc;
-      (*replName, *optional) = *ReplResc;
-      _repl_scheduleRepl(*dataId, if *DestResc == *replName then *ingestName else *replName);
-    } else {
-      _repl_scheduleSyncReplicas(*dataId);
-    }
+  if (*New) {
+    (*ingestName, *optional) = *IngestResc;
+    (*replName, *optional) = *ReplResc;
+    _repl_scheduleRepl(*dataId, if *DestResc == *replName then *ingestName else *replName);
+  } else {
+    _repl_scheduleSyncReplicas(*dataId);
   }
 }
 
 
 _ipcRepl_createOrOverwrite(*DataPath, *DestResc, *New, *IngestResc, *ReplResc) {
-  msiSplitPath(*DataPath, *collName, *dataName);
+  *dataId = cyverse_getDataId(*DataPath);
 
-  foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = '*collName' AND DATA_NAME = '*dataName') {
-    *dataId = *rec.DATA_ID;
-
-    if (*New) {
-      _repl_scheduleRepl(*dataId, if *DestResc == *ReplResc then *IngestResc else *ReplResc);
-    } else {
-      _repl_scheduleSyncReplicas(*dataId);
-    }
+  if (*New) {
+    _repl_scheduleRepl(*dataId, if *DestResc == *ReplResc then *IngestResc else *ReplResc);
+  } else {
+    _repl_scheduleSyncReplicas(*dataId);
   }
 }
 

@@ -75,6 +75,13 @@
       ansible.builtin.assert:
         that: daemon['log-opts']['tag'] == exp_tag
 
+    - name: Verify iRODS group exists
+      ansible.builtin.group:
+        name: irods
+      check_mode: true
+      register: group_resp
+      failed_when: group_resp.state != 'present' or group_resp.gid >= 1000
+
     - name: Test create iRODS user
       ansible.builtin.user:
         name: irods
@@ -83,40 +90,42 @@
       failed_when: >-
         resp.state != 'present'
         or resp.comment != 'iRODS Administrator'
-        or resp.uid >= 1000
+        or resp.group != group_resp.gid
         or resp.home != '/var/lib/irods'
+        or resp.shell != '/bin/bash'
+        or resp.uid >= 1000
 
-    - name: Verify iRODS user home folder exists
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+    - name: Verify iRODS user belongs to Docker group
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          for group in $(groups irods | sed 's/^irods : //'); do
+            if [[ "$group" == docker ]]; then
+              exit 0
+            fi
+          done
+          exit 1
+      changed_when: false
 
-    - name: Verify iRODS user account shell
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Verify iRODS group exists
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Verify iRODS user belongs to docker group
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name:  Test create iRODS configuration directories
+    - name:  Test create iRODS directories
       ansible.builtin.stat:
-        path: /var/lib/irods/msiExecCmd_bin
+        path: "{{ item }}"
       register: resp
       failed_when: >
         not resp.stat.exists
         or not resp.stat.isdir
         or not resp.stat.pw_name == 'irods'
         or not (resp.stat.rusr and resp.stat.wusr and resp.stat.xusr)
+      loop:
+        - /etc/irods
+        - /var/lib/irods
+        - /var/lib/irods/msiExecCmd_bin
 
     - name: Test create iRODS configuration directories remaining
       ansible.builtin.debug:
         msg: 'TODO: implement for {{ item }}'
       loop:
-        - /etc/irods
         - /var/lib/irods/.irods
 
     - name: Test add irodsctl adapter
@@ -139,13 +148,20 @@
         not resp.stat.exists
         or not resp.stat.pw_name == 'irods'
         or not (resp.stat.rusr and resp.stat.xusr)
-      with_items:
+      loop:
         - amqp-topic-send
         - correct-size
         - delete-scheduled-rule
         - generate-uuid
         - imeta-exec
         - send-mail
+
+    - name: Test add command scripts 2
+      ansible.builtin.debug:
+        msg: "TODO: implement for {{ item }}"
+      loop:
+        - ichksum-exec
+        - iquest-exec
 
     - name: Test stage dynamic rule bases
       ansible.builtin.debug:
@@ -227,14 +243,14 @@
     - name: Verify server_config.plugin_configuration.rule_engines rule language plugin_specific_configuration.re_rulebase_set
       ansible.builtin.debug:
         msg: TODO implement for {{ item }}
-      with_items:
+      loop:
         - cyverse_housekeeping
         - core
 
     - name: Verify server_config.plugin_configuration.rule_engines rule language plugin_specific_configuration
       ansible.builtin.debug:
         msg: TODO implement for {{ item }}
-      with_items:
+      loop:
         - regexes_for_supported_peps
 
     - name: Verify server_config.plugin_configuration.rule_engines rule language shared_memory_instance
