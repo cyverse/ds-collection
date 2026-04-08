@@ -181,6 +181,7 @@
         - ichksum-exec
         - imeta-exec
         - iquest-exec
+        - irepl-exec
         - send-mail
 
     - name: Verify old config do not exist

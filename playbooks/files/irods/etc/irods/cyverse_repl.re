@@ -103,28 +103,34 @@ _repl_replicate(*Object, *RescName) {
   } else {
     temporaryStorage.cyverse_repl_replicate = 'REPL_FORCED_REPL_RESC';
 
-    *err = errormsg(
-      msiDataObjRepl(*objPath, 'backupRescName=*RescName++++verifyChksum=', *status), *msg );
+# XXX - As of iRODS 4.3.1, ticket information doesn't get sent to deferred rules.
+#     msiAddKeyValToMspStr('backupRescName', *RescName, *opts);
+#     msiAddKeyValToMspStr('verifyChksum', '', *opts);
+#     *status = errormsg(msiDataObjRepl(*objPath, *opts, *status), *err);
+    *admArg = execCmdArg('-M');
+    *backupArg = execCmdArg('-B');
+    *destRescFlgArg = execCmdArg('-R');
+    *destRescArg = execCmdArg(*RescName);
+    *dataArg = execCmdArg(*objPath);
+    *args = '*admArg *backupArg *destRescFlgArg *destRescArg *dataArg';
+    *status = errormsg(msiExecCmd('irepl-exec', *args, '', '', '', *_), *err);
+# XXX - ^^^
 
     temporaryStorage.cyverse_repl_replicate = '';
 
-    if (*err < 0){
-      if (*err == -808000 || *err == -817000) {
-        _repl_logMsg('failed to replicate data object *Object, data no longer exists');
-        _repl_logMsg(*msg);
-        0
-      } else if (*err == -314000) {
-        _repl_logMsg('failed to replicate data object *Object due to checksum error');
-        _repl_logMsg(*msg);
-        0
-        # the exit status is 0 to indicate that replication should not be retried
+    if (*status < 0){
+      if (*status == -808000 || *status == -817000) {
+        _repl_logMsg(
+          'failed to replicate data object *Object (*objPath), data no longer exists: *err' );
+      } else if (*status == -314000) {
+        _repl_logMsg(
+          'failed to replicate data object *Object (*objPath) due to checksum error: *err' );
       } else {
-        _repl_logMsg('failed to replicate data object *Object, retry in 8 hours');
-        _repl_logMsg(*msg);
-        *err;
+        _repl_logMsg('failed to replicate data object *Object (*objPath), retry in 8 hours: *err');
+        *status;
       }
     } else {
-      _repl_logMsg('replicated data object *Object');
+      _repl_logMsg('replicated data object *Object (*objPath)');
     }
   }
 }
@@ -229,18 +235,28 @@ _repl_syncReplicas(*Object) {
   if (*dataPath == '') {
     _repl_logMsg('data object *Object no longer exists');
   } else {
-    msiAddKeyValToMspStr('all', '', *opts);
-    msiAddKeyValToMspStr('irodsAdmin', '', *opts);
-    msiAddKeyValToMspStr('updateRepl', '', *opts);
-    msiAddKeyValToMspStr('verifyChksum', '', *opts);
-    *err = errormsg(msiDataObjRepl(*dataPath, *opts, *status), *msg);
+# XXX - As of iRODS 4.3.1, ticket information doesn't get sent to deferred rules.
+#     msiAddKeyValToMspStr('all', '', *opts);
+#     msiAddKeyValToMspStr('irodsAdmin', '', *opts);
+#     msiAddKeyValToMspStr('updateRepl', '', *opts);
+#     msiAddKeyValToMspStr('verifyChksum', '', *opts);
+#     *status = errormsg(msiDataObjRepl(*dataPath, *opts, *status), *err);
+    *admArg = execCmdArg('-M');
+    *allArg = execCmdArg('-a');
+    *updateArg = execCmdArg('-U');
+    *dataArg = execCmdArg(*dataPath);
+    *args = '*admArg *allArg *updateArg *dataArg';
+    *status = errormsg(msiExecCmd('irepl-exec', *args, '', '', '', *_), *err);
+# XXX - ^^^
 
-    if (*err < 0 && *err != -808000) {
-      _repl_logMsg('failed to sync replicas of data object *Object trying again in 8 hours');
-      _repl_logMsg(*msg);
-      *err;
+    if (*status < 0 && *status != -808000) {
+      _repl_logMsg(
+        'failed to sync replicas of data object *Object (*dataPath) trying again in 8 hours:'
+        ++ ' *err' );
+
+      *status;
     } else {
-      _repl_logMsg('synced replicas of data object *Object');
+      _repl_logMsg('synced replicas of data object *Object (*dataPath)');
     }
   }
 }

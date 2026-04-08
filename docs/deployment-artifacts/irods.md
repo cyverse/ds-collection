@@ -12,6 +12,7 @@ Here are the command scripts executable through the `msiExecCmd` microservice.
 * [ichksum-exec](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/ichksum-exec) calls ichksum.
 * [imeta-exec](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/imeta-exec) calls imeta.
 * [iquest-exec](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/iquest-exec)  calls iquest.
+* [irepl-exec](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/irepl-exec)  calls irepl.
 * [send-mail](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/send-mail) sends an email message.
 
 ## Rule Files
