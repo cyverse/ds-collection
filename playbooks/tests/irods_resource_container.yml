@@ -120,17 +120,17 @@
       loop:
         - /etc/irods
         - /var/lib/irods
+        - /var/lib/irods/.irods
         - /var/lib/irods/msiExecCmd_bin
 
-    - name: Test create iRODS configuration directories remaining
-      ansible.builtin.debug:
-        msg: 'TODO: implement for {{ item }}'
-      loop:
-        - /var/lib/irods/.irods
-
     - name: Test add irodsctl adapter
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      ansible.builtin.stat:
+        path: /var/lib/irods/irodsctl
+      register: resp
+      failed_when: >
+        not resp.stat.exists
+        or not resp.stat.pw_name == 'irods'
+        or not (resp.stat.rusr and resp.stat.xusr)
 
     - name: Test copy required iRODS runtime config files
       ansible.builtin.debug:
@@ -162,6 +162,7 @@
       loop:
         - ichksum-exec
         - iquest-exec
+        - irepl-exec
 
     - name: Test stage dynamic rule bases
       ansible.builtin.debug:
