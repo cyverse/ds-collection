@@ -1157,7 +1157,7 @@ pep_database_mod_data_obj_meta_post(*Instance, *Context, *OUT, *DataObjInfo, *Re
 	*handled = false;
 	*logicalPath = if *DataObjInfo.logical_path != ''
 		then *DataObjInfo.logical_path
-		else cyverse_getDataPath(*DataObjInfo.data_id);
+		else cyverse_getDataPath(int(*DataObjInfo.data_id));
 # XXX - Because of https://github.com/irods/irods/issues/5540,
 # _cyverse_core_dataObjCreated needs to be called here when not created through file
 # registration
