@@ -172,40 +172,16 @@ class CyverseCoreDataobjcreatedFinish(CyverseCoreDataobjcreated):
         return "FINISH"
 
 
-class CyVerseCoreDataobjmodified(CyverseCoreTestCase):
-    """Tests of _cyverse_core_dataObjModified"""
-
-    def test_cyverserepl(self):
-        """verify cyverse_repl called"""
-        user = self.irods.username
-        zone = self.irods.zone
-        rule = f'''
-            *dataObjInfo.logical_path = '/{zone}/home/{user}/obj';
-            _cyverse_core_dataObjModified('{user}', '{zone}', *dataObjInfo);
-        '''
-        self.exec_rule(self.mk_rule(rule), IrodsType.NONE)
-        if not self.verify_msg_logged(f'cyverse_repl_dataObjModified({user}, {zone}, DataObjInfo)'):
-            self.fail('cyverse_logic_dataObjModified not called')
-
-
 class CyverseCorePrivateTest(CyverseCoreTestCase):
     """Test the private entities in cyverse_core.re rule base"""
 
     @unittest.skip("not implemented")
-    def test_getobjpath_path_missing(self):
-        """Test _cyverse_core_getObjPath with logical_path not set"""
-
-    @unittest.skip("not implemented")
-    def test_getobjpath_path_provided(self):
-        """Test _cyverse_core_getObjPath with logical_path set"""
-
-    @unittest.skip("not implemented")
     def test_mkdataobjsessvar(self):
-        """Test _cyverse_core_mkDataObjSessVar """
+        """Test _cyverse_core_mkDataObjSessVar"""
 
     @unittest.skip("not implemented")
     def test_dataobjmetadatamodified(self):
-        """Test _cyverse_core_dataObjMetadataModified """
+        """Test _cyverse_core_dataObjMetadataModified"""
 
 
 class AccreateuserzonecollectionsGroup(CyverseCoreTestCase):

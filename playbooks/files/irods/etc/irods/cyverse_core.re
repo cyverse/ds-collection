@@ -5,9 +5,6 @@
 # © 2023 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
-# All Data Store specific, environment independent logic goes in the file
-# cyverse_logic.re. These rules will be called by the hooks implemented here.
-
 # The shared logic usable by the Data Store and other service rules.
 @include 'cyverse'
 @include 'cyverse_json'
@@ -285,14 +282,12 @@ acPreprocForRmColl {
 #  userNameClient
 #
 acPostProcForCollCreate {
-	*err = errormsg(
+	*status = errormsg(
 		cyverse_logic_acPostProcForCollCreate($collName, $rodsZoneClient, $userNameClient), *msg );
-	if (*err < 0) { writeLine('serverLog', *msg); }
+	if (*status < 0) { writeLine('serverLog', *msg); }
 
-	*err = errormsg(coge_acPostProcForCollCreate($collName), *msg);
-	if (*err < 0) {
-		writeLine('serverLog', *msg);
-	}
+	*status = errormsg(coge_acPostProcForCollCreate($collName), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 # This rule sets the post-processing policy for when a data object's replica is
@@ -303,7 +298,8 @@ acPostProcForCollCreate {
 #                stored
 #
 acPostProcForDataCopyReceived(*LeafResource) {
-	cyverse_logic_acPostProcForDataCopyReceived(*LeafResource);
+	*status = errormsg(cyverse_logic_acPostProcForDataCopyReceived(*LeafResource), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 # This rule sets the post-processing policy for deleting a data object.
@@ -314,11 +310,9 @@ acPostProcForDataCopyReceived(*LeafResource) {
 #  rodsZoneClient
 #
 acPostProcForDelete {
-	*err = errormsg(
+	*status = errormsg(
 		cyverse_logic_acPostProcForDelete($objPath, $rodsZoneClient, $userNameClient), *msg );
-	if (*err < 0) {
-		writeLine('serverLog', *msg);
-	}
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 # This rule sets the post-processing policy for an ACL change.
@@ -343,8 +337,10 @@ acPostProcForDelete {
 #  rodsZoneClient
 #
 acPostProcForModifyAccessControl(*RecursiveFlag, *AccessLevel, *UserName, *Zone, *Path) {
-	cyverse_logic_acPostProcForModifyAccessControl(
-		*RecursiveFlag, *AccessLevel, *UserName, *Zone, *Path,  $userNameClient, $rodsZoneClient );
+	*status = errormsg(
+		cyverse_logic_acPostProcForModifyAccessControl(*RecursiveFlag, *AccessLevel, *UserName, *Zone, *Path, $userNameClient, $rodsZoneClient),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 # This rule sets the post-processing policy for manipulating AVUs other than
@@ -367,8 +363,10 @@ acPostProcForModifyAccessControl(*RecursiveFlag, *AccessLevel, *UserName, *Zone,
 #  rodsZoneClient
 #
 acPostProcForModifyAVUMetadata(*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit) {
-	cyverse_logic_acPostProcForModifyAVUMetadata(
-		*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, $userNameClient, $rodsZoneClient );
+	*status = errormsg(
+		cyverse_logic_acPostProcForModifyAVUMetadata(*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, $userNameClient, $rodsZoneClient),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 # This rule sets the post-processing policy for modifying AVUs.
@@ -397,18 +395,10 @@ acPostProcForModifyAVUMetadata(*Option, *ItemType, *ItemName, *AName, *AValue, *
 acPostProcForModifyAVUMetadata(
 	*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, *NAName, *NAValue, *NAUnit
 ) {
-	cyverse_logic_acPostProcForModifyAVUMetadata(
-		*Option,
-		*ItemType,
-		*ItemName,
-		*AName,
-		*AValue,
-		*AUnit,
-		*NAName,
-		*NAValue,
-		*NAUnit,
-		$userNameClient,
-		$rodsZoneClient );
+	*status = errormsg(
+		cyverse_logic_acPostProcForModifyAVUMetadata(*Option, *ItemType, *ItemName, *AName, *AValue, *AUnit, *NAName, *NAValue, *NAUnit, $userNameClient, $rodsZoneClient),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 # This rule sets the post-processing policy for copying AVUs between entities.
@@ -434,14 +424,10 @@ acPostProcForModifyAVUMetadata(
 acPostProcForModifyAVUMetadata(
 	*Option, *SourceItemType, *TargetItemType, *SourceItemName, *TargetItemName
 ) {
-	cyverse_logic_acPostProcForModifyAVUMetadata(
-		*Option,
-		*SourceItemType,
-		*TargetItemType,
-		*SourceItemName,
-		*TargetItemName,
-		$userNameClient,
-		$rodsZoneClient );
+	*status = errormsg(
+		cyverse_logic_acPostProcForModifyAVUMetadata(*Option, *SourceItemType, *TargetItemType, *SourceItemName, *TargetItemName, $userNameClient, $rodsZoneClient),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 # This rule sets the post-processing policy for a moved or renamed collection or
@@ -457,23 +443,16 @@ acPostProcForModifyAVUMetadata(
 #  rodsZoneClient
 #
 acPostProcForObjRename(*SourceObject, *DestObject) {
-	*err = errormsg(
-		cyverse_logic_acPostProcForObjRename(
-			*SourceObject, *DestObject, $userNameClient, $rodsZoneClient ),
+	*status = errormsg(
+		cyverse_logic_acPostProcForObjRename(*SourceObject, *DestObject, $userNameClient, $rodsZoneClient),
 		*msg );
-	if (*err < 0) {
-		writeLine('serverLog', *msg);
-	}
+	if (*status < 0) { writeLine('serverLog', *msg); }
 
-	*err = errormsg(coge_acPostProcForObjRename(*SourceObject, *DestObject), *msg);
-	if (*err < 0) {
-		writeLine('serverLog', *msg);
-	}
+	*status = errormsg(coge_acPostProcForObjRename(*SourceObject, *DestObject), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 
-	*err = errormsg(replEntityRename(*SourceObject, *DestObject), *msg);
-	if (*err < 0) {
-		writeLine('serverLog', *msg);
-	}
+	*status = errormsg(replEntityRename(*SourceObject, *DestObject), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 # This rule sets the post-processing policy for when a data object is opened.
@@ -485,12 +464,10 @@ acPostProcForObjRename(*SourceObject, *DestObject) {
 #  rodsZoneClient
 #
 acPostProcForOpen {
-	*err = errormsg(
+	*status = errormsg(
 		cyverse_logic_acPostProcForOpen($objPath, $dataSize, $userNameClient, $rodsZoneClient),
 		*msg );
-	if (*err < 0) {
-		writeLine('serverLog', *msg);
-	}
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 # This rule sets the post-processing policy for when a data object is uploaded
@@ -501,7 +478,8 @@ acPostProcForOpen {
 #                stored
 #
 acPostProcForParallelTransferReceived(*LeafResource) {
-	cyverse_logic_acPostProcForParallelTransferReceived(*LeafResource);
+	*status = errormsg(cyverse_logic_acPostProcForParallelTransferReceived(*LeafResource), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 # Ths rule sets the post-processing policy for when a collection is removed.
@@ -512,7 +490,9 @@ acPostProcForParallelTransferReceived(*LeafResource) {
 #  rodsZoneClient
 #
 acPostProcForRmColl {
-	cyverse_logic_acPostProcForRmColl($collName, $userNameClient, $rodsZoneClient);
+	*status = errormsg(
+		cyverse_logic_acPostProcForRmColl($collName, $userNameClient, $rodsZoneClient), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -543,8 +523,14 @@ acPostProcForRmColl {
 # N.B. large files are not passed through rcBulkDataObjPut
 #
 pep_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
-	cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf);
-	cyverse_repl_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf);
+	*status = errormsg(
+		cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_repl_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -584,8 +570,12 @@ pep_api_bulk_data_obj_reg_post(*Instance, *Comm, *BulkDataObjRegInp, *BULK_DATA_
 #  CollCreateInp  (`KeyValuePair_PI`) information related to the new collection
 #
 pep_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
-	cyverse_encryption_api_coll_create_post(*Instance, *Comm, *CollCreateInp);
-	cyverse_trash_api_coll_create_post(*Instance, *Comm, *CollCreateInp);
+	*status = errormsg(
+		cyverse_encryption_api_coll_create_post(*Instance, *Comm, *CollCreateInp), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(cyverse_trash_api_coll_create_post(*Instance, *Comm, *CollCreateInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -617,9 +607,17 @@ pep_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 #   https://docs.irods.org/4.3,1/doxygen/group__data__object.html#gaad62fbc609d67726e15e7330bbbdf98d
 #
 pep_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
-	cyverse_logic_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat);
-	cyverse_repl_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat);
-	cyverse_trash_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat);
+	*status = errormsg(
+		cyverse_logic_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_repl_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_trash_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -653,12 +651,20 @@ pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL
 #   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
 #
 pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
-	cyverse_logic_api_data_obj_put_post(
-		*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT );
-	cyverse_repl_api_data_obj_put_post(
-		*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT );
-	cyverse_trash_api_data_obj_put_post(
-		*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT );
+	*status = errormsg(
+		cyverse_logic_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_repl_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_trash_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -688,9 +694,17 @@ pep_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp) {
 #                    its old path
 #
 pep_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
-	cyverse_encryption_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp);
-	cyverse_repl_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp);
-	cyverse_trash_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp);
+	*status = errormsg(
+		cyverse_encryption_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_repl_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_trash_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -748,8 +762,11 @@ pep_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp) {
 #                 registration
 #
 pep_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp) {
-	cyverse_logic_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp);
-	cyverse_repl_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp);
+	*status = errormsg(cyverse_logic_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(cyverse_repl_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -814,8 +831,11 @@ pep_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp) {
 #  JsonInput  (string) a JSON-serialized description of the touch request
 #
 pep_api_touch_post(*Instance, *Comm, *JsonInput) {
-	cyverse_logic_api_touch_post(*Instance, *Comm, *JsonInput);
-	cyverse_repl_api_touch_post(*Instance, *Comm, *JsonInput);
+	*status = errormsg(cyverse_logic_api_touch_post(*Instance, *Comm, *JsonInput), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(cyverse_repl_api_touch_post(*Instance, *Comm, *JsonInput), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -960,8 +980,13 @@ pep_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInp
 #                   close request
 #
 pep_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
-	cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp);
-	cyverse_repl_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp);
+	*status = errormsg(
+		cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_repl_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -997,23 +1022,17 @@ pep_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
 #  JsonInput  (string) a JSON-serialized description of the replica change
 #
 pep_api_replica_close_post(*Instance, *Comm, *JsonInput) {
-	cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput);
-	cyverse_repl_api_replica_close_post(*Instance, *Comm, *JsonInput);
+	*status = errormsg(cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(cyverse_repl_api_replica_close_post(*Instance, *Comm, *JsonInput), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
 ## DATABASE ##
 
 ## SUPPORTING FUNCTIONS AND RULES ##
-
-_cyverse_core_getObjPath(*DataObjInfo) =
-	let *path = *DataObjInfo.logical_path in
-	let *_ = if (*path == '') {
-		*id = *DataObjInfo.data_id;
-		foreach (*rec in SELECT COLL_NAME, DATA_NAME WHERE DATA_ID = *id) {
-			*path = *rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME;
-		} } in
-	/*path
 
 # generates a unique session variable name for a data object
 #
@@ -1028,43 +1047,34 @@ _cyverse_core_mkDataObjSessVar(*Path) = 'ipc-data-obj-' ++ str(*Path)
 
 # XXX - Because of https://github.com/irods/irods/issues/5540
 # _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo) {
-# 	*err = errormsg(cyverse_logic_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
-# 	if (*err < 0) {
-# 		writeLine('serverLog', *msg);
-# 	}
-# 	*err = errormsg(coge_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
-# 	if (*err < 0) {
-# 		writeLine('serverLog', *msg);
-# 	}
-# 	*err = errormsg(cyverse_repl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
-# 	if (*err < 0) {
-# 		writeLine('serverLog', *msg);
-#	}
+# 	*status = errormsg(cyverse_logic_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
+# 	if (*status < 0) { writeLine('serverLog', *msg); }
+#
+# 	*status = errormsg(coge_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
+# 	if (*status < 0) { writeLine('serverLog', *msg); }
+#
+# 	*status = errormsg(cyverse_repl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
+# 	if (*status < 0) { writeLine('serverLog', *msg); }
 # }
 _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo, *Step) {
-	*err = errormsg(cyverse_logic_dataObjCreated(*User, *Zone, *DataObjInfo, *Step), *msg);
-	if (*err < 0) {
-		writeLine('serverLog', *msg);
-	}
+	*status = errormsg(cyverse_logic_dataObjCreated(*User, *Zone, *DataObjInfo, *Step), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 
 	if (*Step != 'FINISH') {
-		*err = errormsg(coge_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
-		if (*err < 0) {
-			writeLine('serverLog', *msg);
-		}
+		*status = errormsg(coge_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
+		if (*status < 0) { writeLine('serverLog', *msg); }
 	}
 
 	if (*Step != 'START') {
-		*err = errormsg(cyverse_repl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
-		if (*err < 0) {
-			writeLine('serverLog', *msg);
-		}
+		*status = errormsg(cyverse_repl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
+		if (*status < 0) { writeLine('serverLog', *msg); }
 	}
 }
 # XXX - ^^^
 
 _cyverse_core_dataObjMetadataModified(*User, *Zone, *Object) {
-	cyverse_logic_dataObjMetaMod(*User, *Zone, *Object);
+	*status = errormsg(cyverse_logic_dataObjMetaMod(*User, *Zone, *Object), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -1145,7 +1155,9 @@ pep_database_close_finally(*Instance, *Context, *OUT) {
 #
 pep_database_mod_data_obj_meta_post(*Instance, *Context, *OUT, *DataObjInfo, *RegParam) {
 	*handled = false;
-	*logicalPath = _cyverse_core_getObjPath(*DataObjInfo);
+	*logicalPath = if *DataObjInfo.logical_path != ''
+		then *DataObjInfo.logical_path
+		else cyverse_getDataPath(*DataObjInfo.data_id);
 # XXX - Because of https://github.com/irods/irods/issues/5540,
 # _cyverse_core_dataObjCreated needs to be called here when not created through file
 # registration
