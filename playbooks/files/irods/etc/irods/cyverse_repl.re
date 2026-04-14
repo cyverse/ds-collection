@@ -421,8 +421,7 @@ cyverse_repl_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
       *coll = str(*Coll);
 
       foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = *coll || LIKE '*coll/%') {
-        *dataId = *rec.DATA_ID;
-        _repl_scheduleMv(*dataId, *dstResc, *dstRepl);
+        _repl_scheduleMv(int(*rec.DATA_ID), *dstResc, *dstRepl);
       }
     }
   }
