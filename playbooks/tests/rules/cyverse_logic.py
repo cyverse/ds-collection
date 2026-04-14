@@ -66,25 +66,20 @@ class TestCyverseLogicIcatIds(IrodsTestCase):
             [IrodsVal.string(iRODSPath("missing"))],
             IrodsVal.integer(-1))
 
-    def test_getdataobjid_present(self):
-        """Test _cyverse_logic_getDataObjId when data object is present"""
-        obj_path = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
-        obj = self.irods.data_objects.create(obj_path)
-        for p in IrodsTestCase.prep_path(obj_path):
-            with self.subTest(p=p):
-                self.fn_test('_cyverse_logic_getDataObjId', [p], IrodsVal.integer(obj.id))  # pylint: disable=no-member,line-too-long # type: ignore # noqa: E501
-        obj.unlink(force=True)
-
-    def test_getdataobjid_missing(self):
-        """Test _cyverse_logic_getDataObjId when data object is not present"""
-        self.fn_test(
-            '_cyverse_logic_getDataObjId',
-            [IrodsVal.string(iRODSPath("missing"))],
-            IrodsVal.integer(-1))
+    def test_getid_coll(self):
+        """Test _cyverse_logic_getId for collection"""
+        zone_path = iRODSPath(self.irods.zone)
+        zone = self.irods.collections.get(zone_path)
+        if zone:
+            for p in IrodsTestCase.prep_path(zone_path):
+                with self.subTest(p=p):
+                    self.fn_test('_cyverse_logic_getId', [p], IrodsVal.integer(zone.id))
+        else:
+            self.fail("zone collection is missing")
 
     @unittest.skip("not implemented")
-    def test_getid(self):
-        """Test _cyverse_logic_getId"""
+    def test_getid_data(self):
+        """Test _cyverse_logic_getId for data object"""
 
 
 class TestCyVerseLogic(IrodsTestCase):

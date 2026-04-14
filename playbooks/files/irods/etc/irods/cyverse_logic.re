@@ -989,9 +989,10 @@ cyverse_logic_chksumRepl(*DataId, *ReplNum) {
 # 		msiDataObjChksum(*dataPath, *opts, *_);
 		*admArg = execCmdArg('-M');
 		*forceArg = execCmdArg('-f');
-		*replArg = execCmdArg("-n *ReplNum");
+		*replFlagArg = execCmdArg('-n');
+		*replNumArg = execCmdArg(*ReplNum);
 		*dataArg = execCmdArg(*dataPath);
-		*argStr = '*admArg *forceArg *replArg *dataArg';
+		*argStr = '*admArg *forceArg *replFlagArg *ReplNumArg *dataArg';
 		*status = errormsg(msiExecCmd('ichksum-exec', *argStr, '', '', '', *resp), *err);
 
 		if (*status < 0) {
