@@ -668,9 +668,11 @@ cyverse_repl_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
     *srcType = int(cyverse_getValue(*DataObjRenameInp, 'src_opr_type'));
 
     if (*srcType == 11) {  # data object
-      _repl_scheduleDataMove(*dstPath, *dstResc, *dstRepl);
+      _cyverse_repl_scheduleDataMove(*dstPath, *dstResc, *dstRepl);
     } else if (*srcType == 12) {  # collection
-      _repl_scheduleCollMove(*dstPath, *dstResc, *dstRepl);
+      _cyverse_repl_scheduleCollMove(*dstPath, *dstResc, *dstRepl);
+    } else {  # unknown
+      _repl_scheduleMoves(*dstPath, *dstResc, *dstRepl);
     }
   }
 }
