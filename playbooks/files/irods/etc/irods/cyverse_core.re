@@ -450,9 +450,6 @@ acPostProcForObjRename(*SourceObject, *DestObject) {
 
 	*status = errormsg(coge_acPostProcForObjRename(*SourceObject, *DestObject), *msg);
 	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(replEntityRename(*SourceObject, *DestObject), *msg);
-	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 # This rule sets the post-processing policy for when a data object is opened.

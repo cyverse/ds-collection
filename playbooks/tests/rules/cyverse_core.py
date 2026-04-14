@@ -18,7 +18,7 @@ from irods.exception import (
 )
 
 import test_rules
-from test_rules import IrodsTestCase, IrodsType
+from test_rules import IrodsTestCase, IrodsType, IrodsVal
 
 
 def setUpModule():  # pylint: disable=invalid-name
@@ -175,9 +175,16 @@ class CyverseCoreDataobjcreatedFinish(CyverseCoreDataobjcreated):
 class CyverseCorePrivateTest(CyverseCoreTestCase):
     """Test the private entities in cyverse_core.re rule base"""
 
+    def test_mkdataobjsessvar_path(self):
+        """Test _cyverse_core_mkDataObjSessVar with path"""
+        self.fn_test(
+            '_cyverse_core_mkDataObjSessVar',
+            [IrodsVal.path('/a/path')],
+            IrodsVal.string('ipc-data-obj-/a/path'))
+
     @unittest.skip("not implemented")
-    def test_mkdataobjsessvar(self):
-        """Test _cyverse_core_mkDataObjSessVar"""
+    def test_mkdataobjsessvar_str(self):
+        """Test _cyverse_core_mkDataObjSessVar with string"""
 
     @unittest.skip("not implemented")
     def test_dataobjmetadatamodified(self):

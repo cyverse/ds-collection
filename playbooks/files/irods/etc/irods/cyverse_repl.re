@@ -33,60 +33,6 @@
 #  REPL-RESC is to asynchronously replicate the contents of RESC. When the unit
 #  is 'preferred', the user may override this.
 #
-# DEPRECATED FUNCTIONALITY
-#
-# Unlike the logic in cyverse_logic.re, the replication logic doesn't apply
-# globally. Different projects may have different replication policies.
-#
-# THIRD PARTY REPLICATION LOGIC
-#
-# Third party replication logic goes in its own file, and the file should be
-# included in cyverse_core.re. Third party logic should be implement a set of
-# functions prefixed by the containing file name.
-#
-# Here's the list of functions that need to be provided by in the replication
-# logic file.
-#
-# <file_name>_replBelongsTo(*Entity)
-#  Determines if the provided collection or data object belongs to the project
-#
-#  Parameters:
-#   Entity  the absolute iRODS path to the collection or data object
-#
-#  Returns:
-#   a Boolean indicating whether or not the collection or data object belongs to
-#   the project
-#
-#  Example:
-#   project_replBelongsTo : path -> boolean
-#   project_replBelongsTo(*Entity) =
-#      str(*Entity) like '/' ++ cyverse_ZONE ++ '/home/shared/project/*'
-#
-# <file_name>_replIngestResc
-#  Returns the resource where newly ingested files for the project should be
-#  stored.
-#
-#  Returns:
-#   a tuple where the first value is the name of the resource and the second is
-#   a flag indicating whether or not this resource choice may be overridden by
-#   the user.
-#
-#  Example:
-#   project_replIngestResc : string * boolean
-#   project_replIngestResc = ('projectIngestRes', true)
-#
-# <file_name>_replReplResc
-#  Returns the resource where a replica of a data object should be stored.
-#
-#  Return:
-#   a tuple where the first value is the name of the resource and the second is
-#   a flag indicating whether or not this resource choice may be overridden by
-#   the user.
-#
-#  Examples:
-#   project_replReplResc : string * boolean
-#   project_replReplResc = ('projectReplRes', false)
-#
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
@@ -133,52 +79,6 @@ _repl_replicate(*Object, *RescName) {
       _repl_logMsg('replicated data object *Object (*objPath)');
     }
   }
-}
-
-
-# DEPRECATED
-_mvReplicas(*Object, *IngestResc, *ReplResc) {
-  _repl_logMsg('moving replicas of data object *Object');
-
-  *dataPath = cyverse_getDataPath(*Object);
-
-  if (*dataPath != '') {
-    *replFail = false;
-    (*ingestName, *ingestOptional) = *IngestResc;
-    (*replName, *replOptional) = *ReplResc;
-
-    if (_repl_replicate(*Object, *ingestName) < 0) {
-      *replFail = true;
-    }
-
-    if (*replName != *ingestName) {
-      if (_repl_replicate(*Object, *replName) < 0) {
-        *replFail = true;
-      }
-    }
-
-    if (!*replFail) {
-      # Once a replica exists on all the project's resource, remove the other replicas
-      foreach (*rec in SELECT DATA_RESC_HIER, DATA_REPL_NUM WHERE DATA_ID = '*Object') {
-        *rescHier = *rec.DATA_RESC_HIER;
-        *replNum = *rec.DATA_REPL_NUM;
-
-        if (!(*rescHier like regex '^(*ingestName|*replName)(;.*)?$')) {
-          if (errorcode(msiDataObjTrim(*dataPath, 'null', *replNum, '1', 'null', *status)) < 0) {
-            _repl_logMsg('failed to trim replica of *Object on *rescHier (*status)');
-            *replFail = true;
-          }
-        }
-      }
-    }
-
-    if (*replFail) {
-      _repl_logMsg('failed to completely move replicas of data object *Object');
-      fail;
-    }
-  }
-
-  _repl_logMsg('moved replicas of data object *Object');
 }
 
 
@@ -264,14 +164,6 @@ _repl_syncReplicas(*Object) {
 
 # SUPPORTING FUNCTIONS AND RULES
 
-_defaultIngestResc : string * boolean
-_defaultIngestResc = (cyverse_DEFAULT_RESC, true)
-
-
-_defaultReplResc : string * boolean
-_defaultReplResc = (cyverse_DEFAULT_REPL_RESC, true)
-
-
 _delayTime : int
 _delayTime =
   let *_ = if (!cyverse_hasKey(temporaryStorage, 'cyverse_repl_delayTime')) {
@@ -290,74 +182,11 @@ _repl_logMsg(*Msg) {
 }
 
 
-# DEPRECATED
-# XXX - As of 4.3.1, Booleans and tuples are not supported by packing
-#       instructions. The resource description tuple must be expanded, and the
-#       second term needs to be converted to a string. See
-#       https://github.com/irods/irods/issues/3634 for Boolean support.
-_scheduleMv(*Object, *IngestName, *IngestOptStr, *ReplName, *ReplOptStr) {
-  delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
-  {_mvReplicas(*Object, (*IngestName, bool(*IngestOptStr)), (*ReplName, bool(*ReplOptStr)))}
-
-  _incDelayTime;
-}
-
 _repl_scheduleMv(*Object, *IngestName, *ReplName) {
   delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
   {_repl_mvReplicas(*Object, *IngestName, *ReplName);}
 
   _incDelayTime;
-}
-
-
-# DEPRECATED
-_scheduleMoves(*Entity, *IngestResc, *ReplResc) {
-  (*ingestName, *ingestOptional) = *IngestResc;
-  (*replName, *replOptional) = *ReplResc;
-  *type = cyverse_getEntityType(*Entity);
-
-  if (cyverse_isColl(*type)) {
-    # if the entity is a collection
-    *entity = str(*Entity);
-
-    foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = *entity || LIKE '*entity/%') {
-      _scheduleMv(*rec.DATA_ID, *ingestName, str(*ingestOptional), *replName, str(*replOptional));
-    }
-  } else if (cyverse_isDataObj(*type)) {
-    # if the entity is a data object
-    _scheduleMv(
-      cyverse_getDataId(*Entity),
-      *ingestName,
-      str(*ingestOptional),
-      *replName,
-      str(*replOptional) );
-  }
-}
-
-
-_cyverse_repl_scheduleCollMove(*Coll, *IngestName, *ReplName) {
-  *coll = str(*Coll);
-
-  foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = *coll || LIKE '*coll/%') {
-    *dataId = *rec.DATA_ID;
-    _repl_scheduleMv(*dataId, *IngestName, *ReplName);
-  }
-}
-
-
-_cyverse_repl_scheduleDataMove(*Data, *IngestName, *ReplName) {
-  _repl_scheduleMv(cyverse_getDataId(*Data), *IngestName, *ReplName);
-}
-
-
-_repl_scheduleMoves(*Entity, *IngestName, *ReplName) {
-  *type = cyverse_getEntityType(*Entity);
-
-  if (cyverse_isColl(*type)) {
-    _cyverse_repl_scheduleCollMove(*Entity, *IngestName, *ReplName);
-  } else if (cyverse_isDataObj(*type)) {
-    _cyverse_repl_scheduleDataMove(*Entity, *IngestName, *ReplName);
-  }
 }
 
 
@@ -390,20 +219,6 @@ _repl_scheduleSyncReplicas(*Object) {
 }
 
 
-# DEPRECATED
-_ipcRepl_createOrOverwrite_old(*DataPath, *DestResc, *New, *IngestResc, *ReplResc) {
-  *dataId = cyverse_getDataId(*DataPath);
-
-  if (*New) {
-    (*ingestName, *optional) = *IngestResc;
-    (*replName, *optional) = *ReplResc;
-    _repl_scheduleRepl(*dataId, if *DestResc == *replName then *ingestName else *replName);
-  } else {
-    _repl_scheduleSyncReplicas(*dataId);
-  }
-}
-
-
 _ipcRepl_createOrOverwrite(*DataPath, *DestResc, *New, *IngestResc, *ReplResc) {
   *dataId = cyverse_getDataId(*DataPath);
 
@@ -412,12 +227,6 @@ _ipcRepl_createOrOverwrite(*DataPath, *DestResc, *New, *IngestResc, *ReplResc) {
   } else {
     _repl_scheduleSyncReplicas(*dataId);
   }
-}
-
-
-_setDefaultResc(*Resource) {
-  (*name, *optional) = *Resource;
-  msiSetDefaultResc(*name, if *optional then 'preferred' else 'forced');
 }
 
 
@@ -451,18 +260,13 @@ _repl_findResc(*DataPath) {
 # Given a resource, this rule determines the list of resources that
 # asynchronously replicate its replicas.
 _repl_findReplResc(*Resc) {
-  if (*Resc == cyverse_DEFAULT_RESC) {
-    (*repl, *opt) = _defaultReplResc;
-    *residency = if *opt then 'preferred' else 'forced';
-  } else {
-    *repl = *Resc;
-    *residency = 'preferred';
+  *repl = cyverse_DEFAULT_REPL_RESC;
+  *residency = 'preferred';
 
-    foreach (*record in SELECT META_RESC_ATTR_VALUE, META_RESC_ATTR_UNITS
-                        WHERE RESC_NAME = *Resc AND META_RESC_ATTR_NAME = 'ipc::replica-resource') {
-      *repl = *record.META_RESC_ATTR_VALUE;
-      *residency = *record.META_RESC_ATTR_UNITS;
-    }
+  foreach (*record in SELECT META_RESC_ATTR_VALUE, META_RESC_ATTR_UNITS
+                      WHERE RESC_NAME = *Resc AND META_RESC_ATTR_NAME = 'ipc::replica-resource') {
+    *repl = *record.META_RESC_ATTR_VALUE;
+    *residency = *record.META_RESC_ATTR_UNITS;
   }
 
   *result = (*repl, *residency);
@@ -470,70 +274,24 @@ _repl_findReplResc(*Resc) {
 }
 
 
-# DEPRECATED
-_ipcRepl_put_old(*ObjPath, *DestResc, *New) {
-  _ipcRepl_createOrOverwrite_old(*ObjPath, *DestResc, *New, _defaultIngestResc, _defaultReplResc);
-}
-
 _ipcRepl_put(*ObjPath, *DestRescHier, *New) {
   (*ingestResc, *_) = _repl_findResc(*ObjPath);
-  *destResc = hd(split(*DestRescHier, ';'));
-
-  if (*ingestResc != cyverse_DEFAULT_RESC) {
-    (*replResc, *_) = _repl_findReplResc(*ingestResc);
-    _ipcRepl_createOrOverwrite(*ObjPath, *destResc, *New, *ingestResc, *replResc);
-  } else {
-    _ipcRepl_put_old(*ObjPath, *destResc, *New);
-  }
+  (*replResc, *_) = _repl_findReplResc(*ingestResc);
+  _ipcRepl_createOrOverwrite(*ObjPath, hd(split(*DestRescHier, ';')), *New, *ingestResc, *replResc);
 }
 
 
 # REPLICATION RULES
-
-# This rule updates the replicas if needed after a collection or data object has
-# been moved
-#
-# Parameters:
-#  SourceObject  (path) the absolute path to the collection or data object
-#                before it was moved
-#  DestObject    (path) the absolute path after it was moved
-#
-replEntityRename(*SourceObject, *DestObject) {
-  (*destResc, *_) = _repl_findResc(*DestObject);
-  (*srcResc, *_) = _repl_findResc(*SourceObject);
-
-  if (*destResc != cyverse_DEFAULT_RESC) {
-    if (*srcResc != *destResc) {
-      (*destRepl, *_) = _repl_findReplResc(*destResc);
-      _repl_scheduleMoves(*DestObject, *destResc, *destRepl);
-    }
-  } else {
-    if (*srcResc != cyverse_DEFAULT_RESC) {
-      _repl_scheduleMoves(*DestObject, cyverse_DEFAULT_RESC, cyverse_DEFAULT_REPL_RESC);
-    }
-  }
-}
-
 
 # This rule ensures that the correct resource is chosen for first replica of a
 # newly created data object.
 #
 # Parameters:
 #  DataPath  (path) the path to the data object being created
-
-# DEPRECATED
-_ipcRepl_acSetRescSchemeForCreate(*DataPath) {
-  _setDefaultResc(_defaultIngestResc);
-}
-
+#
 cyverse_repl_acSetRescSchemeForCreate(*DataPath) {
   (*resc, *residency) = _repl_findResc(*DataPath);
-
-  if (*resc != cyverse_DEFAULT_RESC) {
-    msiSetDefaultResc(*resc, *residency);
-  } else {
-    _ipcRepl_acSetRescSchemeForCreate(*DataPath);
-  }
+  msiSetDefaultResc(*resc, *residency);
 }
 
 
@@ -542,22 +300,12 @@ cyverse_repl_acSetRescSchemeForCreate(*DataPath) {
 #
 # Parameters:
 #  DataPath  (path) the path to the data object being replicated
-
-# DEPRECATED
-_ipcRepl_acSetRescSchemeForRepl(*DataPath) {
-  _setDefaultResc(_defaultReplResc);
-}
-
+#
 cyverse_repl_acSetRescSchemeForRepl(*DataPath) {
   if (cyverse_getValue(temporaryStorage, 'cyverse_repl_replicate') != 'REPL_FORCED_REPL_RESC') {
     (*resc, *_) = _repl_findResc(*DataPath);
-
-    if (*resc != cyverse_DEFAULT_RESC) {
-      (*repl, *residency) = _repl_findReplResc(*resc);
-      msiSetDefaultResc(*repl, *residency);
-    } else {
-      _ipcRepl_acSetRescSchemeForRepl(*DataPath);
-    }
+    (*repl, *residency) = _repl_findReplResc(*resc);
+    msiSetDefaultResc(*repl, *residency);
   }
 }
 
@@ -668,11 +416,14 @@ cyverse_repl_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
     *srcType = int(cyverse_getValue(*DataObjRenameInp, 'src_opr_type'));
 
     if (*srcType == 11) {  # data object
-      _cyverse_repl_scheduleDataMove(*dstPath, *dstResc, *dstRepl);
-    } else if (*srcType == 12) {  # collection
-      _cyverse_repl_scheduleCollMove(*dstPath, *dstResc, *dstRepl);
-    } else {  # unknown
-      _repl_scheduleMoves(*dstPath, *dstResc, *dstRepl);
+      _repl_scheduleMv(cyverse_getDataId(*dstPath), *dstResc, *dstRepl);
+    } else {  # collection
+      *coll = str(*Coll);
+
+      foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = *coll || LIKE '*coll/%') {
+        *dataId = *rec.DATA_ID;
+        _repl_scheduleMv(*dataId, *dstResc, *dstRepl);
+      }
     }
   }
 }
