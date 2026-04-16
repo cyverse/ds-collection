@@ -52,19 +52,21 @@ _repl_replicate(*Object, *RescName) {
 # XXX - As of iRODS 4.3.1, ticket information doesn't get sent to deferred rules.
 #     msiAddKeyValToMspStr('backupRescName', *RescName, *opts);
 #     msiAddKeyValToMspStr('verifyChksum', '', *opts);
-#     *status = errormsg(msiDataObjRepl(*objPath, *opts, *status), *err);
+#     *status = errormsg(msiDataObjRepl(*objPath, *opts, *_), *err);
     *admArg = execCmdArg('-M');
     *backupArg = execCmdArg('-B');
     *destRescFlgArg = execCmdArg('-R');
     *destRescArg = execCmdArg(*RescName);
     *dataArg = execCmdArg(*objPath);
     *args = '*admArg *backupArg *destRescFlgArg *destRescArg *dataArg';
-    *status = errormsg(msiExecCmd('irepl-exec', *args, '', '', '', *_), *err);
+    *status = errormsg(msiExecCmd('irepl-exec', *args, '', '', '', *resp), *err);
+    msiGetStderrInExecCmdOut(*resp, *msg);
+    *err = *err ++ ' (' ++ *msg ++ ')';
 # XXX - ^^^
 
     temporaryStorage.cyverse_repl_replicate = '';
 
-    if (*status < 0){
+    if (*status < 0) {
       if (*status == -808000 || *status == -817000) {
         _repl_logMsg(
           'failed to replicate data object *Object (*objPath), data no longer exists: *err' );
