@@ -71,6 +71,17 @@ class CyverseCoreTestCase(IrodsTestCase):
         return False
 
 
+class CyverseCoreMkdataobjsessvarTest(CyverseCoreTestCase):
+    """Tests of  _cyverse_core_mkDataObjSessVar"""
+
+    def test(self):
+        """Test it"""
+        for p in IrodsTestCase.prep_path('/a/path'):
+            with self.subTest(p=p):
+                self.fn_test(
+                    '_cyverse_core_mkDataObjSessVar', [p], IrodsVal.string('ipc-data-obj-/a/path'))
+
+
 class CyverseCoreDataobjcreated(ABC, CyverseCoreTestCase):
     """The base class for _cyverse_core_dataObjCreated tests"""
 
@@ -172,23 +183,9 @@ class CyverseCoreDataobjcreatedFinish(CyverseCoreDataobjcreated):
         return "FINISH"
 
 
-class CyverseCorePrivateTest(CyverseCoreTestCase):
-    """Test the private entities in cyverse_core.re rule base"""
-
-    def test_mkdataobjsessvar_path(self):
-        """Test _cyverse_core_mkDataObjSessVar with path"""
-        self.fn_test(
-            '_cyverse_core_mkDataObjSessVar',
-            [IrodsVal.path('/a/path')],
-            IrodsVal.string('ipc-data-obj-/a/path'))
-
-    @unittest.skip("not implemented")
-    def test_mkdataobjsessvar_str(self):
-        """Test _cyverse_core_mkDataObjSessVar with string"""
-
-    @unittest.skip("not implemented")
-    def test_dataobjmetadatamodified(self):
-        """Test _cyverse_core_dataObjMetadataModified"""
+@test_rules.unimplemented
+class CyverseCoreDataobjmetadatamodifiedTest(CyverseCoreDataobjcreated):
+    """Tests of _cyverse_core_dataObjMetadataModified"""
 
 
 class AccreateuserzonecollectionsGroup(CyverseCoreTestCase):

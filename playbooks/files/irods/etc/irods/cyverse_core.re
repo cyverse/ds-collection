@@ -299,7 +299,7 @@ acPostProcForCollCreate {
 #
 acPostProcForDataCopyReceived(*LeafResource) {
 	*status = errormsg(cyverse_logic_acPostProcForDataCopyReceived(*LeafResource), *msg);
-	if (*status < 0) { writeLine('serverLog', *msg); }
+	if (*status < 0) { writeLine('serverLog', 'acPostProcForDataCopyReceived failed: *msg'); }
 }
 
 # This rule sets the post-processing policy for deleting a data object.
