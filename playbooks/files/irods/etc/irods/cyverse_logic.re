@@ -992,7 +992,7 @@ cyverse_logic_chksumRepl(*DataId, *ReplNum) {
 		*replFlagArg = execCmdArg('-n');
 		*replNumArg = execCmdArg(*ReplNum);
 		*dataArg = execCmdArg(*dataPath);
-		*argStr = '*admArg *forceArg *replFlagArg *ReplNumArg *dataArg';
+		*argStr = '*admArg *forceArg *replFlagArg *replNumArg *dataArg';
 		*status = errormsg(msiExecCmd('ichksum-exec', *argStr, '', '', '', *resp), *err);
 
 		if (*status < 0) {
