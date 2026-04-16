@@ -423,9 +423,7 @@ cyverse_repl_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
     if (*srcType == 11) {  # data object
       _repl_scheduleMv(cyverse_getDataId(*dstPath), *dstResc, *dstRepl);
     } else {  # collection
-      *coll = str(*Coll);
-
-      foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = *coll || LIKE '*coll/%') {
+      foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = *dstPath || LIKE '*dstPath/%') {
         _repl_scheduleMv(int(*rec.DATA_ID), *dstResc, *dstRepl);
       }
     }
