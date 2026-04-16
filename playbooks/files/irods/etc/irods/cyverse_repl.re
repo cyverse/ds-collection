@@ -260,13 +260,18 @@ _repl_findResc(*DataPath) {
 # Given a resource, this rule determines the list of resources that
 # asynchronously replicate its replicas.
 _repl_findReplResc(*Resc) {
-  *repl = cyverse_DEFAULT_REPL_RESC;
   *residency = 'preferred';
 
-  foreach (*record in SELECT META_RESC_ATTR_VALUE, META_RESC_ATTR_UNITS
-                      WHERE RESC_NAME = *Resc AND META_RESC_ATTR_NAME = 'ipc::replica-resource') {
-    *repl = *record.META_RESC_ATTR_VALUE;
-    *residency = *record.META_RESC_ATTR_UNITS;
+  if (*Resc == cyverse_DEFAULT_RESC) {
+    *repl = cyverse_DEFAULT_REPL_RESC;
+  } else {
+    foreach ( *rec in
+      SELECT META_RESC_ATTR_VALUE, META_RESC_ATTR_UNITS
+      WHERE RESC_NAME = *Resc AND META_RESC_ATTR_NAME = 'ipc::replica-resource'
+    ) {
+      *repl = *rec.META_RESC_ATTR_VALUE;
+      *residency = *rec.META_RESC_ATTR_UNITS;
+    }
   }
 
   *result = (*repl, *residency);
