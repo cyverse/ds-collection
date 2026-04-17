@@ -1181,7 +1181,7 @@ pep_database_mod_data_obj_meta_post(*Instance, *Context, *OUT, *DataObjInfo, *Re
 	}
 # XXX - ^^^
 	# If modification timestamp is being modified, the data object has been
-	# modified, so publish a data-object.mod message.
+	# modified. Stop processing, because this is handled elsewhere.
 	if (! *handled && errorcode(*RegParam.dataModify) == 0) {
 		*pathVar = _cyverse_core_mkDataObjSessVar(*logicalPath);
 		if (

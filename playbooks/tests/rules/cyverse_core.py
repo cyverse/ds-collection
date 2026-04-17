@@ -183,9 +183,22 @@ class CyverseCoreDataobjcreatedFinish(CyverseCoreDataobjcreated):
         return "FINISH"
 
 
-@test_rules.unimplemented
-class CyverseCoreDataobjmetadatamodifiedTest(CyverseCoreDataobjcreated):
+class CyverseCoreDataobjmetadatamodifiedTest(CyverseCoreTestCase):
     """Tests of _cyverse_core_dataObjMetadataModified"""
+
+    def test_cyverselogic(self):
+        """Verify that cyverse_logic is called"""
+        test_rules.clear_rods_log()
+        rule = f'''
+            _cyverse_core_dataObjMetadataModified(
+                '{self.irods.username}', '{self.irods.zone}', /path/to/data );
+        '''
+        self.exec_rule(self.mk_rule(rule), IrodsType.NONE)
+        msg = f'''
+            cyverse_logic_dataObjMetaMod({self.irods.username}, {self.irods.zone}, /path/to/data)
+        '''
+        if self.verify_msg_logged(msg):
+            self.fail('cyverse_repl_dataObjCreated called')
 
 
 class AccreateuserzonecollectionsGroup(CyverseCoreTestCase):
