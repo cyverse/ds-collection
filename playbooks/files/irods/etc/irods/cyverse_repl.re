@@ -267,6 +267,8 @@ _repl_findReplResc(*Resc) {
   if (*Resc == cyverse_DEFAULT_RESC) {
     *repl = cyverse_DEFAULT_REPL_RESC;
   } else {
+    *repl = *Resc;
+
     foreach ( *rec in
       SELECT META_RESC_ATTR_VALUE, META_RESC_ATTR_UNITS
       WHERE RESC_NAME = *Resc AND META_RESC_ATTR_NAME = 'ipc::replica-resource'
