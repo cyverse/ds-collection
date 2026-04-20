@@ -13,7 +13,7 @@ from irods.path import iRODSPath
 from test_rules import IrodsTestCase, IrodsVal
 
 
-class TestCyverseLogicContains(IrodsTestCase):
+class TestContains(IrodsTestCase):
     """Tests of _cyverse_logic_contains"""
 
     def test_item_not_in_list(self):
@@ -45,7 +45,7 @@ class TestCyverseLogicContains(IrodsTestCase):
             IrodsVal.boolean(True))
 
 
-class TestCyverseLogicIcatIds(IrodsTestCase):
+class TestIcatIds(IrodsTestCase):
     """Tests of ICAT Ids logic"""
 
     def test_getcollid_present(self):
@@ -86,12 +86,16 @@ class TestCyverseLogicIcatIds(IrodsTestCase):
                 self.fn_test('_cyverse_logic_getId', [p], IrodsVal.integer(data.id))  # pylint: disable=no-member,line-too-long # type: ignore # noqa: E501
 
 
-class TestCyVerseLogic(IrodsTestCase):
-    """Test cyverse_logic.re"""
+class TestUserInfo(IrodsTestCase):
+    """Tests of private user info rule logic"""
 
     @unittest.skip("not implemented")
-    def test_user_info(self):
-        """Test private user info rule logic"""
+    def test_isadm(self):
+        """Test _cyverse_logic_isAdm"""
+
+
+class TestCyVerseLogic(IrodsTestCase):
+    """Test cyverse_logic.re"""
 
     @unittest.skip("not implemented")
     def test_avus(self):
@@ -116,6 +120,10 @@ class TestCyVerseLogic(IrodsTestCase):
     @unittest.skip("not implemented")
     def test_protected_avus(self):
         """Test private protected AVUs rule logic"""
+
+    @unittest.skip("not implemented")
+    def test_resource_free_space_mgmt(self):
+        """Test resource free space management logic"""
 
     @unittest.skip("not implemented")
     def test_rodsadmin_group_permissions(self):

@@ -1588,6 +1588,25 @@ _cyverse_logic_cpUserAVUs(*Username, *TargetType, *TargetName, *UserName, *RodsZ
 
 
 #
+# RESOURCE FREE SPACE MANAGEMENT
+#
+
+# NOTE: This runs on the resource server hosting the resource whose free space
+# is in question.
+_cyverse_logic_updateRescFreeSpaceRemote(*Host, *Resc) {
+	remote(*Host, '') {
+		msi_update_unixfilesystem_resource_free_space(*Resc);
+	}
+}
+
+_cyverse_logic_updateRescFreeSpace(*Resc) {
+	foreach(*rec in SELECT RESC_LOC WHERE RESC_NAME = *Resc) {
+		_cyverse_logic_updateRescFreeSpaceRemote(*rec.RESC_LOC, *Resc);
+	}
+}
+
+
+#
 # RODSADMIN GROUP PERMISSIONS
 #
 
@@ -2062,7 +2081,7 @@ cyverse_logic_acPreConnect(*OUT) {
 #             stored
 #
 cyverse_logic_acPostProcForDataCopyReceived(*StoreResc) {
-	msi_update_unixfilesystem_resource_free_space(*StoreResc);
+	_cyverse_logic_updateRescFreeSpace(*StoreResc);
 }
 
 # This rule stores the UUID of a data object that is about to be deleted for use
@@ -2160,7 +2179,7 @@ cyverse_logic_acPostProcForObjRename(*SrcEntity, *DestEntity, *ClientUsername, *
 #             stored
 #
 cyverse_logic_acPostProcForParallelTransferReceived(*StoreResc) {
-	msi_update_unixfilesystem_resource_free_space(*StoreResc);
+	_cyverse_logic_updateRescFreeSpace(*StoreResc);
 }
 
 
