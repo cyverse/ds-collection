@@ -137,7 +137,7 @@ _cyverse_housekeeping_getCollTrashTS(*Coll) =
 	let *ts = '' in
 	let *_ = foreach ( *rec in
 			SELECT META_COLL_ATTR_VALUE
-			WHERE COLL_NAME = *coll AND META_COLL_ATTR_NAME = 'ipc::trash_timestamp'
+			WHERE COLL_NAME = *Coll AND META_COLL_ATTR_NAME = 'ipc::trash_timestamp'
 		) {
 			*ts = *rec.META_COLL_ATTR_VALUE;
 		} in
@@ -165,7 +165,7 @@ _cyverse_housekeeping_rmTrashColl(*Coll, *CutOffTimestamp, *SUCCEEDED) {
 	*tsDataCnt = 0;
 	foreach ( *dataRec in
 		SELECT COUNT(DATA_ID)
-		WHERE COLL_NAME = *Coll || LIKE '*coll/%' AND META_DATA_ATTR_NAME = 'ipc::trash_timestamp'
+		WHERE COLL_NAME = *Coll || LIKE '*Coll/%' AND META_DATA_ATTR_NAME = 'ipc::trash_timestamp'
 	) {
 		*tsDataCnt = int(*dataRec.DATA_ID);
 	}
@@ -177,7 +177,7 @@ _cyverse_housekeeping_rmTrashColl(*Coll, *CutOffTimestamp, *SUCCEEDED) {
 	*tsChildCollCnt = 0;
 	foreach ( *childCollRec in
 		SELECT COUNT(COLL_ID)
-		WHERE COLL_PARENT_NAME = *Coll || LIKE '*coll/%'
+		WHERE COLL_PARENT_NAME = *Coll || LIKE '*Coll/%'
 			AND META_COLL_ATTR_NAME = 'ipc::trash_timestamp'
 	) {
 		*tsChildCollCnt = int(*childCollRec.COLL_ID);
@@ -203,7 +203,7 @@ _cyverse_housekeeping_rmTrashColl(*Coll, *CutOffTimestamp, *SUCCEEDED) {
 	}
 
 	if (*ts == '' || *ts <= *CutOffTimestamp) {
-		if (errorcode(_cyverse_housekeeping_rmColl(*coll)) != 0) {
+		if (errorcode(_cyverse_housekeeping_rmColl(*Coll)) != 0) {
 			*SUCCEEDED = false;
 		}
 	}

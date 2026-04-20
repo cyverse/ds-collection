@@ -13,11 +13,19 @@ from irods.models import RuleExec
 from test_rules import IrodsTestCase, IrodsType
 
 
-class TestCyverseHousekeeping(IrodsTestCase):
-    """Tests of cyverse_housekeeping.re"""
+class TestScheduleperiodicpolicy(IrodsTestCase):
+    """Tests of _cyverse_housekeeping_schedulePeriodicPolicy"""
 
-    def test_cyversehousekeepingscheduleperiodicpolicy_rule(self):
-        """Test _cyverse_housekeeping_schedulePeriodicPolicy"""
+    @unittest.skip("not implemented")
+    def test_desc(self):
+        """Verify that it logs the correct description"""
+
+    @unittest.skip("not implemented")
+    def test_freq(self):
+        """Test that it sets the execution frequency"""
+
+    def test_rule(self):
+        """Test that it schedules the rule"""
         rule_src = """
             _cyverse_housekeeping_schedulePeriodicPolicy(
                 ``writeLine('serverLog', 'periodic rule executed')``, '1h', 'description' );
@@ -31,13 +39,17 @@ class TestCyverseHousekeeping(IrodsTestCase):
         for res in results:
             rule.remove_by_id(res[RuleExec.id])
 
-    @unittest.skip("not implemented")
-    def test_cyversehousekeepingscheduleperiodicpolicy_freq(self):
-        """Test _cyverse_housekeeping_schedulePeriodicPolicy sets the execution frequency"""
+
+class TestSharedRules(IrodsTestCase):
+    """Tests of the shared rule logic"""
 
     @unittest.skip("not implemented")
     def test_cyversehousekeepingrecheduleperiodicpolicy(self):
         """Test _cyverse_housekeeping_reschedulePeriodicPolicy"""
+
+
+class TestCyverseHousekeeping(IrodsTestCase):
+    """Tests of cyverse_housekeeping.re"""
 
     @unittest.skip("not implemented")
     def test_quotas(self):
