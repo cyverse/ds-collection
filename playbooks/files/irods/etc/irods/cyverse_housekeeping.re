@@ -190,9 +190,10 @@ _cyverse_housekeeping_rmTrashColl(*Coll, *CutOffTimestamp, *SUCCEEDED) {
 	*ts = _cyverse_housekeeping_getCollTrashTS(*Coll);
 
 	if (*ts == '') {
+		*zone = cyverse_ZONE;
 		*parent = *Coll;
-		*parentTs = '';
-		while (*parent like '/*zone/trash/home/%/%/%' && *parentTs == '') {
+		*parentTS = '';
+		while (*parent like '/*zone/trash/home/%/%/%' && *parentTS == '') {
 			*parent = trimr(*parent, "/");
 			*parentTS = _cyverse_housekeeping_getCollTrashTS(*parent);
 		}
@@ -210,7 +211,7 @@ _cyverse_housekeeping_rmTrashColl(*Coll, *CutOffTimestamp, *SUCCEEDED) {
 }
 
 _cyverse_housekeeping_rmTrashColls(*CutOffTimestamp, *SUCCEEDED) {
-	writeLine('serverLog', 'DS: Starting collection removal from trash');
+	writeLine('serverLog', 'DS: starting collection removal from trash');
 	*SUCCEEDED = true;
 	*zone = cyverse_ZONE;
 
@@ -230,7 +231,7 @@ _cyverse_housekeeping_rmTrashColls(*CutOffTimestamp, *SUCCEEDED) {
 }
 
 _cyverse_housekeeping_rmTrashData(*CutOffTimestamp, *SUCCEEDED) {
-	writeLine('serverLog', 'DS: Starting data object removal from trash');
+	writeLine('serverLog', 'DS: starting data object removal from trash');
 	*SUCCEEDED = true;
 	*zone = cyverse_ZONE;
 	foreach( *row in
