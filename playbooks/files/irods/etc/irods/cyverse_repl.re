@@ -221,17 +221,6 @@ _repl_scheduleSyncReplicas(*Object) {
 }
 
 
-_ipcRepl_createOrOverwrite(*DataPath, *DestResc, *New, *IngestResc, *ReplResc) {
-  *dataId = cyverse_getDataId(*DataPath);
-
-  if (*New) {
-    _repl_scheduleRepl(*dataId, if *DestResc == *ReplResc then *IngestResc else *ReplResc);
-  } else {
-    _repl_scheduleSyncReplicas(*dataId);
-  }
-}
-
-
 # Given an absolute path to a data object, this rule determines the resource
 # where member data objects have their primary replicas stored. It returns a
 # two-tuple with the first is element is the name of the resource, and the
@@ -283,10 +272,17 @@ _repl_findReplResc(*Resc) {
 }
 
 
-_ipcRepl_put(*ObjPath, *DestRescHier, *New) {
-  (*ingestResc, *_) = _repl_findResc(*ObjPath);
+_ipcRepl_createOrOverwrite(*DataPath, *DestRescHier, *New) {
+  *dataId = cyverse_getDataId(*DataPath);
+  (*ingestResc, *_) = _repl_findResc(*DataPath);
   (*replResc, *_) = _repl_findReplResc(*ingestResc);
-  _ipcRepl_createOrOverwrite(*ObjPath, hd(split(*DestRescHier, ';')), *New, *ingestResc, *replResc);
+
+  if (*New) {
+    _repl_scheduleRepl(
+      *dataId, if hd(split(*DestRescHier, ';')) == *replResc then *ingestResc else *replResc );
+  } else {
+    _repl_scheduleSyncReplicas(*dataId);
+  }
 }
 
 
@@ -328,7 +324,10 @@ cyverse_repl_acSetRescSchemeForRepl(*DataPath) {
 #                 object
 #
 cyverse_repl_dataObjCreated(*User, *Zone, *DATA_OBJ_INFO) {
-  _ipcRepl_put(*DATA_OBJ_INFO.logical_path, hd(split(*DATA_OBJ_INFO.resc_hier, ';')), true);
+  _ipcRepl_createOrOverwrite(
+    cyverse_getValue(*DATA_OBJ_INFO, 'logical_path'),
+    cyverse_getValue(*DATA_OBJ_INFO, 'resc_hier'),
+    true );
 }
 
 
@@ -347,7 +346,7 @@ cyverse_repl_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInp
 
   foreach (*key in *BulkOpInp) {
     if (*key like 'logical_path_*') {
-      _ipcRepl_put(cyverse_getValue(*BulkOpInp, *key), *rescHier, true);
+      _ipcRepl_createOrOverwrite(cyverse_getValue(*BulkOpInp, *key), *rescHier, true);
     }
   }
 }
@@ -366,7 +365,7 @@ cyverse_repl_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInp
 #  TransStat       unknown
 #
 cyverse_repl_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
-  _ipcRepl_put(
+  _ipcRepl_createOrOverwrite(
     cyverse_getValue(*DataObjCopyInp, 'dst_obj_path'),
     cyverse_getValue(*DataObjCopyInp, 'dst_resc_hier'),
     cyverse_getValue(*DataObjCopyInp, 'dst_openType') == cyverse_FILE_CREATE );
@@ -388,7 +387,7 @@ cyverse_repl_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransSta
 cyverse_repl_api_data_obj_put_post(
   *Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT
 ) {
-  _ipcRepl_put(
+  _ipcRepl_createOrOverwrite(
     cyverse_getValue(*DataObjInp, 'obj_path'),
     cyverse_getValue(*DataObjInp, 'resc_hier'),
     cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE );
@@ -448,7 +447,7 @@ cyverse_repl_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
 #                 registration
 #
 cyverse_repl_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp) {
-  _ipcRepl_put(
+  _ipcRepl_createOrOverwrite(
     cyverse_getValue(*PhyPathRegInp, 'obj_path'),
     cyverse_getValue(*PhyPathRegInp, 'resc_hier'),
     !cyverse_hasKey(*PhyPathRegInp, 'regRepl') );
@@ -495,7 +494,7 @@ cyverse_repl_api_touch_post(*Instance, *Comm, *JsonInput) {
       msiSplitPath(*dataPath, *collPath, *dataName);
 
       foreach(*rec in SELECT DATA_RESC_HIER WHERE COLL_NAME = *collPath AND DATA_NAME = *dataName) {
-        _ipcRepl_put(*dataPath, *rec.DATA_RESC_HIER, true);
+        _ipcRepl_createOrOverwrite(*dataPath, *rec.DATA_RESC_HIER, true);
       }
     }
   }
@@ -615,7 +614,7 @@ cyverse_repl_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
     }
 
     if (*needsRepl) {
-      _ipcRepl_put(*path, *destResc, *new);
+      _ipcRepl_createOrOverwrite(*path, *destResc, *new);
     }
 
     temporaryStorage.cyverse_repl_dataObjClose_objPath = '';
@@ -670,7 +669,7 @@ cyverse_repl_api_replica_close_post(*Instance, *Comm, *JsonInput) {
   if (*path != '') {
     *destResc = cyverse_getValue(temporaryStorage, 'cyverse_repl_replica_rescHier');
     *openType = cyverse_getValue(temporaryStorage, 'cyverse_repl_replica_openType');
-    _ipcRepl_put(*path, *destResc, *openType == cyverse_FILE_CREATE);
+    _ipcRepl_createOrOverwrite(*path, *destResc, *openType == cyverse_FILE_CREATE);
     temporaryStorage.cyverse_repl_replica_dataObjPath = '';
     temporaryStorage.cyverse_repl_replica_rescHier = '';
     temporaryStorage.cyverse_repl_replica_openType = '';
