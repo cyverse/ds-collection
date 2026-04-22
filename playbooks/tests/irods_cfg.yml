@@ -38,12 +38,14 @@
         - server_config.json
         - service_account.config
 
-    - name: Verify that old rule bases have been removed
+    - name: Verify old config do not exist
       ansible.builtin.stat:
         path: /etc/irods/{{ item }}
-      register: resp
-      failed_when: resp.stat.exists
+      register: response
+      failed_when: response.stat.exists
       loop:
+        - host_access_control_config.json
+        - hosts_config.json
         - ipc-encryption.re
         - ipc-repl.re
         - ipc-trash.re
@@ -64,7 +66,6 @@
         or not response.stat.xusr
       loop:
         - amqp-topic-send
-        - correct-size
         - delete-scheduled-rule
         - generate-uuid
         - ichksum-exec
@@ -73,14 +74,13 @@
         - irepl-exec
         - send-mail
 
-    - name: Verify old config do not exist
+    - name: Verify old command scripts do not exist
       ansible.builtin.stat:
-        path: /etc/irods/{{ item }}
+        path: /var/lib/irods/msiExecCmd_bin/{{ item }}
       register: response
       failed_when: response.stat.exists
       loop:
-        - host_access_control_config.json
-        - hosts_config.json
+        - correct-size
 
     - name: Retrieve encoded irods_environment.json
       ansible.builtin.slurp:

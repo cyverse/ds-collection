@@ -57,6 +57,15 @@
         - server_config.json
         - service_account.config
 
+    - name: Verify old config do not exist
+      ansible.builtin.stat:
+        path: /etc/irods/{{ item }}
+      register: response
+      failed_when: response.stat.exists
+      loop:
+        - host_access_control_config.json
+        - hosts_config.json
+
     - name: Verify irods_environment.json is in place
       ansible.builtin.stat:
         path: /var/lib/irods/.irods/irods_environment.json
@@ -73,7 +82,6 @@
         or not response.stat.xusr
       loop:
         - amqp-topic-send
-        - correct-size
         - delete-scheduled-rule
         - generate-uuid
         - ichksum-exec
@@ -81,15 +89,6 @@
         - iquest-exec
         - irepl-exec
         - send-mail
-
-    - name: Verify old config do not exist
-      ansible.builtin.stat:
-        path: /etc/irods/{{ item }}
-      register: response
-      failed_when: response.stat.exists
-      loop:
-        - host_access_control_config.json
-        - hosts_config.json
 
     - name: Retrieve encoded irods_environment.json
       ansible.builtin.slurp:

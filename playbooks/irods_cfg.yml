@@ -142,13 +142,18 @@
         irods_cfg_zone_port: "{{ _irods_zone_port }}"
         irods_cfg_zone_user: "{{ _irods_clerver_user }}"
 
-- name: Remove old rule files
+- name: Remove old rule files and command scripts
   hosts: irods
   become: "{{ _irods_become_svc_acnt }}"
   become_user: "{{ _irods_service_account_name }}"
   gather_facts: false
   tasks:
-    - name: Remove it
+    - name: Remove ipc-encryption.re
       ansible.builtin.file:
         path: /etc/irods/ipc-encryption.re
+        state: absent
+
+    - name: Remove correct-size
+      ansible.builtin.file:
+        path: /var/lib/irods/msiExecCmd_bin/correct-size
         state: absent

@@ -13,8 +13,7 @@
         clients: pip3
       register: pip_info
       failed_when: >-
-        'pyodbc' not in pip_info.packages['pip3']
-        or 'pika' not in pip_info.packages['pip3']
+        'pika' not in pip_info.packages['pip3']
         or pip_info.packages['pip3']['pika'][0]['version'] is version('1.2', '<')
 
     - name: Test provision CentOS
@@ -26,12 +25,18 @@
             - gcc
             - gcc-c++
             - mailx
-            - pgdg-redhat-repo
             - postgresql12
             - postgresql12-odbc
+            - python3-devel
             - unixODBC-devel
           loop_control:
             loop_var: pkg
+
+        - name: CentOS | verify pyodbc installed
+          community.general.pip_package_info:
+            clients: pip3
+          register: pip_info
+          failed_when: "'pyodbc' not in pip_info.packages['pip3']"
 
         - name: CentOS | verify postgresql clients are on the the path
           ansible.builtin.stat:
@@ -159,6 +164,15 @@
         - server_config.json
         - service_account.config
 
+    - name: Verify old config do not exist
+      ansible.builtin.stat:
+        path: /etc/irods/{{ item }}
+      register: response
+      failed_when: response.stat.exists
+      loop:
+        - host_access_control_config.json
+        - hosts_config.json
+
     - name: Verify irods_environment.json is in place
       ansible.builtin.stat:
         path: /var/lib/irods/.irods/irods_environment.json
@@ -175,7 +189,6 @@
         or not response.stat.xusr
       loop:
         - amqp-topic-send
-        - correct-size
         - delete-scheduled-rule
         - generate-uuid
         - ichksum-exec
@@ -183,15 +196,6 @@
         - iquest-exec
         - irepl-exec
         - send-mail
-
-    - name: Verify old config do not exist
-      ansible.builtin.stat:
-        path: /etc/irods/{{ item }}
-      register: response
-      failed_when: response.stat.exists
-      loop:
-        - host_access_control_config.json
-        - hosts_config.json
 
     - name: Retrieve encoded irods_environment.json
       ansible.builtin.slurp:

@@ -133,8 +133,13 @@
         or not (resp.stat.rusr and resp.stat.xusr)
 
     - name: Test copy required iRODS runtime config files
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      ansible.builtin.stat:
+        path: /etc/irods/{{ item }}
+      register: resp
+      failed_when: not resp.stat.exists or resp.stat.pw_name != 'irods' or not resp.stat.rusr
+      loop:
+        - core.dvm
+        - core.fnm
 
     - name: Test generate core.re
       ansible.builtin.debug:
@@ -150,7 +155,6 @@
         or not (resp.stat.rusr and resp.stat.xusr)
       loop:
         - amqp-topic-send
-        - correct-size
         - delete-scheduled-rule
         - generate-uuid
         - imeta-exec

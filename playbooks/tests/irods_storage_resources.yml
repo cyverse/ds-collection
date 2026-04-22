@@ -18,6 +18,7 @@
 
 - name: Test create storage resources
   hosts: irods_resource_native
+  strategy: linear
   vars:
     expected_resources: "{{
       groups['irods_resource']
@@ -29,7 +30,7 @@
         | map(attribute='name')
         | union(['bundleResc']) }}"
   tasks:
-    - name: Test define storage resource
+    - name: Test define storage resource  # noqa: run-once[task]
       delegate_to: localhost
       run_once: true
       ansible.builtin.shell:
