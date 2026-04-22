@@ -33,7 +33,7 @@
 
 set -o errexit -o nounset -o pipefail
 
-EXEC_NAME="$(readlink --canonicalize "$0")"
+EXEC_NAME="$(realpath --canonicalize-existing "$0")"
 readonly EXEC_NAME
 
 
