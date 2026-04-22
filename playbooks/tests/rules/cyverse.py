@@ -195,9 +195,16 @@ class CyverseKeyvalpairMsTTests(CyverseTestCase):
             self.exec_rule(self.mk_rule(rule_src), IrodsType.STRING), IrodsVal.string('val'))
 
 
-@test_rules.unimplemented
 class CyverseFileModeTests(CyverseTestCase):
     """Tests of file mode logic"""
+
+    def test_file_create(self):
+        """Verify cyverse_FILE_CREATE"""
+        self.fn_test('cyverse_FILE_CREATE', [], IrodsVal.string('1'))
+
+    @unittest.skip("not implemented")
+    def test_file_open_write(self):
+        """Verify cyverse_FILE_OPEN_WRITE"""
 
 
 @test_rules.unimplemented
@@ -315,7 +322,7 @@ class CyverseDBIdTests(CyverseTestCase):
 
 
 class CyverseIsforsvc(CyverseTestCase):
-    """Test cyverse_isForSvc"""
+    """Test _cyverse_isForSvc"""
 
     def test_path_in_shared(self):
         """Test entity path in projects folder"""
@@ -337,13 +344,13 @@ class CyverseIsforsvc(CyverseTestCase):
         for p in IrodsTestCase.prep_path(path):
             with self.subTest(p=p):
                 self.fn_test(
-                    'cyverse_isForSvc',
+                    '_cyverse_isForSvc',
                     [IrodsVal.string('rods'), IrodsVal.string('svc_data'), p],
                     IrodsVal.boolean(exp_res))
 
 
 class CyverseGiveaccesscoll(CyverseTestCase):
-    """Tests of cyverse_giveAccessColl"""
+    """Tests of _cyverse_giveAccessColl"""
 
     def setUp(self):
         super().setUp()
@@ -353,7 +360,7 @@ class CyverseGiveaccesscoll(CyverseTestCase):
             pass
         self.irods.users.create('user', 'rodsuser')
         self.exec_rule(
-            self.mk_rule('cyverse_giveAccessColl("user", "read", /testing/home)'),
+            self.mk_rule('_cyverse_giveAccessColl("user", "read", /testing/home)'),
             IrodsType.NONE)
 
     def tearDown(self):
@@ -374,7 +381,7 @@ class CyverseGiveaccesscoll(CyverseTestCase):
 
 
 class CyVerseGiveaccessdataobj(CyverseTestCase):
-    """Tests of cyverse_giveAccessDataObj"""
+    """Tests of _cyverse_giveAccessDataObj"""
 
     def setUp(self):
         super().setUp()
@@ -382,7 +389,7 @@ class CyVerseGiveaccessdataobj(CyverseTestCase):
         self.ensure_user_exists('user')
         self.irods.data_objects.create(self._obj)
         self.exec_rule(
-            self.mk_rule(f'cyverse_giveAccessDataObj("user", "read", {self._obj})'),
+            self.mk_rule(f'_cyverse_giveAccessDataObj("user", "read", {self._obj})'),
             IrodsType.NONE)
 
     def tearDown(self):

@@ -304,8 +304,8 @@ cyverse_getDataPath(*Id) =
 #  It returns true if the collection or data object is inside the user
 #  collection, otherwise it returns false.
 #
-cyverse_isForSvc: forall X in {path string}, string * string * X -> boolean
-cyverse_isForSvc(*SvcUser, *SvcColl, *Path) =
+# _cyverse_isForSvc: forall X in {path string}, string * string * X -> boolean
+_cyverse_isForSvc(*SvcUser, *SvcColl, *Path) =
 	let *path = str(*Path) in
 	*path like regex _cyverse_HOME ++ '/[^/]+/*SvcColl($|/.*)'
 	&& !(*path like _cyverse_HOME ++ '/*SvcUser/*')
@@ -319,7 +319,7 @@ cyverse_isForSvc(*SvcUser, *SvcColl, *Path) =
 #            'own'.
 #  CollPath  the path to the collection of begin given access to
 #
-cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath) {
+_cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath) {
 	*path = str(*CollPath);
 	writeLine('serverLog', 'permitting *SvcUser *Perm access to *path and everything in it');
 	msiSetACL('recursive', *Perm, *SvcUser, *path);
@@ -333,7 +333,7 @@ cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath) {
 #           'own'.
 #  ObjPath  the path to the data object of begin given access to
 #
-cyverse_giveAccessDataObj(*SvcUser, *Perm, *ObjPath) {
+_cyverse_giveAccessDataObj(*SvcUser, *Perm, *ObjPath) {
 	*path = str(*ObjPath);
 	writeLine('serverLog', 'permitting *SvcUser *Perm access to *path');
 	msiSetACL('default', *Perm, *SvcUser, *path);
@@ -351,8 +351,8 @@ cyverse_giveAccessDataObj(*SvcUser, *Perm, *ObjPath) {
 #  CollPath  the path to the collection of interest
 #
 cyverse_ensureAccessOnCreateColl(*SvcUser, *SvcColl, *Perm, *CollPath) {
-	if (cyverse_isForSvc(*SvcUser, *SvcColl, *CollPath)) {
-		cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath);
+	if (_cyverse_isForSvc(*SvcUser, *SvcColl, *CollPath)) {
+		_cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath);
 	}
 }
 
@@ -368,8 +368,8 @@ cyverse_ensureAccessOnCreateColl(*SvcUser, *SvcColl, *Perm, *CollPath) {
 #  ObjPath  the path to the data object of interest
 #
 cyverse_ensureAccessOnCreateDataObj(*SvcUser, *SvcColl, *Perm, *ObjPath) {
-	if (cyverse_isForSvc(*SvcUser, *SvcColl, *ObjPath)) {
-		cyverse_giveAccessDataObj(*SvcUser, *Perm, *ObjPath);
+	if (_cyverse_isForSvc(*SvcUser, *SvcColl, *ObjPath)) {
+		_cyverse_giveAccessDataObj(*SvcUser, *Perm, *ObjPath);
 	}
 }
 
@@ -386,15 +386,15 @@ cyverse_ensureAccessOnCreateDataObj(*SvcUser, *SvcColl, *Perm, *ObjPath) {
 #
 cyverse_ensureAccessOnMv(*SvcUser, *SvcColl, *Perm, *OldPath, *NewPath) {
 	if (
-		!cyverse_isForSvc(*SvcUser, *SvcColl, *OldPath)
-		&& cyverse_isForSvc(*SvcUser, *SvcColl, *NewPath)
+		!_cyverse_isForSvc(*SvcUser, *SvcColl, *OldPath)
+		&& _cyverse_isForSvc(*SvcUser, *SvcColl, *NewPath)
 	) {
 		*type = cyverse_getEntityType(*NewPath);
 
 		if (cyverse_isColl(*type)) {
-			cyverse_giveAccessColl(*SvcUser, *Perm, *NewPath);
+			_cyverse_giveAccessColl(*SvcUser, *Perm, *NewPath);
 		} else if (cyverse_isDataObj(*type)) {
-			cyverse_giveAccessDataObj(*SvcUser, *Perm, *NewPath);
+			_cyverse_giveAccessDataObj(*SvcUser, *Perm, *NewPath);
 		}
 	}
 }
