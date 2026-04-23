@@ -1,0 +1,33 @@
+---
+- name: Install specific queries
+  hosts: irods_catalog
+  become: "{{ _irods_become_svc_acnt }}"
+  become_user: "{{ _irods_service_account_name }}"
+  run_once: true
+  tasks:
+    - name: Retrieve file names
+      ansible.builtin.set_fact:
+        query_files: "{{ q('fileglob', 'files/irods/specific-queries/*.sql') }}"
+
+    - name: Determine query aliases
+      ansible.builtin.set_fact:
+        aliases: "{{ query_files | map('basename') | map('splitext') | map('first') | list }}"
+
+    - name: Register queries
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          if [[ -z "$(iquest --sql ls | sed --quiet '/^{{ aliases[idx] }}$/p')" ]]; then
+            iadmin asq '{{ item }}' '{{ aliases[idx] }}' > /dev/null
+            resp=changed
+          fi
+          if [[ -n "${resp-}" ]]; then
+            printf '%s' "$resp"
+          fi
+      register: resp
+      changed_when: resp.stdout == 'changed'
+      with_file: "{{ query_files }}"
+      loop_control:
+        index_var: idx
+        label: "{{ aliases[idx] }}"
