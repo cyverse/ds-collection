@@ -29,11 +29,21 @@ main() {
 	local version="$2"
 
 	# Install required packages
-	if [[ "$os" == centos ]]; then
-		install_centos_packages
-	else
-		install_ubuntu_packages "$version"
-	fi
+	case "$os" in
+		alma)
+			install_alma_packages "$version"
+			;;
+		centos)
+			install_centos_packages "$version"
+			;;
+		ubuntu)
+			install_ubuntu_packages "$version"
+			;;
+		*)
+			printf 'The OS %s is not supported\n' "$os" >&2
+			return 1
+			;;
+	esac
 
 	# Remove root's password
 	passwd -d root
@@ -41,7 +51,7 @@ main() {
 	# Configure root ssh access without password
 	ssh-keygen -q -f /etc/ssh/ssh_host_key -N '' -t rsa
 
-	if ! [[ -e /etc/ssh/ssh_host_dsa_key ]]; then
+	if [[ "$os" != alma && ! -e /etc/ssh/ssh_host_dsa_key ]]; then
 		ssh-keygen -q -f /etc/ssh/ssh_host_dsa_key -N '' -t dsa
 	fi
 
@@ -62,11 +72,17 @@ main() {
 	mkdir --parents --mode=0700 /root/.ssh
 }
 
+# Install the required AlmaLinux packages.
+install_alma_packages() {
+	dnf --assumeyes install openssh-clients openssh-server sudo
+	dnf clean all
+	rm --force --recursive /var/cache/dnf
+}
+
 # Install the required CentOS packages.
-#
-# Parameters:
-#  version  the CentOS major distribution version number
 install_centos_packages() {
+	local version="$1"
+
 	update_centos_repo
 	rpm --import file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-"$version"
 
@@ -147,14 +163,7 @@ EOF
 }
 
 update_pam_sshd_config() {
-	cat <<'EOF' | sed --in-place --file - /etc/pam.d/sshd
-/@include common-auth/{
-	i auth	sufficient	pam_permit.so
-	:a
-	n
-	ba
-}
-EOF
+	sed --in-place '1i auth	sufficient	pam_permit.so' /etc/pam.d/sshd
 }
 
 update_sshd_config() {
