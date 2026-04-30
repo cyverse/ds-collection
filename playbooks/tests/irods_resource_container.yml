@@ -6,12 +6,15 @@
       when: ansible_distribution == 'AlmaLinux'
       block:
         - name: Test install DNF core plugins
-          ansible.builtin.debug:
-            msg: 'TODO: implement'
+          ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
+          vars:
+            pkg: dnf-plugins-core
 
         - name: Test add Docker repository
-          ansible.builtin.debug:
-            msg: 'TODO: implement'
+          ansible.builtin.stat:
+            path: /etc/yum.repos.d/docker-ce.repo
+          register: resp
+          failed_when: not resp.stat.exists
 
     - name: Test set up docker repository on Ubuntu
       when: ansible_distribution == 'Ubuntu'
