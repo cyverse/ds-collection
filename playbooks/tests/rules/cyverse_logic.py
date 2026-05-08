@@ -89,9 +89,41 @@ class TestIcatIds(IrodsTestCase):
 class TestUserInfo(IrodsTestCase):
     """Tests of private user info rule logic"""
 
+    def test_isadm_groupadmin(self):
+        """
+        Test _cyverse_logic_isAdm correctly identifies that a groupadmin user
+        is not a rodsadmin
+        """
+        name = 'grouphandler'
+        self.irods.users.create(name, 'groupadmin')
+        try:
+            self.fn_test(
+                '_cyverse_logic_isAdm',
+                [IrodsVal.string(name), IrodsVal.string(self.irods.zone)],
+                IrodsVal.boolean(False))
+        finally:
+            self.irods.users.remove(name)
+
     @unittest.skip("not implemented")
-    def test_isadm(self):
-        """Test _cyverse_logic_isAdm"""
+    def test_isadm_rodsadmin(self):
+        """
+        Test _cyverse_logic_isAdm correctly identifies a rodsadmin user is a
+        rodsadmin
+        """
+
+    @unittest.skip("not implemented")
+    def test_isadm_rodsgroup(self):
+        """
+        Test _cyverse_logic_isAdm correctly identifies a group as not a
+        rodsadmin
+        """
+
+    @unittest.skip("not implemented")
+    def test_isadm_rodsuser(self):
+        """
+        Test _cyverse_logic_isAdm correctly identifies a rodsuser user as not a
+        rodsadmin
+        """
 
 
 class TestCyVerseLogic(IrodsTestCase):
