@@ -29,8 +29,8 @@ class _CyverseEncryptionTestCase(IrodsTestCase):
 
     def setUp(self):
         super().setUp()
-        self._enc_coll = '/testing/home/rods/enc_coll'
-        self.irods.collections.create(self._enc_coll).metadata.set('encryption::required', 'true')  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+        self._enc_coll = "/testing/home/rods/enc_coll"
+        self.irods.collections.create(self._enc_coll).metadata.set("encryption::required", "true")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
 
     def tearDown(self):
         self.ensure_coll_absent(self._enc_coll)
@@ -49,11 +49,11 @@ class CyVerseEncryptionApiCollCreatePost(_CyverseEncryptionTestCase):
         """
         Test that a collection created in a collection requiring encryption also requires encryption
         """
-        child = os.path.join(self.enc_coll, 'child')
+        child = os.path.join(self.enc_coll, "child")
         meta = self.irods.collections.create(child).metadata  # type: ignore
         if (
-            'encryption::required' not in meta
-            or meta.get_one('encryption::required').value != 'true'
+            "encryption::required" not in meta
+            or meta.get_one("encryption::required").value != "true"
         ):
             self.fail("encryption::required AVU not set to 'true'")
         self.ensure_coll_absent(child)
@@ -63,10 +63,10 @@ class CyVerseEncryptionApiCollCreatePost(_CyverseEncryptionTestCase):
         Test that a collection created in a collection not requiring encryption also doesn't require
         encryption
         """
-        child = self.irods.collections.create('/testing/home/child')
+        child = self.irods.collections.create("/testing/home/child")
         try:
-            enc_req = child.metadata.get_one('encryption::required')  # type: ignore
-            if enc_req.value == 'true':
+            enc_req = child.metadata.get_one("encryption::required")  # type: ignore
+            if enc_req.value == "true":
                 self.fail("encryption::required AVU set to 'true'")
         except KeyError:
             pass
@@ -79,7 +79,7 @@ class CyverseEncryptionApiDataObjCopyPre(_CyverseEncryptionTestCase):
 
     def setUp(self):
         super().setUp()
-        self._orig_obj = '/testing/home/orig'
+        self._orig_obj = "/testing/home/orig"
         self.irods.data_objects.create(self._orig_obj)
 
     def tearDown(self):
@@ -88,7 +88,7 @@ class CyverseEncryptionApiDataObjCopyPre(_CyverseEncryptionTestCase):
 
     def test_enc_allowed_in_enc_coll(self):
         """Test that an encrypted files can be created in a collection requiring encryption"""
-        copy_obj = os.path.join(self.enc_coll, 'copy.enc')
+        copy_obj = os.path.join(self.enc_coll, "copy.enc")
         self.irods.data_objects.copy(self._orig_obj, copy_obj)
         if not self.irods.data_objects.exists(copy_obj):
             self.fail("encrypted file not copied")
@@ -96,19 +96,19 @@ class CyverseEncryptionApiDataObjCopyPre(_CyverseEncryptionTestCase):
 
     def test_not_enc_not_allowed_in_enc_coll(self):
         """Test that an unencrypted file cannot be created in a collection requiring encryption"""
-        copy_obj = os.path.join(self.enc_coll, 'copy')
+        copy_obj = os.path.join(self.enc_coll, "copy")
         try:
             self.irods.data_objects.copy(self._orig_obj, copy_obj)
         except CUT_ACTION_PROCESSED_ERR:
             pass
         if self.irods.data_objects.exists(copy_obj):
-            self.fail('unencrypted object copied into folder requiring encryption')
+            self.fail("unencrypted object copied into folder requiring encryption")
             self.ensure_obj_absent(copy_obj)
         self.ensure_obj_absent(self._orig_obj)
 
     def test_not_enc_allowed_in_not_enc_coll(self):
         """Test that an unencrypted file can be created in a collection not requiring encryption"""
-        copy_obj = '/testing/home/copy'
+        copy_obj = "/testing/home/copy"
         self.irods.data_objects.copy(self._orig_obj, copy_obj)
         if not self.irods.data_objects.exists(copy_obj):
             self.fail("file not copied to collection not requiring encryption")
@@ -120,7 +120,7 @@ class CyVerseEncryptionApiDataObjCreatePre(_CyverseEncryptionTestCase):
 
     def test_enc_allowed_in_enc_coll(self):
         """Test that an encrypted files can be created in a collection requiring encryption"""
-        obj = os.path.join(self.enc_coll, 'child.enc')
+        obj = os.path.join(self.enc_coll, "child.enc")
         self.irods.data_objects.create(obj)
         if not self.irods.data_objects.exists(obj):
             self.fail("encrypted file not created")
@@ -128,7 +128,7 @@ class CyVerseEncryptionApiDataObjCreatePre(_CyverseEncryptionTestCase):
 
     def test_not_enc_not_allowed_in_enc_coll(self):
         """Test that an unencrypted file cannot be created in a collection requiring encryption"""
-        obj = os.path.join(self.enc_coll, 'child')
+        obj = os.path.join(self.enc_coll, "child")
         try:
             self.irods.data_objects.create(obj)
         except CUT_ACTION_PROCESSED_ERR:
@@ -139,7 +139,7 @@ class CyVerseEncryptionApiDataObjCreatePre(_CyverseEncryptionTestCase):
 
     def test_not_enc_allowed_in_not_enc_coll(self):
         """Test that an unencrypted file can be created in a collection not requiring encryption"""
-        obj = '/testing/home/obj'
+        obj = "/testing/home/obj"
         self.irods.data_objects.create(obj)
         if not self.irods.data_objects.exists(obj):
             self.fail("file not created")
@@ -151,7 +151,7 @@ class CyVerseEncryptionApiDataObjCreateAndStatPre(_CyverseEncryptionTestCase):
     """
     Tests of cyverse_encryption_api_data_obj_create_and_stat_pre
 
-    NOTE: As of iRODS 4.3.1, the pep_api_data_obj_create_and_stat_pre PEP is not
+    NOTE: As of iRODS 4.3.3, the pep_api_data_obj_create_and_stat_pre PEP is not
     called by any iRODS client.
     """
 
@@ -161,17 +161,17 @@ class CyverseEncryptionApiDataObjOpenPre(_CyverseEncryptionTestCase):
 
     def test_enc_allowed_in_enc_coll(self):
         """Test that an encrypted files can be created in a collection requiring encryption"""
-        obj = os.path.join(self.enc_coll, 'child.enc')
-        self.irods.data_objects.open(obj, 'w')
+        obj = os.path.join(self.enc_coll, "child.enc")
+        self.irods.data_objects.open(obj, "w")
         if not self.irods.data_objects.exists(obj):
             self.fail("encrypted file not created")
         self.irods.data_objects.unlink(obj, force=True)
 
     def test_not_enc_not_allowed_in_enc_coll(self):
         """Test that an unencrypted file cannot be created in a collection requiring encryption"""
-        obj = os.path.join(self.enc_coll, 'child')
+        obj = os.path.join(self.enc_coll, "child")
         try:
-            self.irods.data_objects.open(obj, 'w')
+            self.irods.data_objects.open(obj, "w")
         except CUT_ACTION_PROCESSED_ERR:
             pass
         if self.irods.data_objects.exists(obj):
@@ -180,8 +180,8 @@ class CyverseEncryptionApiDataObjOpenPre(_CyverseEncryptionTestCase):
 
     def test_not_enc_allowed_in_not_enc_coll(self):
         """Test that an unencrypted file can be created in a collection not requiring encryption"""
-        obj = '/testing/home/obj'
-        self.irods.data_objects.open(obj, 'w')
+        obj = "/testing/home/obj"
+        self.irods.data_objects.open(obj, "w")
         if not self.irods.data_objects.exists(obj):
             self.fail("file not created")
         self.irods.data_objects.unlink(obj, force=True)
@@ -193,21 +193,25 @@ class CyverseEncryptionApiDataObjPutPre(_CyverseEncryptionTestCase):
     def test_enc_allowed_in_enc_coll(self):
         """Test that an encrypted files can be uploaded into a collection requiring encryption"""
         if not self._attempt_put(self.enc_coll, "file.enc"):
-            self.fail("Failed to upload encrypted file to collection requiring encryption")
+            self.fail(
+                "Failed to upload encrypted file to collection requiring encryption"
+            )
 
     def test_not_enc_not_allowed_in_enc_coll(self):
         """
         Test that an unencrypted file cannot be uploaded into a collection requiring encryption
         """
-        if self._attempt_put(self.enc_coll, 'file'):
+        if self._attempt_put(self.enc_coll, "file"):
             self.fail("Uploaded unencrypted file to collection requiring encryption")
 
     def test_not_enc_allowed_in_not_enc_coll(self):
         """
         Test that an unencrypted file can be uploaded into a collection not requiring encryption
         """
-        if not self._attempt_put('/testing/home', 'file'):
-            self.fail("Failed to upload unencrypted file to collection not requiring encryption")
+        if not self._attempt_put("/testing/home", "file"):
+            self.fail(
+                "Failed to upload unencrypted file to collection not requiring encryption"
+            )
 
     def _attempt_put(self, dest_coll: str, obj_name: str) -> bool:
         return self.put_empty(os.path.join(dest_coll, obj_name))
@@ -218,7 +222,7 @@ class CyverseEncryptionApiDataObjRenamePreData(_CyverseEncryptionTestCase):
 
     def setUp(self):
         super().setUp()
-        self._orig_obj = '/testing/home/orig'
+        self._orig_obj = "/testing/home/orig"
         self.irods.data_objects.create(self._orig_obj)
 
     def tearDown(self):
@@ -227,7 +231,7 @@ class CyverseEncryptionApiDataObjRenamePreData(_CyverseEncryptionTestCase):
 
     def test_enc_data_allowed_in_enc_coll(self):
         """Test that an encrypted files can be moved into a collection requiring encryption"""
-        dest_obj = os.path.join(self.enc_coll, 'dest.enc')
+        dest_obj = os.path.join(self.enc_coll, "dest.enc")
         self.irods.data_objects.move(self._orig_obj, dest_obj)
         if not self.irods.data_objects.exists(dest_obj):
             self.fail("encrypted file not moved into collection requiring encryption")
@@ -235,7 +239,7 @@ class CyverseEncryptionApiDataObjRenamePreData(_CyverseEncryptionTestCase):
 
     def test_not_enc_data_not_allowed_in_enc_coll(self):
         """Test that an unencrypted file cannot be moved into a collection requiring encryption"""
-        dest_obj = os.path.join(self.enc_coll, 'dest')
+        dest_obj = os.path.join(self.enc_coll, "dest")
         try:
             self.irods.data_objects.move(self._orig_obj, dest_obj)
         except CUT_ACTION_PROCESSED_ERR:
@@ -245,10 +249,12 @@ class CyverseEncryptionApiDataObjRenamePreData(_CyverseEncryptionTestCase):
 
     def test_not_enc_data_allowed_in_not_enc_coll(self):
         """Test that an unencrypted file can be moved into a collection not requiring encryption"""
-        dest_obj = '/testing/home/dest'
+        dest_obj = "/testing/home/dest"
         self.irods.data_objects.move(self._orig_obj, dest_obj)
         if not self.irods.data_objects.exists(dest_obj):
-            self.fail("unencrypted file not moved into collection not requiring encryption")
+            self.fail(
+                "unencrypted file not moved into collection not requiring encryption"
+            )
         self.ensure_obj_absent(dest_obj)
 
 
@@ -257,8 +263,8 @@ class CyverseEncryptionApiDataObjRenamePreCollection(_CyverseEncryptionTestCase)
 
     def setUp(self):
         super().setUp()
-        self._orig_coll = '/testing/home/rods/coll'
-        self._new_enc_coll = os.path.join(self.enc_coll, 'coll')
+        self._orig_coll = "/testing/home/rods/coll"
+        self._new_enc_coll = os.path.join(self.enc_coll, "coll")
         if not self.irods.collections.exists(self._orig_coll):
             self.irods.collections.create(self._orig_coll)
         if self.irods.collections.exists(self._new_enc_coll):
@@ -275,35 +281,41 @@ class CyverseEncryptionApiDataObjRenamePreCollection(_CyverseEncryptionTestCase)
         Test that a collection requiring data to be encrypted can be moved into a collection
         requiring encryption
         """
-        self.irods.collections.get(self._orig_coll).metadata.set('encryption::required', 'true')  # type: ignore # noqa: E501 # pylint: disable=line-too-long
-        self.irods.data_objects.create(os.path.join(self._orig_coll, 'obj.enc'))
+        self.irods.collections.get(self._orig_coll).metadata.set("encryption::required", "true")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+        self.irods.data_objects.create(os.path.join(self._orig_coll, "obj.enc"))
         self.irods.collections.move(self._orig_coll, self._new_enc_coll)
         if not self.irods.collections.exists(self._new_enc_coll):
-            self.fail("encrypted collection not moved into collection requiring encryption")
+            self.fail(
+                "encrypted collection not moved into collection requiring encryption"
+            )
 
     def test_not_enc_coll_not_allowed_in_enc_coll(self):
         """
         Test that a collection not requiring data to be encrypted cannot be moved into a collection
         requiring encryption
         """
-        self.irods.data_objects.create(os.path.join(self._orig_coll, 'obj'))
+        self.irods.data_objects.create(os.path.join(self._orig_coll, "obj"))
         try:
             self.irods.collections.move(self._orig_coll, self._new_enc_coll)
         except CUT_ACTION_PROCESSED_ERR:
             pass
         if self.irods.collections.exists(self._new_enc_coll):
-            self.fail("unencrypted collection moved into collection requiring encryption")
+            self.fail(
+                "unencrypted collection moved into collection requiring encryption"
+            )
 
     def test_not_enc_coll_allowed_in_not_enc_coll(self):
         """
         Test that a collection not requiring encryption can be moved into a collection not
         requiring encryption
         """
-        self.irods.data_objects.create(os.path.join(self._orig_coll, 'obj'))
-        new_coll = '/testing/home/rods/new_coll'
+        self.irods.data_objects.create(os.path.join(self._orig_coll, "obj"))
+        new_coll = "/testing/home/rods/new_coll"
         self.irods.collections.move(self._orig_coll, new_coll)
         if not self.irods.collections.exists(new_coll):
-            self.fail("unencrypted collection not moved into collection not requiring encryption")
+            self.fail(
+                "unencrypted collection not moved into collection not requiring encryption"
+            )
         self.ensure_coll_absent(new_coll)
 
 
@@ -312,9 +324,9 @@ class CyverseEncryptionApiDataObjRenamePost(_CyverseEncryptionTestCase):
 
     def setUp(self):
         super().setUp()
-        self._orig_path = '/testing/home/rods/orig_coll'
-        self._mv_enc_path = os.path.join(self.enc_coll, 'moved_coll')
-        self._mv_path = '/testing/home/rods/moved_coll'
+        self._orig_path = "/testing/home/rods/orig_coll"
+        self._mv_enc_path = os.path.join(self.enc_coll, "moved_coll")
+        self._mv_path = "/testing/home/rods/moved_coll"
         self.irods.collections.create(self._orig_path)
         self.ensure_coll_absent(self._mv_enc_path)
         self.ensure_coll_absent(self._mv_path)
@@ -327,7 +339,7 @@ class CyverseEncryptionApiDataObjRenamePost(_CyverseEncryptionTestCase):
         """Test that a collection added to a collection requiring encryption receives the AVU"""
         self.irods.collections.move(self._orig_path, self._mv_enc_path)
         coll = self.irods.collections.get(self._mv_enc_path)
-        if coll.metadata.get_one('encryption::required').value != 'true':  # type: ignore
+        if coll.metadata.get_one("encryption::required").value != "true":  # type: ignore
             self.fail("encryption::required AVU not set to 'true'")
         self.ensure_coll_absent(self._mv_enc_path)
 
@@ -337,7 +349,7 @@ class CyverseEncryptionApiDataObjRenamePost(_CyverseEncryptionTestCase):
         AVU
         """
         self.irods.collections.move(self._orig_path, self._mv_path)
-        if 'encryption::required' in self.irods.collections.get(self._mv_path).metadata:  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+        if "encryption::required" in self.irods.collections.get(self._mv_path).metadata:  # type: ignore # noqa: E501 # pylint: disable=line-too-long
             self.fail("encryption::required AVU set")
         self.ensure_coll_absent(self._mv_path)
 
@@ -356,7 +368,7 @@ class CyverseEncryptionCheckrequiredcoll(_CyverseEncryptionTestCase):
 
     def setUp(self):
         super().setUp()
-        self._src_coll = '/testing/home/rods/coll'
+        self._src_coll = "/testing/home/rods/coll"
         self.irods.collections.create(self._src_coll)
 
     def tearDown(self):
@@ -368,31 +380,38 @@ class CyverseEncryptionCheckrequiredcoll(_CyverseEncryptionTestCase):
         Test that a collection requiring data to be encrypted can be moved into a collection
         requiring encryption when passing paths as paths
         """
-        self.irods.collections.get(self._src_coll).metadata.set('encryption::required', 'true')  # type: ignore # noqa: E501 # pylint: disable=line-too-long
-        self._for_all_str_path_combos(os.path.join(self.enc_coll, 'coll'), self._check_allowed)
+        self.irods.collections.get(self._src_coll).metadata.set("encryption::required", "true")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+        self._for_all_str_path_combos(
+            os.path.join(self.enc_coll, "coll"), self._check_allowed
+        )
 
     def test_not_enc_coll_not_allowed_in_enc_coll(self):
         """
         Test that a collection not requiring data to be encrypted cannot be moved into a collection
         requiring encryption
         """
-        self.irods.data_objects.create(os.path.join(self._src_coll, 'data'))
-        self._for_all_str_path_combos(os.path.join(self.enc_coll, 'coll'), self._check_disallowed)
+        self.irods.data_objects.create(os.path.join(self._src_coll, "data"))
+        self._for_all_str_path_combos(
+            os.path.join(self.enc_coll, "coll"), self._check_disallowed
+        )
 
     def test_not_enc_coll_allowed_in_not_enc_coll(self):
         """
         Test that a collection not requiring encryption can be moved into a collection not
         requiring encryption
         """
-        self.irods.data_objects.create(os.path.join(self._src_coll, 'data'))
-        self._for_all_str_path_combos('/testing/home/rods/new_coll', self._check_allowed)
+        self.irods.data_objects.create(os.path.join(self._src_coll, "data"))
+        self._for_all_str_path_combos(
+            "/testing/home/rods/new_coll", self._check_allowed
+        )
 
     def _for_all_str_path_combos(self, dest_coll, test):
         for o in IrodsTestCase.prep_path(self._src_coll):
             for n in IrodsTestCase.prep_path(dest_coll):
                 with self.subTest(o=o, n=n):
                     rule = self.mk_rule(
-                        f"_cyverse_encryption_checkRequiredColl({repr(o)}, {repr(n)})")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+                        f"_cyverse_encryption_checkRequiredColl({repr(o)}, {repr(n)})"
+                    )  # type: ignore # noqa: E501 # pylint: disable=line-too-long
                     test(rule)
 
     def _check_allowed(self, rule):
@@ -416,15 +435,19 @@ class CyverseEncryptionCheckrequireddataobj(_CyverseEncryptionTestCase):
         """
         Verify doesn't fail for encrypted data when encryption required and path can have type path
         """
-        self._for_str_and_path(os.path.join(self.enc_coll, 'data.enc'), self._check_allowed)
+        self._for_str_and_path(
+            os.path.join(self.enc_coll, "data.enc"), self._check_allowed
+        )
 
     def test_not_enc_data_enc_required_path(self):
         """Verify fails for unencrypted data when encryption required and path can have type path"""
-        self._for_str_and_path(os.path.join(self.enc_coll, 'data'), self._check_disallowed)
+        self._for_str_and_path(
+            os.path.join(self.enc_coll, "data"), self._check_disallowed
+        )
 
     def test_enc_not_required_path(self):
         """Verify it works when enc not required and path can have type path"""
-        self._for_str_and_path('/testing/home/rods/data', self._check_allowed)
+        self._for_str_and_path("/testing/home/rods/data", self._check_allowed)
 
     def _for_str_and_path(self, obj_path, test):
         for o in IrodsTestCase.prep_path(obj_path):
@@ -458,12 +481,13 @@ class CyverseEncryptionCopyparentavuEncRequired(_CyverseEncryptionTestCase):
         self.irods.data_objects.create(self._data)
         self._child_data = os.path.join(self._child_coll, "data")
         self.irods.data_objects.create(self._child_data)
-        self.irods.collections.get(self._parent).metadata.set('encryption::required', 'true')  # type: ignore # noqa: E501 # pylint: disable=line-too-long
-        self._mode = 'mode'
-        self.irods.collections.get(self._parent).metadata.set('encryption::mode', self._mode)  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+        self.irods.collections.get(self._parent).metadata.set("encryption::required", "true")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+        self._mode = "mode"
+        self.irods.collections.get(self._parent).metadata.set("encryption::mode", self._mode)  # type: ignore # noqa: E501 # pylint: disable=line-too-long
         self.exec_rule(
             self.mk_rule(f"_cyverse_encryption_copyParentAvu({self._coll})"),
-            IrodsType.NONE)
+            IrodsType.NONE,
+        )
 
     def tearDown(self):
         self.irods.collections.remove(self._parent, force=True)
@@ -517,7 +541,9 @@ class CyverseEncryptionCopyparentavuEncNotRequired(_CyverseEncryptionTestCase):
         """Test encryption::required not set on collection when not set on parent"""
         coll = "/testing/home/rods/coll"
         self.irods.collections.create(coll)
-        self.exec_rule(self.mk_rule(f"_cyverse_encryption_copyParentAvu({coll})"), IrodsType.NONE)
+        self.exec_rule(
+            self.mk_rule(f"_cyverse_encryption_copyParentAvu({coll})"), IrodsType.NONE
+        )
         try:
             self.irods.collections.get(coll).metadata.get_one("encryption::required")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
             self.fail("encryption::required set")
@@ -534,7 +560,7 @@ class CyverseEncryptionRejectbulkregifencryptionrequired(_CyverseEncryptionTestC
         Test that it fails when the parent requires encryption and the collection is provided as a
         path.
         """
-        for p in IrodsTestCase.prep_path(os.path.join(self.enc_coll, 'coll')):
+        for p in IrodsTestCase.prep_path(os.path.join(self.enc_coll, "coll")):
             with self.subTest(p=p):
                 call = self.mk_rule(f"_cyverse_encryption_rejectBulkRegIfRequired({p})")
                 try:
@@ -548,9 +574,11 @@ class CyverseEncryptionRejectbulkregifencryptionrequired(_CyverseEncryptionTestC
         Test that it succeeds when the parent doesn't require encryption and the collection is
         provided as a path.
         """
-        for p in IrodsTestCase.prep_path('/testing/home/rods/coll'):
+        for p in IrodsTestCase.prep_path("/testing/home/rods/coll"):
             with self.subTest(p=p):
-                call = self.mk_rule(f"_cyverse_encryption_rejectBulkRegIfRequired('{p}')")
+                call = self.mk_rule(
+                    f"_cyverse_encryption_rejectBulkRegIfRequired('{p}')"
+                )
                 try:
                     self.exec_rule(call, IrodsType.NONE)
                 except CUT_ACTION_PROCESSED_ERR:
@@ -564,22 +592,28 @@ class CyverseEncryptionRequired(_CyverseEncryptionTestCase):
         """test when collection is provided as path with encryption::required set to true"""
         for p in IrodsTestCase.prep_path(self.enc_coll):
             with self.subTest(p=p):
-                self.fn_test('_cyverse_encryption_required', [p], IrodsVal.boolean(True))
+                self.fn_test(
+                    "_cyverse_encryption_required", [p], IrodsVal.boolean(True)
+                )
 
     def test_attr_set_false_path(self):
         """test when collection is provided as path with encryption::required set to false"""
-        coll = '/testing/home/rods'
-        self.irods.collections.get(coll).metadata.set('encryption::required', 'false')  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+        coll = "/testing/home/rods"
+        self.irods.collections.get(coll).metadata.set("encryption::required", "false")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
         for p in IrodsTestCase.prep_path(coll):
             with self.subTest(p=p):
-                self.fn_test('_cyverse_encryption_required', [p], IrodsVal.boolean(False))
-        self.irods.collections.get(coll).metadata.remove('encryption::required', 'false', '')  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+                self.fn_test(
+                    "_cyverse_encryption_required", [p], IrodsVal.boolean(False)
+                )
+        self.irods.collections.get(coll).metadata.remove("encryption::required", "false", "")  # type: ignore # noqa: E501 # pylint: disable=line-too-long
 
     def test_attr_not_set_path(self):
         """test when collection is provided as path with encryption::required unset"""
-        for p in IrodsTestCase.prep_path('/testing/home'):
+        for p in IrodsTestCase.prep_path("/testing/home"):
             with self.subTest(p=p):
-                self.fn_test('_cyverse_encryption_required', [p], IrodsVal.boolean(False))
+                self.fn_test(
+                    "_cyverse_encryption_required", [p], IrodsVal.boolean(False)
+                )
 
 
 if __name__ == "__main__":

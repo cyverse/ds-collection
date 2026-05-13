@@ -105,13 +105,13 @@
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: irods-server
-        version: 4.3.1
+        version: 4.3.3
 
     - name: Verify iRODS S3 resource plugin installed
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: irods-resource-plugin-s3
-        version: 4.3.1
+        version: 4.3.3
 
     - name: Test create service group
       ansible.builtin.command:

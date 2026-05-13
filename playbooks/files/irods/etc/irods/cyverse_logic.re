@@ -985,7 +985,7 @@ cyverse_logic_chksumRepl(*DataId, *ReplNum) {
 		WHERE DATA_ID = '*DataObjId' AND DATA_REPL_NUM = '*ReplNum' AND DATA_CHECKSUM = ''
 	) {
 		*dataPath = *rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME;
-# XXX - As of iRODS 4.3.1, deferred rules don't propagate ticket information
+# XXX - As of iRODS 4.3.3, deferred rules don't propagate ticket information
 # 		msiAddKeyValToMspStr('forceChksum', '', *opts);
 # 		msiAddKeyValToMspStr('replNum', str(*ReplNum), *opts);
 # 		msiDataObjChksum(*dataPath, *opts, *_);
@@ -2450,7 +2450,7 @@ cyverse_logic_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp) {
 
 # REPLICA_OPEN
 
-# *DataObjInp: https://docs.irods.org/4.3.1/doxygen/structDataObjInp.html
+# *DataObjInp: https://docs.irods.org/4.3.3/doxygen/structDataObjInp.html
 #
 cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
 	*path = cyverse_getValue(*DataObjInp, 'obj_path');
@@ -2477,7 +2477,7 @@ cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput) {
 	if (*path != '') {
 
 		# checksum policy
-# XXX - As of iRODS 4.3.1, *JsonInput buffer ends with a serialized NUL, i.e., the string '\x00'
+# XXX - As of iRODS 4.3.3, *JsonInput buffer ends with a serialized NUL, i.e., the string '\x00'
 # 		(*input, *err) = match cyverse_json_deserialize(*JsonInput.buf) with
 # 			| cyverse_json_deserialize_val(*i, *_) => (*i, "")
 # 			| cyverse_json_deserialize_err(*err, *partial, *_) => (*partial, *err);
@@ -2532,7 +2532,7 @@ cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput) {
 # If that's the case, publish a data object create message
 #
 cyverse_logic_api_touch_post(*Instance, *Comm, *JsonInput) {
-# XXX - As of iRODS 4.3.1, *JsonInput buffer ends with a serialized NUL, i.e., the string '\x00'
+# XXX - As of iRODS 4.3.3, *JsonInput buffer ends with a serialized NUL, i.e., the string '\x00'
 # 	(*input, *err) = match cyverse_json_deserialize(*JsonInput.buf) with
 # 		| cyverse_json_deserialize_val(*v, *_) => (*v, "")
 # 		| cyverse_json_deserialize_err(*e, *part, *_) => (*part, *e);
@@ -2622,7 +2622,7 @@ cyverse_logic_api_touch_post(*Instance, *Comm, *JsonInput) {
 # DATA_OBJ_CREATE
 
 # *DataObjInp:
-#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gab5b8db16a4951cf048e88c8538d8aa56
+#   https://docs.irods.org/4.3.3/doxygen/group__data__object.html#gab5b8db16a4951cf048e88c8538d8aa56
 #
 cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 	temporaryStorage.cyverse_logic_dataObjClose_objPath = cyverse_getValue(*DataObjInp, 'obj_path');
@@ -2688,7 +2688,7 @@ cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 # DATA_OBJ_OPEN
 
 # *DataObjInp:
-#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gab869f78a9d131b1e973d425cd1ebf1f2
+#   https://docs.irods.org/4.3.3/doxygen/group__data__object.html#gab869f78a9d131b1e973d425cd1ebf1f2
 #
 cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
 	*flags = cyverse_getValue(*DataObjInp, 'open_flags');
@@ -2719,7 +2719,7 @@ cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
 # DATA_OBJ_WRITE
 
 # *DataObjWriteInp:
-#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gaaa88dd8ad00161d5c48115bebbe6866c
+#   https://docs.irods.org/4.3.3/doxygen/group__data__object.html#gaaa88dd8ad00161d5c48115bebbe6866c
 #
 cyverse_logic_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf) {
 
@@ -2734,7 +2734,7 @@ cyverse_logic_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataO
 # DATA_OBJ_CLOSE
 
 # *DataObjCloseInp:
-#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga9dcea65009d7cc49ed0106f88540f431
+#   https://docs.irods.org/4.3.3/doxygen/group__data__object.html#ga9dcea65009d7cc49ed0106f88540f431
 #
 cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 	*path = cyverse_getValue(temporaryStorage, 'cyverse_logic_dataObjClose_objPath');

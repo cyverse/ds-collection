@@ -27,7 +27,7 @@ RUN <<'EOF'
 	apt-get upgrade --yes
 
 # Install iRODS
-	apt-get install --yes irods-icommands=4.3.1 irods-runtime=4.3.1 irods-server=4.3.1
+	apt-get install --yes irods-icommands=4.3.3 irods-runtime=4.3.3 irods-server=4.3.3
 
 	groupadd --non-unique --system --gid="$IRODS_HOST_UID" irods
 

@@ -39,17 +39,17 @@ _For native installation, this needs to be installed on Ubuntu 20.04._
     sudo swapoff --all
    ```
 
-    Edit the sysctl config file, `/etc/sysctl.conf`, setting the max map count to 262,144.
+   Edit the sysctl config file, `/etc/sysctl.conf`, setting the max map count to 262,144.
 
-    ```bash
-    echo vm.max_map_count=262144 | sudo tee --append /etc/sysctl.conf > /dev/null
-    ```
+   ```bash
+   echo vm.max_map_count=262144 | sudo tee --append /etc/sysctl.conf > /dev/null
+   ```
 
-    Reload the kernel parameters.
+   Reload the kernel parameters.
 
-    ```bash
+   ```bash
    sudo sysctl --load
-    ```
+   ```
 
 1. Get the All-in-One Compose file
 
@@ -145,7 +145,7 @@ The AMQP 1.0 plugin needs to be configured for the RabbitMQ broker.
       # Replace @timestamp with the timestamp stored in message field @timestamp
       date { match => [ "[message][@timestamp]", "UNIX_MS" ] }
 
-      # TODO: Verify which fields need to be converted to integers for iRODS 4.3.1
+      # TODO: Verify which fields need to be converted to integers for iRODS 4.3.3
       mutate {
          convert => {
             "[message][file_size]" => "integer"

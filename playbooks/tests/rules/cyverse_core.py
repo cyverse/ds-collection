@@ -36,7 +36,7 @@ class CyverseCoreTestCase(IrodsTestCase):
 
     def __init__(self, method_name: str):
         super().__init__(method_name)
-        self._test_file = '/testing/home/rods/tmp'
+        self._test_file = "/testing/home/rods/tmp"
 
     @property
     def artifact_file(self) -> str:
@@ -45,22 +45,29 @@ class CyverseCoreTestCase(IrodsTestCase):
 
     def setUp(self):
         super().setUp()
-        self.update_rulebase([
-            ('cyverse_encryption.re', 'mocks/cyverse_encryption.re'),
-            ('cyverse_logic.re', 'mocks/cyverse_logic.re'),
-            ('cyverse_repl.re', 'mocks/cyverse_repl.re'),
-            ('cyverse_trash.re', 'mocks/cyverse_trash.re'),
-            ('coge.re', 'mocks/coge.re'),
-        ])
+        self.update_rulebase(
+            [
+                ("cyverse_encryption.re", "mocks/cyverse_encryption.re"),
+                ("cyverse_logic.re", "mocks/cyverse_logic.re"),
+                ("cyverse_repl.re", "mocks/cyverse_repl.re"),
+                ("cyverse_trash.re", "mocks/cyverse_trash.re"),
+                ("coge.re", "mocks/coge.re"),
+            ]
+        )
 
     def tearDown(self):
-        self.update_rulebase([
-            ('coge.re', '../../files/irods/etc/irods/coge.re'),
-            ('cyverse_trash.re', '../../files/irods/etc/irods/cyverse_trash.re'),
-            ('cyverse_repl.re', '../../files/irods/etc/irods/cyverse_repl.re'),
-            ('cyverse_logic.re', '../../files/irods/etc/irods/cyverse_logic.re'),
-            ('cyverse_encryption.re', '../../files/irods/etc/irods/cyverse_encryption.re'),
-        ])
+        self.update_rulebase(
+            [
+                ("coge.re", "../../files/irods/etc/irods/coge.re"),
+                ("cyverse_trash.re", "../../files/irods/etc/irods/cyverse_trash.re"),
+                ("cyverse_repl.re", "../../files/irods/etc/irods/cyverse_repl.re"),
+                ("cyverse_logic.re", "../../files/irods/etc/irods/cyverse_logic.re"),
+                (
+                    "cyverse_encryption.re",
+                    "../../files/irods/etc/irods/cyverse_encryption.re",
+                ),
+            ]
+        )
         super().tearDown()
 
     def verify_msg_logged(self, msg_frag) -> bool:
@@ -76,10 +83,13 @@ class CyverseCoreMkdataobjsessvarTest(CyverseCoreTestCase):
 
     def test(self):
         """Test it"""
-        for p in IrodsTestCase.prep_path('/a/path'):
+        for p in IrodsTestCase.prep_path("/a/path"):
             with self.subTest(p=p):
                 self.fn_test(
-                    '_cyverse_core_mkDataObjSessVar', [p], IrodsVal.string('ipc-data-obj-/a/path'))
+                    "_cyverse_core_mkDataObjSessVar",
+                    [p],
+                    IrodsVal.string("ipc-data-obj-/a/path"),
+                )
 
 
 class CyverseCoreDataobjcreated(ABC, CyverseCoreTestCase):
@@ -88,11 +98,11 @@ class CyverseCoreDataobjcreated(ABC, CyverseCoreTestCase):
     def setUp(self):
         super().setUp()
         test_rules.clear_rods_log()
-        rule = f'''
+        rule = f"""
             *dataObjInfo.logical_path = '/{self.irods.zone}/home/{self.irods.username}/obj';
             _cyverse_core_dataObjCreated(
                 '{self.irods.username}', '{self.irods.zone}', *dataObjInfo, '{self.step()}' );
-        '''
+        """
         self.exec_rule(self.mk_rule(rule), IrodsType.NONE)
 
     @abstractmethod
@@ -102,19 +112,21 @@ class CyverseCoreDataobjcreated(ABC, CyverseCoreTestCase):
     @property
     def coge_log_msg(self) -> str:
         """The message logged by the coge.re mock"""
-        return f'coge_dataObjCreated({self.irods.username}, {self.irods.zone}, DataObjInfo)'
+        return f"coge_dataObjCreated({self.irods.username}, {self.irods.zone}, DataObjInfo)"
 
     @property
     def cyverselogic_log_msg(self) -> str:
         """The message logged by the cyverse_logic.re mock"""
         user = self.irods.username
         zone = self.irods.zone
-        return f'cyverse_logic_dataObjCreated({user}, {zone}, DataObjInfo, {self.step()})'
+        return (
+            f"cyverse_logic_dataObjCreated({user}, {zone}, DataObjInfo, {self.step()})"
+        )
 
     @property
     def cyverserepl_log_msg(self) -> str:
         """The message logged by cyverse_repl.re mock"""
-        return f'cyverse_repl_dataObjCreated({self.irods.username}, {self.irods.zone}, DataObjInfo)'
+        return f"cyverse_repl_dataObjCreated({self.irods.username}, {self.irods.zone}, DataObjInfo)"
 
 
 class CyverseCoreDataobjcreatedFull(CyverseCoreDataobjcreated):
@@ -123,17 +135,17 @@ class CyverseCoreDataobjcreatedFull(CyverseCoreDataobjcreated):
     def test_coge(self):
         """verify coge called"""
         if not self.verify_msg_logged(self.coge_log_msg):
-            self.fail('coge_dataObjCreated not called')
+            self.fail("coge_dataObjCreated not called")
 
     def test_cyverselogic(self):
         """verify cyverse_logic called"""
         if not self.verify_msg_logged(self.cyverselogic_log_msg):
-            self.fail('cyverse_logic_dataObjCreated not called')
+            self.fail("cyverse_logic_dataObjCreated not called")
 
     def test_cyverserepl(self):
         """verify cyverse_repl called"""
         if not self.verify_msg_logged(self.cyverserepl_log_msg):
-            self.fail('cyverse_repl_dataObjCreated not called')
+            self.fail("cyverse_repl_dataObjCreated not called")
 
     def step(self):
         return "FULL"
@@ -145,17 +157,17 @@ class CyverseCoreDataobjcreatedStart(CyverseCoreDataobjcreated):
     def test_coge(self):
         """verify coge called"""
         if not self.verify_msg_logged(self.coge_log_msg):
-            self.fail('coge_dataObjCreated not called')
+            self.fail("coge_dataObjCreated not called")
 
     def test_cyverselogic(self):
         """verify cyverse_logic called"""
         if not self.verify_msg_logged(self.cyverselogic_log_msg):
-            self.fail('cyverse_logic_dataObjCreated not called')
+            self.fail("cyverse_logic_dataObjCreated not called")
 
     def test_cyverserepl(self):
         """verify cyverse_repl not called"""
         if self.verify_msg_logged(self.cyverserepl_log_msg):
-            self.fail('cyverse_repl_dataObjCreated called')
+            self.fail("cyverse_repl_dataObjCreated called")
 
     def step(self):
         return "START"
@@ -167,17 +179,17 @@ class CyverseCoreDataobjcreatedFinish(CyverseCoreDataobjcreated):
     def test_coge(self):
         """verify coge not called"""
         if self.verify_msg_logged(self.coge_log_msg):
-            self.fail('coge_dataObjCreated called')
+            self.fail("coge_dataObjCreated called")
 
     def test_cyverselogic(self):
         """verify cyverse_logic called"""
         if not self.verify_msg_logged(self.cyverselogic_log_msg):
-            self.fail('cyverse_logic_dataObjCreated not called')
+            self.fail("cyverse_logic_dataObjCreated not called")
 
     def test_cyverserepl(self):
         """verify cyverse_repl called"""
         if not self.verify_msg_logged(self.cyverserepl_log_msg):
-            self.fail('cyverse_repl_dataObjCreated not called')
+            self.fail("cyverse_repl_dataObjCreated not called")
 
     def step(self):
         return "FINISH"
@@ -189,16 +201,16 @@ class CyverseCoreDataobjmetadatamodifiedTest(CyverseCoreTestCase):
     def test_cyverselogic(self):
         """Verify that cyverse_logic is called"""
         test_rules.clear_rods_log()
-        rule = f'''
+        rule = f"""
             _cyverse_core_dataObjMetadataModified(
                 '{self.irods.username}', '{self.irods.zone}', /path/to/data );
-        '''
+        """
         self.exec_rule(self.mk_rule(rule), IrodsType.NONE)
-        msg = f'''
+        msg = f"""
             cyverse_logic_dataObjMetaMod({self.irods.username}, {self.irods.zone}, /path/to/data)
-        '''
+        """
         if self.verify_msg_logged(msg):
-            self.fail('cyverse_repl_dataObjCreated called')
+            self.fail("cyverse_repl_dataObjCreated called")
 
 
 class AccreateuserzonecollectionsGroup(CyverseCoreTestCase):
@@ -206,7 +218,7 @@ class AccreateuserzonecollectionsGroup(CyverseCoreTestCase):
 
     def setUp(self):
         super().setUp()
-        self._group_name = 'testers'
+        self._group_name = "testers"
         try:
             self.irods.groups.create(self._group_name)
         except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
@@ -218,15 +230,15 @@ class AccreateuserzonecollectionsGroup(CyverseCoreTestCase):
 
     def test_no_home_coll(self):
         """Test that no home collection is created for the group"""
-        home = os.path.join('/', self.irods.zone, 'home', self._group_name)
+        home = os.path.join("/", self.irods.zone, "home", self._group_name)
         if self.irods.collections.exists(home):
-            self.fail('home collection created for group')
+            self.fail("home collection created for group")
 
     def test_no_trash_coll(self):
         """Test that no trash collection is created for the group"""
-        trash = os.path.join('/', self.irods.zone, 'trash/home', self._group_name)
+        trash = os.path.join("/", self.irods.zone, "trash/home", self._group_name)
         if self.irods.collections.exists(trash):
-            self.fail('trash collection created for group')
+            self.fail("trash collection created for group")
 
 
 class AccreateuserzonecollectionsUser(CyverseCoreTestCase):
@@ -234,12 +246,12 @@ class AccreateuserzonecollectionsUser(CyverseCoreTestCase):
 
     def setUp(self):
         super().setUp()
-        self._user_name = 'tester'
+        self._user_name = "tester"
         try:
             self.irods.users.remove(self._user_name)
         except UserDoesNotExist:
             pass
-        self.irods.users.create(self._user_name, 'rodsuser')
+        self.irods.users.create(self._user_name, "rodsuser")
 
     def tearDown(self):
         self.irods.users.remove(self._user_name)
@@ -247,15 +259,15 @@ class AccreateuserzonecollectionsUser(CyverseCoreTestCase):
 
     def test_home_coll(self):
         """Verify that when a user is created, a home collection is created"""
-        home = os.path.join('/', self.irods.zone, 'home', self._user_name)
+        home = os.path.join("/", self.irods.zone, "home", self._user_name)
         if not self.irods.collections.exists(home):
-            self.fail(f'home collection {home} not created for user {self._user_name}')
+            self.fail(f"home collection {home} not created for user {self._user_name}")
 
     def test_trash_coll(self):
         """Verify that when a user is created, a trash collection is created"""
-        trash = os.path.join('/', self.irods.zone, 'trash/home', self._user_name)
+        trash = os.path.join("/", self.irods.zone, "trash/home", self._user_name)
         if not self.irods.collections.exists(trash):
-            self.fail(f'trash collection {trash} created for user {self._user_name}')
+            self.fail(f"trash collection {trash} created for user {self._user_name}")
 
 
 class Acsetrescschemeforcreate(CyverseCoreTestCase):
@@ -265,9 +277,11 @@ class Acsetrescschemeforcreate(CyverseCoreTestCase):
         """Verify that the cyverse_repl.re version is called"""
         self.ensure_obj_absent(self.artifact_file)
         self.irods.data_objects.create(self.artifact_file)
-        exp_msg = f'cyverse_repl_acSetRescSchemeForCreate({self.artifact_file})'
+        exp_msg = f"cyverse_repl_acSetRescSchemeForCreate({self.artifact_file})"
         if not self.verify_msg_logged(exp_msg):
-            self.fail(f'cyverse_repl_acSetRescSchemeForCreate({self.artifact_file}) not called')
+            self.fail(
+                f"cyverse_repl_acSetRescSchemeForCreate({self.artifact_file}) not called"
+            )
         self.ensure_obj_absent(self.artifact_file)
 
 
@@ -279,9 +293,9 @@ class Acsetrescschemeforrepl(CyverseCoreTestCase):
         self.ensure_obj_absent(self.artifact_file)
         obj = self.irods.data_objects.create(self.artifact_file)
         obj.replicate()
-        exp_msg = f'cyverse_repl_acSetRescSchemeForRepl({self.artifact_file})'
+        exp_msg = f"cyverse_repl_acSetRescSchemeForRepl({self.artifact_file})"
         if not self.verify_msg_logged(exp_msg):
-            self.fail('cyverse_repl_acSetRescSchemeForRepl not called')
+            self.fail("cyverse_repl_acSetRescSchemeForRepl not called")
         self.ensure_obj_absent(self.artifact_file)
 
 
@@ -290,7 +304,7 @@ class PepApiCollCreatePostTest(CyverseCoreTestCase):
 
     def __init__(self, method_name: str):
         super().__init__(method_name)
-        self._test_coll = '/testing/home/rods/test_coll'
+        self._test_coll = "/testing/home/rods/test_coll"
 
     def setUp(self):
         super().setUp()
@@ -306,13 +320,13 @@ class PepApiCollCreatePostTest(CyverseCoreTestCase):
 
     def test_cyverseencryption_called(self):
         """Test that the cyverse_encryption PEP is called."""
-        if not self.verify_msg_logged('cyverse_encryption_api_coll_create_post'):
-            self.fail('cyverse_encryption_api_coll_create_post not called')
+        if not self.verify_msg_logged("cyverse_encryption_api_coll_create_post"):
+            self.fail("cyverse_encryption_api_coll_create_post not called")
 
     def test_cyversetrash_called(self):
         """Test that the cyverse_trash PEP is called."""
-        if not self.verify_msg_logged('cyverse_trash_api_coll_create_post'):
-            self.fail('cyverse_trash_api_coll_create_post not called')
+        if not self.verify_msg_logged("cyverse_trash_api_coll_create_post"):
+            self.fail("cyverse_trash_api_coll_create_post not called")
 
 
 class PepApiDataObjCopyPostTest(CyverseCoreTestCase):
@@ -320,7 +334,7 @@ class PepApiDataObjCopyPostTest(CyverseCoreTestCase):
 
     def __init__(self, method_name: str):
         super().__init__(method_name)
-        self._test_copy = '/testing/home/rods/test_copy'
+        self._test_copy = "/testing/home/rods/test_copy"
 
     def setUp(self):
         super().setUp()
@@ -339,8 +353,8 @@ class PepApiDataObjCopyPostTest(CyverseCoreTestCase):
     def test_cyversetrash_called(self):
         """Test that the cyverse_trash version of the rule is called"""
         self.irods.data_objects.copy(self.artifact_file, self._test_copy)
-        if not self.verify_msg_logged('cyverse_trash_api_data_obj_copy_post'):
-            self.fail('cyverse_trash_api_data_obj_copy_post not called')
+        if not self.verify_msg_logged("cyverse_trash_api_data_obj_copy_post"):
+            self.fail("cyverse_trash_api_data_obj_copy_post not called")
 
 
 class PepApiDataObjCopyPreTest(CyverseCoreTestCase):
@@ -348,7 +362,7 @@ class PepApiDataObjCopyPreTest(CyverseCoreTestCase):
 
     def __init__(self, method_name: str):
         super().__init__(method_name)
-        self._test_copy = '/testing/home/rods/test_copy'
+        self._test_copy = "/testing/home/rods/test_copy"
 
     def setUp(self):
         super().setUp()
@@ -363,8 +377,8 @@ class PepApiDataObjCopyPreTest(CyverseCoreTestCase):
     def test_cyverseencryption_called(self):
         """Test that the cyverse_encryption version of the rule is called"""
         self.irods.data_objects.copy(self.artifact_file, self._test_copy)
-        if not self.verify_msg_logged('cyverse_encryption_api_data_obj_copy_pre'):
-            self.fail('cyverse_encryption_api_data_obj_copy_pre not called')
+        if not self.verify_msg_logged("cyverse_encryption_api_data_obj_copy_pre"):
+            self.fail("cyverse_encryption_api_data_obj_copy_pre not called")
 
 
 class PepApiDataObjCreatePostTest(CyverseCoreTestCase):
@@ -384,8 +398,8 @@ class PepApiDataObjCreatePostTest(CyverseCoreTestCase):
 
     def test_cyversetrash_called(self):
         """Test that the rule is called."""
-        if not self.verify_msg_logged('cyverse_trash_api_data_obj_create_post'):
-            self.fail('cyverse_trash_api_data_obj_create_post not called')
+        if not self.verify_msg_logged("cyverse_trash_api_data_obj_create_post"):
+            self.fail("cyverse_trash_api_data_obj_create_post not called")
 
 
 class PepApiDataObjCreatePreTest(CyverseCoreTestCase):
@@ -401,23 +415,25 @@ class PepApiDataObjCreatePreTest(CyverseCoreTestCase):
 
     def test_cyverseencryption_called(self):
         """Test that the rule is called."""
-        if not self.verify_msg_logged('cyverse_encryption_api_data_obj_create_pre'):
-            self.fail('cyverse_encryption_api_data_obj_create_pre not called')
+        if not self.verify_msg_logged("cyverse_encryption_api_data_obj_create_pre"):
+            self.fail("cyverse_encryption_api_data_obj_create_pre not called")
 
 
 class PepApiDataObjCreateAndStatPreTest(CyverseCoreTestCase):
     """
     Test pep_api_data_obj_create_and_stat_pre.
 
-    NOTE: As of iRODS 4.3.1, this PEP is not currently called by any iRODS client.
+    NOTE: As of iRODS 4.3.3, this PEP is not currently called by any iRODS client.
     """
 
     def test_cyverseencryption_called(self):
         """Test that cyverse_encryption's version of this rule"""
         self.exec_rule(
-            self.mk_rule("pep_api_data_obj_create_and_stat_pre('', '', '', '')"), IrodsType.NONE)
-        if not self.verify_msg_logged('pep_api_data_obj_create_and_stat_pre'):
-            self.fail('pep_api_data_obj_create_and_stat_pre call not logged')
+            self.mk_rule("pep_api_data_obj_create_and_stat_pre('', '', '', '')"),
+            IrodsType.NONE,
+        )
+        if not self.verify_msg_logged("pep_api_data_obj_create_and_stat_pre"):
+            self.fail("pep_api_data_obj_create_and_stat_pre call not logged")
 
 
 class PepApiDataObjOpenPreTest(CyverseCoreTestCase):
@@ -433,24 +449,26 @@ class PepApiDataObjOpenPreTest(CyverseCoreTestCase):
 
     def test_cyverseencryption_called(self):
         """Test that the rule is called."""
-        with self.irods.data_objects.open(self.artifact_file, mode='r', create=False):
-            if not self.verify_msg_logged('cyverse_encryption_api_data_obj_create_pre'):
-                self.fail('ipcEncryption_api_data_obj_open_pre not called')
+        with self.irods.data_objects.open(self.artifact_file, mode="r", create=False):
+            if not self.verify_msg_logged("cyverse_encryption_api_data_obj_create_pre"):
+                self.fail("ipcEncryption_api_data_obj_open_pre not called")
 
 
 class PepApiDataObjOpenAndStatPreTest(CyverseCoreTestCase):
     """
     Test pep_api_data_obj_open_and_stat_pre"
 
-    NOTE: As of iRODS 4.3.1, this PEP is not currently called by any iRODS client.
+    NOTE: As of iRODS 4.3.3, this PEP is not currently called by any iRODS client.
     """
 
     def test_cyverseencryption_called(self):
         """Test that cyverse_encryption's version of this rule"""
         self.exec_rule(
-            self.mk_rule("pep_api_data_obj_open_and_stat_pre('', '', '', '')"), IrodsType.NONE)
-        if not self.verify_msg_logged('pep_api_data_obj_open_and_stat_pre'):
-            self.fail('pep_api_data_obj_open_and_stat_pre call not logged')
+            self.mk_rule("pep_api_data_obj_open_and_stat_pre('', '', '', '')"),
+            IrodsType.NONE,
+        )
+        if not self.verify_msg_logged("pep_api_data_obj_open_and_stat_pre"):
+            self.fail("pep_api_data_obj_open_and_stat_pre call not logged")
 
 
 class PepApiDataObjPutTest(CyverseCoreTestCase):
@@ -467,8 +485,8 @@ class PepApiDataObjPutTest(CyverseCoreTestCase):
 
     def test_cyverseencryption_called(self):
         """Test that the rule is called."""
-        if not self.verify_msg_logged('cyverse_encryption_api_data_obj_put_pre'):
-            self.fail('cyverse_encryption_api_data_obj_put_pre not called')
+        if not self.verify_msg_logged("cyverse_encryption_api_data_obj_put_pre"):
+            self.fail("cyverse_encryption_api_data_obj_put_pre not called")
 
     @unittest.skip("not implemented")
     def test_cyverselogic_called(self):
@@ -476,8 +494,8 @@ class PepApiDataObjPutTest(CyverseCoreTestCase):
 
     def test_cyversetrash_called(self):
         """Test that cyverse_trash's version of this rule is called."""
-        if not self.verify_msg_logged('cyverse_trash_api_data_obj_put_post'):
-            self.fail('cyverse_trash_api_data_obj_put_post not called')
+        if not self.verify_msg_logged("cyverse_trash_api_data_obj_put_post"):
+            self.fail("cyverse_trash_api_data_obj_put_post not called")
 
 
 class PepApiDataObjRenameTest(CyverseCoreTestCase):
@@ -485,7 +503,7 @@ class PepApiDataObjRenameTest(CyverseCoreTestCase):
 
     def __init__(self, method_name: str):
         super().__init__(method_name)
-        self._test_rename = '/testing/home/rods/test_rename'
+        self._test_rename = "/testing/home/rods/test_rename"
 
     def setUp(self):
         super().setUp()
@@ -499,22 +517,22 @@ class PepApiDataObjRenameTest(CyverseCoreTestCase):
     def test_cyverseencryption_post_called(self):
         """Test that the cyverse_encryption logic attached to this post PEP is called"""
         if not self.verify_msg_logged("cyverse_encryption_api_data_obj_rename_post"):
-            self.fail('cyverse_encryption_api_data_obj_rename_post not called')
+            self.fail("cyverse_encryption_api_data_obj_rename_post not called")
 
     def test_cyverseencryption_pre_called(self):
         """Test that the cyverse_encryption logic attached to this pre PEP is called"""
         if not self.verify_msg_logged("cyverse_encryption_api_data_obj_rename_pre"):
-            self.fail('cyverse_encryption_api_data_obj_rename_pre not called')
+            self.fail("cyverse_encryption_api_data_obj_rename_pre not called")
 
     def test_cyversetrash_post_called(self):
         """Test that the cyverse_trash logic attached to the post PEP is called"""
         if not self.verify_msg_logged("cyverse_trash_api_data_obj_rename_post"):
-            self.fail('cyverse_trash_api_data_obj_rename_post not called')
+            self.fail("cyverse_trash_api_data_obj_rename_post not called")
 
     def test_cyversetrash_pre_called(self):
         """Test that the cyverse_trash logic attached to the pre PEP is called"""
         if not self.verify_msg_logged("cyverse_trash_api_data_obj_rename_pre"):
-            self.fail('cyverse_trash_api_data_obj_rename_pre not called')
+            self.fail("cyverse_trash_api_data_obj_rename_pre not called")
 
 
 class PepApiDataObjUnlinkTest(CyverseCoreTestCase):
@@ -538,20 +556,20 @@ class PepApiDataObjUnlinkTest(CyverseCoreTestCase):
         except FAIL_ACTION_ENCOUNTERED_ERR:
             pass
         if not self.verify_msg_logged("cyverse_trash_api_data_obj_unlink_except"):
-            self.fail('cyverse_trash_api_data_obj_unlink_except not called')
+            self.fail("cyverse_trash_api_data_obj_unlink_except not called")
         self.ensure_obj_absent(no_unlink)
 
     def test_cyversetrash_post_called(self):
         """Test that the cyverse_trash logic attached to the post version of this  PEP is called"""
         self.irods.data_objects.unlink(self._data)
         if not self.verify_msg_logged("cyverse_trash_api_data_obj_unlink_post"):
-            self.fail('cyverse_trash_api_data_obj_unlink_post not called')
+            self.fail("cyverse_trash_api_data_obj_unlink_post not called")
 
     def test_cyversetrash_pre_called(self):
         """Test that the cyverse_trash logic attached to the pre version of this  PEP is called"""
         self.irods.data_objects.unlink(self._data)
         if not self.verify_msg_logged("cyverse_trash_api_data_obj_unlink_pre"):
-            self.fail('cyverse_trash_api_data_obj_unlink_pre not called')
+            self.fail("cyverse_trash_api_data_obj_unlink_pre not called")
 
 
 class PepApiRmCollTest(CyverseCoreTestCase):
@@ -560,19 +578,19 @@ class PepApiRmCollTest(CyverseCoreTestCase):
     def setUp(self):
         super().setUp()
         try:
-            self.irods.collections.remove(f'/{self.irods.zone}/missing')
+            self.irods.collections.remove(f"/{self.irods.zone}/missing")
         except CAT_NO_ROWS_FOUND:
             pass
 
     def test_cyversetrash_except_called(self):
         """Test that the cyverse_trash logic attached to the except version of this PEP is called"""
         if not self.verify_msg_logged("cyverse_trash_api_rm_coll_except"):
-            self.fail('cyverse_trash_api_rm_coll_except not called')
+            self.fail("cyverse_trash_api_rm_coll_except not called")
 
     def test_cyversetrash_pre_called(self):
         """Test that the cyverse_trash logic attached to the pre version of this PEP is called"""
         if not self.verify_msg_logged("cyverse_trash_api_rm_coll_pre"):
-            self.fail('cyverse_trash_api_rm_coll_pre not called')
+            self.fail("cyverse_trash_api_rm_coll_pre not called")
 
 
 @test_rules.unimplemented
@@ -657,15 +675,15 @@ class CyverseCorePublicTest(CyverseCoreTestCase):
 
     @unittest.skip("not implemented")
     def test_pepapibulkdataobjputpost(self):
-        """Test pep_api_bulk_data_obj_put_post """
+        """Test pep_api_bulk_data_obj_put_post"""
 
     @unittest.skip("not implemented")
     def test_pepapibulkdataobjregpost(self):
-        """Test pep_api_bulk_data_obj_reg_post """
+        """Test pep_api_bulk_data_obj_reg_post"""
 
     @unittest.skip("not implemented")
     def test_pepapidataobjclosepost(self):
-        """Test pep_api_data_close_post """
+        """Test pep_api_data_close_post"""
 
     @unittest.skip("not implemented")
     def test_pepapidataobjcopypost(self):
@@ -717,23 +735,23 @@ class CyverseCorePublicTest(CyverseCoreTestCase):
 
     @unittest.skip("not implemented")
     def test_pepdatabaseclosepost(self):
-        """Test pep_database_close_post """
+        """Test pep_database_close_post"""
 
     @unittest.skip("not implemented")
     def test_pepdatabaseclosefinally(self):
-        """Test pep_database_close_finally """
+        """Test pep_database_close_finally"""
 
     @unittest.skip("not implemented")
     def test_pepdatabasemoddataobjmetapost(self):
-        """Test pep_database_mod_data_obj_meta_post """
+        """Test pep_database_mod_data_obj_meta_post"""
 
     @unittest.skip("not implemented")
     def test_pepdatabaseregdataobjpost(self):
-        """Test pep_database_reg_data_obj_post """
+        """Test pep_database_reg_data_obj_post"""
 
     @unittest.skip("not implemented")
     def test_pepresourceresolvehierarchypre(self):
-        """Test pep_resource_resolve_hierarchy_pre """
+        """Test pep_resource_resolve_hierarchy_pre"""
 
 
 if __name__ == "__main__":

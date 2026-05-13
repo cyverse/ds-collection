@@ -107,14 +107,14 @@
             executable: /bin/bash
             cmd: |
               set -o pipefail
-              apt-cache policy | grep --quiet 'irods-database-plugin-postgres -> 4.3.1'
+              apt-cache policy | grep --quiet 'irods-database-plugin-postgres -> 4.3.3'
           changed_when: false
 
     - name: Verify PostgreSQL plugin installed
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: irods-database-plugin-postgres
-        version: 4.3.1
+        version: 4.3.3
 
     - name: Verify iRODS ownership
       ansible.builtin.include_tasks: tasks/irods/test_irods_ownership.yml

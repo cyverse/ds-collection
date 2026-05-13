@@ -12,7 +12,7 @@
 
     - name: Download client env schema
       ansible.builtin.get_url:
-        url: https://raw.githubusercontent.com/irods/irods/refs/tags/4.3.1/schemas/configuration/v4/client_environment.json.in
+        url: https://raw.githubusercontent.com/irods/irods/refs/tags/4.3.3/schemas/configuration/v4/client_environment.json.in
         dest: /
         mode: u+r
         timeout: 120

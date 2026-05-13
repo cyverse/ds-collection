@@ -35,7 +35,7 @@ RUN \
 	apt-get update
 	apt-get install --yes irods-icommands postgresql-client
 
-# XXX - Due to a bug in iCommands 4.3.1, irods_environment.json needs to exist prior to `iinit`
+# XXX - Due to a bug in iCommands 4.3.3, irods_environment.json needs to exist prior to `iinit`
 #       execution. See https://github.com/irods/irods_client_icommands/issues/493
 	mkdir /root/.irods
 	echo '{}' > /root/.irods/irods_environment.json

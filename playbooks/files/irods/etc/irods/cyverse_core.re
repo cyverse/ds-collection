@@ -511,7 +511,7 @@ acPostProcForRmColl {
 #  BulkOpInpBBuf  (unknown) may contain the contents of the uploaded files
 #
 # *BulkOpInp:
-#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#gafeecbd87f6ba164e8c1d189c42a8c93e
+#   https://docs.irods.org/4.3.3/doxygen/group__data__object.html#gafeecbd87f6ba164e8c1d189c42a8c93e
 #
 # N.B. This can be triggered by `iput -b -r`.
 # N.B. `-k` adds `regChksum` to BulkOpInp.
@@ -645,7 +645,7 @@ pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL
 #  PORTAL_OPR_OUT  unknown
 #
 # *DataObjInp:
-#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
+#   https://docs.irods.org/4.3.3/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
 #
 pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
 	*status = errormsg(

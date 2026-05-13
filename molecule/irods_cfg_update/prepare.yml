@@ -1,5 +1,5 @@
 ---
-- name: Base | prepare with iRODS 4.3.1
+- name: Base | prepare with iRODS 4.3.3
   ansible.builtin.import_playbook: ../_irods_cfg_shared/prepare_with_431.yml
 
 - name: Prepare | initialize iRODS

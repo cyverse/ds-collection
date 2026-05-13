@@ -49,7 +49,7 @@ _repl_replicate(*Object, *RescName) {
   } else {
     temporaryStorage.cyverse_repl_replicate = 'REPL_FORCED_REPL_RESC';
 
-# XXX - As of iRODS 4.3.1, ticket information doesn't get sent to deferred rules.
+# XXX - As of iRODS 4.3.3, ticket information doesn't get sent to deferred rules.
 #     msiAddKeyValToMspStr('backupRescName', *RescName, *opts);
 #     msiAddKeyValToMspStr('verifyChksum', '', *opts);
 #     *status = errormsg(msiDataObjRepl(*objPath, *opts, *_), *err);
@@ -137,7 +137,7 @@ _repl_syncReplicas(*Object) {
   if (*dataPath == '') {
     _repl_logMsg('data object *Object no longer exists');
   } else {
-# XXX - As of iRODS 4.3.1, ticket information doesn't get sent to deferred rules.
+# XXX - As of iRODS 4.3.3, ticket information doesn't get sent to deferred rules.
 #     msiAddKeyValToMspStr('all', '', *opts);
 #     msiAddKeyValToMspStr('irodsAdmin', '', *opts);
 #     msiAddKeyValToMspStr('updateRepl', '', *opts);
@@ -201,7 +201,7 @@ _repl_scheduleRepl(*Object, *RescName) {
 
 
 _repl_scheduleSyncReplicas(*Object) {
-# XXX - There is a bug in iRODS 4.3.1 that prevents a general query that doesn't
+# XXX - There is a bug in iRODS 4.3.3 that prevents a general query that doesn't
 #       explicitly use r_coll_main from working when authorization is controlled
 #       by a ticket on a collection.
 #   foreach ( *rec in
@@ -464,7 +464,7 @@ cyverse_repl_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp) {
 #  JsonInput  (string) a JSON-serialized description of the touch request
 #
 cyverse_repl_api_touch_post(*Instance, *Comm, *JsonInput) {
-# XXX - As of iRODS 4.3.1, *JsonInput buffer ends with a serialized NUL, i.e., the string '\x00'
+# XXX - As of iRODS 4.3.3, *JsonInput buffer ends with a serialized NUL, i.e., the string '\x00'
 #   (*input, *_) = match cyverse_json_deserialize(*JsonInput.buf) with
 #     | cyverse_json_deserialize_val(*v, *_) => (*v, "")
   (*input, *_) = match cyverse_json_deserialize(trimr(*JsonInput.buf, '\\x00')) with

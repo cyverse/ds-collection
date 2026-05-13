@@ -270,7 +270,7 @@ cyverse_getDataId(*Path) =
 #
 cyverse_getDataPath: int -> string
 cyverse_getDataPath(*Id) =
-# XXX - As of iRODS 4.3.1, deferred rules don't propagate ticket information
+# XXX - As of iRODS 4.3.3, deferred rules don't propagate ticket information
 # 	let *path = '' in
 # 	let *_ = foreach (*rec in SELECT COLL_NAME, DATA_NAME WHERE DATA_ID = '*Id') {
 # 			*path = *rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME;

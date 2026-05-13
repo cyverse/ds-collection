@@ -61,7 +61,7 @@
       ansible.builtin.lineinfile:
         path: /etc/apt/preferences.d/irods
         regexp: '^Pin: version '
-        line: 'Pin: version 4.3.1'
+        line: 'Pin: version 4.3.3'
 
     - name: Ubuntu | update apt cache
       ansible.builtin.apt:
