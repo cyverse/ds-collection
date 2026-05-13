@@ -53,9 +53,9 @@
         cmd: '[[ "$(pip --version)" =~ pip\ 20 ]]'
       changed_when: false
 
-    - name: Test install packages on Ubuntu 22.04
+    - name: Test install packages on Ubuntu 24.04
       when: >-
-        ansible_distribution == 'Ubuntu' and ansible_distribution_version is version('22.04', '>=')
+        ansible_distribution == 'Ubuntu' and ansible_distribution_version is version('24.04', '>=')
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: python-is-python3

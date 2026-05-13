@@ -1,7 +1,7 @@
 ---
 services:
   amqp:
-    image: test-env-base:ubuntu2204
+    image: test-env-base:ubuntu2404
     privileged: true
     tty: true
 

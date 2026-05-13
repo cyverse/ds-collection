@@ -97,9 +97,9 @@
         name: yum-plugin-versionlock
         state: present
 
-    - name: Install python-is-python3 on Ubuntu 22.04 machines
+    - name: Install python-is-python3 on Ubuntu 24.04 machines
       when: >-
-        ansible_distribution == 'Ubuntu' and ansible_distribution_version is version('22.04', '>=')
+        ansible_distribution == 'Ubuntu' and ansible_distribution_version is version('24.04', '>=')
       ansible.builtin.package:
         name: python-is-python3
         state: present

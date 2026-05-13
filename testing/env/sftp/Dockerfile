@@ -1,4 +1,4 @@
-FROM test-env-base:ubuntu2204
+FROM test-env-base:ubuntu2404
 
 COPY sftp/service.sh /
 

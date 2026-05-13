@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 
 ARG IRODS_CLERVER_PASSWORD=rods
 
@@ -14,7 +14,7 @@ RUN \
 	--mount=source=requirements.yml,target=/requirements.yml \
 	--mount=source=requirements-testing.txt,target=/requirements-testing.txt \
 	--mount=source=requirements-testing.yml,target=/requirements-testing.yml \
-<<EOF
+	<<EOF
 	set -o errexit
 
 ### Update system packages
