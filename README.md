@@ -1,12 +1,12 @@
-# Ansible Collection - cyverse.ds
+# Ansible Collection - cyverse.ds (modified for SW CACTI)
 
-Documentation for the collection.
+Modification of cyverse.ds playbooks to work on Ubuntu 24 systems.
 
-his is a collection of playbooks for maintaining CyVerse's Data Store.
+Forked from: https://github.com/cyverse/ds-collection
 
 ## Prerequisites
 
-Only Ubuntu 22.04 is supported at this time.
+Only Ubuntu 24.04 is supported at this time.
 
 The following actions need to be performed once for the admin host.
 
@@ -25,16 +25,15 @@ The following actions need to be performed once for the admin host.
    ```
 
 1. The following system packages need to be installed on development machines and Ansible control nodes.
-
-   * dmidecode
-   * docker-ce
-   * docker-compose-plugin
-   * git
-   * jq
-   * python-is-python3
-   * python3
-   * python3-pip
-   * rpm
+   - dmidecode
+   - docker-ce
+   - docker-compose-plugin
+   - git
+   - jq
+   - python-is-python3
+   - python3
+   - python3-pip
+   - rpm
 
    ```shell
    sudo apt install \
@@ -57,21 +56,20 @@ The following actions need to be performed for each person who will be developin
    ```
 
 1. The following python packages need to be installed on the development machines and Ansible control nodes using `pip`.
-
-   * ansible-core<2.17.0
-   * ansible-lint
-   * dnspython
-   * docker
-   * jsonschema
-   * molecule
-   * molecule-plugins
-   * netaddr
-   * paramiko
-   * python-irodsclient
-   * requests
-   * scp
-   * tox-ansible
-   * wheel
+   - ansible-core<2.17.0
+   - ansible-lint
+   - dnspython
+   - docker
+   - jsonschema
+   - molecule
+   - molecule-plugins
+   - netaddr
+   - paramiko
+   - python-irodsclient
+   - requests
+   - scp
+   - tox-ansible
+   - wheel
 
    This is encapsulated in the file [requirements.txt](requirements.txt).
 
