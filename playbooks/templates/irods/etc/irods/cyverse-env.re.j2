@@ -4,32 +4,9 @@
 # © 2024 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
-{{ ansible_managed | comment }}
-
 # the name of the AMQP exchange where iRODS should publish messages
 cyverse_AMQP_EXCHANGE: string
-cyverse_AMQP_EXCHANGE = '{{ _irods_amqp_exchange }}'
-
-# the name of the resource to use for replication by default
-cyverse_DEFAULT_REPL_RESC: string
-cyverse_DEFAULT_REPL_RESC = '{{ _irods_default_repl_resource }}'
-
-# the name of the resource to use by default
-cyverse_DEFAULT_RESC: string
-cyverse_DEFAULT_RESC = '{{ _irods_default_resource }}'
-
-# the email address of the iRODS grid
-cyverse_EMAIL_FROM_ADDR: string
-cyverse_EMAIL_FROM_ADDR = '{{ _irods_service_account_name }}@{{ inventory_hostname }}'
-
-# the email address where any notifications will be sent
-cyverse_EMAIL_REPORT_ADDR: string
-cyverse_EMAIL_REPORT_ADDR = '{{ _irods_report_email_addr }}'
-
-# the initial number of seconds iRODS waits before attempting to replicate a new
-# or modified data object
-cyverse_INIT_REPL_DELAY: integer
-cyverse_INIT_REPL_DELAY = {{ _irods_init_repl_delay }}
+cyverse_AMQP_EXCHANGE = 'irods'
 
 # the rule engine host
 cyverse_RE_HOST: string

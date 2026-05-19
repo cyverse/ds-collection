@@ -10,21 +10,6 @@
 @include 'cyverse_json'
 
 @include 'cyverse_logic'
-@include 'cyverse_encryption'
-@include 'cyverse_repl'
-@include 'cyverse_trash'
-
-# SERVICE SPECIFIC RULES
-#
-# Rule logic specific to supporting a service that uses the Data Store goes in
-# its own file, and the file should be included in this section. Service
-# specific rule logic should be implemented in a rule prefixed with the name of
-# the rule file and suffixed with the name of the rule hook that will call the
-# service's rule.
-
-@include 'avra'
-@include 'coge'
-@include 'pire'
 
 
 #
@@ -107,25 +92,6 @@ acDeleteCollByAdminIfPresent(*ParColl, *ChildColl) {
 #
 acPreConnect(*OUT) {
 	cyverse_logic_acPreConnect(*OUT);
-}
-
-# This rule sets the maximum number of deferred rule executors.
-#
-# Session Variables:
-#  objPath
-#
-acSetRescSchemeForCreate {
-	cyverse_repl_acSetRescSchemeForCreate($objPath);
-}
-
-# This rule sets the default resource selection scheme for the replica of a
-# newly created data object.
-#
-# Session Variables:
-#  objPath
-#
-acSetRescSchemeForRepl {
-	cyverse_repl_acSetRescSchemeForRepl($objPath);
 }
 
 
@@ -284,9 +250,6 @@ acPreprocForRmColl {
 acPostProcForCollCreate {
 	*status = errormsg(
 		cyverse_logic_acPostProcForCollCreate($collName, $rodsZoneClient, $userNameClient), *msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(coge_acPostProcForCollCreate($collName), *msg);
 	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
@@ -447,9 +410,6 @@ acPostProcForObjRename(*SourceObject, *DestObject) {
 		cyverse_logic_acPostProcForObjRename(*SourceObject, *DestObject, $userNameClient, $rodsZoneClient),
 		*msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(coge_acPostProcForObjRename(*SourceObject, *DestObject), *msg);
-	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 # This rule sets the post-processing policy for when a data object is opened.
@@ -524,10 +484,6 @@ pep_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
 		cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf),
 		*msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(
-		cyverse_repl_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf), *msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -556,40 +512,7 @@ pep_api_bulk_data_obj_reg_post(*Instance, *Comm, *BulkDataObjRegInp, *BULK_DATA_
 }
 
 
-# COLL_CREATE
-
-# This is the post processing logic for when a collection is created through the
-# API using a COLL_CREATE request.
-#
-# Parameters:
-#  Instance       (string) unknown
-#  Comm           (`KeyValuePair_PI`) user connection and auth information
-#  CollCreateInp  (`KeyValuePair_PI`) information related to the new collection
-#
-pep_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
-	*status = errormsg(
-		cyverse_encryption_api_coll_create_post(*Instance, *Comm, *CollCreateInp), *msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(cyverse_trash_api_coll_create_post(*Instance, *Comm, *CollCreateInp), *msg);
-	if (*status < 0) { writeLine('serverLog', *msg); }
-}
-
-
 # DATA_OBJ_COPY
-
-# This is the pre processing logic for when an attempt is made to copy a data
-# object through the API using a DATA_OBJ_COPY request.
-#
-# Parameters:
-#  Instance        (string) unknown
-#  Comm            (`KeyValuePair_PI`) user connection and auth information
-#  DataObjCopyInp  (`KeyValuePair_PI`) information related to copy operation
-#  TransStat       unknown
-#
-pep_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
-	cyverse_encryption_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat);
-}
 
 # This is the post processing logic for when a data object is copied through the
 # API using a DATA_OBJ_COPY request.
@@ -607,32 +530,10 @@ pep_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 	*status = errormsg(
 		cyverse_logic_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat), *msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(
-		cyverse_repl_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat), *msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(
-		cyverse_trash_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat), *msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
 # DATA_OBJ_PUT
-
-# This is the pre processing logic for when an attempt is made to upload a data
-# object through the API using a DATA_OBJ_PUT request.
-#
-# Parameters:
-#  Instance        (string) unknown
-#  Comm            (`KeyValuePair_PI`) user connection and auth information
-#  DataObjInp      (`KeyValuePair_PI`) information related to the data object
-#  DataObjInpBBuf  (unknown) may contain the contents of the file being uploaded
-#  PORTAL_OPR_OUT  unknown
-#
-pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
-	cyverse_encryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp);
-}
 
 # This is the post processing logic for when a data object is uploaded through
 # the API using a DATA_OBJ_PUT request.
@@ -652,97 +553,6 @@ pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTA
 		cyverse_logic_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT),
 		*msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(
-		cyverse_repl_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT),
-		*msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(
-		cyverse_trash_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT),
-		*msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-}
-
-
-# DATA_OBJ_RENAME
-
-# This is the pre processing logic for when an attempt is made to rename a data
-# object through the API using a DATA_OBJ_RENAME request.
-#
-# Parameters:
-#  Instance          (string) unknown
-#  Comm              (`KeyValuePair_PI`) user connection and auth information
-#  DataObjRenameInp  (`KeyValuePair_PI`) information about the data object and
-#                    its new path
-#
-pep_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp) {
-	cyverse_encryption_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp);
-	cyverse_trash_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp);
-}
-
-# This is the post processing logic for when a data object is renamed through
-# the API using a DATA_OBJ_RENAME request.
-#
-# Parameters:
-#  Instance          (string) unknown
-#  Comm              (`KeyValuePair_PI`) user connection and auth information
-#  DataObjRenameInp  (`KeyValuePair_PI`) information about the data object and
-#                    its old path
-#
-pep_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
-	*status = errormsg(
-		cyverse_encryption_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp), *msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(
-		cyverse_repl_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp), *msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(
-		cyverse_trash_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp), *msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-}
-
-
-# DATA_OBJ_UNLINK
-
-# This is the pre processing logic for when an attempt is made to delete a data
-# object through the API using a DATA_OBJ_UNLINK request.
-#
-# Parameters:
-#  Instance          (string) unknown
-#  Comm              (`KeyValuePair_PI`) user connection and auth information
-#  DataObjUnlinkInp  (`KeyValuePair_PI`) information about the data object being
-#                    deleted
-#
-pep_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp) {
-	cyverse_trash_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp);
-}
-
-# This is the post processing logic for when a data object is deleted through
-# the API using a DATA_OBJ_UNLINK request.
-#
-# Parameters:
-#  Instance          (string) unknown
-#  Comm              (`KeyValuePair_PI`) user connection and auth information
-#  DataObjUnlinkInp  (`KeyValuePair_PI`) information about the data object being
-#                    deleted
-#
-pep_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp) {
-	cyverse_trash_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp);
-}
-
-# This is the exception logic for when an API DATA_OBJ_UNLINK request fails.
-#
-# Parameters:
-#  Instance          (string) unknown
-#  Comm              (`KeyValuePair_PI`) user connection and auth information
-#  DataObjUnlinkInp  (`KeyValuePair_PI`) information about the data object being
-#                    deleted
-#
-pep_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp) {
-	cyverse_trash_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp);
 }
 
 
@@ -761,59 +571,6 @@ pep_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp) {
 pep_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp) {
 	*status = errormsg(cyverse_logic_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp), *msg);
 	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(cyverse_repl_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp), *msg);
-	if (*status < 0) { writeLine('serverLog', *msg); }
-}
-
-
-# RM_COLL
-
-# This is the pre processing logic for when an attempt is made to delete a
-# collection through the API using a RM_COLL request.
-#
-# Parameters:
-#  Instance     (string) unknown
-#  Comm         (`KeyValuePair_PI`) user connection and auth information
-#  RmCollInp    (`KeyValuePair_PI`) information about the collection being
-#               deleted
-#  CollOprStat  unknown
-#
-pep_api_rm_coll_pre(*Instance, *Comm, *RmCollInp, *CollOprStat) {
-	cyverse_trash_api_rm_coll_pre(*Instance, *Comm, *RmCollInp, *CollOprStat);
-}
-
-# This is the exception logic for when an API RM_COLL request fails.
-#
-# Parameters:
-#  Instance     (string) unknown
-#  Comm         (`KeyValuePair_PI`) user connection and auth information
-#  RmCollInp    (`KeyValuePair_PI`) information about the collection being
-#               deleted
-#  CollOprStat  unknown
-#
-pep_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat) {
-	cyverse_trash_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat);
-}
-
-
-# STRUCT_FILE_EXT_AND_REG
-
-# This is the pre processing logic for when an attempt is made to extract a
-# struct file and register files in it through the API using a
-# STRUCT_FILE_EXT_AND_REG request.
-#
-# Parameters:
-#  Instance                (string) unknown
-#  Comm                    (`KeyValuePair_PI`) user connection and auth
-#                          information
-#  StructFileExtAndRegInp  (`KeyValuePair_PI`) information about the struct file
-#
-pep_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp) {
-# XXX - StructFileExtAndRegInp variable is not properly serialized due to a bug in iRODS. Fixed in
-#       iRODS 4.3.2
-#	cyverse_encryption_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp);
-# XXX - ^^^
 }
 
 
@@ -830,28 +587,12 @@ pep_api_struct_file_ext_and_reg_pre(*Instance, *Comm, *StructFileExtAndRegInp) {
 pep_api_touch_post(*Instance, *Comm, *JsonInput) {
 	*status = errormsg(cyverse_logic_api_touch_post(*Instance, *Comm, *JsonInput), *msg);
 	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(cyverse_repl_api_touch_post(*Instance, *Comm, *JsonInput), *msg);
-	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
 # DATA_OBJ_CREATE
 #
 # NB: This PEP is used together with DATA_OBJ_CLOSE
-
-# This is the pre processing logic for when an attempt is made to create a data
-# object through the API using a DATA_OBJ_CREATE request.
-#
-# Parameters:
-#  Instance    (string) unknown
-#  Comm        (`KeyValuePair_PI`) user connection and auth information
-#  DataObjInp  (`KeyValuePair_PI`) information related to the created data
-#              object
-#
-pep_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
-	cyverse_encryption_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp);
-}
 
 # This is the post processing logic for when a data object is created through
 # API using a DATA_OBJ_CREATE request.
@@ -863,9 +604,8 @@ pep_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
 #              object
 #
 pep_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
-	cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
-	cyverse_repl_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
-	cyverse_trash_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
+	*status = errormsg(cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -896,18 +636,6 @@ pep_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 #
 # NB: This PEP is used together with DATA_OBJ_CLOSE and possibly DATA_OBJ_WRITE.
 
-# This is the pre processing logic for when an attempt is made to open a data
-# object through the API using a DATA_OBJ_OPEN request.
-#
-# Parameters:
-#  Instance    (string) unknown
-#  Comm        (`KeyValuePair_PI`) user connection and auth information
-#  DataObjInp  (`KeyValuePair_PI`) information related to the data object
-#
-pep_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
-	cyverse_encryption_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp);
-}
-
 # This is the post processing logic for when an attempt is made to open a data
 # object through the API using a DATA_OBJ_OPEN request.
 #
@@ -918,7 +646,6 @@ pep_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
 #
 pep_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
 	cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp);
-	cyverse_repl_api_data_obj_open_post(*Instance, *Comm, *DataObjInp);
 }
 
 
@@ -958,7 +685,6 @@ pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 #
 pep_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf) {
 	cyverse_logic_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf);
-	cyverse_repl_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf);
 }
 
 
@@ -980,10 +706,6 @@ pep_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 	*status = errormsg(
 		cyverse_logic_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp), *msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(
-		cyverse_repl_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp), *msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -1002,7 +724,6 @@ pep_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 #
 pep_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
 	cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
-	cyverse_repl_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
 }
 
 
@@ -1020,9 +741,6 @@ pep_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
 #
 pep_api_replica_close_post(*Instance, *Comm, *JsonInput) {
 	*status = errormsg(cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput), *msg);
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(cyverse_repl_api_replica_close_post(*Instance, *Comm, *JsonInput), *msg);
 	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
@@ -1046,26 +764,10 @@ _cyverse_core_mkDataObjSessVar(*Path) = 'ipc-data-obj-' ++ str(*Path)
 # _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo) {
 # 	*status = errormsg(cyverse_logic_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
 # 	if (*status < 0) { writeLine('serverLog', *msg); }
-#
-# 	*status = errormsg(coge_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
-# 	if (*status < 0) { writeLine('serverLog', *msg); }
-#
-# 	*status = errormsg(cyverse_repl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
-# 	if (*status < 0) { writeLine('serverLog', *msg); }
 # }
 _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo, *Step) {
 	*status = errormsg(cyverse_logic_dataObjCreated(*User, *Zone, *DataObjInfo, *Step), *msg);
 	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	if (*Step != 'FINISH') {
-		*status = errormsg(coge_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
-		if (*status < 0) { writeLine('serverLog', *msg); }
-	}
-
-	if (*Step != 'START') {
-		*status = errormsg(cyverse_repl_dataObjCreated(*User, *Zone, *DataObjInfo), *msg);
-		if (*status < 0) { writeLine('serverLog', *msg); }
-	}
 }
 # XXX - ^^^
 
