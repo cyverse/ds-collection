@@ -253,18 +253,6 @@ acPostProcForCollCreate {
 	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
-# This rule sets the post-processing policy for when a data object's replica is
-# received due to a copy operation.
-#
-# Parameters:
-#  LeafResource  (string) the name of the storage resource where the replica was
-#                stored
-#
-acPostProcForDataCopyReceived(*LeafResource) {
-	*status = errormsg(cyverse_logic_acPostProcForDataCopyReceived(*LeafResource), *msg);
-	if (*status < 0) { writeLine('serverLog', 'acPostProcForDataCopyReceived failed: *msg'); }
-}
-
 # This rule sets the post-processing policy for deleting a data object.
 #
 # Session Variables:
@@ -424,18 +412,6 @@ acPostProcForOpen {
 	*status = errormsg(
 		cyverse_logic_acPostProcForOpen($objPath, $dataSize, $userNameClient, $rodsZoneClient),
 		*msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-}
-
-# This rule sets the post-processing policy for when a data object is uploaded
-# via parallel transport.
-#
-# Parameters:
-#  LeafResource  (string) the name of the storage resource where the replica was
-#                stored
-#
-acPostProcForParallelTransferReceived(*LeafResource) {
-	*status = errormsg(cyverse_logic_acPostProcForParallelTransferReceived(*LeafResource), *msg);
 	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 

@@ -883,15 +883,6 @@
 # users.
 #
 #
-#### RESOURCE SERVER STORAGE TRACKING
-#
-# Available storage on a unixfilesystem resource is updated in the following
-# cases.
-#
-#    * whenever a replica is added to it using parallel transfer
-#    * whenever a replica is created by a copy operation
-#
-#
 #### RODSADMIN GROUP
 #
 # The `rodsadmin` group receives own permission on all collections and data
@@ -1590,25 +1581,6 @@ _cyverse_logic_cpUserAVUs(*Username, *TargetType, *TargetName, *UserName, *RodsZ
 
 
 #
-# RESOURCE FREE SPACE MANAGEMENT
-#
-
-# NOTE: This runs on the resource server hosting the resource whose free space
-# is in question.
-_cyverse_logic_updateRescFreeSpaceRemote(*Host, *Resc) {
-	remote(*Host, '') {
-		msi_update_unixfilesystem_resource_free_space(*Resc);
-	}
-}
-
-_cyverse_logic_updateRescFreeSpace(*Resc) {
-	foreach(*rec in SELECT RESC_LOC WHERE RESC_NAME = *Resc) {
-		_cyverse_logic_updateRescFreeSpaceRemote(*rec.RESC_LOC, *Resc);
-	}
-}
-
-
-#
 # RODSADMIN GROUP PERMISSIONS
 #
 
@@ -2075,17 +2047,6 @@ cyverse_logic_acPreConnect(*OUT) {
 	*OUT = 'CS_NEG_REFUSE';
 }
 
-# This rule ensures that the storage resource free space is updated when a
-# data object is replicated to it.
-#
-# Parameters:
-#  StoreResc  (string) the name of the storage resource where the replica was
-#             stored
-#
-cyverse_logic_acPostProcForDataCopyReceived(*StoreResc) {
-	_cyverse_logic_updateRescFreeSpace(*StoreResc);
-}
-
 # This rule stores the UUID of a data object that is about to be deleted for use
 # by cyverse_logic_acPostProcForDelete.
 #
@@ -2171,17 +2132,6 @@ cyverse_logic_acPostProcForObjRename(*SrcEntity, *DestEntity, *ClientUsername, *
 				*type, *uuid, *SrcEntity, *DestEntity, *ClientUsername, *ClientZone );
 		}
 	}
-}
-
-# Whenever a large file is uploaded, recheck the free space on the storage
-# resource server where the file was written.
-#
-# Parameters:
-#  StoreResc  (string) the name of the storage resource where the replica was
-#             stored
-#
-cyverse_logic_acPostProcForParallelTransferReceived(*StoreResc) {
-	_cyverse_logic_updateRescFreeSpace(*StoreResc);
 }
 
 
