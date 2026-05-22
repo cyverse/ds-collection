@@ -39,7 +39,9 @@
                 ver="$(sed 's/^0:irods-.*-\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' <<< "$lock")"
                 if [[ "$ver" != '{{ _irods_version }}' ]]; then
                   pkg="$(sed 's/0:\(irods-.*\)-[0-9\.]\+-.*/\1/' <<< "$lock")"
-                  yum versionlock delete "$pkg" > /dev/null
+                  if ! yum versionlock delete "$pkg" > /dev/null; then
+                    printf 'Failed to remove lock for %s\n' "$pkg" >&2
+                  fi
                   echo changed
                 fi
               done
