@@ -1,4 +1,6 @@
 ---
+driver:
+  name: docker
 platforms:
   - name: centos.localdomain
     image: centos-archive

@@ -1,4 +1,6 @@
 ---
+driver:
+  name: docker
 platforms:
   - name: provider-cfg
     image: provider
