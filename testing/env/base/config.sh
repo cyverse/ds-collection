@@ -163,7 +163,7 @@ EOF
 }
 
 update_pam_sshd_config() {
-	sed --in-place '1i auth	sufficient	pam_permit.so' /etc/pam.d/sshd
+	sed --in-place '1iauth	sufficient	pam_permit.so' /etc/pam.d/sshd
 }
 
 update_sshd_config() {

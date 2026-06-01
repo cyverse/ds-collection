@@ -1,5 +1,5 @@
 ---
-- name: Prepare apt repositories
+- name: Prepare docker repository
   hosts: irods_resource_container
   become: true
   pre_tasks:
@@ -54,10 +54,15 @@
           notify: Update apt cache
 
   tasks:
+    - name: Update package cache on AlmaLinux hosts
+      when: ansible_distribution == 'AlmaLinux'
+      ansible.builtin.dnf:
+        update_cache: true
+
     - name: Update stale apt cache
       when: ansible_distribution == 'Ubuntu'
       ansible.builtin.apt:
-        cache_valid_time: 86400
+        update_cache: true
 
     - name: Install required packages
       ansible.builtin.package:
