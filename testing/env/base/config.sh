@@ -29,7 +29,9 @@ main() {
 	local version="$2"
 
 	# Install required packages
-	if [[ "$os" == centos ]]; then
+	if [[ "$os" == alma ]]; then
+		install_alma_packages
+	elif [[ "$os" == centos ]]; then
 		install_centos_packages
 	else
 		install_ubuntu_packages "$version"
@@ -41,7 +43,7 @@ main() {
 	# Configure root ssh access without password
 	ssh-keygen -q -f /etc/ssh/ssh_host_key -N '' -t rsa
 
-	if ! [[ -e /etc/ssh/ssh_host_dsa_key ]]; then
+	if [[ "$os" == centos && ! -e /etc/ssh/ssh_host_dsa_key ]]; then
 		ssh-keygen -q -f /etc/ssh/ssh_host_dsa_key -N '' -t dsa
 	fi
 
@@ -60,6 +62,28 @@ main() {
 
 	# shellcheck disable=SC2174
 	mkdir --parents --mode=0700 /root/.ssh
+}
+
+install_alma_packages() {
+	dnf --assumeyes install epel-release
+
+	dnf --assumeyes install \
+		ca-certificates \
+		dmidecode \
+		iproute \
+		iptables-services \
+		jq \
+		openssh-clients \
+		openssh-server \
+		python3 \
+		python3-dns \
+		python3-pip \
+		python3-requests \
+		python3-virtualenv \
+		sudo
+
+	dnf clean all
+	rm --force --recursive /var/cache/dnf /var/cache/yum
 }
 
 # Install the required CentOS packages.
@@ -147,14 +171,7 @@ EOF
 }
 
 update_pam_sshd_config() {
-	cat <<'EOF' | sed --in-place --file - /etc/pam.d/sshd
-/@include common-auth/{
-	i auth	sufficient	pam_permit.so
-	:a
-	n
-	ba
-}
-EOF
+	sed --in-place '1iauth	sufficient	pam_permit.so' /etc/pam.d/sshd
 }
 
 update_sshd_config() {

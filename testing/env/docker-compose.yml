@@ -134,7 +134,12 @@ services:
     tty: true
     shm_size: 128mb
 
-  consumer_containerized:
+  consumer_containerized_alma:
+    image: test-env-base:alma10
+    privileged: true
+    tty: true
+
+  consumer_containerized_ubuntu:
     image: test-env-base:ubuntu2404
     privileged: true
     tty: true

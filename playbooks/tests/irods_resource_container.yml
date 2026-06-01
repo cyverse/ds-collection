@@ -1,43 +1,73 @@
 ---
-- name: Test build image
+- name: Test prepare docker repository
   hosts: irods_resource_container
   tasks:
-    - name: Test ensure keyrings folder exists
-      ansible.builtin.stat:
-        path: /etc/apt/keyrings
-      register: resp
-      failed_when: >
-        not resp.stat.exists
-        or not resp.stat.isdir
-        or not (resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
-        or not (resp.stat.xusr and resp.stat.xgrp and resp.stat.xoth)
+    - name: Test prepare for Ubuntu
+      when: ansible_distribution == 'Ubuntu'
+      block:
+        - name: Test ensure keyrings folder exists
+          ansible.builtin.stat:
+            path: /etc/apt/keyrings
+          register: resp
+          failed_when: >
+            not resp.stat.exists
+            or not resp.stat.isdir
+            or not (resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
+            or not (resp.stat.xusr and resp.stat.xgrp and resp.stat.xoth)
 
-    - name: Test install docker repo key
-      ansible.builtin.stat:
-        path: /etc/apt/keyrings/docker.asc
-      register: resp
-      failed_when: not (resp.stat.exists and resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
+        - name: Test install docker repo key
+          ansible.builtin.stat:
+            path: /etc/apt/keyrings/docker.asc
+          register: resp
+          failed_when: >-
+            not (resp.stat.exists and resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
 
-    - name: Test docker repo source exists
-      ansible.builtin.stat:
-        path: /etc/apt/sources.list.d/docker.list
-      register: resp
-      failed_when: not (resp.stat.exists and resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
+        - name: Test docker repo source exists
+          ansible.builtin.stat:
+            path: /etc/apt/sources.list.d/docker.list
+          register: resp
+          failed_when: >-
+            not (resp.stat.exists and resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
 
-    - name: Retrieve encoded docker.list
-      ansible.builtin.slurp:
-        src: /etc/apt/sources.list.d/docker.list
-      register: d_encoded
+        - name: Retrieve encoded docker.list
+          ansible.builtin.slurp:
+            src: /etc/apt/sources.list.d/docker.list
+          register: d_encoded
 
-    - name: Decode docker.list
-      ansible.builtin.set_fact:
-        docker: "{{ d_encoded.content | b64decode }}"
+        - name: Decode docker.list
+          ansible.builtin.set_fact:
+            docker: "{{ d_encoded.content | b64decode }}"
 
-    - name: Test docker repo source contents
-      ansible.builtin.assert:
-        that:
-          - docker is regex('arch=amd64')
-          - docker is regex(' noble stable')
+        - name: Test docker repo source contents
+          ansible.builtin.assert:
+            that:
+              - docker is regex('arch=amd64')
+              - docker is regex(' noble stable')
+
+    - name: Test prepare for AlmaLinux
+      when: ansible_distribution == 'AlmaLinux'
+      block:
+        - name: Test docker repo source exists
+          ansible.builtin.stat:
+            path: /etc/yum.repos.d/docker-ce.repo
+          register: resp
+          failed_when: >-
+            not (resp.stat.exists and resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
+
+        - name: Retrieve encoded docker repo source
+          ansible.builtin.slurp:
+            src: /etc/yum.repos.d/docker-ce.repo
+          register: d_encoded
+
+        - name: Decode docker repo source
+          ansible.builtin.set_fact:
+            docker: "{{ d_encoded.content | b64decode }}"
+
+        - name: Test docker repo source contents (AlmaLinux)
+          ansible.builtin.assert:
+            that:
+              - docker is regex('gpgkey=https://download.docker.com/linux/centos/gpg')
+              - docker is regex('baseurl=https://download.docker.com/linux/centos/\$releasever/\$basearch/stable')
 
     - name: Test install required packages
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
