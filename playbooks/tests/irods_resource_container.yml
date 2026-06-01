@@ -1,5 +1,5 @@
 ---
-- name: Test build image
+- name: Test prepare docker repository
   hosts: irods_resource_container
   tasks:
     - name: Test set up docker repository on AlmaLinux
