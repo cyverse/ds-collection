@@ -58,20 +58,6 @@
         mtu: "{{ _infra_mtu }}"
         state: present
 
-    - name: Ensure correct MTU on network restart for Ubuntu
-      when: ansible_distribution == 'Ubuntu'
-      ansible.builtin.template:
-        src: templates/infra/etc/netplan/mtu.yaml.j2
-        dest: /etc/netplan/50-mtu.yaml
-        mode: u+r
-
-    - name: Ensure correct MTU on network restart for other than Ubuntu
-      when: ansible_distribution != 'Ubuntu'
-      ansible.builtin.lineinfile:
-        dest: /etc/sysconfig/network-scripts/ifcfg-{{ ansible_default_ipv4.alias }}
-        regexp: ^MTU=
-        line: MTU={{ _infra_mtu }}
-
     - name: Set transmission queue length for {{ ansible_default_ipv4.alias }}
       ansible.builtin.shell:
         executable:  /bin/bash
@@ -79,7 +65,7 @@
           set -o pipefail
           qlen="$(ip link show {{ ansible_default_ipv4.alias }} \
             | sed --quiet 's/.*qlen \([^ ]*\).*/\1/p')"
-          if [[ "$qlen" != '{{ _network_txqueuelen }}' ]]; then
+          if [[ "$qlen" != '{{ _infra_txqueuelen }}' ]]; then
             ip link set {{ ansible_default_ipv4.alias }} txqueuelen {{ _infra_txqueuelen }} \
               > /dev/null
             echo changed
@@ -91,7 +77,7 @@
       when: >-
         ansible_distribution == 'Ubuntu' and ansible_distribution_version is version('20.04', '>=')
       ansible.builtin.template:
-        src: etc/udev/rules.d/txqueuelen.rules.j2
+        src: templates/infra/etc/udev/rules.d/txqueuelen.rules.j2
         dest: /etc/udev/rules.d/50-txqueuelen.rules
         mode: u+r
 
