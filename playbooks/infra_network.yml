@@ -36,6 +36,21 @@
   become: true
   gather_facts: false
   tasks:
+    - name: Install prerequisites for community.general.nmcli on CentOS
+      when: ansible_distribution == 'CentOS'
+      ansible.builtin.package:
+        name: NetworkManager-tui
+
+    - name: Install prerequisites for community.general.nmcli on Ubuntu
+      when: ansible_distribution == 'Ubuntu'
+      ansible.builtin.package:
+        name: network-manager
+
+    - name: Install prerequisites for community.general.nmcli on Fedora >= 29
+      when: ansible_distribution != 'CentOS' and ansible_distribution != 'Ubuntu'
+      ansible.builtin.package:
+        name: NetworkManager
+
     - name: Configure MTU for interface
       community.general.nmcli:
         type: ethernet
@@ -46,7 +61,7 @@
     - name: Ensure correct MTU on network restart for Ubuntu
       when: ansible_distribution == 'Ubuntu'
       ansible.builtin.template:
-        src: etc/netplan/mtu.yaml.j2
+        src: templates/infra/etc/netplan/mtu.yaml.j2
         dest: /etc/netplan/50-mtu.yaml
         mode: u+r
 
