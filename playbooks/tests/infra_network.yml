@@ -2,10 +2,17 @@
 - name: Test infra_network
   hosts: all
   tasks:
-    - name: Test template expansions
+    - name: Test template expansion of mtu.yaml
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: 'TODO: implement for {{ item }}'
+      loop:
+        - ansible_managed
+        - network
+
+    - name: Test template expansion of txqueuelen.rules.yaml
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
 
     - name: Test plays
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: 'TODO: implement'
