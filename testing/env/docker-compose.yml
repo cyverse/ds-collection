@@ -137,6 +137,8 @@ services:
   consumer_containerized_alma:
     image: test-env-base:alma10
     privileged: true
+    security_opt:
+      - apparmor=docker-default
     tty: true
 
   consumer_containerized_ubuntu:

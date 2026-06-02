@@ -9,7 +9,19 @@
       tags:
         - no_testing
 
-    - name: Prepare for Ubuntu
+    - name: Set up Docker repository on AlmaLinux
+      when: ansible_distribution == 'AlmaLinux'
+      block:
+        - name: Install DNF core plugins
+          ansible.builtin.package:
+            name: dnf-plugins-core
+
+        - name: Add Docker repository
+          ansible.builtin.command:
+            cmd: dnf config-manager --add-repo https://download.docker.com/linux/rhel/docker-ce.repo
+            creates: /etc/yum.repos.d/docker-ce.repo
+
+    - name: Set up Docker repository on Ubuntu
       when: ansible_distribution == 'Ubuntu'
       block:
         - name: Ensure keyrings folder exists
@@ -39,36 +51,17 @@
               deb [arch={{ dpkg_resp.stdout }} signed-by=/etc/apt/keyrings/docker.asc]
               https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable
             mode: a+r
-
-    - name: Prepare for AlmaLinux
-      when: ansible_distribution == 'AlmaLinux'
-      block:
-        - name: Install docker repo key on AlmaLinux hosts
-          ansible.builtin.rpm_key:
-            key: https://download.docker.com/linux/centos/gpg
-            state: present
-
-        - name: Install docker repo source on AlmaLinux hosts
-          ansible.builtin.copy:
-            dest: /etc/yum.repos.d/docker-ce.repo
-            content: |
-              [docker-ce-stable]
-              name=Docker CE Stable - $basearch
-              baseurl=https://download.docker.com/linux/centos/$releasever/$basearch/stable
-              enabled=1
-              gpgcheck=1
-              gpgkey=https://download.docker.com/linux/centos/gpg
-            mode: a+r
+          notify: Update apt cache
 
   tasks:
-    - name: Update package cache on Ubuntu hosts
-      when: ansible_distribution == 'Ubuntu'
-      ansible.builtin.apt:
-        update_cache: true
-
     - name: Update package cache on AlmaLinux hosts
       when: ansible_distribution == 'AlmaLinux'
       ansible.builtin.dnf:
+        update_cache: true
+
+    - name: Update stale apt cache
+      when: ansible_distribution == 'Ubuntu'
+      ansible.builtin.apt:
         update_cache: true
 
     - name: Install required packages

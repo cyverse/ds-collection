@@ -12,6 +12,7 @@ services:
         IRODS_HOST_UID: ${IRODS_HOST_UID}
         IRODS_SERVER_PORT_RANGE_START: ${IRODS_SERVER_PORT_RANGE_START}
         IRODS_SERVER_PORT_RANGE_END: ${IRODS_SERVER_PORT_RANGE_END}
+        IRODS_VAULT_PATH: ${IRODS_VAULT_PATH}
         IRODS_ZONE_PORT: ${IRODS_ZONE_PORT}
     network_mode: host
     restart: on-failure
@@ -23,10 +24,14 @@ services:
         read_only: true
       - type: bind
         source: ${IRODS_VAULT_PATH}
-        target: /irods_vault
+        target: ${IRODS_VAULT_PATH}
       - type: bind
         source: /etc/irods
         target: /etc/irods
       - type: bind
         source: /var/lib/irods/.irods
         target: /var/lib/irods/.irods
+      - type: bind
+        source: /var/lib/irods/msiExecCmd_bin
+        target: /var/lib/irods/msiExecCmd_bin
+        read_only: true

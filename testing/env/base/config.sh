@@ -29,13 +29,21 @@ main() {
 	local version="$2"
 
 	# Install required packages
-	if [[ "$os" == alma ]]; then
-		install_alma_packages
-	elif [[ "$os" == centos ]]; then
-		install_centos_packages
-	else
-		install_ubuntu_packages "$version"
-	fi
+	case "$os" in
+		alma)
+			install_alma_packages "$version"
+			;;
+		centos)
+			install_centos_packages "$version"
+			;;
+		ubuntu)
+			install_ubuntu_packages "$version"
+			;;
+		*)
+			printf 'The OS %s is not supported\n' "$os" >&2
+			return 1
+			;;
+	esac
 
 	# Remove root's password
 	passwd -d root
@@ -43,7 +51,7 @@ main() {
 	# Configure root ssh access without password
 	ssh-keygen -q -f /etc/ssh/ssh_host_key -N '' -t rsa
 
-	if [[ "$os" == centos && ! -e /etc/ssh/ssh_host_dsa_key ]]; then
+	if [[ "$os" != alma && ! -e /etc/ssh/ssh_host_dsa_key ]]; then
 		ssh-keygen -q -f /etc/ssh/ssh_host_dsa_key -N '' -t dsa
 	fi
 
@@ -64,35 +72,19 @@ main() {
 	mkdir --parents --mode=0700 /root/.ssh
 }
 
+# Install the required AlmaLinux packages.
 install_alma_packages() {
 	dnf --assumeyes install epel-release
 	dnf config-manager --set-enabled crb
-
-	dnf --assumeyes install \
-		ca-certificates \
-		dmidecode \
-		iproute \
-		iptables-services \
-		jq \
-		openssh-clients \
-		openssh-server \
-		passwd \
-		python3 \
-		python3-dns \
-		python3-pip \
-		python3-requests \
-		python3-virtualenv \
-		sudo
-
+	dnf --assumeyes install dmidecode openssh-clients openssh-server passwd python3-virtualenv sudo
 	dnf clean all
-	rm --force --recursive /var/cache/dnf /var/cache/yum
+	rm --force --recursive /var/cache/dnf
 }
 
 # Install the required CentOS packages.
-#
-# Parameters:
-#  version  the CentOS major distribution version number
 install_centos_packages() {
+	local version="$1"
+
 	update_centos_repo
 	rpm --import file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-"$version"
 

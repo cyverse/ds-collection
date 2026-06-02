@@ -2,7 +2,21 @@
 - name: Test prepare docker repository
   hosts: irods_resource_container
   tasks:
-    - name: Test prepare for Ubuntu
+    - name: Test set up docker repository on AlmaLinux
+      when: ansible_distribution == 'AlmaLinux'
+      block:
+        - name: Test install DNF core plugins
+          ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
+          vars:
+            pkg: dnf-plugins-core
+
+        - name: Test add Docker repository
+          ansible.builtin.stat:
+            path: /etc/yum.repos.d/docker-ce.repo
+          register: resp
+          failed_when: not resp.stat.exists
+
+    - name: Test set up docker repository on Ubuntu
       when: ansible_distribution == 'Ubuntu'
       block:
         - name: Test ensure keyrings folder exists
@@ -19,14 +33,14 @@
           ansible.builtin.stat:
             path: /etc/apt/keyrings/docker.asc
           register: resp
-          failed_when: >-
+          failed_when: >
             not (resp.stat.exists and resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
 
         - name: Test docker repo source exists
           ansible.builtin.stat:
             path: /etc/apt/sources.list.d/docker.list
           register: resp
-          failed_when: >-
+          failed_when: >
             not (resp.stat.exists and resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
 
         - name: Retrieve encoded docker.list
@@ -43,31 +57,6 @@
             that:
               - docker is regex('arch=amd64')
               - docker is regex(' noble stable')
-
-    - name: Test prepare for AlmaLinux
-      when: ansible_distribution == 'AlmaLinux'
-      block:
-        - name: Test docker repo source exists
-          ansible.builtin.stat:
-            path: /etc/yum.repos.d/docker-ce.repo
-          register: resp
-          failed_when: >-
-            not (resp.stat.exists and resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
-
-        - name: Retrieve encoded docker repo source
-          ansible.builtin.slurp:
-            src: /etc/yum.repos.d/docker-ce.repo
-          register: d_encoded
-
-        - name: Decode docker repo source
-          ansible.builtin.set_fact:
-            docker: "{{ d_encoded.content | b64decode }}"
-
-        - name: Test docker repo source contents (AlmaLinux)
-          ansible.builtin.assert:
-            that:
-              - docker is regex('gpgkey=https://download.docker.com/linux/centos/gpg')
-              - docker is regex('baseurl=https://download.docker.com/linux/centos/\$releasever/\$basearch/stable')
 
     - name: Test install required packages
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
@@ -273,60 +262,60 @@
 
     - name: Verify server_config.host_resolution
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: 'TODO: implement'
 
     - name: Verify server_config.plugin_configuration.rule_engines rule language plugin_specific_configuration.re_rulebase_set
       ansible.builtin.debug:
-        msg: TODO implement for {{ item }}
+        msg: 'TODO: implement for {{ item }}'
       loop:
         - cyverse_housekeeping
         - core
 
     - name: Verify server_config.plugin_configuration.rule_engines rule language plugin_specific_configuration
       ansible.builtin.debug:
-        msg: TODO implement for {{ item }}
+        msg: 'TODO: implement for {{ item }}'
       loop:
         - regexes_for_supported_peps
 
     - name: Verify server_config.plugin_configuration.rule_engines rule language shared_memory_instance
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: 'TODO: implement'
 
     - name: Verify server_config.plugin_configuration.rule_engines CPP default policy
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: 'TODO: implement'
 
     - name: Verify server_config.schema_validation_base_uri
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: 'TODO: implement'
 
     - name: Verify server_config.server_control_plane_key
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: 'TODO: implement'
 
     - name: Verify server_config.server_port_range_end
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: 'TODO: implement'
 
     - name: Verify server_config.server_port_range_start
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: 'TODO: implement'
 
     - name: Verify server_config.zone_key
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: 'TODO: implement'
 
     - name: Verify server_config.zone_name
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: 'TODO: implement'
 
     - name: Verify server_config.zone_user
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: 'TODO: implement'
 
     - name: Verify irods_environment.json
       ansible.builtin.debug:
-        msg: TODO implement
+        msg: 'TODO: implement'
 
     - name: Test add build dir
       ansible.builtin.debug:
