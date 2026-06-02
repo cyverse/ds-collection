@@ -74,7 +74,25 @@ main() {
 
 # Install the required AlmaLinux packages.
 install_alma_packages() {
-	dnf --assumeyes install openssh-clients openssh-server sudo
+	dnf --assumeyes install epel-release
+	dnf config-manager --set-enabled crb
+
+	dnf --assumeyes install \
+		ca-certificates \
+		dmidecode \
+		iproute \
+		iptables-services \
+		jq \
+		openssh-clients \
+		openssh-server \
+		passwd \
+		python3 \
+		python3-dns \
+		python3-pip \
+		python3-requests \
+		python3-virtualenv \
+		sudo
+
 	dnf clean all
 	rm --force --recursive /var/cache/dnf
 }
