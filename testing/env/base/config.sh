@@ -66,6 +66,7 @@ main() {
 
 install_alma_packages() {
 	dnf --assumeyes install epel-release
+	dnf config-manager --set-enabled crb
 
 	dnf --assumeyes install \
 		ca-certificates \
@@ -75,6 +76,7 @@ install_alma_packages() {
 		jq \
 		openssh-clients \
 		openssh-server \
+		passwd \
 		python3 \
 		python3-dns \
 		python3-pip \
