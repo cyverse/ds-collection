@@ -151,7 +151,7 @@
         or not resp.stat.pw_name == 'irods'
         or not (resp.stat.rusr and resp.stat.xusr)
 
-    - name: Test copy required iRODS runtime config files
+    - name: Test required iRODS runtime config files in place
       ansible.builtin.stat:
         path: /etc/irods/{{ item }}
       register: resp
@@ -159,8 +159,9 @@
       loop:
         - core.dvm
         - core.fnm
+        - core.re
 
-    - name: Test generate core.re
+    - name: Test generated core.re contents
       ansible.builtin.debug:
         msg: 'TODO: implement'
 
