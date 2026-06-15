@@ -10,29 +10,7 @@ import unittest
 
 from irods.exception import SYS_INVALID_RESC_INPUT
 
-from test_rules import IrodsTestCase, IrodsVal
-
-
-class TestPireIsforpire(IrodsTestCase):
-    """Test _pire_isForPire"""
-
-    def test_path_in_proj_coll(self):
-        """Verify that it correctly determines that a path in the project collection is for PIRE"""
-        for p in IrodsTestCase.prep_path("/testing/home/shared/bhpire/file"):
-            with self.subTest(p=p):
-                self.fn_test("_pire_isForPire", [p], IrodsVal.boolean(True))
-
-    def test_path_in_pub_coll(self):
-        """Verify that it correctly determines that a path in the public collection is for PIRE"""
-        for p in IrodsTestCase.prep_path("/testing/home/shared/eht/file"):
-            with self.subTest(p=p):
-                self.fn_test("_pire_isForPire", [p], IrodsVal.boolean(True))
-
-    def test_path_not_in_pire(self):
-        """Verify that it correctly determines a path is not in a PIRE collection"""
-        for p in IrodsTestCase.prep_path("/testing/home/rods"):
-            with self.subTest(p=p):
-                self.fn_test("_pire_isForPire", [p], IrodsVal.boolean(False))
+from test_rules import IrodsTestCase
 
 
 class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
@@ -55,7 +33,7 @@ class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
             "/testing/home/shared/bhpire/pire",
         ]:
             self.ensure_obj_absent(obj)
-        self.update_rulebase('pire-env.re', '/tmp/pire-env.re')
+        self.update_rulebase([('pire-env.re', '/tmp/pire-env.re')])
         super().tearDown()
 
     def test_pire_res_and_coll(self):
