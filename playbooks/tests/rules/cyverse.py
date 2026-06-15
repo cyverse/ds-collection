@@ -202,14 +202,53 @@ class CyverseFileModeTests(CyverseTestCase):
         """Verify cyverse_FILE_CREATE"""
         self.fn_test('cyverse_FILE_CREATE', [], IrodsVal.string('1'))
 
-    @unittest.skip("not implemented")
     def test_file_open_write(self):
         """Verify cyverse_FILE_OPEN_WRITE"""
+        self.fn_test('cyverse_FILE_OPEN_WRITE', [], IrodsVal.string('3'))
 
 
-@test_rules.unimplemented
 class CyverseFileOpenFlagTests(CyverseTestCase):
     """Tests of file open flag logic"""
+
+    def test_read_only(self):
+        """Verify cyverse_OPEN_FLAG_R"""
+        self.fn_test('cyverse_OPEN_FLAG_R', [], IrodsVal.string('0'))
+
+    def test_read_write_append(self):
+        """Verify cyverse_OPEN_FLAG_RP"""
+        self.fn_test('cyverse_OPEN_FLAG_RP', [], IrodsVal.string('2'))
+
+    def test_write_only(self):
+        """Verify cyverse_OPEN_FLAG_W"""
+        self.fn_test('cyverse_OPEN_FLAG_W', [], IrodsVal.string('513'))
+
+    def test_write_only_create(self):
+        """Verify cyverse_OPEN_FLAG_W_CREATE"""
+        self.fn_test('cyverse_OPEN_FLAG_W_CREATE', [], IrodsVal.string('577'))
+
+    @unittest.skip("not implemented")
+    def test_read_write_trunc(self):
+        """Verify cyverse_OPEN_FLAG_WP"""
+
+    @unittest.skip("not implemented")
+    def test_read_write_create(self):
+        """Verify cyverse_OPEN_FLAG_WP_CREATE"""
+
+    @unittest.skip("not implemented")
+    def test_write_only_append(self):
+        """Verify cyverse_OPEN_FLAG_A"""
+
+    @unittest.skip("not implemented")
+    def test_write_only_append_create(self):
+        """Verify cyverse_OPEN_FLAG_A_CREATE"""
+
+    @unittest.skip("not implemented")
+    def test_read_write_append_create(self):
+        """Verify cyverse_OPEN_FLAG_AP_CREATE"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated(self):
+        """Test cyverse_replTruncated"""
 
 
 class CyverseIscoll(CyverseTestCase):
@@ -319,6 +358,11 @@ class CyverseGetentitytype(CyverseTestCase):
 @test_rules.unimplemented
 class CyverseDBIdTests(CyverseTestCase):
     """Tests of ICAT DB Id logic"""
+
+
+@test_rules.unimplemented
+class CyverseRescTests(CyverseTestCase):
+    """Tests of resource restriction logic"""
 
 
 class CyverseIsforsvc(CyverseTestCase):

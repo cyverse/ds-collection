@@ -9,16 +9,6 @@
 @include 'pire-env'
 
 
-_pire_isForPire(*Path) =
-	let *answer = false in
-	let *pireRes = pire_RESC in
-	let *_ = foreach( *rec in
-			SELECT META_RESC_ATTR_VALUE
-			WHERE RESC_NAME = *pireRes AND META_RESC_ATTR_NAME = 'ipc::hosted-collection'
-		) { *answer = *answer || (str(*Path) like *rec.META_RESC_ATTR_VALUE ++ '/*'); } in
-	*answer
-
-
 ### DYNAMIC PEPS ###
 
 ## RESOURCE ##
@@ -46,11 +36,7 @@ _pire_isForPire(*Path) =
 # XXX - ^^^
 #
 pep_resource_resolve_hierarchy_pre(*Instance, *Context, *OUT, *Op, *Host, *PARSER, *VOTE) {
-	on (
-		pire_RESC != cyverse_DEFAULT_RESC
-		&& *Context.resc_hier == pire_RESC
-		&& !_pire_isForPire(*Context.logical_path)
-	) {
+	on (cyverse_blockRescReq(pire_RESC, *Context.resc_hier, *Context.logical_path)) {
 		*msg = 'CYVERSE ERROR: ' ++ pire_RESC ++ ' usage is limited to the collections '
 			++ str(pire_PUBLIC_BASE_COLL) ++ ' and ' ++ str(pire_PROJECT_BASE_COLL) ++ '.';
 # XXX - Because of https://github.com/irods/irods/issues/6463, an error
