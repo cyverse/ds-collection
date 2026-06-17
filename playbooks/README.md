@@ -61,6 +61,9 @@ Variable                                   | Required | Default                 
 `dbms_restart_allowed`                     | no       | false                                |         | whether or not the playbooks are allowed to restart PostgreSQL
 `dbms_wal_keep_segments`                   | no       | 4000                                 |         | the number of WAL files held by the primary server for its replica servers
 `dbms_work_mem`                            | no       | 32                                   |         | the allowed memory in mebibytes for each sort and hash operation
+`esiil_base_collection`                    | no       |                                      |         | The base collection for the ESIIL project. If it isn't present no ESIIL rules will fire.
+`esiil_manager`                            | no       | `irods_admin_username`               |         | The iRODS user who is responsible for ESIIL data.
+`esiil_resource_hierarchy`                 | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the ESIIL project
 `infra_domain_name`                        | yes      |                                      |         | The public FQDN for the environment being configured. This is used for configuring services that require a public domain to work, like mail.
 `infra_maintainer_keys`                    | no       | []                                   |         | A list of public ssh keys allowed or disallowed to connect as the `ansible_user` on all of the managed hosts, __see below__
 `infra_mtu`                                | no       | 1500                                 |         | The MTU to set on the primary NIC

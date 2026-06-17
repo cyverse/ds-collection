@@ -10,7 +10,18 @@ import unittest
 
 from irods.models import RuleExec
 
+import test_rules
 from test_rules import IrodsTestCase, IrodsType
+
+
+def setUpModule():  # pylint: disable=invalid-name
+    """Set up main module"""
+    test_rules.setUpModule()
+
+
+def tearDownModule():  # pylint: disable=invalid-name
+    """Tear down main module"""
+    test_rules.tearDownModule()
 
 
 class TestScheduleperiodicpolicy(IrodsTestCase):

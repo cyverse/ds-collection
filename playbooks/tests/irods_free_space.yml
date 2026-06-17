@@ -15,6 +15,7 @@
       changed_when: false
       loop:
         - avra
+        - esiilRes
         - ingestRes
         - pire
         - replRes
