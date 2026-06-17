@@ -119,6 +119,7 @@
         path: "{{ item }}"
         state: directory
         owner: irods
+        group: irods
         mode: u+rwx
       loop:
         - /irods_vault
@@ -131,6 +132,7 @@
         src: files/irods/docker-rs/irodsctl
         dest: /var/lib/irods/irodsctl
         owner: irods
+        group: irods
         mode: u+rx
 
     - name: Copy required iRODS runtime config files
@@ -138,6 +140,7 @@
         src: files/irods/docker-rs/run/etc/irods/{{ item }}
         dest: /etc/irods
         owner: irods
+        group: irods
         mode: u+r
       loop:
         - core.dvm
@@ -148,6 +151,7 @@
         src: templates/irods/docker-rs/run/etc/irods/core.re.j2
         dest: /etc/irods/core.re
         owner: irods
+        group: irods
         mode: u+r
 
     - name: Generate iRODS config files
@@ -202,6 +206,7 @@
         path: /var/lib/irods/build
         state: directory
         owner: irods
+        group: irods
         mode: u+rx
 
     - name: Copy resource server image source
@@ -209,6 +214,7 @@
         src: files/irods/docker-rs/build/{{ item }}
         dest: /var/lib/irods/build
         owner: irods
+        group: irods
         mode: u+r
       loop:
         - entrypoint.sh
@@ -228,6 +234,7 @@
         src: templates/irods/docker-rs/env.j2
         dest: /var/lib/irods/.env
         owner: irods
+        group: irods
         mode: u+r
 
     - name: Copy docker-compose.yml file
@@ -235,6 +242,7 @@
         src: files/irods/docker-rs/docker-compose.yml
         dest: /var/lib/irods/docker-compose.yml
         owner: irods
+        group: irods
         mode: u+r
 
     - name: Configure rsyslog for iRODS
