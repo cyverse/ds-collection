@@ -1,4 +1,6 @@
 ---
+driver:
+  name: docker
 platforms:
   - name: centos.localdomain
     image: centos-archive
@@ -10,6 +12,9 @@ platforms:
     hostname: ubuntu.localdomain
 provisioner:
   name: ansible
+  config_options:
+    defaults:
+      remote_tmp: /tmp
   inventory:
     hosts:
       all:

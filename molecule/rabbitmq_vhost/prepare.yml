@@ -4,7 +4,7 @@
   tasks:
     - name: Install requests library
       ansible.builtin.package:
-        name: py3-requests
+        name: python3-requests
         state: present
 
     - name: Create user admin

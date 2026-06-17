@@ -1,5 +1,5 @@
 ---
-- name: Test build image
+- name: Test prepare docker repository
   hosts: irods_resource_container
   tasks:
     - name: Test set up docker repository on AlmaLinux
@@ -134,7 +134,7 @@
       failed_when: >
         not resp.stat.exists
         or not resp.stat.isdir
-        or not resp.stat.pw_name == 'irods'
+        or not (resp.stat.pw_name == 'irods' and resp.stat.gr_name == 'irods')
         or not (resp.stat.rusr and resp.stat.wusr and resp.stat.xusr)
       loop:
         - /etc/irods
@@ -148,19 +148,27 @@
       register: resp
       failed_when: >
         not resp.stat.exists
-        or not resp.stat.pw_name == 'irods'
+        or not (resp.stat.pw_name == 'irods' and resp.stat.gr_name == 'irods')
         or not (resp.stat.rusr and resp.stat.xusr)
 
-    - name: Test copy required iRODS runtime config files
+    - name: Test required iRODS runtime config files in place
       ansible.builtin.stat:
         path: /etc/irods/{{ item }}
       register: resp
-      failed_when: not resp.stat.exists or resp.stat.pw_name != 'irods' or not resp.stat.rusr
+      failed_when: >-
+        not resp.stat.exists
+        or not (resp.stat.pw_name == 'irods' and resp.stat.gr_name == 'irods')
+        or not resp.stat.rusr
       loop:
         - core.dvm
         - core.fnm
+        - core.re
 
-    - name: Test generate core.re
+    - name: Verify group for iRODS runtime config files
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Test generated core.re contents
       ansible.builtin.debug:
         msg: 'TODO: implement'
 

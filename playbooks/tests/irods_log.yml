@@ -1,0 +1,20 @@
+---
+- name: Test install and configure rsyslog for iRODS
+  hosts: irods
+  become: true
+  tasks:
+    - name: Test ensure Ubuntu package repo is update to date
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
+    - name: Test install rsyslog
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
+    - name: Test configure for iRODS
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
+    - name: Test configure log rotations for iRODS
+      ansible.builtin.debug:
+        msg: "TODO: implement"

@@ -14,14 +14,14 @@
 
 set -o errexit -o nounset -o pipefail
 
-EXEC_NAME="$(readlink --canonicalize "$0")"
-readonly EXEC_NAME
+EXEC_PATH="$(realpath --canonicalize-existing "$0")"
+readonly EXEC_PATH
 
 
 main()
 {
   local baseDir
-  baseDir="$(dirname "$EXEC_NAME")"
+  baseDir="$(dirname "$EXEC_PATH")"
 
   local cfg="$*"
 
@@ -38,7 +38,7 @@ main()
   . "$cfg"
 
   local os
-  for os in alma10 centos7 ubuntu1804 ubuntu2004 ubuntu2204 ubuntu2404; do
+  for os in alma10 alma9 centos7 ubuntu1804 ubuntu2004 ubuntu2204 ubuntu2404; do
     local buildArgs=(
 #      --no-cache
       --file="$baseDir"/base/Dockerfile."$os"

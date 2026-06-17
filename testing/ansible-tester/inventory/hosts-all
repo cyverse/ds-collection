@@ -1,6 +1,9 @@
 [amqp]
 dstesting-amqp-1.dstesting_default
 
+[cbuoy]
+dstesting-cbuoy-1.dstesting_default
+
 [dbms:children]
 dbms_primary
 dbms_replicas

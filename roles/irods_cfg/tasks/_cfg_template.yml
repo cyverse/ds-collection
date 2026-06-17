@@ -8,6 +8,8 @@
   ansible.builtin.file:
     dest: "{{ (_root_dir ~ '/' ~ _cfg_template_dest_file) | dirname }}"
     state: directory
+    owner: "{{ irods_cfg_system_account_name }}"
+    group: "{{ irods_cfg_system_group_name }}"
     mode: u+rx
 
 - name: Cfg_template | ensure system account owns parent directory
@@ -19,6 +21,8 @@
   ansible.builtin.template:
     src: "{{ _cfg_template_name | default((_cfg_template_dest_file | basename) ~ '.j2') }}"
     dest: "{{ _root_dir }}/{{ _cfg_template_dest_file }}"
+    owner: "{{ irods_cfg_system_account_name }}"
+    group: "{{ irods_cfg_system_group_name }}"
     mode: u+r
     backup: true
   notify:

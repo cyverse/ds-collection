@@ -74,7 +74,9 @@ main() {
 
 # Install the required AlmaLinux packages.
 install_alma_packages() {
-	dnf --assumeyes install openssh-clients openssh-server sudo
+	dnf --assumeyes install epel-release
+	dnf config-manager --set-enabled crb
+	dnf --assumeyes install dmidecode openssh-clients openssh-server passwd python3-virtualenv sudo
 	dnf clean all
 	rm --force --recursive /var/cache/dnf
 }
@@ -163,7 +165,7 @@ EOF
 }
 
 update_pam_sshd_config() {
-	sed --in-place '1i auth	sufficient	pam_permit.so' /etc/pam.d/sshd
+	sed --in-place '1iauth	sufficient	pam_permit.so' /etc/pam.d/sshd
 }
 
 update_sshd_config() {

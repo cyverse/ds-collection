@@ -12,3 +12,6 @@ irods_storage_resources:
   - name: ingestRes
     vault: "{{ irods_default_vault }}"
     context: minimum_free_space_for_create_in_bytes=1048576
+  - name: esiilRes
+    vault: /var/lib/irods/esiil_vault
+    context: minimum_free_space_for_create_in_bytes=1048576

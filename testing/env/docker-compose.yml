@@ -145,3 +145,6 @@ services:
     image: test-env-base:ubuntu2404
     privileged: true
     tty: true
+
+  cbuoy:
+    image: test-env-base:alma9

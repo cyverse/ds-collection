@@ -1,5 +1,5 @@
 ---
-- name: Prepare apt repositories
+- name: Prepare docker repository
   hosts: irods_resource_container
   become: true
   pre_tasks:
@@ -54,10 +54,15 @@
           notify: Update apt cache
 
   tasks:
+    - name: Update package cache on AlmaLinux hosts
+      when: ansible_distribution == 'AlmaLinux'
+      ansible.builtin.dnf:
+        update_cache: true
+
     - name: Update stale apt cache
       when: ansible_distribution == 'Ubuntu'
       ansible.builtin.apt:
-        cache_valid_time: 86400
+        update_cache: true
 
     - name: Install required packages
       ansible.builtin.package:
@@ -114,6 +119,7 @@
         path: "{{ item }}"
         state: directory
         owner: irods
+        group: irods
         mode: u+rwx
       loop:
         - /irods_vault
@@ -126,6 +132,7 @@
         src: files/irods/docker-rs/irodsctl
         dest: /var/lib/irods/irodsctl
         owner: irods
+        group: irods
         mode: u+rx
 
     - name: Copy required iRODS runtime config files
@@ -133,6 +140,7 @@
         src: files/irods/docker-rs/run/etc/irods/{{ item }}
         dest: /etc/irods
         owner: irods
+        group: irods
         mode: u+r
       loop:
         - core.dvm
@@ -143,6 +151,7 @@
         src: templates/irods/docker-rs/run/etc/irods/core.re.j2
         dest: /etc/irods/core.re
         owner: irods
+        group: irods
         mode: u+r
 
     - name: Generate iRODS config files
@@ -177,7 +186,7 @@
             - cve
             - cyverse_core
             - cyverse_housekeeping
-        irods_cfg_rulebases_state: files/irods/etc/irods/*
+        irods_cfg_rulebases_static: files/irods/etc/irods/*
         irods_cfg_rulebases_templated: templates/irods/etc/irods/*
         irods_cfg_schema_validation_base_uri: 'off'
         irods_cfg_server_control_plane_key: "{{ _irods_server_control_plane_key }}"
@@ -197,6 +206,7 @@
         path: /var/lib/irods/build
         state: directory
         owner: irods
+        group: irods
         mode: u+rx
 
     - name: Copy resource server image source
@@ -204,6 +214,7 @@
         src: files/irods/docker-rs/build/{{ item }}
         dest: /var/lib/irods/build
         owner: irods
+        group: irods
         mode: u+r
       loop:
         - entrypoint.sh
@@ -223,6 +234,7 @@
         src: templates/irods/docker-rs/env.j2
         dest: /var/lib/irods/.env
         owner: irods
+        group: irods
         mode: u+r
 
     - name: Copy docker-compose.yml file
@@ -230,6 +242,7 @@
         src: files/irods/docker-rs/docker-compose.yml
         dest: /var/lib/irods/docker-compose.yml
         owner: irods
+        group: irods
         mode: u+r
 
     - name: Configure rsyslog for iRODS

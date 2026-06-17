@@ -1,12 +1,12 @@
-# Avra project policy
+# ESIIL project policy
 #
-# Any data object put in the AVRA project collection will be stored on the AVRA
+# Any data object put in an ESIIL project collection will be stored on the ESIIL
 # resource server, and no other data objects may be stored there.
 #
-# © 2024 The Arizona Board of Regents on behalf of The University of Arizona.
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
-@include 'avra-env'
+@include 'esiil-env'
 
 
 ### DYNAMIC PEPS ###
@@ -18,7 +18,7 @@
 # This rule is provides the preprocessing logic for determine which storage
 # resource to choose for a replica.
 #
-# This branch restricts the AVRA resource to files in the AVRA collection.
+# This branch restricts the ESIIL resource to files in the ESIIL collection.
 #
 # Parameters:
 #  Instance  (string) unused
@@ -34,13 +34,14 @@
 # #  -32000 (SYS_INVALID_RESC_INPUT)  this is returned when an error occurred in
 # #                                   one of the on branches of this rule
 # temporaryStorage:
-#  resource_resolve_hierarchy_err  this is used to store an error message when an attempt is made to
-#                                  to store a replica on the AVRA resource that should be.
+#  resource_resolve_hierarchy_err  this is used to store an error message when
+#                                  an attempt is made to store a replica on the
+#                                  ESIIL resource that should be.
 # XXX - ^^^
 #
 pep_resource_resolve_hierarchy_pre(*Instance, *Context, *OUT, *Op, *Host, *PARSER, *VOTE) {
-	on (cyverse_blockRescReq(avra_RESC, *Context.resc_hier, *Context.logical_path)) {
-		*msg = 'CYVERSE ERROR: ' ++ *Context.logical_path ++ ' not allowed on ' ++ avra_RESC ++ '.';
+	on (cyverse_blockRescReq(esiil_RESC, *Context.resc_hier, *Context.logical_path)) {
+		*msg = 'CYVERSE ERROR: ' ++ *Context.logical_path ++ ' not allowed on ' ++ esiil_RESC ++ '.';
 # XXX - Because of https://github.com/irods/irods/issues/6463, an error
 # happening in an `ON` condition needs to be captured and sent in the catch-all.
 # 		cut;

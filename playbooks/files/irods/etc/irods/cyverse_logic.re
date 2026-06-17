@@ -980,9 +980,11 @@ _cyverse_logic_getNewAVUSetting(*Orig, *Prefix, *Candidates) =
 #  ReplNum  the replica number that will be check summed
 #
 cyverse_logic_chksumRepl(*DataId, *ReplNum) {
-	*dataPath = cyverse_getDataPath(*DataId);
-
-	if (*dataPath != "") {
+	foreach( *rec in
+		SELECT COLL_NAME, DATA_NAME
+		WHERE DATA_ID = '*DataObjId' AND DATA_REPL_NUM = '*ReplNum' AND DATA_CHECKSUM = ''
+	) {
+		*dataPath = *rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME;
 # XXX - As of iRODS 4.3.1, deferred rules don't propagate ticket information
 # 		msiAddKeyValToMspStr('forceChksum', '', *opts);
 # 		msiAddKeyValToMspStr('replNum', str(*ReplNum), *opts);
