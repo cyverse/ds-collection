@@ -33,6 +33,8 @@
         - cyverse_logic.re
         - cyverse_repl.re
         - cyverse_trash.re
+        - esiil.re
+        - esiil-env.re
         - pire.re
         - pire-env.re
         - server_config.json

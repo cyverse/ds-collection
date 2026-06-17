@@ -1,0 +1,4 @@
+---
+_esiil_base_collection: "{{ esiil_base_collection | d(none) }}"
+_esiil_manager: "{{ esiil_manager | d(_irods_admin_username) }}"
+_esiil_resource_hierarchy: "{{ esiil_resource_hierarchy | d(_irods_resource_hierarchies[0]) }}"

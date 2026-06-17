@@ -112,6 +112,26 @@
           - avra_env is search("avra_RESC = 'avraRes'")
 
 
+- name: Test ESIIL params are set correctly
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/irods.yml
+    - ../group_vars/all/esiil.yml
+  vars:
+    esiil_resource_hierarchy:
+      name: esiilRes
+    esiil_env: "{{ lookup('template', '../templates/irods/etc/irods/esiil-env.re.j2') }}"
+  tasks:
+    - name: Verify ansible managed
+      ansible.builtin.assert:
+        that: esiil_env is search('# Ansible managed')
+
+    - name: Verify params
+      ansible.builtin.assert:
+        that: esiil_env is search("esiil_RESC = 'esiilRes'")
+
+
 - name: Test PIRE params are set correctly
   hosts: localhost
   gather_facts: false

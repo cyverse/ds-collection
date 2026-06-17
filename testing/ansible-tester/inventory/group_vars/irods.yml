@@ -9,6 +9,10 @@ avra_resource_hierarchy:
   children:
     - name: avra
 
+esiil_base_collection: /testing/home/shared/esiil
+esiil_resource_hierarchy:
+  name: esiilRes
+
 irods_amqp_host: "{{ groups['amqp'][0] }}"
 irods_amqp_username: amqp_admin
 irods_amqp_password: password
