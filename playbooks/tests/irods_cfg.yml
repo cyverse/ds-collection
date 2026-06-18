@@ -35,6 +35,8 @@
         - cyverse_trash.re
         - esiil.re
         - esiil-env.re
+        - ncems.re
+        - ncems-env.re
         - pire.re
         - pire-env.re
         - server_config.json

@@ -1,0 +1,4 @@
+---
+_ncems_base_collection: "{{ ncems_base_collection | d(none) }}"
+_ncems_manager: "{{ ncems_manager | d(_irods_admin_username) }}"
+_ncems_resource_hierarchy: "{{ ncems_resource_hierarchy | d(_irods_resource_hierarchies[0]) }}"

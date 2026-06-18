@@ -326,19 +326,25 @@ class PepApiDataObjCopyPostTest(CyverseCoreTestCase):
         super().setUp()
         self.ensure_obj_absent(self._test_copy)
         self.irods.data_objects.create(self.artifact_file)
+        self.irods.data_objects.copy(self.artifact_file, self._test_copy)
 
     def tearDown(self):
         self.ensure_obj_absent(self._test_copy)
         self.ensure_obj_absent(self.artifact_file)
         super().tearDown()
 
-    @unittest.skip("not implemented")
     def test_cyverselogic_called(self):
         """Test that the cyverse_logic version of the rule is called"""
+        if not self.verify_msg_logged('cyverse_logic_api_data_obj_copy_post'):
+            self.fail('cyverse_logic_api_data_obj_copy_post not called')
+
+    def test_cyverserepl_called(self):
+        """Test that the cyverse_repl version of the rule is called"""
+        if not self.verify_msg_logged('cyverse_repl_api_data_obj_copy_post'):
+            self.fail('cyverse_repl_api_data_obj_copy_post not called')
 
     def test_cyversetrash_called(self):
         """Test that the cyverse_trash version of the rule is called"""
-        self.irods.data_objects.copy(self.artifact_file, self._test_copy)
         if not self.verify_msg_logged('cyverse_trash_api_data_obj_copy_post'):
             self.fail('cyverse_trash_api_data_obj_copy_post not called')
 
@@ -378,12 +384,18 @@ class PepApiDataObjCreatePostTest(CyverseCoreTestCase):
         self.ensure_obj_absent(self.artifact_file)
         super().tearDown()
 
-    @unittest.skip("not implemented")
     def test_cyverselogic_called(self):
-        """Test that the rule is called."""
+        """Test that the cyverse_logic version of the rule is called."""
+        if not self.verify_msg_logged('cyverse_logic_api_data_obj_create_post'):
+            self.fail('cyverse_logic_api_data_obj_create_post not called')
+
+    def test_cyverserepl_called(self):
+        """Test that the cyverse_repl version of the rule is called."""
+        if not self.verify_msg_logged('cyverse_repl_api_data_obj_create_post'):
+            self.fail('cyverse_repl_api_data_obj_create_post not called')
 
     def test_cyversetrash_called(self):
-        """Test that the rule is called."""
+        """Test that the cyverse_trash version of the rule is called."""
         if not self.verify_msg_logged('cyverse_trash_api_data_obj_create_post'):
             self.fail('cyverse_trash_api_data_obj_create_post not called')
 
@@ -580,7 +592,7 @@ class PepApiStructFileExtAndRegPre(CyverseCoreTestCase):
     """Test pep_api_struct_file_ext_and_reg_pre
 
     XXX: This PEP is broken because of bug
-    https://github.com/irods/irods/issues/7413. It is fixed in iRODS 4.3.
+    https://github.com/irods/irods/issues/7413. It is fixed in iRODS 4.3.2.
     """
 
 
