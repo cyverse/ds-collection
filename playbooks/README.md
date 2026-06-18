@@ -127,6 +127,9 @@ Variable                                   | Required | Default                 
 `irods_zone_key`                           | no       | TEMPORARY_zone_key                   |         | The zone key
 `irods_zone_name`                          | no       | tempZone                             |         | The name of the zone
 `mdrepo_cli_account`                       | no       | null                                 |         | The iRODS account used my the MD Repo CLI
+`ncems_base_collection`                    | no       |                                      |         | The base collection for the NCEMS project. If it isn't present no NCEMS rules will fire.
+`ncems_manager`                            | no       | `irods_admin_username`               |         | The iRODS user who is responsible for NCEMS data.
+`ncems_resource_hierarchy`                 | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the NCEMS project
 `pire_manager`                             | no       | null                                 |         | The username that owns the PIRE project collection, if `null`, the collection isn't created.
 `pire_resource_hierarchy`                  | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the PIRE project
 `proxy_allow_client_hosts`                 | no       | []                                   |         | A list of host names, IP addresses, and CIDR blocks of clients allowed limited concurrent iRODS connections

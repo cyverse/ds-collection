@@ -15,3 +15,6 @@ irods_storage_resources:
   - name: esiilRes
     vault: /var/lib/irods/esiil_vault
     context: minimum_free_space_for_create_in_bytes=1048576
+  - name: ncemsRes
+    vault: /var/lib/irods/ncems_vault
+    context: minimum_free_space_for_create_in_bytes=1048576

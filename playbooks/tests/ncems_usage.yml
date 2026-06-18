@@ -1,0 +1,47 @@
+---
+- name: Test create NCEMS storage resources
+  ansible.builtin.import_playbook: irods_storage_resources.yml
+
+
+- name: Test Configure iRODS for NCEMS
+  hosts: irods_catalog
+  become: true
+  become_user: irods
+  run_once: true
+  tasks:
+    - name: Test make NCEMS resource hierarchy
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          printf -v expHier 'ncemsRes:unixfilesystem'
+          actHier="$(ilsresc ncemsRes)"
+          [[ "$actHier" == "$expHier" ]]
+      changed_when: false
+
+    - name: Test create project collection
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: ils /testing/home/shared/ncems &> /dev/null
+      changed_when: false
+
+    - name: Verify that project collection has correct owner
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          ils -A /testing/home/shared/ncems | sed --quiet 2p | grep --quiet rods#testing:own
+      changed_when: false
+
+    - name: Test assign collection to NCEMS resource
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          num="$(iquest \
+            '%s' \
+            "select count(META_RESC_ATTR_ID)
+              where RESC_NAME = 'ncemsRes'
+                and META_RESC_ATTR_NAME = 'ipc::hosted-collection'
+                and META_RESC_ATTR_VALUE = '/testing/home/shared/ncems'
+                and META_RESC_ATTR_UNITS = 'required'" )"
+          (( num == 1 ))
+      changed_when: false

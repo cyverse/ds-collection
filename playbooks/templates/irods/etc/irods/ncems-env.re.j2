@@ -1,0 +1,10 @@
+# Environment specific NCEMS rule customizations belong in this file.
+#
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
+{{ ansible_managed | comment }}
+
+# the root resource used by NCEMS
+ncems_RESC : string
+ncems_RESC = '{{ _ncems_resource_hierarchy.name }}'
