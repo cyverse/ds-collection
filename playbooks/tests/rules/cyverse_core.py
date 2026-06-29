@@ -482,9 +482,15 @@ class PepApiDataObjPutTest(CyverseCoreTestCase):
         if not self.verify_msg_logged('cyverse_encryption_api_data_obj_put_pre'):
             self.fail('cyverse_encryption_api_data_obj_put_pre not called')
 
-    @unittest.skip("not implemented")
     def test_cyverselogic_called(self):
         """Test that cyverse_logic's version of this rule is called."""
+        if not self.verify_msg_logged('cyverse_logic_api_data_obj_put_post'):
+            self.fail('cyverse_logic_api_data_obj_put_post not called')
+
+    def test_cyverserepl_called(self):
+        """Test that cyverse_repl's version of this rule is called."""
+        if not self.verify_msg_logged('cyverse_repl_api_data_obj_put_post'):
+            self.fail('cyverse_repl_api_data_obj_put_post not called')
 
     def test_cyversetrash_called(self):
         """Test that cyverse_trash's version of this rule is called."""
