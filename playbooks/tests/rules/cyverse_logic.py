@@ -108,26 +108,23 @@ class TestUserInfo(IrodsTestCase):
         name = 'grouphandler'
         self.irods.users.create(name, 'groupadmin')
         try:
-            self.fn_test(
-                '_cyverse_logic_isAdm',
-                [IrodsVal.string(name), IrodsVal.string(self.irods.zone)],
-                IrodsVal.boolean(False))
+            self._test_rule(name, False)
         finally:
             self.irods.users.remove(name)
 
-    @unittest.skip("not implemented")
     def test_isadm_rodsadmin(self):
         """
         Test _cyverse_logic_isAdm correctly identifies a rodsadmin user is a
         rodsadmin
         """
+        self._test_rule('rods', True)
 
-    @unittest.skip("not implemented")
     def test_isadm_rodsgroup(self):
         """
         Test _cyverse_logic_isAdm correctly identifies a group as not a
         rodsadmin
         """
+        self._test_rule('public', False)
 
     @unittest.skip("not implemented")
     def test_isadm_rodsuser(self):
@@ -135,6 +132,12 @@ class TestUserInfo(IrodsTestCase):
         Test _cyverse_logic_isAdm correctly identifies a rodsuser user as not a
         rodsadmin
         """
+
+    def _test_rule(self, name, expected_result):
+        self.fn_test(
+            '_cyverse_logic_isAdm',
+            [IrodsVal.string(name), IrodsVal.string(self.irods.zone)],
+            IrodsVal.boolean(expected_result))
 
 
 class TestCyVerseLogic(IrodsTestCase):

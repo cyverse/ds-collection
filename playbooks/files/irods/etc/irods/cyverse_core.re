@@ -285,7 +285,7 @@ acPreprocForRmColl {
 #
 acPostProcForCollCreate {
 	*status = errormsg(
-		cyverse_logic_acPostProcForCollCreate($collName, $rodsZoneClient, $userNameClient), *msg );
+		cyverse_logic_acPostProcForCollCreate($collName, $userNameClient, $rodsZoneClient), *msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
 
 	*status = errormsg(coge_acPostProcForCollCreate($collName), *msg);
@@ -313,7 +313,7 @@ acPostProcForDataCopyReceived(*LeafResource) {
 #
 acPostProcForDelete {
 	*status = errormsg(
-		cyverse_logic_acPostProcForDelete($objPath, $rodsZoneClient, $userNameClient), *msg );
+		cyverse_logic_acPostProcForDelete($objPath, $userNameClient, $rodsZoneClient), *msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
