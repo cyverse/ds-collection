@@ -39,7 +39,8 @@ class CyverseTestCase(IrodsTestCase):
         self, username: str, access: str, entity: Union[iRODSDataObject, iRODSCollection],
     ) -> bool:
         """
-        Checks to see if a given user has the given access to the given collection or data object
+        Checks to see if a given user has the given access to the given
+        collection or data object
 
         Parameters:
             username  the username to check
@@ -234,13 +235,13 @@ class CyverseFileOpenFlagTests(CyverseTestCase):
         """Verify cyverse_OPEN_FLAG_WP_CREATE"""
         self.fn_test('cyverse_OPEN_FLAG_WP_CREATE', [], IrodsVal.string('578'))
 
-    @unittest.skip("not implemented")
     def test_write_only_append(self):
         """Verify cyverse_OPEN_FLAG_A"""
+        self.fn_test('cyverse_OPEN_FLAG_A', [], IrodsVal.string('1'))
 
-    @unittest.skip("not implemented")
     def test_write_only_append_create(self):
         """Verify cyverse_OPEN_FLAG_A_CREATE"""
+        self.fn_test('cyverse_OPEN_FLAG_A_CREATE', [], IrodsVal.string('65'))
 
     @unittest.skip("not implemented")
     def test_read_write_append_create(self):
@@ -412,12 +413,16 @@ class CyverseGiveaccesscoll(CyverseTestCase):
         super().tearDown()
 
     def test_coll_acl_set(self):
-        """Test that a collection was given a given permission to a given user"""
+        """
+        Test that a collection was given a given permission to a given user
+        """
         if not self.has_perm('user', 'read_object', self.irods.collections.get('/testing/home')):  # type: ignore # noqa: E501 # pylint: disable=line-too-long
             self.fail('user did not receive read permission on /testing/home')
 
     def test_child_acl_set(self):
-        """Test that a collection member is given a given permission to a given user"""
+        """
+        Test that a collection member is given a given permission to a given user
+        """
         if not self.has_perm(
             'user', 'read_object', self.irods.collections.get('/testing/home/rods')  # type: ignore
         ):
@@ -442,7 +447,9 @@ class CyVerseGiveaccessdataobj(CyverseTestCase):
         super().tearDown()
 
     def test_obj_acl_set(self):
-        """Test that a data object was given a given permission to a given user"""
+        """
+        Test that a data object was given a given permission to a given user
+        """
         if not self.has_perm('user', 'read_object', self.irods.data_objects.get(self._obj)):
             self.fail('user did not receive read permission on data object')
 
@@ -463,7 +470,9 @@ class CyverseEnsureaccessoncreatecoll(CyverseTestCase):
         super().tearDown()
 
     def test_coll_in_svc_coll(self):
-        """Test that a collection in a service collection gets service permission"""
+        """
+        Test that a collection in a service collection gets service permission
+        """
         rule = self.mk_rule(
             f'cyverse_ensureAccessOnCreateColl("svc", "svc_data", "write", {self._coll})')
         self.exec_rule(rule, IrodsType.NONE)
@@ -471,7 +480,10 @@ class CyverseEnsureaccessoncreatecoll(CyverseTestCase):
             self.fail('svc did not receive write permission on collection')
 
     def test_coll_not_in_svc_coll(self):
-        """Test that a collection not in a service collection doesn't get service permission"""
+        """
+        Test that a collection not in a service collection doesn't get service
+        permission
+        """
         other_coll = '/testing/home/rods/coll'
         child = os.path.join(other_coll, 'child')
         self.irods.collections.create(child, recursive=True)
@@ -498,7 +510,9 @@ class CyverseEnsureaccessoncreatedataobj(CyverseTestCase):
         super().tearDown()
 
     def test_obj_in_svc_coll(self):
-        """Test that a data object in a service collection gets service permission"""
+        """
+        Test that a data object in a service collection gets service permission
+        """
         obj = os.path.join(self._svc_coll, 'obj')
         self.irods.data_objects.create(obj)
         rule = self.mk_rule(
@@ -509,7 +523,10 @@ class CyverseEnsureaccessoncreatedataobj(CyverseTestCase):
         self.ensure_obj_absent(obj)
 
     def test_obj_not_in_svc_coll(self):
-        """Test that a data object not in a service collection doesn't get service permission"""
+        """
+        Test that a data object not in a service collection doesn't get service
+        permission
+        """
         obj = os.path.join('/testing/home/rods/obj')
         self.irods.data_objects.create(obj)
         rule = self.mk_rule(
@@ -535,7 +552,9 @@ class CyverseEnsureaccessonmv(CyverseTestCase):
         super().tearDown()
 
     def test_mv_coll_into_svc_coll(self):
-        """Test move collection into service collection gets service permission"""
+        """
+        Test move collection into service collection gets service permission
+        """
         coll = os.path.join(self._svc_coll, 'coll')
         self.irods.collections.create(coll)
         rule = self.mk_rule(
@@ -549,8 +568,8 @@ class CyverseEnsureaccessonmv(CyverseTestCase):
 
     def test_mv_coll_into_not_svc_coll(self):
         """
-        Test move collection into collection that doesn't belong to a service doesn't gets service
-        permission.
+        Test move collection into collection that doesn't belong to a service
+        doesn't gets service permission.
         """
         coll = '/testing/home/rods/coll'
         self.irods.collections.create(coll)
@@ -562,7 +581,9 @@ class CyverseEnsureaccessonmv(CyverseTestCase):
         self.irods.collections.remove(coll, force=True)
 
     def test_mv_data_into_svc_coll(self):
-        """Test move data object into service collection gets service permission"""
+        """
+        Test move data object into service collection gets service permission
+        """
         obj = os.path.join(self._svc_coll, 'obj')
         self.irods.data_objects.create(obj)
         rule = self.mk_rule(
@@ -574,8 +595,8 @@ class CyverseEnsureaccessonmv(CyverseTestCase):
 
     def test_mv_data_into_not_svc_coll(self):
         """
-        Test move data object into collection that doesn't belong to a service doesn't gets service
-        permission.
+        Test move data object into collection that doesn't belong to a service
+        doesn't gets service permission.
         """
         obj = '/testing/home/rods/obj'
         self.irods.data_objects.create(obj)
