@@ -8,7 +8,8 @@
 
 import unittest
 
-from irods.exception import SYS_INVALID_RESC_INPUT
+from irods.exception import iRODSException, SYS_INVALID_RESC_INPUT
+from irods.path import iRODSPath
 
 import test_rules
 from test_rules import IrodsTestCase
@@ -26,8 +27,8 @@ def tearDownModule():  # pylint: disable=invalid-name
 
 class TestPepResourceResolveHierarchyPreNcemsResDefault(IrodsTestCase):
     """
-    Test NCEMS instance of pep_resource_resolve_hierarchy_pre when the NCEMS resource is the same as
-    the default resource.
+    Test NCEMS instance of pep_resource_resolve_hierarchy_pre when the NCEMS
+    resource is the same as the default resource.
     """
 
     def setUp(self):
@@ -50,8 +51,8 @@ class TestPepResourceResolveHierarchyPreNcemsResDefault(IrodsTestCase):
 
     def test_ncems_res_and_coll(self):
         """
-        Verify that it allows upload when NCEMS resource is chosen and destination is a NCEMS
-        collection.
+        Verify that it allows upload when NCEMS resource is chosen and
+        destination is a NCEMS collection.
         """
         try:
             self.irods.data_objects.create("/testing/home/shared/ncems/ncems", resource="ingestRes")
@@ -60,8 +61,8 @@ class TestPepResourceResolveHierarchyPreNcemsResDefault(IrodsTestCase):
 
     def test_ncems_res_not_coll(self):
         """
-        Verify that it allows upload when NCEMS resource is chosen and destination is not a NCEMS
-        collection.
+        Verify that it allows upload when NCEMS resource is chosen and
+        destination is not a NCEMS collection.
         """
         try:
             self.irods.data_objects.create("/testing/home/rods/ncems", resource="ingestRes")
@@ -70,8 +71,8 @@ class TestPepResourceResolveHierarchyPreNcemsResDefault(IrodsTestCase):
 
     def test_not_res_ncems_coll(self):
         """
-        Verify that it allows upload when NCEMS resource is not chosen and destination is a NCEMS
-        collection.
+        Verify that it allows upload when NCEMS resource is not chosen and
+        destination is a NCEMS collection.
         """
         try:
             self.irods.data_objects.create("/testing/home/rods/other", resource="replRes")
@@ -80,8 +81,8 @@ class TestPepResourceResolveHierarchyPreNcemsResDefault(IrodsTestCase):
 
     def test_not_res_nor_coll(self):
         """
-        Verify that it allows upload when NCEMS resource is not chosen and destination is not a
-        NCEMS collection.
+        Verify that it allows upload when NCEMS resource is not chosen and
+        destination is not a NCEMS collection.
         """
         try:
             self.irods.data_objects.create("/testing/home/shared/ncems/other", resource="replRes")
@@ -91,8 +92,8 @@ class TestPepResourceResolveHierarchyPreNcemsResDefault(IrodsTestCase):
 
 class TestPepResourceResolveHierarchyPreNcemsResNotDefault(IrodsTestCase):
     """
-    Test NCEMS instance of pep_resource_resolve_hierarchy_pre when the NCEMS resource isn't the same
-    as the default resource.
+    Test NCEMS instance of pep_resource_resolve_hierarchy_pre when the NCEMS
+    resource isn't the same as the default resource.
     """
 
     def tearDown(self):
@@ -107,8 +108,8 @@ class TestPepResourceResolveHierarchyPreNcemsResNotDefault(IrodsTestCase):
 
     def test_ncems_res_and_coll(self):
         """
-        Verify that it allows upload when NCEMS resource is chosen and destination is an NCEMS
-        collection.
+        Verify that it allows upload when NCEMS resource is chosen and
+        destination is an NCEMS collection.
         """
         try:
             self.irods.data_objects.create("/testing/home/shared/ncems/ncems", resource="ncemsRes")
@@ -117,8 +118,8 @@ class TestPepResourceResolveHierarchyPreNcemsResNotDefault(IrodsTestCase):
 
     def test_ncems_res_not_coll(self):
         """
-        Verify that it forbids upload when NCEMS resource is chosen and destination is not an NCEMS
-        collection.
+        Verify that it forbids upload when NCEMS resource is chosen and
+        destination is not an NCEMS collection.
         """
         try:
             self.irods.data_objects.create("/testing/home/rods/ncems", resource="ncemsRes")
@@ -128,8 +129,8 @@ class TestPepResourceResolveHierarchyPreNcemsResNotDefault(IrodsTestCase):
 
     def test_not_res_ncems_coll(self):
         """
-        Verify that it allows upload when NCEMS resource is not chosen and destination is an NCEMS
-        collection.
+        Verify that it allows upload when NCEMS resource is not chosen and
+        destination is an NCEMS collection.
         """
         try:
             self.irods.data_objects.create(
@@ -139,13 +140,54 @@ class TestPepResourceResolveHierarchyPreNcemsResNotDefault(IrodsTestCase):
 
     def test_not_res_nor_coll(self):
         """
-        Verify that it allows upload when NCEMS resource is not chosen and destination is not an
-        NCEMS collection.
+        Verify that it allows upload when NCEMS resource is not chosen and
+        destination is not an NCEMS collection.
         """
         try:
             self.irods.data_objects.create("/testing/home/rods/other", resource="ingestRes")
         except SYS_INVALID_RESC_INPUT:
             self.fail()
+
+
+class TestPepResourceResolveHierarchyPreNcemsResNoAdd(IrodsTestCase):
+    """
+    Verify NCEMS instance of pep_resource_resolve_hierarchy_pre allows
+    operations that don't add a replica to the NCEMS resource.
+    """
+
+    def __init__(self, method: str):
+        super().__init__(method)
+        self._obj_path = None
+        self._resc = None
+        self._resc_avu = None
+
+    def setUp(self):
+        super().setUp()
+        resc_name = 'ncemsRes'
+        self._obj_path = iRODSPath(self.irods.zone, "home", "shared", "ncems", "ncems")
+        self.irods.data_objects.create(self._obj_path, resource=resc_name)
+        self._resc = self.irods.resources.get(resc_name)
+        self._resc_avu = self._resc.metadata.get_one('ipc::hosted-collection')
+        self._resc.metadata.remove(self._resc_avu)
+
+    def tearDown(self):
+        self._resc.metadata.add(self._resc_avu)  # pyright: ignore[reportOptionalMemberAccess]
+        self.ensure_obj_absent(self._obj_path)  # pyright: ignore[reportArgumentType]
+        super().tearDown()
+
+    def test_open(self):
+        """Verify that an open operation is allowed"""
+        try:
+            self.irods.data_objects.chksum(self._obj_path)
+        except iRODSException:
+            self.fail("the open operation failed")
+
+    def test_unlink(self):
+        """Verify that an unlink operation is allowed"""
+        try:
+            self.irods.data_objects.unlink(self._obj_path, force=True)
+        except iRODSException:
+            self.fail("the open operation failed")
 
 
 if __name__ == "__main__":

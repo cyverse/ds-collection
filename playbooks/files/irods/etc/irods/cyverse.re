@@ -296,23 +296,26 @@ cyverse_getDataPath(*Id) =
 # This is the resource restriction logic for project-specific resources.
 #
 
-# This function determines whether or not a request to put a data object on a
-# project-specific resource should be blocked.
+# This function determines whether or not a request to put a data object replica
+# on a project-specific resource should be blocked.
 #
 # PARAMETERS:
+#  Op           the operation triggering the resource selection logic
 #  ProjResc     the root resource dedicated to a project
 #  ReqRescHier  the requested resource hierarchy
 #  DataPath     the path to the data object in question
 #
 # RETURNS:
-#  It returns true if the project resource isn't the default resource, but is
-#  the requested resource, and the data path isn't under one of a project's
-#  collections. Otherwise, it returns true.
+#  It returns true if operation is attempting to create a replica on a project
+#  resource and the resource isn't the default resource, but is the requested
+#  resource, and the data path isn't under one of a project's collections.
+#  Otherwise, it returns true.
 #
-cyverse_blockRescReq : forall X in {path string}, string * string * X -> boolean
-cyverse_blockRescReq(*ProjResc, *ReqRescHier, *DataPath) =
+cyverse_blockRescReq : forall X in {path string}, string * string * string * X -> boolean
+cyverse_blockRescReq(*Op, *ProjResc, *ReqRescHier, *DataPath) =
 	let *reqResc = hd(split(*ReqRescHier, ';')) in
-	if *ProjResc == cyverse_DEFAULT_RESC || *reqResc != *ProjResc then false
+	if *Op == 'OPEN' || *Op == 'UNLINK' then false
+	else if *ProjResc == cyverse_DEFAULT_RESC || *reqResc != *ProjResc then false
 	else
 		let *block = true in
 		let *_ = foreach( *rec in
