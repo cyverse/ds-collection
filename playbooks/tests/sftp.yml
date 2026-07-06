@@ -54,8 +54,16 @@
     sftpgo_conf: "{{ lookup('ansible.builtin.template', '../templates/sftp/etc/sftpgo/sftpgo.conf.j2') }}"
     sftpgo_json: "{{ lookup('ansible.builtin.template', '../templates/sftp/etc/sftpgo/sftpgo.json.j2') }}"
   tasks:
-    - name: "TODO: implement"
-      debug:
+    - name: Verify sftpgo.conf expands correctly
+      ansible.builtin.debug:
+        msg: "TODO: implement for {{ item }}"
+      loop:
+          - SFTPGO_DEFAULT_ADMIN_USERNAME
+          - SFTPGO_DEFAULT_ADMIN_PASSWORD
+          - SFTPGO_HOME_PATH
+
+    - name: Test sftpgo.json contents
+      ansible.builtin.debug:
         msg: "TODO: implement"
 
 
