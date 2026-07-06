@@ -1,4 +1,5 @@
 ---
+sftp_admin_username: sftpgo
 sftp_admin_password: sftpgo_pass
 
 sftp_irods_auth_scheme: native

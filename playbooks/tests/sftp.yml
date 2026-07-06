@@ -55,11 +55,15 @@
     sftpgo_json: "{{ lookup('ansible.builtin.template', '../templates/sftp/etc/sftpgo/sftpgo.json.j2') }}"
   tasks:
     - name: Verify sftpgo.conf expands correctly
+      ansible.builtin.assert:
+        that:
+          - sftpgo_conf is search('SFTPGO_DEFAULT_ADMIN_USERNAME=sftpgo')
+          - sftpgo_conf is search('SFTPGO_DEFAULT_ADMIN_PASSWORD=sftpgo_pass')
+
+    - name: Verify sftpgo.conf expands correctly
       ansible.builtin.debug:
         msg: "TODO: implement for {{ item }}"
       loop:
-          - SFTPGO_DEFAULT_ADMIN_USERNAME
-          - SFTPGO_DEFAULT_ADMIN_PASSWORD
           - SFTPGO_HOME_PATH
 
     - name: Test sftpgo.json contents
