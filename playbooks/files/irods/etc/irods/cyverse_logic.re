@@ -1202,7 +1202,12 @@ _cyverse_logic_sendMsg(*Topic, *Msg) {
 	*status = errormsg(msiExecCmd('amqp-topic-send', *argStr, cyverse_RE_HOST, '', 0, *out), *msg);
 
 	if (*status < 0) {
-		msiGetStderrInExecCmdOut(*out, *err);
+		if (*status == -370000) {
+			*err = "The user isn't allowed to execute command scripts";
+		} else {
+			msiGetStderrInExecCmdOut(*out, *err);
+		}
+
 		writeLine("serverLog", "Failed to send AMQP message: *msg (*err)");
 	}
 }

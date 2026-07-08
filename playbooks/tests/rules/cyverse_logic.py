@@ -145,9 +145,26 @@ class TestUserInfo(IrodsTestCase):
             IrodsVal.boolean(expected_result))
 
 
-@test_rules.unimplemented
 class TestAvus(IrodsTestCase):
     """Tests of private AVU rule logic"""
+
+    def test_no_candidates(self):
+        """Verify that if no candidates are provided the orignal is returned"""
+        orig = IrodsVal.string('orig')
+        self.fn_test(
+            '_cyverse_logic_getNewAVUSetting',
+            [orig, IrodsVal.string('prefix'), IrodsVal.string_list([])],
+            orig)
+
+    @unittest.skip("not implemented")
+    def test_one_candidate(self):
+        """Verify that it works correctly when one candidate is provided"""
+
+    @unittest.skip("not implemented")
+    def test_multiple_candidates(self):
+        """
+        Verify that it works correctly when multiple candidates are provided
+        """
 
 
 class TestCyVerseLogic(IrodsTestCase):
