@@ -1203,11 +1203,8 @@ _cyverse_logic_sendMsg(*Topic, *Msg) {
 
 	if (*status < 0) {
 		msiGetStderrInExecCmdOut(*out, *err);
-		writeLine("serverLog", "Failed to send AMQP message: *msg");
-		writeLine("serverLog", *err);
+		writeLine("serverLog", "Failed to send AMQP message: *msg (*err)");
 	}
-
-	0;
 }
 
 _cyverse_logic_sendAVUAddWildcard(
