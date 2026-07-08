@@ -164,13 +164,13 @@
         - core.fnm
         - core.re
 
-    - name: Verify group for iRODS runtime config files
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
     - name: Test generated core.re contents
       ansible.builtin.debug:
-        msg: 'TODO: implement'
+        msg: 'TODO: implement for {{ item }}'
+      loop:
+        - ansible managed
+        - acSetRescSchemeForCreate
+        - acSetRescSchemeForRepl
 
     - name: Test add command scripts
       ansible.builtin.stat:
