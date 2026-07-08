@@ -5,6 +5,8 @@ webdav_cache_dir: /cache_vol
 webdav_cache_size: 500
 webdav_cache_max_file_size: 10
 
+webdav_irods_host: "{{ groups['irods_catalog'][0] }}"
+webdav_irods_zone: testing
 webdav_irods_username: rods
 webdav_irods_password: password
 
