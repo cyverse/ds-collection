@@ -54,14 +54,14 @@
           notify: Update apt cache
 
   tasks:
-    - name: Update stale apt cache
-      when: ansible_distribution == 'Ubuntu'
-      ansible.builtin.apt:
-        update_cache: true
-
     - name: Update package cache on AlmaLinux hosts
       when: ansible_distribution == 'AlmaLinux'
       ansible.builtin.dnf:
+        update_cache: true
+
+    - name: Update stale apt cache
+      when: ansible_distribution == 'Ubuntu'
+      ansible.builtin.apt:
         update_cache: true
 
     - name: Install required packages

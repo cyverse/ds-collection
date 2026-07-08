@@ -15,7 +15,7 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 
--- Name: r_coll_main; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_coll_main; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_coll_main (
     coll_id bigint NOT NULL,
@@ -34,10 +34,10 @@ CREATE TABLE public.r_coll_main (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_coll_main OWNER TO irods;
+ALTER TABLE public.r_coll_main OWNER TO irodsuser;
 
 
--- Name: r_data_main; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_data_main; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_data_main (
     data_id bigint NOT NULL,
@@ -65,10 +65,10 @@ CREATE TABLE public.r_data_main (
     resc_id bigint
 );
 
-ALTER TABLE public.r_data_main OWNER TO irods;
+ALTER TABLE public.r_data_main OWNER TO irodsuser;
 
 
--- Name: r_grid_configuration; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_grid_configuration; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_grid_configuration (
     namespace character varying(2700),
@@ -76,10 +76,10 @@ CREATE TABLE public.r_grid_configuration (
     option_value character varying(2700)
 );
 
-ALTER TABLE public.r_grid_configuration OWNER TO irods;
+ALTER TABLE public.r_grid_configuration OWNER TO irodsuser;
 
 
--- Name: r_meta_main; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_meta_main; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_meta_main (
     meta_id bigint NOT NULL,
@@ -92,10 +92,10 @@ CREATE TABLE public.r_meta_main (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_meta_main OWNER TO irods;
+ALTER TABLE public.r_meta_main OWNER TO irodsuser;
 
 
--- Name: r_microsrvc_main; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_microsrvc_main; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_microsrvc_main (
     msrvc_id bigint NOT NULL,
@@ -111,10 +111,10 @@ CREATE TABLE public.r_microsrvc_main (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_microsrvc_main OWNER TO irods;
+ALTER TABLE public.r_microsrvc_main OWNER TO irodsuser;
 
 
--- Name: r_microsrvc_ver; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_microsrvc_ver; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_microsrvc_ver (
     msrvc_id bigint NOT NULL,
@@ -122,7 +122,7 @@ CREATE TABLE public.r_microsrvc_ver (
     msrvc_host character varying(250) DEFAULT 'ALL'::character varying,
     msrvc_location character varying(500),
     msrvc_language character varying(250) DEFAULT 'C'::character varying,
-    msrvc_type_name character varying(250) DEFAULT 'IRODS COMPILED'::character varying,
+    msrvc_type_name character varying(250) DEFAULT 'irodsuser COMPILED'::character varying,
     msrvc_status bigint DEFAULT 1,
     msrvc_owner_name character varying(250) NOT NULL,
     msrvc_owner_zone character varying(250) NOT NULL,
@@ -131,10 +131,10 @@ CREATE TABLE public.r_microsrvc_ver (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_microsrvc_ver OWNER TO irods;
+ALTER TABLE public.r_microsrvc_ver OWNER TO irodsuser;
 
 
--- Name: r_objectid; Type: SEQUENCE; Schema: public; Owner: irods
+-- Name: r_objectid; Type: SEQUENCE; Schema: public; Owner: irodsuser
 
 CREATE SEQUENCE public.r_objectid
     START WITH 10000
@@ -143,10 +143,10 @@ CREATE SEQUENCE public.r_objectid
     NO MAXVALUE
     CACHE 1;
 
-ALTER TABLE public.r_objectid OWNER TO irods;
+ALTER TABLE public.r_objectid OWNER TO irodsuser;
 
 
--- Name: r_objt_access; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_objt_access; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_objt_access (
     object_id bigint NOT NULL,
@@ -156,10 +156,10 @@ CREATE TABLE public.r_objt_access (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_objt_access OWNER TO irods;
+ALTER TABLE public.r_objt_access OWNER TO irodsuser;
 
 
--- Name: r_objt_audit; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_objt_audit; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_objt_audit (
     object_id bigint NOT NULL,
@@ -170,10 +170,10 @@ CREATE TABLE public.r_objt_audit (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_objt_audit OWNER TO irods;
+ALTER TABLE public.r_objt_audit OWNER TO irodsuser;
 
 
--- Name: r_objt_deny_access; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_objt_deny_access; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_objt_deny_access (
     object_id bigint NOT NULL,
@@ -183,10 +183,10 @@ CREATE TABLE public.r_objt_deny_access (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_objt_deny_access OWNER TO irods;
+ALTER TABLE public.r_objt_deny_access OWNER TO irodsuser;
 
 
--- Name: r_objt_metamap; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_objt_metamap; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_objt_metamap (
     object_id bigint NOT NULL,
@@ -195,10 +195,10 @@ CREATE TABLE public.r_objt_metamap (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_objt_metamap OWNER TO irods;
+ALTER TABLE public.r_objt_metamap OWNER TO irodsuser;
 
 
--- Name: r_quota_main; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_quota_main; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_quota_main (
     user_id bigint,
@@ -208,10 +208,10 @@ CREATE TABLE public.r_quota_main (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_quota_main OWNER TO irods;
+ALTER TABLE public.r_quota_main OWNER TO irodsuser;
 
 
--- Name: r_quota_usage; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_quota_usage; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_quota_usage (
     user_id bigint,
@@ -220,10 +220,10 @@ CREATE TABLE public.r_quota_usage (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_quota_usage OWNER TO irods;
+ALTER TABLE public.r_quota_usage OWNER TO irodsuser;
 
 
--- Name: r_resc_group; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_resc_group; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_resc_group (
     resc_group_id bigint NOT NULL,
@@ -233,10 +233,10 @@ CREATE TABLE public.r_resc_group (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_resc_group OWNER TO irods;
+ALTER TABLE public.r_resc_group OWNER TO irodsuser;
 
 
--- Name: r_resc_main; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_resc_main; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_resc_main (
     resc_id bigint NOT NULL,
@@ -261,10 +261,10 @@ CREATE TABLE public.r_resc_main (
     modify_ts_millis character varying(3) DEFAULT '000'::character varying
 );
 
-ALTER TABLE public.r_resc_main OWNER TO irods;
+ALTER TABLE public.r_resc_main OWNER TO irodsuser;
 
 
--- Name: r_rule_base_map; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_rule_base_map; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_rule_base_map (
     map_version character varying(250) DEFAULT '0'::character varying,
@@ -278,10 +278,10 @@ CREATE TABLE public.r_rule_base_map (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_rule_base_map OWNER TO irods;
+ALTER TABLE public.r_rule_base_map OWNER TO irodsuser;
 
 
--- Name: r_rule_dvm; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_rule_dvm; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_rule_dvm (
     dvm_id bigint NOT NULL,
@@ -298,10 +298,10 @@ CREATE TABLE public.r_rule_dvm (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_rule_dvm OWNER TO irods;
+ALTER TABLE public.r_rule_dvm OWNER TO irodsuser;
 
 
--- Name: r_rule_dvm_map; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_rule_dvm_map; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_rule_dvm_map (
     map_dvm_version character varying(250) DEFAULT '0'::character varying,
@@ -314,10 +314,10 @@ CREATE TABLE public.r_rule_dvm_map (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_rule_dvm_map OWNER TO irods;
+ALTER TABLE public.r_rule_dvm_map OWNER TO irodsuser;
 
 
--- Name: r_rule_exec; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_rule_exec; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_rule_exec (
     rule_exec_id bigint NOT NULL,
@@ -337,10 +337,10 @@ CREATE TABLE public.r_rule_exec (
     exe_context text
 );
 
-ALTER TABLE public.r_rule_exec OWNER TO irods;
+ALTER TABLE public.r_rule_exec OWNER TO irodsuser;
 
 
--- Name: r_rule_fnm; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_rule_fnm; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_rule_fnm (
     fnm_id bigint NOT NULL,
@@ -356,10 +356,10 @@ CREATE TABLE public.r_rule_fnm (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_rule_fnm OWNER TO irods;
+ALTER TABLE public.r_rule_fnm OWNER TO irodsuser;
 
 
--- Name: r_rule_fnm_map; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_rule_fnm_map; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_rule_fnm_map (
     map_fnm_version character varying(250) DEFAULT '0'::character varying,
@@ -372,10 +372,10 @@ CREATE TABLE public.r_rule_fnm_map (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_rule_fnm_map OWNER TO irods;
+ALTER TABLE public.r_rule_fnm_map OWNER TO irodsuser;
 
 
--- Name: r_rule_main; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_rule_main; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_rule_main (
     rule_id bigint NOT NULL,
@@ -401,10 +401,10 @@ CREATE TABLE public.r_rule_main (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_rule_main OWNER TO irods;
+ALTER TABLE public.r_rule_main OWNER TO irodsuser;
 
 
--- Name: r_server_load; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_server_load; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_server_load (
     host_name character varying(250) NOT NULL,
@@ -419,10 +419,10 @@ CREATE TABLE public.r_server_load (
     create_ts character varying(32)
 );
 
-ALTER TABLE public.r_server_load OWNER TO irods;
+ALTER TABLE public.r_server_load OWNER TO irodsuser;
 
 
--- Name: r_server_load_digest; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_server_load_digest; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_server_load_digest (
     resc_name character varying(250) NOT NULL,
@@ -430,10 +430,10 @@ CREATE TABLE public.r_server_load_digest (
     create_ts character varying(32)
 );
 
-ALTER TABLE public.r_server_load_digest OWNER TO irods;
+ALTER TABLE public.r_server_load_digest OWNER TO irodsuser;
 
 
--- Name: r_specific_query; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_specific_query; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_specific_query (
     alias character varying(1000),
@@ -441,40 +441,40 @@ CREATE TABLE public.r_specific_query (
     create_ts character varying(32)
 );
 
-ALTER TABLE public.r_specific_query OWNER TO irods;
+ALTER TABLE public.r_specific_query OWNER TO irodsuser;
 
 
--- Name: r_ticket_allowed_groups; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_ticket_allowed_groups; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_ticket_allowed_groups (
     ticket_id bigint NOT NULL,
     group_name character varying(250) NOT NULL
 );
 
-ALTER TABLE public.r_ticket_allowed_groups OWNER TO irods;
+ALTER TABLE public.r_ticket_allowed_groups OWNER TO irodsuser;
 
 
--- Name: r_ticket_allowed_hosts; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_ticket_allowed_hosts; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_ticket_allowed_hosts (
     ticket_id bigint NOT NULL,
     host character varying(32)
 );
 
-ALTER TABLE public.r_ticket_allowed_hosts OWNER TO irods;
+ALTER TABLE public.r_ticket_allowed_hosts OWNER TO irodsuser;
 
 
--- Name: r_ticket_allowed_users; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_ticket_allowed_users; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_ticket_allowed_users (
     ticket_id bigint NOT NULL,
     user_name character varying(250) NOT NULL
 );
 
-ALTER TABLE public.r_ticket_allowed_users OWNER TO irods;
+ALTER TABLE public.r_ticket_allowed_users OWNER TO irodsuser;
 
 
--- Name: r_ticket_main; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_ticket_main; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_ticket_main (
     ticket_id bigint NOT NULL,
@@ -495,10 +495,10 @@ CREATE TABLE public.r_ticket_main (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_ticket_main OWNER TO irods;
+ALTER TABLE public.r_ticket_main OWNER TO irodsuser;
 
 
--- Name: r_tokn_main; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_tokn_main; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_tokn_main (
     token_namespace character varying(250) NOT NULL,
@@ -512,10 +512,10 @@ CREATE TABLE public.r_tokn_main (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_tokn_main OWNER TO irods;
+ALTER TABLE public.r_tokn_main OWNER TO irodsuser;
 
 
--- Name: r_user_auth; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_user_auth; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_user_auth (
     user_id bigint NOT NULL,
@@ -523,10 +523,10 @@ CREATE TABLE public.r_user_auth (
     create_ts character varying(32)
 );
 
-ALTER TABLE public.r_user_auth OWNER TO irods;
+ALTER TABLE public.r_user_auth OWNER TO irodsuser;
 
 
--- Name: r_user_group; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_user_group; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_user_group (
     group_user_id bigint NOT NULL,
@@ -535,10 +535,10 @@ CREATE TABLE public.r_user_group (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_user_group OWNER TO irods;
+ALTER TABLE public.r_user_group OWNER TO irodsuser;
 
 
--- Name: r_user_main; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_user_main; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_user_main (
     user_id bigint NOT NULL,
@@ -551,10 +551,10 @@ CREATE TABLE public.r_user_main (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_user_main OWNER TO irods;
+ALTER TABLE public.r_user_main OWNER TO irodsuser;
 
 
--- Name: r_user_password; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_user_password; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_user_password (
     user_id bigint NOT NULL,
@@ -564,10 +564,10 @@ CREATE TABLE public.r_user_password (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_user_password OWNER TO irods;
+ALTER TABLE public.r_user_password OWNER TO irodsuser;
 
 
--- Name: r_user_session_key; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_user_session_key; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_user_session_key (
     user_id bigint NOT NULL,
@@ -579,10 +579,10 @@ CREATE TABLE public.r_user_session_key (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_user_session_key OWNER TO irods;
+ALTER TABLE public.r_user_session_key OWNER TO irodsuser;
 
 
--- Name: r_zone_main; Type: TABLE; Schema: public; Owner: irods
+-- Name: r_zone_main; Type: TABLE; Schema: public; Owner: irodsuser
 
 CREATE TABLE public.r_zone_main (
     zone_id bigint NOT NULL,
@@ -594,10 +594,10 @@ CREATE TABLE public.r_zone_main (
     modify_ts character varying(32)
 );
 
-ALTER TABLE public.r_zone_main OWNER TO irods;
+ALTER TABLE public.r_zone_main OWNER TO irodsuser;
 
 
--- Data for Name: r_coll_main; Type: TABLE DATA; Schema: public; Owner: irods
+-- Data for Name: r_coll_main; Type: TABLE DATA; Schema: public; Owner: irodsuser
 
 COPY public.r_coll_main (
     coll_id,
@@ -627,7 +627,7 @@ FROM stdin;
 \.
 
 
--- Data for Name: r_grid_configuration; Type: TABLE DATA; Schema: public; Owner: irods
+-- Data for Name: r_grid_configuration; Type: TABLE DATA; Schema: public; Owner: irodsuser
 
 COPY public.r_grid_configuration (namespace, option_name, option_value) FROM stdin;
 delay_server	leader	DELAY_LEADER_TEMPLATE
@@ -639,7 +639,7 @@ database	schema_version	11
 \.
 
 
--- Data for Name: r_objt_access; Type: TABLE DATA; Schema: public; Owner: irods
+-- Data for Name: r_objt_access; Type: TABLE DATA; Schema: public; Owner: irodsuser
 
 COPY public.r_objt_access (object_id, user_id, access_type_id, create_ts, modify_ts) FROM stdin;
 9020	9010	1200	1170000000	1170000000
@@ -654,7 +654,7 @@ COPY public.r_objt_access (object_id, user_id, access_type_id, create_ts, modify
 \.
 
 
--- Data for Name: r_resc_main; Type: TABLE DATA; Schema: public; Owner: irods
+-- Data for Name: r_resc_main; Type: TABLE DATA; Schema: public; Owner: irodsuser
 
 COPY public.r_resc_main (
     resc_id,
@@ -683,7 +683,7 @@ CUSTOM_RESC_TEMPLATE
 \.
 
 
--- Data for Name: r_specific_query; Type: TABLE DATA; Schema: public; Owner: irods
+-- Data for Name: r_specific_query; Type: TABLE DATA; Schema: public; Owner: irodsuser
 
 COPY public.r_specific_query (alias, sqlstr, create_ts) FROM stdin;
 ls	select alias, sqlStr from R_SPECIFIC_QUERY	01292940000
@@ -693,8 +693,8 @@ listQueryByAliasLike	SELECT alias, sqlStr FROM R_SPECIFIC_QUERY WHERE alias LIKE
 findQueryByAlias	SELECT alias, sqlStr FROM R_SPECIFIC_QUERY WHERE alias = ?	1388534400
 ilsLACollections	SELECT c.parent_coll_name, c.coll_name, c.create_ts, c.modify_ts, c.coll_id, c.coll_owner_name, c.coll_owner_zone, c.coll_type, u.user_name, u.zone_name, a.access_type_id, u.user_id FROM R_COLL_MAIN c JOIN R_OBJT_ACCESS a ON c.coll_id = a.object_id JOIN R_USER_MAIN u ON a.user_id = u.user_id WHERE c.parent_coll_name = ? ORDER BY c.coll_name, u.user_name, a.access_type_id DESC LIMIT ? OFFSET ?	1388534400
 ilsLADataObjects	SELECT s.coll_name, s.data_name, s.create_ts, s.modify_ts, s.data_id, s.data_size, s.data_repl_num, s.data_owner_name, s.data_owner_zone, u.user_name, u.user_id, a.access_type_id, u.user_type_name, u.zone_name FROM ( SELECT c.coll_name, d.data_name, d.create_ts, d.modify_ts, d.data_id, d.data_repl_num, d.data_size, d.data_owner_name, d.data_owner_zone FROM R_COLL_MAIN c JOIN R_DATA_MAIN d ON c.coll_id = d.coll_id WHERE c.coll_name = ? ORDER BY d.data_name) s JOIN R_OBJT_ACCESS a ON s.data_id = a.object_id JOIN R_USER_MAIN u ON a.user_id = u.user_id ORDER BY s.coll_name, s.data_name, u.user_name, a.access_type_id DESC LIMIT ? OFFSET ?	1388534400
-listSharedCollectionsOwnedByUser	SELECT DISTINCT R_COLL_MAIN.coll_id, R_COLL_MAIN.parent_coll_name, R_COLL_MAIN.coll_name, R_COLL_MAIN.coll_owner_name, R_COLL_MAIN.coll_owner_zone, R_META_MAIN.meta_attr_name, R_META_MAIN.meta_attr_value, R_META_MAIN.meta_attr_unit FROM R_COLL_MAIN JOIN R_OBJT_METAMAP ON R_COLL_MAIN.coll_id = R_OBJT_METAMAP.object_id JOIN R_META_MAIN ON R_OBJT_METAMAP.meta_id = R_META_MAIN.meta_id WHERE R_META_MAIN.meta_attr_unit = 'iRODSUserTagging:Share' AND R_COLL_MAIN.coll_owner_name = ? AND R_COLL_MAIN.coll_owner_zone = ? ORDER BY R_COLL_MAIN.parent_coll_name ASC, R_COLL_MAIN.coll_name ASC	1388534400
-listSharedCollectionsSharedWithUser	SELECT DISTINCT R_COLL_MAIN.coll_id, R_COLL_MAIN.parent_coll_name, R_COLL_MAIN.coll_name, R_COLL_MAIN.coll_owner_name, R_COLL_MAIN.coll_owner_zone, R_META_MAIN.meta_attr_name, R_META_MAIN.meta_attr_value, R_META_MAIN.meta_attr_unit, R_USER_MAIN.user_name, R_USER_MAIN.zone_name, R_OBJT_ACCESS.access_type_id FROM R_COLL_MAIN JOIN R_OBJT_METAMAP ON R_COLL_MAIN.coll_id = R_OBJT_METAMAP.object_id JOIN R_META_MAIN ON R_OBJT_METAMAP.meta_id = R_META_MAIN.meta_id JOIN R_OBJT_ACCESS ON R_COLL_MAIN.coll_id = R_OBJT_ACCESS.object_id JOIN R_USER_MAIN ON R_OBJT_ACCESS.user_id = R_USER_MAIN.user_id WHERE R_META_MAIN.meta_attr_unit = 'iRODSUserTagging:Share' AND R_USER_MAIN.user_name = ? AND R_USER_MAIN.zone_name = ? AND R_COLL_MAIN.coll_owner_name <> ? ORDER BY R_COLL_MAIN.parent_coll_name ASC, R_COLL_MAIN.coll_name ASC	1388534400
+listSharedCollectionsOwnedByUser	SELECT DISTINCT R_COLL_MAIN.coll_id, R_COLL_MAIN.parent_coll_name, R_COLL_MAIN.coll_name, R_COLL_MAIN.coll_owner_name, R_COLL_MAIN.coll_owner_zone, R_META_MAIN.meta_attr_name, R_META_MAIN.meta_attr_value, R_META_MAIN.meta_attr_unit FROM R_COLL_MAIN JOIN R_OBJT_METAMAP ON R_COLL_MAIN.coll_id = R_OBJT_METAMAP.object_id JOIN R_META_MAIN ON R_OBJT_METAMAP.meta_id = R_META_MAIN.meta_id WHERE R_META_MAIN.meta_attr_unit = 'irodsuserUserTagging:Share' AND R_COLL_MAIN.coll_owner_name = ? AND R_COLL_MAIN.coll_owner_zone = ? ORDER BY R_COLL_MAIN.parent_coll_name ASC, R_COLL_MAIN.coll_name ASC	1388534400
+listSharedCollectionsSharedWithUser	SELECT DISTINCT R_COLL_MAIN.coll_id, R_COLL_MAIN.parent_coll_name, R_COLL_MAIN.coll_name, R_COLL_MAIN.coll_owner_name, R_COLL_MAIN.coll_owner_zone, R_META_MAIN.meta_attr_name, R_META_MAIN.meta_attr_value, R_META_MAIN.meta_attr_unit, R_USER_MAIN.user_name, R_USER_MAIN.zone_name, R_OBJT_ACCESS.access_type_id FROM R_COLL_MAIN JOIN R_OBJT_METAMAP ON R_COLL_MAIN.coll_id = R_OBJT_METAMAP.object_id JOIN R_META_MAIN ON R_OBJT_METAMAP.meta_id = R_META_MAIN.meta_id JOIN R_OBJT_ACCESS ON R_COLL_MAIN.coll_id = R_OBJT_ACCESS.object_id JOIN R_USER_MAIN ON R_OBJT_ACCESS.user_id = R_USER_MAIN.user_id WHERE R_META_MAIN.meta_attr_unit = 'irodsuserUserTagging:Share' AND R_USER_MAIN.user_name = ? AND R_USER_MAIN.zone_name = ? AND R_COLL_MAIN.coll_owner_name <> ? ORDER BY R_COLL_MAIN.parent_coll_name ASC, R_COLL_MAIN.coll_name ASC	1388534400
 listUserACLForDataObjViaGroup	SELECT R_USER_MAIN.user_name, R_USER_MAIN.user_id, R_OBJT_ACCESS.access_type_id, R_USER_MAIN.user_type_name, R_USER_MAIN.zone_name, R_COLL_MAIN.coll_name, R_DATA_MAIN.data_name, USER_GROUP_MAIN.user_name, R_DATA_MAIN.data_name, R_COLL_MAIN.coll_name FROM R_USER_MAIN AS USER_GROUP_MAIN JOIN R_USER_GROUP JOIN R_USER_MAIN ON R_USER_GROUP.user_id = R_USER_MAIN.user_id ON USER_GROUP_MAIN.user_id = R_USER_GROUP.group_user_id JOIN R_OBJT_ACCESS ON R_USER_GROUP.group_user_id = R_OBJT_ACCESS.user_id JOIN R_DATA_MAIN JOIN R_COLL_MAIN ON R_DATA_MAIN.coll_id = R_COLL_MAIN.coll_id ON R_OBJT_ACCESS.object_id = R_DATA_MAIN.data_id WHERE  R_COLL_MAIN.coll_name = ? AND R_DATA_MAIN.data_name = ? AND R_USER_MAIN.user_name = ? ORDER BY R_COLL_MAIN.coll_name, R_DATA_MAIN.data_name, R_USER_MAIN.user_name, R_OBJT_ACCESS.access_type_id DESC	1388534400
 listUserACLForCollectionViaGroup	SELECT R_USER_MAIN.user_name, R_USER_MAIN.user_id, R_OBJT_ACCESS.access_type_id, R_USER_MAIN.user_type_name, R_USER_MAIN.zone_name, R_COLL_MAIN.coll_name, USER_GROUP_MAIN.user_name, R_COLL_MAIN.coll_name FROM R_USER_MAIN AS USER_GROUP_MAIN JOIN R_USER_GROUP JOIN R_USER_MAIN ON R_USER_GROUP.user_id = R_USER_MAIN.user_id ON USER_GROUP_MAIN.user_id = R_USER_GROUP.group_user_id JOIN R_OBJT_ACCESS ON R_USER_GROUP.group_user_id = R_OBJT_ACCESS.user_id JOIN R_COLL_MAIN ON R_OBJT_ACCESS.object_id = R_COLL_MAIN.coll_id WHERE R_COLL_MAIN.coll_name = ? AND R_USER_MAIN.user_name = ? ORDER BY R_COLL_MAIN.coll_name, R_USER_MAIN.user_name, R_OBJT_ACCESS.access_type_id DESC	1388534400
 DataObjInCollReCur	WITH coll AS (SELECT coll_id, coll_name FROM R_COLL_MAIN WHERE R_COLL_MAIN.coll_name = ? OR R_COLL_MAIN.coll_name LIKE ?) SELECT DISTINCT d.data_id, (SELECT coll_name FROM coll WHERE coll.coll_id = d.coll_id) coll_name, d.data_name, d.data_repl_num, d.resc_name, d.data_path, d.resc_id FROM R_DATA_MAIN d WHERE d.coll_id = ANY(ARRAY(SELECT coll_id FROM coll)) ORDER BY coll_name, d.data_name, d.data_repl_num	1388534400
@@ -702,7 +702,7 @@ listGroupsForUser	select group_user_id, user_name from R_USER_GROUP ug inner joi
 \.
 
 
--- Data for Name: r_tokn_main; Type: TABLE DATA; Schema: public; Owner: irods
+-- Data for Name: r_tokn_main; Type: TABLE DATA; Schema: public; Owner: irodsuser
 
 COPY public.r_tokn_main (
     token_namespace,
@@ -888,7 +888,7 @@ access_type	1040	read_metadata					1170000000	1170000000
 \.
 
 
--- Data for Name: r_user_group; Type: TABLE DATA; Schema: public; Owner: irods
+-- Data for Name: r_user_group; Type: TABLE DATA; Schema: public; Owner: irodsuser
 
 COPY public.r_user_group (group_user_id, user_id, create_ts, modify_ts) FROM stdin;
 9002	9002	1170000000	1170000000
@@ -897,7 +897,7 @@ COPY public.r_user_group (group_user_id, user_id, create_ts, modify_ts) FROM std
 \.
 
 
--- Data for Name: r_user_main; Type: TABLE DATA; Schema: public; Owner: irods
+-- Data for Name: r_user_main; Type: TABLE DATA; Schema: public; Owner: irodsuser
 
 COPY public.r_user_main (
     user_id, user_name, user_type_name, zone_name, user_info, r_comment, create_ts, modify_ts)
@@ -910,7 +910,7 @@ FROM stdin;
 \.
 
 
--- Data for Name: r_user_password; Type: TABLE DATA; Schema: public; Owner: irods
+-- Data for Name: r_user_password; Type: TABLE DATA; Schema: public; Owner: irodsuser
 
 COPY public.r_user_password (user_id, rcat_password, pass_expiry_ts, create_ts, modify_ts)
 FROM stdin;
@@ -918,7 +918,7 @@ FROM stdin;
 \.
 
 
--- Data for Name: r_zone_main; Type: TABLE DATA; Schema: public; Owner: irods
+-- Data for Name: r_zone_main; Type: TABLE DATA; Schema: public; Owner: irodsuser
 
 COPY public.r_zone_main (
     zone_id, zone_name, zone_type_name, zone_conn_string, r_comment, create_ts, modify_ts)
@@ -927,226 +927,226 @@ FROM stdin;
 \.
 
 
--- Name: r_objectid; Type: SEQUENCE SET; Schema: public; Owner: irods
+-- Name: r_objectid; Type: SEQUENCE SET; Schema: public; Owner: irodsuser
 
 SELECT pg_catalog.setval('public.r_objectid', 10000, false);
 
 
--- Name: idx_coll_main1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_coll_main1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_coll_main1 ON public.r_coll_main USING btree (coll_id);
 
 
--- Name: idx_coll_main2; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_coll_main2; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_coll_main2 ON public.r_coll_main USING btree (parent_coll_name, coll_name);
 
 
--- Name: idx_coll_main3; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_coll_main3; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_coll_main3 ON public.r_coll_main USING btree (coll_name);
 
 
--- Name: idx_data_main1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_data_main1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_data_main1 ON public.r_data_main USING btree (data_id);
 
 
--- Name: idx_data_main2; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_data_main2; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_data_main2
 ON public.r_data_main
 USING btree (coll_id, data_name, data_repl_num, data_version);
 
 
--- Name: idx_data_main3; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_data_main3; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_data_main3 ON public.r_data_main USING btree (coll_id);
 
 
--- Name: idx_data_main4; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_data_main4; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_data_main4 ON public.r_data_main USING btree (data_name);
 
 
--- Name: idx_data_main5; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_data_main5; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_data_main5 ON public.r_data_main USING btree (data_type_name);
 
 
--- Name: idx_data_main6; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_data_main6; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_data_main6 ON public.r_data_main USING btree (data_path);
 
 
--- Name: idx_data_main7; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_data_main7; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_data_main7 ON public.r_data_main USING btree (resc_id);
 
 
--- Name: idx_data_main8; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_data_main8; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_data_main8 ON public.r_data_main USING btree (data_is_dirty);
 
 
--- Name: idx_grid_configuration; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_grid_configuration; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_grid_configuration
 ON public.r_grid_configuration
 USING btree (namespace, option_name);
 
 
--- Name: idx_meta_main1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_meta_main1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_meta_main1 ON public.r_meta_main USING btree (meta_id);
 
 
--- Name: idx_meta_main2; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_meta_main2; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_meta_main2 ON public.r_meta_main USING btree (meta_attr_name);
 
 
--- Name: idx_meta_main3; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_meta_main3; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_meta_main3 ON public.r_meta_main USING btree (meta_attr_value);
 
 
--- Name: idx_meta_main4; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_meta_main4; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_meta_main4 ON public.r_meta_main USING btree (meta_attr_unit);
 
 
--- Name: idx_objt_access1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_objt_access1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_objt_access1 ON public.r_objt_access USING btree (object_id, user_id);
 
 
--- Name: idx_objt_daccs1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_objt_daccs1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_objt_daccs1
 ON public.r_objt_deny_access
 USING btree (object_id, user_id);
 
 
--- Name: idx_objt_metamap1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_objt_metamap1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_objt_metamap1 ON public.r_objt_metamap USING btree (object_id, meta_id);
 
 
--- Name: idx_objt_metamap2; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_objt_metamap2; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_objt_metamap2 ON public.r_objt_metamap USING btree (object_id);
 
 
--- Name: idx_objt_metamap3; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_objt_metamap3; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_objt_metamap3 ON public.r_objt_metamap USING btree (meta_id);
 
 
--- Name: idx_quota_main1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_quota_main1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_quota_main1 ON public.r_quota_main USING btree (user_id);
 
 
--- Name: idx_resc_logical1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_resc_logical1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_resc_logical1 ON public.r_resc_group USING btree (resc_group_name, resc_id);
 
 
--- Name: idx_resc_main1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_resc_main1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_resc_main1 ON public.r_resc_main USING btree (resc_id);
 
 
--- Name: idx_resc_main2; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_resc_main2; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_resc_main2 ON public.r_resc_main USING btree (zone_name, resc_name);
 
 
--- Name: idx_rule_exec; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_rule_exec; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_rule_exec ON public.r_rule_exec USING btree (rule_exec_id);
 
 
--- Name: idx_rule_main1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_rule_main1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_rule_main1 ON public.r_rule_main USING btree (rule_id);
 
 
--- Name: idx_specific_query1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_specific_query1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_specific_query1 ON public.r_specific_query USING btree (sqlstr);
 
 
--- Name: idx_specific_query2; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_specific_query2; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_specific_query2 ON public.r_specific_query USING btree (alias);
 
 
--- Name: idx_ticket; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_ticket; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_ticket ON public.r_ticket_main USING btree (ticket_string);
 
 
--- Name: idx_ticket_group; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_ticket_group; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_ticket_group
 ON public.r_ticket_allowed_groups
 USING btree (ticket_id, group_name);
 
 
--- Name: idx_ticket_host; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_ticket_host; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_ticket_host ON public.r_ticket_allowed_hosts USING btree (ticket_id, host);
 
 
--- Name: idx_ticket_user; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_ticket_user; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_ticket_user
 ON public.r_ticket_allowed_users
 USING btree (ticket_id, user_name);
 
 
--- Name: idx_tokn_main1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_tokn_main1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_tokn_main1 ON public.r_tokn_main USING btree (token_id);
 
 
--- Name: idx_tokn_main2; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_tokn_main2; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_tokn_main2 ON public.r_tokn_main USING btree (token_name);
 
 
--- Name: idx_tokn_main3; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_tokn_main3; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_tokn_main3 ON public.r_tokn_main USING btree (token_value);
 
 
--- Name: idx_tokn_main4; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_tokn_main4; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_tokn_main4 ON public.r_tokn_main USING btree (token_namespace);
 
 
--- Name: idx_user_group1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_user_group1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_user_group1 ON public.r_user_group USING btree (group_user_id, user_id);
 
 
--- Name: idx_user_main1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_user_main1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE INDEX idx_user_main1 ON public.r_user_main USING btree (user_id);
 
 
--- Name: idx_user_main2; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_user_main2; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_user_main2 ON public.r_user_main USING btree (user_name, zone_name);
 
 
--- Name: idx_zone_main1; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_zone_main1; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_zone_main1 ON public.r_zone_main USING btree (zone_id);
 
 
--- Name: idx_zone_main2; Type: INDEX; Schema: public; Owner: irods
+-- Name: idx_zone_main2; Type: INDEX; Schema: public; Owner: irodsuser
 
 CREATE UNIQUE INDEX idx_zone_main2 ON public.r_zone_main USING btree (zone_name);

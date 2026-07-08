@@ -252,7 +252,7 @@
           - server_config.plugin_configuration.database.postgres.db_host == 'dstesting-dbms_configured-1.dstesting_default'
           - server_config.plugin_configuration.database.postgres.db_password == 'testpassword'
           - server_config.plugin_configuration.database.postgres.db_port == 5432
-          - server_config.plugin_configuration.database.postgres.db_username == 'irods'
+          - server_config.plugin_configuration.database.postgres.db_username == 'irodsuser'
           - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set | length == 4
           - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[0] == 'cve'
           - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[1] == 'cyverse_core'
