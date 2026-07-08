@@ -1,4 +1,5 @@
 ---
+dbms_irods_username: irodsuser
 dbms_irods_password: "{{ irods_icat_password }}"
 
 dbms_max_connections: 10
