@@ -142,19 +142,20 @@ _repl_syncReplicas(*Object) {
 #     msiAddKeyValToMspStr('irodsAdmin', '', *opts);
 #     msiAddKeyValToMspStr('updateRepl', '', *opts);
 #     msiAddKeyValToMspStr('verifyChksum', '', *opts);
-#     *status = errormsg(msiDataObjRepl(*dataPath, *opts, *status), *err);
+#     *status = errormsg(msiDataObjRepl(*dataPath, *opts, *status), *msg);
     *admArg = execCmdArg('-M');
     *allArg = execCmdArg('-a');
     *updateArg = execCmdArg('-U');
     *dataArg = execCmdArg(*dataPath);
     *args = '*admArg *allArg *updateArg *dataArg';
-    *status = errormsg(msiExecCmd('irepl-exec', *args, '', '', '', *_), *err);
+    *status = errormsg(msiExecCmd('irepl-exec', *args, '', '', '', *out), *msg);
 # XXX - ^^^
 
     if (*status < 0 && *status != -808000) {
+      msiGetStderrInExecCmdOut(*out, *err);
       _repl_logMsg(
         'failed to sync replicas of data object *Object (*dataPath) trying again in 8 hours:'
-        ++ ' *err' );
+        ++ ' *msg (*err)' );
 
       *status;
     } else {
