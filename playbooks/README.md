@@ -67,7 +67,8 @@ Variable                                   | Required | Default                 
 `infra_domain_name`                        | yes      |                                      |         | The public FQDN for the environment being configured. This is used for configuring services that require a public domain to work, like mail.
 `infra_maintainer_keys`                    | no       | []                                   |         | A list of public ssh keys allowed or disallowed to connect as the `ansible_user` on all of the managed hosts, __see below__
 `infra_mtu`                                | no       | 1500                                 |         | The MTU to set on the primary NIC
-`infra_package_manager`                    |          | no                                   | auto    | The package manager to use
+`infra_package_manager`                    | no       | auto                                 |         | The package manager to use
+`infra_personal_ssh`                       | no       | false                                |         | Whether or not ansible connects using a deployer's personal account
 `infra_proxied_ssh`                        | no       | false                                |         | Whether or not the connection ansible uses to get to the managed node goes through a bastion host
 `infra_reboot_on_pkg_change`               | no       | false                                |         | Whether or not to automatically reboot the host if a system package was upgraded
 `infra_rebootable`                         | no       | true                                 |         | Whether or not the server being configured is rebootable

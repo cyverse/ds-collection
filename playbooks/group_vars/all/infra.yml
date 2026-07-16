@@ -7,6 +7,7 @@ _infra_mtu: "{{ infra_mtu | d(1500) }}"
 
 _infra_package_manager: "{{ infra_package_manager | d('auto') }}"
 
+_infra_personal_ssh: "{{ infra_personal_ssh | d(false) }}"
 _infra_proxied_ssh: "{{ infra_proxied_ssh | d(false) }}"
 
 _infra_reboot_on_pkg_change: "{{ infra_reboot_on_pkg_change | d(false) }}"
