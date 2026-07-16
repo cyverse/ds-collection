@@ -272,6 +272,7 @@
     - name: Start docker image
       community.docker.docker_compose_v2:
         project_src: /var/lib/irods
+        pull: never
       tags: no_testing
 
   handlers:

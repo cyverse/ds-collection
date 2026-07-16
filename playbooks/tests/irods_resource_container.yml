@@ -1,4 +1,32 @@
 ---
+- name: Test default template expansions
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Test core.re expansion
+      ansible.builtin.debug:
+        msg: 'TODO: implement for {{ item }}'
+      loop:
+        - Ansible managed
+        - acSetRescSchemeForCreate
+        - acSetRescSchemeForRepl
+
+    - name: Test .env expansion
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Test logrotate.d/irods expansion
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+- name: Test custom template expansions
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Test expansions
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
 - name: Test prepare docker repository
   hosts: irods_resource_container
   tasks:
@@ -164,14 +192,6 @@
         - core.fnm
         - core.re
 
-    - name: Test generated core.re contents
-      ansible.builtin.debug:
-        msg: 'TODO: implement for {{ item }}'
-      loop:
-        - ansible managed
-        - acSetRescSchemeForCreate
-        - acSetRescSchemeForRepl
-
     - name: Test add command scripts
       ansible.builtin.stat:
         path: /var/lib/irods/msiExecCmd_bin/{{ item }}
@@ -333,7 +353,7 @@
       ansible.builtin.debug:
         msg: 'TODO: implement'
 
-    - name: Test generate .env file
+    - name: Test placement of .env file
       ansible.builtin.debug:
         msg: 'TODO: implement'
 
@@ -345,6 +365,6 @@
       ansible.builtin.debug:
         msg: 'TODO: implement'
 
-    - name: Test configure log rotations for iRODS
+    - name: Test log rotation config placement for iRODS
       ansible.builtin.debug:
         msg: 'TODO: implement'
