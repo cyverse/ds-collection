@@ -45,6 +45,10 @@
         irods_cfg_default_resource_name: "{{ _irods_default_resource }}"
         irods_cfg_environment_variables:
           IRODS_AMQP_URI: "{{ amqp_uri }}"
+          IRODS_DB_HOST: "{{ _irods_dbms_host }}"
+          IRODS_DB_PORT: "{{ _irods_dbms_port }}"
+          IRODS_DB_USERNAME: "{{ _irods_db_username }}"
+          IRODS_DB_PASSWORD: "{{ _irods_db_password }}"
         irods_cfg_federation: "{{ _irods_federation }}"
         irods_cfg_host_entries: >-
           {{ [] if _irods_host_aliases | count == 0 else

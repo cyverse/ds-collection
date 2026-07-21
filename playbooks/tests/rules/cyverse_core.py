@@ -201,6 +201,18 @@ class CyverseCoreDataobjmetadatamodifiedTest(CyverseCoreTestCase):
             self.fail('cyverse_repl_dataObjCreated called')
 
 
+class AccreatecollbyadminTest(CyverseCoreTestCase):
+    """Tests of acCreateCollByAdmin"""
+
+    @unittest.skip("not implemented")
+    def test_verify_coll_created(self):
+        """Verify that the home collection is created"""
+
+    @unittest.skip("not implemented")
+    def test_cyverselogic_called(self):
+        """Verify that the implementation in cyverse_logic.re is called"""
+
+
 class AccreateuserzonecollectionsGroup(CyverseCoreTestCase):
     """Test acCreateUserZoneCollections group creation"""
 
@@ -486,6 +498,12 @@ class PepApiDataObjPutTest(CyverseCoreTestCase):
     def test_cyverselogic_called(self):
         """Test that cyverse_logic's version of this rule is called."""
 
+    @unittest.skip("not implemented")
+    def test_cyversetransfertracking_called(self):
+        """
+        Test that cyverse_transfer_tracking's version of this rule is called.
+        """
+
     def test_cyversetrash_called(self):
         """Test that cyverse_trash's version of this rule is called."""
         if not self.verify_msg_logged('cyverse_trash_api_data_obj_put_post'):
@@ -600,10 +618,6 @@ class CyverseCorePublicTest(CyverseCoreTestCase):
     """Test the public entities cyverse_core.re rule-base"""
 
     @unittest.skip("not implemented")
-    def test_accreatecollbyadmin(self):
-        """Test acCreateCollByAdmin"""
-
-    @unittest.skip("not implemented")
     def test_acdatadeletepolicy(self):
         """Test acDataDeletePolicy"""
 
@@ -692,6 +706,10 @@ class CyverseCorePublicTest(CyverseCoreTestCase):
         """Test pep_api_data_obj_create_and_stat_post"""
 
     @unittest.skip("not implemented")
+    def test_pepapidataobjgetpost(self):
+        """Test pep_api_data_obj_get_post"""
+
+    @unittest.skip("not implemented")
     def test_pepapidataobjopenandstatpost(self):
         """Test pep_api_data_obj_open_and_stat_post"""
 
@@ -702,6 +720,10 @@ class CyverseCorePublicTest(CyverseCoreTestCase):
     @unittest.skip("not implemented")
     def test_pepapidataobjopenandstatpre(self):
         """Test pep_api_data_obj_open_and_stat_pre"""
+
+    @unittest.skip("not implemented")
+    def test_pepapidataobjreadpost(self):
+        """Test pep_api_data_obj_read_post"""
 
     @unittest.skip("not implemented")
     def test_pepapidataobjwritepost(self):

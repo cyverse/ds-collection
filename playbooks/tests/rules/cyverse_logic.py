@@ -115,34 +115,49 @@ class TestUserInfo(IrodsTestCase):
         finally:
             self.irods.users.remove(name)
 
-    @unittest.skip("not implemented")
     def test_isadm_rodsadmin(self):
         """
         Test _cyverse_logic_isAdm correctly identifies a rodsadmin user is a
         rodsadmin
         """
+        self.fn_test(
+            '_cyverse_logic_isAdm',
+            [IrodsVal.string(self.irods.username), IrodsVal.string(self.irods.zone)],
+            IrodsVal.boolean(True))
 
-    @unittest.skip("not implemented")
     def test_isadm_rodsgroup(self):
         """
         Test _cyverse_logic_isAdm correctly identifies a group as not a
         rodsadmin
         """
+        self.fn_test(
+            '_cyverse_logic_isAdm',
+            [IrodsVal.string('public'), IrodsVal.string(self.irods.zone)],
+            IrodsVal.boolean(False))
 
-    @unittest.skip("not implemented")
     def test_isadm_rodsuser(self):
         """
         Test _cyverse_logic_isAdm correctly identifies a rodsuser user as not a
         rodsadmin
         """
+        name = 'user'
+        self.irods.users.create(name, 'rodsuser')
+        try:
+            self.fn_test(
+                '_cyverse_logic_isAdm',
+                [IrodsVal.string(name), IrodsVal.string(self.irods.zone)],
+                IrodsVal.boolean(False))
+        finally:
+            self.irods.users.remove(name)
+
+
+@test_rules.unimplemented
+class TestAVUs(IrodsTestCase):
+    """Tests of private AVU rule logic"""
 
 
 class TestCyVerseLogic(IrodsTestCase):
     """Test cyverse_logic.re"""
-
-    @unittest.skip("not implemented")
-    def test_avus(self):
-        """Test private AVU rule logic"""
 
     @unittest.skip("not implemented")
     def test_checksum(self):

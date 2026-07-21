@@ -51,6 +51,7 @@
         - cyverse_json.re
         - cyverse_logic.re
         - cyverse_repl.re
+        - cyverse_transfer_tracking.re
         - cyverse_trash.re
         - pire.re
         - pire-env.re
@@ -81,6 +82,7 @@
         or response.stat.pw_name != 'irods'
         or not response.stat.xusr
       loop:
+        - add-transfer
         - amqp-topic-send
         - delete-scheduled-rule
         - generate-uuid
