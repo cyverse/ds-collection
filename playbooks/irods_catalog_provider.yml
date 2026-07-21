@@ -164,6 +164,11 @@
   become_user: "{{ _irods_service_account_name }}"
   become_flags: "-i"
   gather_facts: false
+  vars:
+    amqp_user_info: "{{ _irods_amqp_username }}:{{ _irods_amqp_password }}"
+    amqp_authority: "{{ amqp_user_info }}@{{ _irods_amqp_host }}:{{ _irods_amqp_port }}"
+    amqp_path: /{{ _irods_amqp_vhost | replace('/', '%2F') }}
+    amqp_uri: amqp://{{ amqp_authority }}{{ amqp_path }}
   tasks:
     - name: Set up iRODS
       ansible.builtin.include_role:
@@ -190,8 +195,11 @@
         irods_cfg_default_resource_directory: "{{ _irods_default_vault }}"
         irods_cfg_default_resource_name: "{{ _irods_default_resource }}"
         irods_cfg_environment_variables:
-          IRODS_AMQP_URI: >-
-            amqp://{{ _irods_amqp_username }}:{{ _irods_amqp_password }}@{{ _irods_amqp_host }}:{{ _irods_amqp_port }}/{{ _irods_amqp_vhost | replace('/', '%2F') }}
+          IRODS_AMQP_URI: "{{ amqp_uri }}"
+          IRODS_DB_HOST: "{{ _irods_dbms_host }}"
+          IRODS_DB_PORT: "{{ _irods_dbms_port }}"
+          IRODS_DB_USERNAME: "{{ _irods_db_username }}"
+          IRODS_DB_PASSWORD: "{{ _irods_db_password }}"
         irods_cfg_federation: "{{ _irods_federation }}"
         irods_cfg_host_entries: >-
           {{ [] if _irods_host_aliases | count == 0 else

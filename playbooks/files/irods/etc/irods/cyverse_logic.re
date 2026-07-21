@@ -1411,43 +1411,21 @@ _cyverse_logic_sendEntityRm(*Type, *Id, *Path, *AuthorName, *AuthorZone) {
 	_cyverse_logic_sendMsg(_cyverse_logic_getMsgType(*Type) ++ '.rm', *msg);
 }
 
-# Determine the size and type of a data object, and owner
-#
-# _cyverse_logic_retrieveDataInfo : string -> `KeyValPair_PI`
-_cyverse_logic_retrieveDataInfo(*Path) =
-	let *info.'size' = '-1' in
-	let *info.'type' = '' in
-	let *info.ownerName = '' in
-	let *info.ownerZone = '' in
-	let *collPath = '' in
-	let *dataName = '' in
-	let *_ = msiSplitPath(*Path, *collPath, *dataName) in
-	let *_ = foreach( *rec in
-			SELECT DATA_SIZE, DATA_TYPE_NAME, DATA_OWNER_NAME, DATA_OWNER_ZONE
-			WHERE COLL_NAME == *collPath AND DATA_NAME == *dataName AND DATA_REPL_STATUS == '1'
-		) {
-			*info.'size' = *rec.DATA_SIZE;
-			*info.'type' = *rec.DATA_TYPE_NAME;
-			*info.ownerName = *rec.DATA_OWNER_NAME;
-			*info.ownerZone = *rec.DATA_OWNER_ZONE;
-		} in
-	*info
-
 # Publishes a message indicating that a data object was created.
 #
 _cyverse_logic_notifyDataObjCreated(*Path, *AuthorName, *AuthorZone) {
 	*id = _cyverse_logic_getUUID(cyverse_DATA_OBJ, *Path);
 
 	if (*id != '') {
-		*info = _cyverse_logic_retrieveDataInfo(*Path);
+		*info = cyverse_getDataInfo(*Path);
 
 		_cyverse_logic_sendDataObjAdd(
 			*id,
 			*Path,
-			*info.ownerName,
-			*info.ownerZone,
-			double(*info.'size'),
-			*info.'type',
+			cyverse_getValue(*info, 'ownerName'),
+			cyverse_getValue(*info, 'ownerZone'),
+			cyverse_getValue(*info, 'size'),
+			cyverse_getValue(*info, 'type'),
 			*AuthorName,
 			*AuthorZone );
 	}
@@ -1460,15 +1438,15 @@ _cyverse_logic_notifyDataObjMod(*Path, *AuthorName, *AuthorZone) {
 	*id = _cyverse_logic_getUUID(cyverse_DATA_OBJ, *Path);
 
 	if (*id != '') {
-		*info = _cyverse_logic_retrieveDataInfo(*Path);
+		*info = cyverse_getDataInfo(*Path);
 
 		_cyverse_logic_sendDataObjMod(
 			*id,
 			*Path,
-			*info.ownerName,
-			*info.ownerZone,
-			double(*info.'size'),
-			*info.'type',
+			cyverse_getValue(*info, 'ownerName'),
+			cyverse_getValue(*info, 'ownerZone'),
+			cyverse_getValue(*info, 'size'),
+			cyverse_getValue(*info, 'type'),
 			*AuthorName,
 			*AuthorZone );
 	}
@@ -2437,6 +2415,8 @@ cyverse_logic_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp) {
 # from temporaryStorage. If it is 1 (CREATE), then publish a data object add
 # message, otherwise publish a data object modified message.
 #
+# TODO: implement DATA OBJ OPEN MSG PUBLISHING ALGORITHM:
+#
 # N.B. These can be triggered by istream.
 # N.B. Only `istream write` needs to be considered.
 # N.B. This can create new, overwrite existing, modify existing, and append to
@@ -2461,10 +2441,12 @@ cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT)
 		# checksum policy
 		temporaryStorage.cyverse_logic_replica_rescHier = cyverse_getValue(*DataObjInp, 'resc_hier');
 
-		# data object creation and modification message publishing policy
+		# data object creation, modification, and opening message publishing
+		# policy
 		temporaryStorage.cyverse_logic_replica_openType =
 			if cyverse_hasKey(*DataObjInp, 'openType') then cyverse_getValue(*DataObjInp, 'openType')
 			else cyverse_FILE_OPEN_WRITE;
+		temporaryStorage.cyverse_logic_replica_openFlag = cyverse_getValue(*DataObjInp, 'open_flag');
 	}
 }
 
@@ -2497,16 +2479,29 @@ cyverse_logic_api_replica_close_post(*Instance, *Comm, *JsonInput) {
 		}
 		temporaryStorage.cyverse_logic_replica_rescHier = '';
 
-		# data object creation and modification message publishing policy
+		# data object creation, modification amd opening message publishing
+		# policy
 		*authorName = cyverse_getValue(*Comm, 'user_user_name');
 		*authorZone = cyverse_getValue(*Comm, 'user_rods_zone');
-		if (
+		*openFlag = cyverse_getValue(temporaryStorage, 'cyverse_logic_replica_openFlag');
+		if (*openFlag == cyverse_OPEN_FLAG_R) {
+			*uuid = '';
+			_cyverse_logic_ensureUUID(
+				cyverse_DATA_OBJ, *DataPath, *ClientUsername, *ClientZone, *uuid );
+			_cyverse_logic_sendDataObjOpen(
+				*uuid,
+				*path,
+				cyverse_getValue(cyverse_getDataInfo(*path), 'size'),
+				*authorName,
+				*authorZone );
+		} else if (
 			cyverse_getValue(temporaryStorage, 'cyverse_logic_replica_openType') == cyverse_FILE_CREATE
 		) {
 			_cyverse_logic_notifyDataObjCreated(*path, *authorName, *authorZone);
 		} else {
 			_cyverse_logic_notifyDataObjMod(*path, *authorName, *authorZone);
 		}
+		temporaryStorage.cyverse_logic_replica_openFlag = '';
 		temporaryStorage.cyverse_logic_replica_openType = '';
 
 		temporaryStorage.cyverse_logic_replica_dataObjPath = '';

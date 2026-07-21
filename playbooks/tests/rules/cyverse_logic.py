@@ -126,12 +126,20 @@ class TestUserInfo(IrodsTestCase):
         """
         self._test_rule('public', False)
 
-    @unittest.skip("not implemented")
     def test_isadm_rodsuser(self):
         """
         Test _cyverse_logic_isAdm correctly identifies a rodsuser user as not a
         rodsadmin
         """
+        name = 'user'
+        self.irods.users.create(name, 'rodsuser')
+        try:
+            self.fn_test(
+                '_cyverse_logic_isAdm',
+                [IrodsVal.string(name), IrodsVal.string(self.irods.zone)],
+                IrodsVal.boolean(False))
+        finally:
+            self.irods.users.remove(name)
 
     def _test_rule(self, name, expected_result):
         self.fn_test(
@@ -140,12 +148,13 @@ class TestUserInfo(IrodsTestCase):
             IrodsVal.boolean(expected_result))
 
 
+@test_rules.unimplemented
+class TestAVUs(IrodsTestCase):
+    """Tests of private AVU rule logic"""
+
+
 class TestCyVerseLogic(IrodsTestCase):
     """Test cyverse_logic.re"""
-
-    @unittest.skip("not implemented")
-    def test_avus(self):
-        """Test private AVU rule logic"""
 
     @unittest.skip("not implemented")
     def test_checksum(self):

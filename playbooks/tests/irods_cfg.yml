@@ -32,6 +32,7 @@
         - cyverse_json.re
         - cyverse_logic.re
         - cyverse_repl.re
+        - cyverse_transfer_tracking.re
         - cyverse_trash.re
         - esiil.re
         - esiil-env.re
@@ -69,6 +70,7 @@
         or response.stat.pw_name != 'irods'
         or not response.stat.xusr
       loop:
+        - add-transfer
         - amqp-topic-send
         - delete-scheduled-rule
         - generate-uuid
@@ -138,9 +140,11 @@
               - server_config.default_file_mode == '0600'
               - server_config.default_hash_scheme == 'MD5'
               - server_config.environment_variables.IRODS_DATABASE_USER_PASSWORD_SALT == 'salt'
-              - >-
-                server_config.environment_variables.IRODS_AMQP_URI
-                == "amqp://amqp_admin:password@dstesting-amqp-1.dstesting_default:5672/%2F"
+              - server_config.environment_variables.IRODS_AMQP_URI == "amqp://amqp_admin:password@dstesting-amqp-1.dstesting_default:5672/%2F"
+              - server_config.environment_variables.IRODS_DB_HOST == 'dstesting-dbms_configured-1.dstesting_default'
+              - server_config.environment_variables.IRODS_DB_PORT == '5432'
+              - server_config.environment_variables.IRODS_DB_PASSWORD == 'testpassword'
+              - server_config.environment_variables.IRODS_DB_USERNAME == 'irods'
               - server_config.federation | length == 2
               - server_config.federation[0].catalog_provider_hosts | length == 2
               - server_config.federation[0].catalog_provider_hosts[0] == '128.196.65.155'

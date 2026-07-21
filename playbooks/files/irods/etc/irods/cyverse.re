@@ -238,7 +238,7 @@ cyverse_getEntityType(*Entity) =
 
 
 #
-# Logic for working with ICAT DB Ids
+# Logic for working with data objects
 #
 
 # Looks up data object's DB Id
@@ -290,6 +290,39 @@ cyverse_getDataPath(*Id) =
 			let *path = trimr(*path, '\n') in
 			*path
 # XXX - ^^^
+
+
+# Determine the size, type, and owner of a data object
+#
+# PARAMETERS:
+#  Path  the logical path to the data object
+#
+# RETURNS:
+#  It returns a dictionary with four fields. 'size' holds the size in bytes.
+#  'type' holds the file type. 'ownerName' holds the username of the owner, and
+#  'ownerZone' holds the authentication zone for the owner. If the data object
+#  doesn't exist, all values are left empty.
+#
+cyverse_getDataInfo : forall X in {path string}, X -> `KeyValPair_PI`
+cyverse_getDataInfo(*Path) =
+	let *info.'size' = '' in
+	let *info.'type' = '' in
+	let *info.ownerName = '' in
+	let *info.ownerZone = '' in
+	let *collPath = '' in
+	let *dataName = '' in
+	let *_ = msiSplitPath(str(*Path), *collPath, *dataName) in
+	let *_ = foreach( *rec in
+			SELECT DATA_SIZE, DATA_TYPE_NAME, DATA_OWNER_NAME, DATA_OWNER_ZONE
+			WHERE COLL_NAME == *collPath AND DATA_NAME == *dataName AND DATA_REPL_STATUS == '1'
+		) {
+			*info.'size' = *rec.DATA_SIZE;
+			*info.'type' = *rec.DATA_TYPE_NAME;
+			*info.ownerName = *rec.DATA_OWNER_NAME;
+			*info.ownerZone = *rec.DATA_OWNER_ZONE;
+			break;
+		} in
+	*info
 
 
 #

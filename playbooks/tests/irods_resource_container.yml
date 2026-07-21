@@ -1,4 +1,14 @@
 ---
+- name: "TODO: Verify default template expansion"
+  hosts: localhost
+  gather_facts: false
+  tasks: []
+
+- name: "TODO: Verify custom template expansion"
+  hosts: localhost
+  gather_facts: false
+  tasks: []
+
 - name: Test prepare docker repository
   hosts: irods_resource_container
   tasks:
@@ -164,14 +174,6 @@
         - core.fnm
         - core.re
 
-    - name: Verify group for iRODS runtime config files
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Test generated core.re contents
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
     - name: Test add command scripts
       ansible.builtin.stat:
         path: /var/lib/irods/msiExecCmd_bin/{{ item }}
@@ -181,10 +183,14 @@
         or not resp.stat.pw_name == 'irods'
         or not (resp.stat.rusr and resp.stat.xusr)
       loop:
+        - add-transfer
         - amqp-topic-send
         - delete-scheduled-rule
         - generate-uuid
+        - ichksum-exec
         - imeta-exec
+        - iquest-exec
+        - irepl-exec
         - send-mail
 
     - name: Test add command scripts 2

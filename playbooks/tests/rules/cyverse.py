@@ -356,9 +356,24 @@ class CyverseGetentitytype(CyverseTestCase):
         self.fn_test('cyverse_getEntityType', [IrodsVal.string('garbage')], IrodsVal.string(''))
 
 
-@test_rules.unimplemented
-class CyverseDBIdTests(CyverseTestCase):
-    """Tests of ICAT DB Id logic"""
+class CyverseDataObjTests(CyverseTestCase):
+    """Tests of data object logic"""
+
+    @unittest.skip("not implemented")
+    def test_getdataid_exists(self):
+        """Test cyverse_getDataId when data object exists"""
+
+    @unittest.skip("not implemented")
+    def test_getdataid_missing(self):
+        """Test cyverse_getDataId when data object doesn't exist"""
+
+    @unittest.skip("not implemented")
+    def test_getdatapath(self):
+        """Test cyverse_getDataPath"""
+
+    @unittest.skip("not implemented")
+    def test_getdatainfo(self):
+        """Test cyverse_getDataInfo"""
 
 
 @test_rules.unimplemented

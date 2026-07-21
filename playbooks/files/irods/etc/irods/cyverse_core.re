@@ -12,6 +12,7 @@
 @include 'cyverse_logic'
 @include 'cyverse_encryption'
 @include 'cyverse_repl'
+@include 'cyverse_transfer_tracking'
 @include 'cyverse_trash'
 
 # SERVICE SPECIFIC RULES
@@ -530,6 +531,11 @@ pep_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
 	*status = errormsg(
 		cyverse_repl_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf), *msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_transfer_tracking_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOprInp, *BulkOpInpBBuf),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -620,6 +626,24 @@ pep_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 }
 
 
+# DATA_OBJ_GET
+
+# This is the post processing logic for when a data object is downloaded through
+# the API using a DATA_OBJ_GET request.
+#
+# Parameters:
+#  Instance        (string) unknown
+#  Comm            (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp      (`KeyValuePair_PI`) information related to the data object
+#  PORTAL_OPR      unknown
+#  DATA_OBJ_B_BUF  unknown
+#
+pep_api_data_obj_get_post(*Instance, *Comm, *DataObjInp, *PORTAL_OPR, *DATA_OBJ_B_BUF) {
+	cyverse_transfer_tracking_api_data_obj_get_post(
+		*Instance, *Comm, *DataObjInp, *PORTAL_OPR, *DATA_OBJ_B_BUF );
+}
+
+
 # DATA_OBJ_PUT
 
 # This is the pre processing logic for when an attempt is made to upload a data
@@ -644,24 +668,29 @@ pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL
 #  Comm            (`KeyValuePair_PI`) user connection and auth information
 #  DataObjInp      (`KeyValuePair_PI`) information related to the data object
 #  DataObjInpBBuf  (unknown) may contain the contents of the file being uploaded
-#  PORTAL_OPR_OUT  unknown
+#  PORTAL_OPR      unknown
 #
 # *DataObjInp:
 #   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
 #
-pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
+pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR) {
 	*status = errormsg(
-		cyverse_logic_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT),
+		cyverse_logic_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
 		*msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
 
 	*status = errormsg(
-		cyverse_repl_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT),
+		cyverse_repl_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
 		*msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
 
 	*status = errormsg(
-		cyverse_trash_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT),
+		cyverse_transfer_tracking_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_trash_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
 		*msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
 }
@@ -945,6 +974,25 @@ pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 }
 
 
+# DATA_OBJ_READ
+#
+# NB: This PEP is used together with either DATA_OBJ_OPEN or
+#     DATA_OBJ_OPEN_AND_STAT and DATA_OBJ_CLOSE.
+
+# This is the post processing logic for when a DATA_OBJ_READ request happened.
+#
+# Parameters:
+#  Instance             (string) unknown
+#  Comm                 (`KeyValuePair_PI`) user connection and auth information
+#  DataObjReadInp       (`KeyValuePair_PI`) information about the read request
+#  DATA_OBJ_READ_B_BUF  (unknown) the contents that were read from the object
+#
+pep_api_data_obj_read_post(*Instance, *Comm, *DataObjReadInp, *DATA_OBJ_READ_B_BUF) {
+	cyverse_transfer_tracking_api_data_obj_read_post(
+		*Instance, *Comm, *DataObjReadInp, *DATA_OBJ_READ_B_BUF );
+}
+
+
 # DATA_OBJ_WRITE
 #
 # NB: This PEP is used together with either DATA_OBJ_OPEN or
@@ -959,8 +1007,20 @@ pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 #  DataObjWriteInpBBuf  (unknown) the contents that were added to the object
 #
 pep_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf) {
-	cyverse_logic_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf);
-	cyverse_repl_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf);
+	*status = errormsg(
+		cyverse_logic_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_repl_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_transfer_tracking_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -1005,6 +1065,7 @@ pep_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 pep_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
 	cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
 	cyverse_repl_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
+	cyverse_transfer_tracking_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
 }
 
 
@@ -1025,6 +1086,10 @@ pep_api_replica_close_post(*Instance, *Comm, *JsonInput) {
 	if (*status < 0) { writeLine('serverLog', *msg); }
 
 	*status = errormsg(cyverse_repl_api_replica_close_post(*Instance, *Comm, *JsonInput), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_transfer_tracking_api_replica_close_post(*Instance, *Comm, *JsonInput), *msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
