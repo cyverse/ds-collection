@@ -12,11 +12,11 @@ _cyverse_transfer_tracking_addTransfer(*User, *Zone, *Dir, *Vol) {
 		*dirArg = execCmdArg(*Dir);
 		*volArg = execCmdArg(*Vol);
 		*args = "*userArg *dirArg *volArg";
-		*ec = errormsg(msiExecCmd("add-transfer", *args, "null", "null", "null", *result), *err);
+		*ec = errormsg(msiExecCmd("add-transfer", *args, "null", "null", "null", *out), *msg);
 		if (*ec != 0) {
-			msiGetStderrInExecCmdOut(*result, *resp);
-			writeLine('serverLog', "add-transfer failed: *resp");
-			failmsg(*ec, *resp);
+			msiGetStderrInExecCmdOut(*out, *err);
+			writeLine('serverLog', "add-transfer failed: *msg (*err)");
+			failmsg(*ec, *err);
 		}
 	}
 }
@@ -36,7 +36,7 @@ cyverse_transfer_tracking_api_bulk_data_obj_put_post(
 	# NB: iRODS int type has a max value of 2147483647. Adding 1 to this results
 	#     in -2147483648. To prevent this, if a file has a value larger than 9
 	#     digits, record the file as an individual transfer. Also, if the
-	#     cummulative volume is in danger of exceeding the maximum int value,
+	#     cummulative volume i	 parallel s in danger of exceeding the maximum int value,
 	#     record the current cummulative volume as an individual transfer and
 	#     reset the total.
 	*maxDigits = 9;
