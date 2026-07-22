@@ -16,6 +16,7 @@ from irods.exception import (
     FAIL_ACTION_ENCOUNTERED_ERR,
     UserDoesNotExist,
 )
+from irods.path import iRODSPath
 
 import test_rules
 from test_rules import IrodsTestCase, IrodsType, IrodsVal
@@ -204,13 +205,31 @@ class CyverseCoreDataobjmetadatamodifiedTest(CyverseCoreTestCase):
 class AccreatecollbyadminTest(CyverseCoreTestCase):
     """Tests of acCreateCollByAdmin"""
 
-    @unittest.skip("not implemented")
+    def __init__(self, method_name: str):
+        super().__init__(method_name)
+        self._username = 'user'
+
+    def setUp(self):
+        super().setUp()
+        self.irods.users.create(self._username, 'rodsuser')
+
+    def tearDown(self):
+        self.irods.users.remove(self._username)
+        super().tearDown()
+
     def test_verify_coll_created(self):
         """Verify that the home collection is created"""
+        if not self.irods.collections.exists(iRODSPath(self.irods.zone, 'home', self._username)):
+            self.fail("home collection not created")
 
-    @unittest.skip("not implemented")
     def test_cyverselogic_called(self):
         """Verify that the implementation in cyverse_logic.re is called"""
+        parent_coll = iRODSPath(self.irods.zone, 'home')
+        msg = (
+            "cyverse_logic_acCreateCollByAdmin("
+            f"{parent_coll}, {self._username}, {self.irods.username}, {self.irods.zone})")
+        if not self.verify_msg_logged(msg):
+            self.fail("cyverse_logic_acCreateCollByAdmin not called")
 
 
 class AccreateuserzonecollectionsGroup(CyverseCoreTestCase):

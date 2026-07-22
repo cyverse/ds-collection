@@ -6,10 +6,13 @@
 
 """Tests of cyverse_transfer_tracking.re rule logic."""
 
+from os import environ
 import unittest
 
+import psycopg2
+
 import test_rules
-from test_rules import IrodsTestCase
+from test_rules import IrodsTestCase, IrodsType
 
 
 def setUpModule():  # pylint: disable=invalid-name
@@ -25,9 +28,25 @@ def tearDownModule():  # pylint: disable=invalid-name
 class AddtransferTest(IrodsTestCase):
     """Tests of _cyverse_transfer_tracking_addTransfer"""
 
+    def test_success_download_rodsadmin(self):
+        """Verify that an download not recorded when downloader is rodsadmin"""
+        self.exec_rule(
+            self.mk_rule("_cyverse_transfer_tracking_addTransfer('rods', 'testing', 'out', 1)"),
+            IrodsType.NONE)
+        oid = self.irods.users.get(self.irods.username).id
+        conn = psycopg2.connect(
+            host=environ.get("PGHOST"),
+            dbname=environ.get("PGDATABASE"),
+            user=environ.get("PGUSER"),
+            password=environ.get("PGPASSWORD"))
+        cur = conn.cursor()
+        cur.execute(f"SELECT * FROM r_transfer_totals WHERE user_id = {oid}")
+        if cur.fetchone():
+            self.fail("recorded transfer for admin user")
+
     @unittest.skip("not implemented")
-    def test_success_download(self):
-        """Verify that an download is recorded correctly"""
+    def test_success_download_rodsuser(self):
+        """Verify that an download is recorded when downloader is rodsuser"""
 
     @unittest.skip("not implemented")
     def test_success_upload(self):

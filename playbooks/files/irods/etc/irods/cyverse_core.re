@@ -639,8 +639,10 @@ pep_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 #  DATA_OBJ_B_BUF  unknown
 #
 pep_api_data_obj_get_post(*Instance, *Comm, *DataObjInp, *PORTAL_OPR, *DATA_OBJ_B_BUF) {
-	cyverse_transfer_tracking_api_data_obj_get_post(
-		*Instance, *Comm, *DataObjInp, *PORTAL_OPR, *DATA_OBJ_B_BUF );
+	*status = errormsg(
+		cyverse_transfer_tracking_api_data_obj_get_post(*Instance, *Comm, *DataObjInp, *PORTAL_OPR, *DATA_OBJ_B_BUF),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 

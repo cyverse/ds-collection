@@ -1343,7 +1343,7 @@ _cyverse_logic_sendDataObjAdd(
 		_cyverse_logic_mkEntityField(*Id),
 		_cyverse_logic_mkPathField(*Path),
 		('creator', _cyverse_logic_mkUserObj(*OwnerName, *OwnerZone)),
-		('size', cyverse_json_num(*Size)),
+		('size', cyverse_json_num(double(*Size))),
 		('type', cyverse_json_str(*Type)) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.add', *msg);
@@ -1366,7 +1366,7 @@ _cyverse_logic_sendDataObjMod(
 		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
 		_cyverse_logic_mkEntityField(*Id),
 		('creator', _cyverse_logic_mkUserObj(*OwnerName, *OwnerZone)),
-		('size', cyverse_json_num(*Size)),
+		('size', cyverse_json_num(double(*Size))),
 		('type', cyverse_json_str(*Type)) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.mod', *msg);
@@ -1379,7 +1379,7 @@ _cyverse_logic_sendDataObjOpen(*Id, *Path, *Size, *AuthorName, *AuthorZone) {
 		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
 		_cyverse_logic_mkEntityField(*Id),
 		_cyverse_logic_mkPathField(*Path),
-		('size', cyverse_json_num(*Size)),
+		('size', cyverse_json_num(double(*Size))),
 		('timestamp', cyverse_json_str(*timestamp)) ));
 
 	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.open', *msg);
