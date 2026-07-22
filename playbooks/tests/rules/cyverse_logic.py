@@ -151,9 +151,27 @@ class TestUserInfo(IrodsTestCase):
             self.irods.users.remove(name)
 
 
-@test_rules.unimplemented
 class TestAVUs(IrodsTestCase):
     """Tests of private AVU rule logic"""
+
+    @unittest.skip("not implemented")
+    def test_getnewavusetting_zero(self):
+        """
+        Test _cyverse_logic_getNewAVUSetting when no candidates are provided
+        """
+
+    @unittest.skip("not implemented")
+    def test_getnewavusetting_one(self):
+        """
+        Test _cyverse_logic_getNewAVUSetting when one candidate is provided
+        """
+
+    @unittest.skip("not implemented")
+    def test_getnewavusetting_multiple(self):
+        """
+        Test _cyverse_logic_getNewAVUSetting when multiple candidates are
+        provided
+        """
 
 
 class TestCyVerseLogic(IrodsTestCase):
