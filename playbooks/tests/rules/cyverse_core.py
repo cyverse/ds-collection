@@ -289,6 +289,14 @@ class AccreateuserzonecollectionsUser(CyverseCoreTestCase):
             self.fail(f'trash collection {trash} created for user {self._user_name}')
 
 
+class Acdatadeletepolicy(CyverseCoreTestCase):
+    """Tests of acDataDeletePolicy"""
+
+    @unittest.skip("not implemented")
+    def test_cyverselogic_called(self):
+        """Verify that the cyverse_logic.re is called"""
+
+
 class Acsetrescschemeforcreate(CyverseCoreTestCase):
     """Tests of acSetRescSchemeForCreate"""
 
@@ -635,10 +643,6 @@ class PepApiStructFileExtAndRegPre(CyverseCoreTestCase):
 
 class CyverseCorePublicTest(CyverseCoreTestCase):
     """Test the public entities cyverse_core.re rule-base"""
-
-    @unittest.skip("not implemented")
-    def test_acdatadeletepolicy(self):
-        """Test acDataDeletePolicy"""
 
     @unittest.skip("not implemented")
     def test_acdeletecollbyadmin(self):
