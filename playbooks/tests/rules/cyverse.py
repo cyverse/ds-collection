@@ -234,13 +234,13 @@ class CyverseFileOpenFlagTests(CyverseTestCase):
         """Verify cyverse_OPEN_FLAG_WP_CREATE"""
         self.fn_test('cyverse_OPEN_FLAG_WP_CREATE', [], IrodsVal.string('578'))
 
-    @unittest.skip("not implemented")
     def test_write_only_append(self):
         """Verify cyverse_OPEN_FLAG_A"""
+        self.fn_test('cyverse_OPEN_FLAG_A', [], IrodsVal.string('1'))
 
-    @unittest.skip("not implemented")
     def test_write_only_append_create(self):
         """Verify cyverse_OPEN_FLAG_A_CREATE"""
+        self.fn_test('cyverse_OPEN_FLAG_A_CREATE', [], IrodsVal.string('65'))
 
     @unittest.skip("not implemented")
     def test_read_write_append_create(self):

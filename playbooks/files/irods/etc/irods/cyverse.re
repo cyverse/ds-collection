@@ -268,7 +268,10 @@ cyverse_getDataId(*Path) =
 # RETURNS:
 #  It return the absolute path to the object if it exists, otherwise it returns /
 #
-cyverse_getDataPath : int -> string
+# XXX: As of iRODS 4.3.1, having `KeyValPair_PI` as a return type causes issues
+#      for dynamic typing
+# cyverse_getDataInfo : forall X in {path string}, X -> `KeyValPair_PI`
+# XXX: ^^^
 cyverse_getDataPath(*Id) =
 # XXX - As of iRODS 4.3.1, deferred rules don't propagate ticket information
 # 	let *path = '' in
