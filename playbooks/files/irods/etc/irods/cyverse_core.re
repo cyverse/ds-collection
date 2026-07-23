@@ -533,7 +533,7 @@ pep_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
 	if (*status < 0) { writeLine('serverLog', *msg); }
 
 	*status = errormsg(
-		cyverse_transfer_tracking_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOprInp, *BulkOpInpBBuf),
+		cyverse_transfer_tracking_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf),
 		*msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
 }

@@ -10,7 +10,7 @@ _cyverse_transfer_tracking_addTransfer(*User, *Zone, *Dir, *Vol) {
 	) {
 		*userArg = execCmdArg(*res.USER_ID);
 		*dirArg = execCmdArg(*Dir);
-		*volArg = execCmdArg(*Vol);
+		*volArg = execCmdArg(str(*Vol));
 		*args = "*userArg *dirArg *volArg";
 		*ec = errormsg(msiExecCmd("add-transfer", *args, "null", "null", "null", *out), *msg);
 		if (*ec != 0) {
@@ -30,9 +30,7 @@ _cyverse_transfer_tracking_addTransfer(*User, *Zone, *Dir, *Vol) {
 #  BulkOpInp      (`KeyValuePair_PI`) information related to the bulk upload
 #  BulkOpInpBBuf  (unknown) unused
 #
-cyverse_transfer_tracking_api_bulk_data_obj_put_post(
-	*Instance, *Comm, *BulkOprInp, *BulkOpInpBBuf
-) {
+cyverse_transfer_tracking_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
 	# NB: iRODS int type has a max value of 2147483647. Adding 1 to this results
 	#     in -2147483648. To prevent this, if a file has a value larger than 9
 	#     digits, record the file as an individual transfer. Also, if the
@@ -50,16 +48,16 @@ cyverse_transfer_tracking_api_bulk_data_obj_put_post(
 
 	*totalVol = 0;
 
-	foreach(*k in *BulkOprInp) {
+	foreach(*k in *BulkOpInp) {
 		if (*k like "data_size_*") {
-			*volStr = *BulkOprInp.*k;
+			*volStr = *BulkOpInp.*k;
 
 			if (strlen(*volStr) > *maxDigits) {
 				_cyverse_transfer_tracking_addTransfer(*user, *zone, 'in', *volStr);
 			} else {
-				*vol = int(*BulkOprInp.*k);
+				*vol = int(*BulkOpInp.*k);
 
-				if (*maxInt - *totalVol > *vol) {
+				if (*maxInt - *totalVol <= *vol) {
 					_cyverse_transfer_tracking_addTransfer(*user, *zone, 'in', *totalVol);
 					*totalVol = 0;
 				}
