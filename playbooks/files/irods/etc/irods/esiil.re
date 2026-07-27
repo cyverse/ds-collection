@@ -24,7 +24,7 @@
 #  Instance  (string) unused
 #  Context   (`KeyValuePair_PI`) the resource plugin context
 #  OUT       (`KeyValuePair_PI`) unused
-#  Op        (string) unused
+#  Op        (string) the operation being performed
 #  Host      (string) unused
 #  PARSER    (`KeyValuePair_PI`) unused
 #  VOTE      (float) unused
@@ -40,8 +40,9 @@
 # XXX - ^^^
 #
 pep_resource_resolve_hierarchy_pre(*Instance, *Context, *OUT, *Op, *Host, *PARSER, *VOTE) {
-	on (cyverse_blockRescReq(esiil_RESC, *Context.resc_hier, *Context.logical_path)) {
-		*msg = 'CYVERSE ERROR: ' ++ *Context.logical_path ++ ' not allowed on ' ++ esiil_RESC ++ '.';
+	on (cyverse_blockRescReq(*Op, esiil_RESC, *Context.resc_hier, *Context.logical_path)) {
+		*msg = 'CYVERSE ERROR: ' ++ *Op ++ ' on ' ++ *Context.logical_path ++ ' not allowed on '
+			++ esiil_RESC ++ '.';
 # XXX - Because of https://github.com/irods/irods/issues/6463, an error
 # happening in an `ON` condition needs to be captured and sent in the catch-all.
 # 		cut;

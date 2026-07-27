@@ -982,7 +982,7 @@ _cyverse_logic_getNewAVUSetting(*Orig, *Prefix, *Candidates) =
 cyverse_logic_chksumRepl(*DataId, *ReplNum) {
 	foreach( *rec in
 		SELECT COLL_NAME, DATA_NAME
-		WHERE DATA_ID = '*DataObjId' AND DATA_REPL_NUM = '*ReplNum' AND DATA_CHECKSUM = ''
+		WHERE DATA_ID = '*DataId' AND DATA_REPL_NUM = '*ReplNum' AND DATA_CHECKSUM = ''
 	) {
 		*dataPath = *rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME;
 # XXX - As of iRODS 4.3.1, deferred rules don't propagate ticket information
@@ -1202,12 +1202,14 @@ _cyverse_logic_sendMsg(*Topic, *Msg) {
 	*status = errormsg(msiExecCmd('amqp-topic-send', *argStr, cyverse_RE_HOST, '', 0, *out), *msg);
 
 	if (*status < 0) {
-		msiGetStderrInExecCmdOut(*out, *err);
-		writeLine("serverLog", "Failed to send AMQP message: *msg");
-		writeLine("serverLog", *err);
-	}
+		if (*status == -370000) {
+			*err = "The user isn't allowed to execute command scripts";
+		} else {
+			msiGetStderrInExecCmdOut(*out, *err);
+		}
 
-	0;
+		writeLine("serverLog", "Failed to send AMQP message: *msg (*err)");
+	}
 }
 
 _cyverse_logic_sendAVUAddWildcard(

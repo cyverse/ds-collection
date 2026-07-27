@@ -379,7 +379,7 @@ class IrodsTestCase(TestCase):
         if self.irods.collections.exists(coll_path):
             self.irods.collections.remove(coll_path, force=True)
 
-    def ensure_obj_absent(self, obj_path: str) -> None:
+    def ensure_obj_absent(self, obj_path: str | iRODSPath) -> None:
         """
         Ensures that a data object is not in iRODS
 

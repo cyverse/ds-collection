@@ -62,6 +62,6 @@ ENV IRODS_ZONE_NAME=tempZone
 ENV PGDATABASE=ICAT
 ENV PGHOST=localhost
 ENV PGPASSWORD=testpassword
-ENV PGUSER=irods
+ENV PGUSER=irodsuser
 
 ENTRYPOINT [ "/test-playbook" ]

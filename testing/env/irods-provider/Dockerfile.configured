@@ -83,6 +83,11 @@ RUN \
 ### Install testing support artifacts
 	pip3 --quiet install 'python-irodsclient<3.2'
 
+### Add fake s3 credentials
+	mkdir --parents /etc/irods/s3-credentials
+	touch /etc/irods/s3-credentials/cred-stale
+	chown --recursive irods /etc/irods/s3-credentials
+
 ### Clean yum cache
 	yum clean all
 	rm --force --recursive /var/cache/yum

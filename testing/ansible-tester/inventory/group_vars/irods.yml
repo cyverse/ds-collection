@@ -17,6 +17,7 @@ irods_amqp_host: "{{ groups['amqp'][0] }}"
 irods_amqp_username: amqp_admin
 irods_amqp_password: password
 irods_clerver_password: password
+irods_db_username: irodsuser
 irods_default_number_of_transfer_threads: 4
 irods_default_repl_resource: replRes
 irods_federation:
