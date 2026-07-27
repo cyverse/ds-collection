@@ -243,13 +243,45 @@ class CyverseFileOpenFlagTests(CyverseTestCase):
         """Verify cyverse_OPEN_FLAG_A_CREATE"""
         self.fn_test('cyverse_OPEN_FLAG_A_CREATE', [], IrodsVal.string('65'))
 
-    @unittest.skip("not implemented")
     def test_read_write_append_create(self):
         """Verify cyverse_OPEN_FLAG_AP_CREATE"""
+        self.fn_test('cyverse_OPEN_FLAG_AP_CREATE', [], IrodsVal.string('66'))
 
     @unittest.skip("not implemented")
-    def test_repltruncated(self):
-        """Test cyverse_replTruncated"""
+    def test_repltruncated_openflagr(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_R"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagrp(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_RP"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagw(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_W"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagwcreate(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_W_CREATE"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagwp(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_WP"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagwpcreate(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_WP_CREATE"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflaga(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_A"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagacreate(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_A_CREATE"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagapcreate(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_AP_CREATE"""
 
 
 class CyverseIscoll(CyverseTestCase):

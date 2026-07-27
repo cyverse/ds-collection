@@ -73,7 +73,7 @@ class CyverseCoreTestCase(IrodsTestCase):
 
 
 class CyverseCoreMkdataobjsessvarTest(CyverseCoreTestCase):
-    """Tests of  _cyverse_core_mkDataObjSessVar"""
+    """Tests of _cyverse_core_mkDataObjSessVar"""
 
     def test(self):
         """Test it"""
@@ -292,9 +292,13 @@ class AccreateuserzonecollectionsUser(CyverseCoreTestCase):
 class Acdatadeletepolicy(CyverseCoreTestCase):
     """Tests of acDataDeletePolicy"""
 
-    @unittest.skip("not implemented")
     def test_cyverselogic_called(self):
         """Verify that the cyverse_logic.re is called"""
+        objPath = iRODSPath(self.irods.zone, 'home', self.irods.username, 'obj')
+        obj = self.irods.data_objects.create(objPath)
+        obj.unlink(force=True)
+        if not self.verify_msg_logged(f"cyverse_logic_acDataDeletePolicy({objPath})"):
+            self.fail("cyverse_logic_acDataDeletePolicy not called")
 
 
 class Acsetrescschemeforcreate(CyverseCoreTestCase):
@@ -649,10 +653,6 @@ class PepApiStructFileExtAndRegPre(CyverseCoreTestCase):
 
 class CyverseCorePublicTest(CyverseCoreTestCase):
     """Test the public entities cyverse_core.re rule-base"""
-
-    @unittest.skip("not implemented")
-    def test_acdeletecollbyadmin(self):
-        """Test acDeleteCollByAdmin"""
 
     @unittest.skip("not implemented")
     def test_acdeleteobjbyadminifpresent(self):
