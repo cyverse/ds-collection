@@ -1,13 +1,31 @@
 ---
-- name: "TODO: Verify default template expansion"
+- name: Test default template expansions
   hosts: localhost
   gather_facts: false
-  tasks: []
+  tasks:
+    - name: Test core.re expansion
+      ansible.builtin.debug:
+        msg: 'TODO: implement for {{ item }}'
+      loop:
+        - Ansible managed
+        - acSetRescSchemeForCreate
+        - acSetRescSchemeForRepl
 
-- name: "TODO: Verify custom template expansion"
+    - name: Test .env expansion
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Test logrotate.d/irods expansion
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+- name: Test custom template expansions
   hosts: localhost
   gather_facts: false
-  tasks: []
+  tasks:
+    - name: Test expansions
+      ansible.builtin.debug:
+        msg: "TODO: implement"
 
 - name: Test prepare docker repository
   hosts: irods_resource_container
@@ -339,7 +357,7 @@
       ansible.builtin.debug:
         msg: 'TODO: implement'
 
-    - name: Test generate .env file
+    - name: Test placement of .env file
       ansible.builtin.debug:
         msg: 'TODO: implement'
 
@@ -351,6 +369,6 @@
       ansible.builtin.debug:
         msg: 'TODO: implement'
 
-    - name: Test configure log rotations for iRODS
+    - name: Test log rotation config placement for iRODS
       ansible.builtin.debug:
         msg: 'TODO: implement'

@@ -268,15 +268,12 @@ cyverse_getDataId(*Path) =
 # RETURNS:
 #  It return the absolute path to the object if it exists, otherwise it returns /
 #
-# XXX: As of iRODS 4.3.1, having `KeyValPair_PI` as a return type causes issues
-#      for dynamic typing
-# cyverse_getDataInfo : forall X in {path string}, X -> `KeyValPair_PI`
-# XXX: ^^^
+cyverse_getDataPath : int -> path
 cyverse_getDataPath(*Id) =
 # XXX - As of iRODS 4.3.1, deferred rules don't propagate ticket information
-# 	let *path = '' in
+# 	let *path = / in
 # 	let *_ = foreach (*rec in SELECT COLL_NAME, DATA_NAME WHERE DATA_ID = '*Id') {
-# 			*path = *rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME;
+# 			*path = /(*rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME);
 # 		} in
 # 	*path
 	let *fmtArg = execCmdArg('%s/%s') in
@@ -287,11 +284,11 @@ cyverse_getDataPath(*Id) =
 		then
 			let *_ = msiGetStderrInExecCmdOut(*resp, *msg) in
 			let *_ = writeLine('serverLog', 'failed to resolve data object *Id: *err (*msg)') in
-			''
+			/
 		else
 			let *_ = msiGetStdoutInExecCmdOut(*resp, *path) in
 			let *path = trimr(*path, '\n') in
-			*path
+			/*path
 # XXX - ^^^
 
 
@@ -306,7 +303,10 @@ cyverse_getDataPath(*Id) =
 #  'ownerZone' holds the authentication zone for the owner. If the data object
 #  doesn't exist, all values are left empty.
 #
-cyverse_getDataInfo : forall X in {path string}, X -> `KeyValPair_PI`
+# XXX: As of iRODS 4.3.1, having `KeyValPair_PI` as a return type causes issues
+#      for dynamic typing
+# cyverse_getDataInfo : forall X in {path string}, X -> `KeyValPair_PI`
+# XXX: ^^^
 cyverse_getDataInfo(*Path) =
 	let *info.'size' = '' in
 	let *info.'type' = '' in

@@ -117,7 +117,7 @@ class TestUserInfo(IrodsTestCase):
         Test _cyverse_logic_isAdm correctly identifies a rodsadmin user is a
         rodsadmin
         """
-        self._test_rule('rods', True)
+        self._test_rule(self.irods.username, True)
 
     def test_isadm_rodsgroup(self):
         """
@@ -134,10 +134,7 @@ class TestUserInfo(IrodsTestCase):
         name = 'user'
         self.irods.users.create(name, 'rodsuser')
         try:
-            self.fn_test(
-                '_cyverse_logic_isAdm',
-                [IrodsVal.string(name), IrodsVal.string(self.irods.zone)],
-                IrodsVal.boolean(False))
+            self._test_rule(name, False)
         finally:
             self.irods.users.remove(name)
 
@@ -168,6 +165,28 @@ class TestAVUs(IrodsTestCase):
         """
         Test _cyverse_logic_getNewAVUSetting when multiple candidates are
         provided
+        """
+
+
+class TestAvus(IrodsTestCase):
+    """Tests of private AVU rule logic"""
+
+    def test_no_candidates(self):
+        """Verify that if no candidates are provided the orignal is returned"""
+        orig = IrodsVal.string('orig')
+        self.fn_test(
+            '_cyverse_logic_getNewAVUSetting',
+            [orig, IrodsVal.string('prefix'), IrodsVal.string_list([])],
+            orig)
+
+    @unittest.skip("not implemented")
+    def test_one_candidate(self):
+        """Verify that it works correctly when one candidate is provided"""
+
+    @unittest.skip("not implemented")
+    def test_multiple_candidates(self):
+        """
+        Verify that it works correctly when multiple candidates are provided
         """
 
 

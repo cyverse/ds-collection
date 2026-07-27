@@ -42,9 +42,9 @@
 _repl_replicate(*Object, *RescName) {
   _repl_logMsg('replicating data object *Object to *RescName');
 
-  *objPath = cyverse_getDataPath(*Object);
+  *objPath = str(cyverse_getDataPath(*Object));
 
-  if (*objPath == '') {
+  if (*objPath == '/') {
     _repl_logMsg('data object *Object no longer exists');
   } else {
     temporaryStorage.cyverse_repl_replicate = 'REPL_FORCED_REPL_RESC';
@@ -89,7 +89,7 @@ _repl_mvReplicas(*Object, *IngestName, *ReplName) {
 
   *dataPath = cyverse_getDataPath(*Object);
 
-  if (*dataPath != '') {
+  if (*dataPath != /) {
     *replFail = false;
 
     if (_repl_replicate(*Object, *IngestName) < 0) {
@@ -112,7 +112,7 @@ _repl_mvReplicas(*Object, *IngestName, *ReplName) {
       *replNum = *rec.DATA_REPL_NUM;
 
       if (!(*rescHier like regex '^(*IngestName|*ReplName)(;.*)?$')) {
-        if (errorcode(msiDataObjTrim(*dataPath, 'null', *replNum, '1', 'null', *status)) < 0) {
+        if (errorcode(msiDataObjTrim(str(*dataPath), 'null', *replNum, '1', 'null', *status)) < 0) {
           _repl_logMsg('failed to trim replica of *Object on *rescHier (*status)');
           *replFail = true;
         }
@@ -132,9 +132,9 @@ _repl_mvReplicas(*Object, *IngestName, *ReplName) {
 _repl_syncReplicas(*Object) {
   _repl_logMsg('syncing replicas of data object *Object');
 
-  *dataPath = cyverse_getDataPath(*Object);
+  *dataPath = str(cyverse_getDataPath(*Object));
 
-  if (*dataPath == '') {
+  if (*dataPath == '/') {
     _repl_logMsg('data object *Object no longer exists');
   } else {
 # XXX - As of iRODS 4.3.1, ticket information doesn't get sent to deferred rules.
@@ -142,19 +142,20 @@ _repl_syncReplicas(*Object) {
 #     msiAddKeyValToMspStr('irodsAdmin', '', *opts);
 #     msiAddKeyValToMspStr('updateRepl', '', *opts);
 #     msiAddKeyValToMspStr('verifyChksum', '', *opts);
-#     *status = errormsg(msiDataObjRepl(*dataPath, *opts, *status), *err);
+#     *status = errormsg(msiDataObjRepl(*dataPath, *opts, *status), *msg);
     *admArg = execCmdArg('-M');
     *allArg = execCmdArg('-a');
     *updateArg = execCmdArg('-U');
     *dataArg = execCmdArg(*dataPath);
     *args = '*admArg *allArg *updateArg *dataArg';
-    *status = errormsg(msiExecCmd('irepl-exec', *args, '', '', '', *_), *err);
+    *status = errormsg(msiExecCmd('irepl-exec', *args, '', '', '', *out), *msg);
 # XXX - ^^^
 
     if (*status < 0 && *status != -808000) {
+      msiGetStderrInExecCmdOut(*out, *err);
       _repl_logMsg(
         'failed to sync replicas of data object *Object (*dataPath) trying again in 8 hours:'
-        ++ ' *err' );
+        ++ ' *msg (*err)' );
 
       *status;
     } else {
