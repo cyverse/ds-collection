@@ -49,7 +49,7 @@
       "login_delay": {
         "success": 0,
         "password_failed": 1000
-      }
+      },
       "safelist": [
 {%- for host_allowed in _sftp_user_host_allowed %}
 {%    set ip = host_allowed if host_allowed|ansible.utils.ipaddr else lookup('dig', host_allowed) %}

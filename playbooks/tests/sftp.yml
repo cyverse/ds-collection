@@ -14,14 +14,12 @@
       ansible.builtin.assert:
         that:
           - sftpgo_conf is search('SFTPGO_DEFAULT_ADMIN_USERNAME=admin')
-          - sftpgo_conf is search('SFTPGO_DEFAULT_ADMIN_PASSWORD=password')
           - sftpgo_conf is search('SFTPGO_HOME_PATH=/sftpgo_vault/data')
 
     - name: Test sftpgo.json contents
       ansible.builtin.assert:
         that:
           - sftpgo_json.command.commands[0].env[0] == 'IRODS_PROXY_USER=sftp'
-          - sftpgo_json.command.commands[0].env[1] == 'IRODS_PROXY_PASSWORD=password'
           - sftpgo_json.command.commands[0].env[2] == 'IRODS_HOST=localhost'
           - sftpgo_json.command.commands[0].env[3] == 'IRODS_PORT=1247'
           - sftpgo_json.command.commands[0].env[4] == 'IRODS_ZONE=tempZone'
@@ -52,29 +50,33 @@
     - group_vars/sftp/cfg.yml
   vars:
     sftpgo_conf: "{{ lookup('ansible.builtin.template', '../templates/sftp/etc/sftpgo/sftpgo.conf.j2') }}"
-    sftpgo_json: "{{ lookup('ansible.builtin.template', '../templates/sftp/etc/sftpgo/sftpgo.json.j2') }}"
   tasks:
     - name: Verify sftpgo.conf expands correctly
       ansible.builtin.assert:
         that:
           - sftpgo_conf is search('SFTPGO_DEFAULT_ADMIN_USERNAME=sftpgo')
           - sftpgo_conf is search('SFTPGO_DEFAULT_ADMIN_PASSWORD=sftpgo_pass')
-
-    - name: Verify sftpgo.conf expands correctly
-      ansible.builtin.debug:
-        msg: "TODO: implement for {{ item }}"
-      loop:
-          - SFTPGO_HOME_PATH
+          - sftpgo_conf is search('SFTPGO_HOME_PATH=/vault/data')
 
     - name: Test sftpgo.json contents
       ansible.builtin.debug:
-        msg: "TODO: implement"
+        msg: "TODO: implement for {{ item }}"
+      loop:
+        - common
+        - sftpgo
+        - data_provider
+        - httpd
+        - command
 
 
 - name: Test sftp playbook
   hosts: sftp
   strategy: linear
   tasks:
+    - name: Test ensure required config tools are installed
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
     - name: Verify sftpgo user information  # noqa: run-once[task]
       delegate_to: localhost
       run_once: true

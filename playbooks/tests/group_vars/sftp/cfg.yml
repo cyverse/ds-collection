@@ -10,3 +10,5 @@ sftp_irods_zone: zone
 sftp_proxy_allowed:
   - 127.0.0.1
   - data.cyverse.org
+
+sftp_vault_dir: /vault
