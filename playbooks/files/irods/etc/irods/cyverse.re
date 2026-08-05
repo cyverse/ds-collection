@@ -65,7 +65,6 @@ cyverse_rmPrefix(*Orig, *Prefixes) =
 cyverse_hasKey : `KeyValPair_PI` * string -> boolean
 cyverse_hasKey(*KVMap, *Key) = if errorcode(*KVMap."*Key") == 0 then *KVMap."*Key" != '' else false
 
-
 # Retrieves the value of the given key from the given map. If the key isn't
 # found, it returns the empty string.
 #
@@ -326,6 +325,55 @@ cyverse_getDataInfo(*Path) =
 			break;
 		} in
 	*info
+
+
+#
+# Action tracking
+#
+
+_cyverse_mkActionKey(*RuleBase, *EntityId) = *RuleBase ++ '-' ++ str(*EntityId) ++ '-ROOT_ACTION'
+
+# Determine if this is the current action on the given entity within the given
+# rule base.
+#
+# PARAMETERS:
+#  RuleBase  the rule base that would trigger the action
+#  Action    the action in question
+#  SubjId    the entity's DB Id that is subject to the action
+#
+# RETURNS:
+#  whether or not this is the current action action on the given entity
+#
+cyverse_isCurrentAction : string * string * int -> boolean
+cyverse_isCurrentAction(*RuleBase, *Action, *SubjId) =
+	cyverse_getValue(temporaryStorage, _cyverse_mkActionKey(*RuleBase, *SubjId)) == *Action
+
+# Register the current action for the given entity.
+#
+# PARAMETERS:
+#  RuleBase  (string) the rule base triggering the action
+#  Action    (string) the action being performed
+#  SubjId    (int) the entity's DB Id that is subject to the action
+#
+cyverse_registerAction(*RuleBase, *Action, *SubjId) {
+	*key = _cyverse_mkActionKey(*RuleBase, *SubjId);
+
+	if (!cyverse_hasKey(temporaryStorage, *key)) {
+		temporaryStorage."*key" = *Action;
+	}
+}
+
+# Unregister the current action for the given entity.
+#
+# PARAMETERS:
+#  RuleBase  (string) the rule base triggering the action
+#  Action    (string) the action being performed
+#  SubjId    (int) the entity's DB Id that is subject to the action
+#
+cyverse_unregisterAction(*RuleBase, *Action, *SubjId) {
+	*key = _cyverse_mkActionKey(*RuleBase, *SubjId);
+	temporaryStorage."*key" = '';
+}
 
 
 #

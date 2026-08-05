@@ -392,8 +392,18 @@ class CyverseDataObjTests(CyverseTestCase):
     """Tests of data object logic"""
 
     @unittest.skip("not implemented")
-    def test_getdataid_exists(self):
-        """Test cyverse_getDataId when data object exists"""
+    def test_getdataid_exists_path(self):
+        """
+        Test cyverse_getDataId when data object exists when path is provided as
+        path.
+        """
+
+    @unittest.skip("not implemented")
+    def test_getdataid_exists_str(self):
+        """
+        Test cyverse_getDataId when data object exists when path is provided as
+        string.
+        """
 
     @unittest.skip("not implemented")
     def test_getdataid_missing(self):
@@ -406,6 +416,11 @@ class CyverseDataObjTests(CyverseTestCase):
     @unittest.skip("not implemented")
     def test_getdatainfo(self):
         """Test cyverse_getDataInfo"""
+
+
+@test_rules.unimplemented
+class CyverseActionTrackingTests(CyverseTestCase):
+    """Tests of action tracking logic"""
 
 
 @test_rules.unimplemented
