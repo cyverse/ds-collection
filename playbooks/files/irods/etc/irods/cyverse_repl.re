@@ -167,7 +167,10 @@ _repl_syncReplicas(*Object) {
 
 # SUPPORTING FUNCTIONS AND RULES
 
-_delayTime : int
+_cyverse_repl_ID = 'cyverse_repl'
+
+_cyverse_repl_ACTION = 'deferred replication'
+
 _delayTime =
   let *_ = if (!cyverse_hasKey(temporaryStorage, 'cyverse_repl_delayTime')) {
       temporaryStorage.cyverse_repl_delayTime = str(cyverse_INIT_REPL_DELAY);
@@ -186,18 +189,26 @@ _repl_logMsg(*Msg) {
 
 
 _repl_scheduleMv(*Object, *IngestName, *ReplName) {
-  delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
-  {_repl_mvReplicas(*Object, *IngestName, *ReplName);}
+  if (!cyverse_isCurrentAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object)) {
+    cyverse_registerAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object);
 
-  _incDelayTime;
+    delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
+    {_repl_mvReplicas(*Object, *IngestName, *ReplName)}
+
+    _incDelayTime;
+  }
 }
 
 
 _repl_scheduleRepl(*Object, *RescName) {
-  delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
-  {_repl_replicate(*Object, *RescName);}
+  if (!cyverse_isCurrentAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object)) {
+    cyverse_registerAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object);
 
-  _incDelayTime;
+    delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
+    {_repl_replicate(*Object, *RescName)}
+
+    _incDelayTime;
+  }
 }
 
 
@@ -212,7 +223,12 @@ _repl_scheduleSyncReplicas(*Object) {
     SELECT COUNT(DATA_REPL_NUM), COLL_ID WHERE DATA_ID = '*Object' AND DATA_REPL_STATUS = '0'
   ) {
 # XXX - ^^^
-    if (int(*rec.DATA_REPL_NUM) > 0) {
+    if (
+      int(*rec.DATA_REPL_NUM) > 0
+      && !cyverse_isCurrentAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object)
+    ) {
+      cyverse_registerAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object);
+
       delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
       {_repl_syncReplicas(*Object)}
 

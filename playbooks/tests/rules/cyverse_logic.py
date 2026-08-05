@@ -24,6 +24,14 @@ def tearDownModule():  # pylint: disable=invalid-name
     test_rules.tearDownModule()
 
 
+class IdTest(IrodsTestCase):
+    """Tests of _cyverse_logic_ID"""
+
+    @unittest.skip("not implemented")
+    def test(self):
+        """Verify that it has the correct value"""
+
+
 class TestContains(IrodsTestCase):
     """Tests of _cyverse_logic_contains"""
 
@@ -177,10 +185,6 @@ class TestCyVerseLogic(IrodsTestCase):
     @unittest.skip("not implemented")
     def test_uuids(self):
         """Test private UUID rule logic"""
-
-    @unittest.skip("not implemented")
-    def test_action_tracking(self):
-        """Test private action tracking rule logic"""
 
     @unittest.skip("not implemented")
     def test_message_publishing(self):

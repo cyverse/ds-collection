@@ -911,6 +911,8 @@
 # © 2021 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
+_cyverse_logic_ID = 'cyverse_logic'
+
 
 #
 # LISTS
@@ -1118,28 +1120,6 @@ _cyverse_logic_ensureUUID(*EntityType, *EntityPath, *ClientName, *ClientZone, *U
 		_cyverse_logic_assignUUID(*EntityType, *EntityPath, *uuid, *ClientName, *ClientZone);
 	}
 	*UUID = *uuid;
-}
-
-
-#
-# ACTION TRACKING
-#
-
-_cyverse_logic_mkActionKey(*EntityId) = 'cyverse_logic' ++ str(*EntityId) ++ '-ROOT_ACTION'
-
-_cyverse_logic_isCurrentAction(*EntityId, *Action) =
-	cyverse_getValue(temporaryStorage, _cyverse_logic_mkActionKey(*EntityId)) == *Action
-
-_cyverse_logic_registerAction(*EntityId, *Action) {
-	*key = _cyverse_logic_mkActionKey(*EntityId);
-	if (!cyverse_hasKey(temporaryStorage, *key)) {
-		temporaryStorage."*key" = *Action;
-	}
-}
-
-_cyverse_logic_unregisterAction(*EntityId, *Action) {
-	*key = _cyverse_logic_mkActionKey(*EntityId);
-	temporaryStorage."*key" = '';
 }
 
 
@@ -1653,13 +1633,13 @@ cyverse_logic_acPreProcForModifyAccessControl(*RecurseFlag, *Perm, *Username, *Z
 cyverse_logic_acPostProcForModifyAccessControl(
 	*RecurseFlag, *Perm, *Username, *UserZone, *Path, *ClientUsername, *ClientZone
 ) {
-	*me = 'cyverse_logic_acPostProcForModifyAccessControl';
+	*me = 'acPostProcForModifyAccessControl';
 	*entityId = _cyverse_logic_getId(*Path);
 
 	if (*entityId >= 0) {
-		_cyverse_logic_registerAction(*entityId, *me);
+		cyverse_registerAction(_cyverse_logic_ID, *me, *entityId);
 
-		if (_cyverse_logic_isCurrentAction(*entityId, *me)) {
+		if (cyverse_isCurrentAction(_cyverse_logic_ID, *me, *entityId)) {
 			*lvl = cyverse_rmPrefix(*Perm, list('admin:'));
 			*type = cyverse_getEntityType(*Path);
 			*userZone = if *UserZone == '' then cyverse_ZONE else *UserZone;
@@ -1680,7 +1660,7 @@ cyverse_logic_acPostProcForModifyAccessControl(
 					*uuid, *lvl, *Username, *userZone, *ClientUsername, *ClientZone );
 			}
 
-			_cyverse_logic_unregisterAction(*entityId, *me);
+			cyverse_unregisterAction(_cyverse_logic_ID, *me, *entityId);
 		}
 	}
 }
@@ -2110,16 +2090,16 @@ cyverse_logic_acPostProcForOpen(*DataPath, *DataSize, *ClientUsername, *ClientZo
 	*id = cyverse_getDataId(*DataPath);
 
 	if (*id >= 0) {
-		_cyverse_logic_registerAction(*id, *me);
+		cyverse_registerAction(_cyverse_logic_ID, *me, *id);
 
-		if (_cyverse_logic_isCurrentAction(*id, *me)) {
+		if (cyverse_isCurrentAction(_cyverse_logic_ID, *me, *id)) {
 			*uuid = '';
 
 			_cyverse_logic_ensureUUID(
 				cyverse_DATA_OBJ, *DataPath, *ClientUsername, *ClientZone, *uuid );
 
 			_cyverse_logic_sendDataObjOpen(*uuid, *DataPath, *DataSize, *ClientUsername, *ClientZone);
-			_cyverse_logic_unregisterAction(*id, *me);
+			cyverse_unregisterAction(_cyverse_logic_ID, *me, *id);
 		}
 	}
 }
@@ -2182,7 +2162,7 @@ cyverse_logic_acPostProcForParallelTransferReceived(*StoreResc) {
 # cyverse_logic_dataObjCreated(*Username, *Zone, *DataObjInfo) {
 # 	*me = 'cyverse_logic_dataObjCreated';
 # 	*id = int(*DataObjInfo.data_id);
-# 	_cyverse_logic_registerAction(*id, *me);
+# 	cyverse_registerAction(_cyverse_logic_ID, *me, *id);
 # 	*err = errormsg(_cyverse_logic_setAdmPerm(*DataObjInfo.logical_path), *msg);
 # 	if (*err < 0) { writeLine('serverLog', *msg); }
 #
@@ -2193,7 +2173,7 @@ cyverse_logic_acPostProcForParallelTransferReceived(*StoreResc) {
 # 		*DataObjInfo.data_owner_name,
 # 		*DataObjInfo.data_owner_zone,
 # 		*uuid );
-# 	_cyverse_logic_unregisterAction(*id, *me);
+# 	cyverse_unregisterAction(_cyverse_logic_ID, *me, *id);
 # }
 #  Step         (string) the current step in the transfer process, one of
 #               'FULL', 'START', or 'FINISH'
@@ -2201,7 +2181,7 @@ cyverse_logic_acPostProcForParallelTransferReceived(*StoreResc) {
 cyverse_logic_dataObjCreated(*Username, *Zone, *DataObjInfo, *Step) {
 	*me = 'cyverse_logic_dataObjCreated';
 	*id = int(*DataObjInfo.data_id);
-	_cyverse_logic_registerAction(*id, *me);
+	cyverse_registerAction(_cyverse_logic_ID, *me, *id);
 
 	*uuid = '';
 
@@ -2218,8 +2198,8 @@ cyverse_logic_dataObjCreated(*Username, *Zone, *DataObjInfo, *Step) {
 	}
 
 	if (*Step != 'START') {
-		if (_cyverse_logic_isCurrentAction(*id, *me)) {
-			_cyverse_logic_unregisterAction(*id, *me);
+		if (cyverse_isCurrentAction(_cyverse_logic_ID, *me, *id)) {
+			cyverse_unregisterAction(_cyverse_logic_ID, *me, *id);
 		}
 	}
 }
@@ -2234,17 +2214,17 @@ cyverse_logic_dataObjCreated(*Username, *Zone, *DataObjInfo, *Step) {
 #  Path      (path) the path to the modified data object
 #
 cyverse_logic_dataObjMetaMod(*Username, *Zone, *Path) {
-	*me = 'cyverse_logic_dataObjMetadataMod';
+	*me = 'dataObjMetaMod';
 	*id = cyverse_getDataId(*Path);
 
 	if (*id >= 0) {
-		_cyverse_logic_registerAction(*id, *me);
+		cyverse_registerAction(_cyverse_logic_ID, *me, *id);
 
-		if (_cyverse_logic_isCurrentAction(*id, *me)) {
+		if (cyverse_isCurrentAction(_cyverse_logic_ID, *me, *id)) {
 			*uuid = '';
 			_cyverse_logic_ensureUUID(cyverse_DATA_OBJ, *Path, *Username, *Zone, *uuid);
 			_cyverse_logic_sendDataObjMetadataMod(*uuid, *Username, *Zone);
-			_cyverse_logic_unregisterAction(*id, *me);
+			cyverse_unregisterAction(_cyverse_logic_ID, *me, *id);
 		}
 	}
 }
