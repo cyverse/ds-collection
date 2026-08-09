@@ -2630,7 +2630,11 @@ cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 	temporaryStorage.cyverse_logic_dataObjClose_needsChecksum = 'checksum';
 
 	# data object creation message publishing policy
-	temporaryStorage.cyverse_logic_dataObjClose_created = 'created';
+	if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
+		temporaryStorage.cyverse_logic_dataObjClose_created = 'created';
+	} else {
+		temporaryStorage.cyverse_logic_dataObjClose_modified = 'modified';
+	}
 }
 
 

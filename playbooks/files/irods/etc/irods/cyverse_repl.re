@@ -523,7 +523,11 @@ cyverse_repl_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
   temporaryStorage.cyverse_repl_dataObjClose_objPath = cyverse_getValue(*DataObjInp, 'obj_path');
   temporaryStorage.cyverse_repl_dataObjClose_rescHier = cyverse_getValue(
     *DataObjInp, 'selected_hierarchy' );
-  temporaryStorage.cyverse_repl_dataObjClose_created = 'created';
+  if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
+    temporaryStorage.cyverse_repl_dataObjClose_created = 'created';
+  } else {
+    temporaryStorage.cyverse_repl_dataObjClose_modified = 'modified';
+  }
 }
 
 
