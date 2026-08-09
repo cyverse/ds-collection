@@ -2589,11 +2589,14 @@ cyverse_logic_api_touch_post(*Instance, *Comm, *JsonInput) {
 #
 # DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
 #
-# Always publish a data object create message. Store the path to the data object
+# If the open type is FILE_CREATE publish a data object create message, and .
+# Otherwise publish a data object mod message. Store the path to the data object
 # in temporaryStorage using the key `cyverse_logic_dataObjClose_objPath`. Also,
-# set the temporaryStorage key `cyverse_logic_dataObjClose_created` to some
-# value. `data_obj_close` will use the existence of this key and the other
-# object's path to publish a data object create message.
+# depending on whether a create or mod message is to be published, set the
+# temporaryStorage key `cyverse_logic_dataObjClose_created` or
+# `cyverse_logic_dataObjClose_modified` to some value. `data_obj_close` will use
+# the existence of this key and the other object's path to publish a data object
+# create or mod message.
 
 
 # DATA_OBJ_CREATE
@@ -2610,7 +2613,11 @@ cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 	temporaryStorage.cyverse_logic_dataObjClose_needsChecksum = 'checksum';
 
 	# data object creation message publishing policy
-	temporaryStorage.cyverse_logic_dataObjClose_created = 'created';
+	if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
+		temporaryStorage.cyverse_logic_dataObjClose_created = 'created';
+	} else {
+		temporaryStorage.cyverse_logic_dataObjClose_modified = 'modified';
+	}
 }
 
 

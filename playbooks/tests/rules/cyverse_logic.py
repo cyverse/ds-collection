@@ -27,9 +27,9 @@ def tearDownModule():  # pylint: disable=invalid-name
 class IdTest(IrodsTestCase):
     """Tests of _cyverse_logic_ID"""
 
-    @unittest.skip("not implemented")
     def test(self):
         """Verify that it has the correct value"""
+        self.fn_test('_cyverse_logic_ID', [], IrodsVal.string('cyverse_logic'))
 
 
 class TestContains(IrodsTestCase):
@@ -165,8 +165,18 @@ class TestAvus(IrodsTestCase):
             orig)
 
     @unittest.skip("not implemented")
-    def test_one_candidate(self):
-        """Verify that it works correctly when one candidate is provided"""
+    def test_one_candidate_matched(self):
+        """
+        Verify that it works correctly when one candidate is provided that
+        starts with the prefix.
+        """
+
+    @unittest.skip("not implemented")
+    def test_one_candidate_unmatched(self):
+        """
+        Verify that it works correctly when one candidate is provided that
+        doesn't start with the prefix.
+        """
 
     @unittest.skip("not implemented")
     def test_multiple_candidates(self):
