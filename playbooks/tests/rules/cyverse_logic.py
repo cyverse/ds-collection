@@ -158,31 +158,33 @@ class TestAvus(IrodsTestCase):
 
     def test_no_candidates(self):
         """Verify that if no candidates are provided the orignal is returned"""
-        orig = IrodsVal.string('orig')
-        self.fn_test(
-            '_cyverse_logic_getNewAVUSetting',
-            [orig, IrodsVal.string('prefix'), IrodsVal.string_list([])],
-            orig)
+        self._test_getnewavusetting('orig', 'prefix', [], 'orig')
 
-    @unittest.skip("not implemented")
     def test_one_candidate_matched(self):
         """
         Verify that it works correctly when one candidate is provided that
         starts with the prefix.
         """
+        self._test_getnewavusetting('orig', 'prefix', ['prefix' + 'val'], 'val')
 
-    @unittest.skip("not implemented")
     def test_one_candidate_unmatched(self):
         """
         Verify that it works correctly when one candidate is provided that
         doesn't start with the prefix.
         """
+        self._test_getnewavusetting('orig', 'prefix', ['val'], 'orig')
 
     @unittest.skip("not implemented")
     def test_multiple_candidates(self):
         """
         Verify that it works correctly when multiple candidates are provided
         """
+
+    def _test_getnewavusetting(self, orig_val, prefix, candidates, exp_res):
+        self.fn_test(
+            '_cyverse_logic_getNewAVUSetting',
+            [IrodsVal.string(orig_val), IrodsVal.string(prefix), IrodsVal.string_list(candidates)],
+            IrodsVal.string(exp_res))
 
 
 class TestCyVerseLogic(IrodsTestCase):
