@@ -6,7 +6,6 @@
 - name: Test common file deposition
   hosts: irods
   become: true
-  become_user: irods
   tasks:
     - name: Check common configuration files in place
       ansible.builtin.stat:
@@ -61,14 +60,25 @@
       register: response
       failed_when: not response.stat.exists
 
+    # XXX: This is to prevent TAR slip. It can be removed after upgrading to iRODS 5.1.0
+    - name: Verify msiExecCmd_bin not owned by irods
+      ansible.builtin.stat:
+        path: /var/lib/irods/msiExecCmd_bin
+      register: resp
+      failed_when: resp.stat.pw_name == 'irods' or resp.stat.wgrp or resp.stat.woth
+    # XXX: ^^^
+
     - name: Verify common command scripts are in place
       ansible.builtin.stat:
         path: /var/lib/irods/msiExecCmd_bin/{{ item }}
-      register: response
+      register: resp
+      # XXX: This is to prevent TAR slip. It can be removed after upgrading to iRODS 5.1.0
+      # failed_when: not resp.stat.exists or resp.stat.pw_name != 'irods or not resp.stat.xusr
       failed_when: >-
-        not response.stat.exists
-        or response.stat.pw_name != 'irods'
-        or not response.stat.xusr
+        not resp.stat.exists
+        or resp.stat.pw_name == 'irods'
+        or resp.stat.wgrp or resp.stat.woth or not resp.stat.xoth
+      # XXX" ^^^
       loop:
         - add-transfer
         - amqp-topic-send
@@ -140,11 +150,11 @@
               - server_config.default_file_mode == '0600'
               - server_config.default_hash_scheme == 'MD5'
               - server_config.environment_variables.IRODS_DATABASE_USER_PASSWORD_SALT == 'salt'
-              - server_config.environment_variables.IRODS_AMQP_URI == "amqp://amqp_admin:password@dstesting-amqp-1.dstesting_default:5672/%2F"
               - server_config.environment_variables.IRODS_DB_HOST == 'dstesting-dbms_configured-1.dstesting_default'
-              - server_config.environment_variables.IRODS_DB_PORT == '5432'
               - server_config.environment_variables.IRODS_DB_PASSWORD == 'testpassword'
-              - server_config.environment_variables.IRODS_DB_USERNAME == 'irods'
+              - server_config.environment_variables.IRODS_DB_PORT == '5432'
+              - server_config.environment_variables.IRODS_DB_USERNAME == 'irodsuser'
+              - server_config.environment_variables.IRODS_AMQP_URI == "amqp://amqp_admin:password@dstesting-amqp-1.dstesting_default:5672/%2F"
               - server_config.federation | length == 2
               - server_config.federation[0].catalog_provider_hosts | length == 2
               - server_config.federation[0].catalog_provider_hosts[0] == '128.196.65.155'
@@ -155,23 +165,12 @@
               - server_config.plugin_configuration.database.postgres.db_host == 'dstesting-dbms_configured-1.dstesting_default'
               - server_config.plugin_configuration.database.postgres.db_password == 'testpassword'
               - server_config.plugin_configuration.database.postgres.db_port == 5432
-              - server_config.plugin_configuration.database.postgres.db_username == 'irods'
-              - >-
-                server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set
-                  | length
-                == 4
-              - >-
-                server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[0]
-                == 'cve'
-              - >-
-                server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[1]
-                == 'cyverse_core'
-              - >-
-                server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[2]
-                == 'cyverse_housekeeping'
-              - >-
-                server_config.schema_validation_base_uri
-                == 'file:///var/lib/irods/configuration_schemas'
+              - server_config.plugin_configuration.database.postgres.db_username == 'irodsuser'
+              - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set | length == 4
+              - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[0] == 'cve'
+              - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[1] == 'cyverse_core'
+              - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[2] == 'cyverse_housekeeping'
+              - server_config.schema_validation_base_uri == 'file:///var/lib/irods/configuration_schemas'
               - server_config.server_control_plane_key == 'TEMPORARY__32byte_ctrl_plane_key'
               - server_config.server_control_plane_port == 1248
               - server_config.server_port_range_end == 19999

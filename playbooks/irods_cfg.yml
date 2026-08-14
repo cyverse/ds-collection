@@ -8,6 +8,21 @@
       tags:
         - no_testing
 
+# XXX: This can be removed after upgrading to iRODS 5.1.0
+- name: TAR slip workaround
+  hosts: irods
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ensure service account owns msiExecCmd_bin and its contents
+      ansible.builtin.file:
+        path: /var/lib/irods/msiExecCmd_bin
+        state: directory
+        owner: "{{ _irods_service_account_name }}"
+        recurse: true
+      tags: non_idempotent
+# XXX: ^^^
+
 - name: Configure iRODS
   hosts: irods_catalog
   become: "{{ _irods_become_svc_acnt }}"
@@ -148,8 +163,7 @@
 
 - name: Remove old rule files and command scripts
   hosts: irods
-  become: "{{ _irods_become_svc_acnt }}"
-  become_user: "{{ _irods_service_account_name }}"
+  become: true
   gather_facts: false
   tasks:
     - name: Remove ipc-encryption.re
@@ -161,3 +175,13 @@
       ansible.builtin.file:
         path: /var/lib/irods/msiExecCmd_bin/correct-size
         state: absent
+
+    # XXX: This can be removed after upgrading to iRODS 5.1.0
+    - name: Ensure service account can't modify msiExecCmd_bin or its contents
+      ansible.builtin.file:
+        path: /var/lib/irods/msiExecCmd_bin
+        state: directory
+        owner: root
+        mode: go-w,o+rx
+        recurse: true
+    # XXX: ^^^
