@@ -966,7 +966,7 @@ _cyverse_logic_getNewAVUSetting(*Orig, *Prefix, *Candidates) =
 	else
 		let *candidate = hd(*Candidates) in
 		if cyverse_startsWith(*candidate, *Prefix)
-		then substr(*candidate, 2, strlen(*candidate))
+		then substr(*candidate, strlen(*Prefix), strlen(*candidate))
 		else _cyverse_logic_getNewAVUSetting(*Orig, *Prefix, tl(*Candidates))
 
 
@@ -1019,14 +1019,13 @@ _cyverse_logic_needsChecksum(*DataObjOpInp) =
 	!cyverse_hasKey(*DataObjOpInp, 'regChksum') && !cyverse_hasKey(*DataObjOpInp, 'verifyChksum')
 
 # Schedule a task for computing the checksum of a given replica of a given data object
-_cyverse_logic_schedChksumRepl(*DataObjPath, *ReplNum) {
-	*dataObjId = cyverse_getDataId(*DataObjPath)
+_cyverse_logic_schedChksumRepl(*DataId, *ReplNum) {
 
 	delay(
 		'<INST_NAME>irods_rule_engine_plugin-irods_rule_language-instance</INST_NAME>' ++
 		'<PLUSET>0s</PLUSET>' ++
 		'<EF>0s REPEAT 0 TIMES</EF>'
-	) {cyverse_logic_chksumRepl(*dataObjId, *ReplNum)}
+	) {cyverse_logic_chksumRepl(*DataId, *ReplNum)}
 }
 
 # Ensures that the replica of a given data object on a given storage resource
@@ -1037,13 +1036,13 @@ _cyverse_logic_schedChksumRepl(*DataObjPath, *ReplNum) {
 #  *RescHier  (string) the resource hierarchy of the storage resource
 #
 _cyverse_logic_ensureReplicaChecksum(*DataPath, *RescHier) {
-	msiSplitPath(*DataPath, *collPath, *dataName);
+	msiSplitPath(str(*DataPath), *collPath, *dataName);
 
 	foreach ( *rec in
 		SELECT DATA_REPL_NUM
 		WHERE COLL_NAME == *collPath AND DATA_NAME == *dataName AND DATA_RESC_HIER == *RescHier
 	) {
-		_cyverse_logic_schedChksumRepl(*DataPath, *rec.DATA_REPL_NUM);
+		_cyverse_logic_schedChksumRepl(cyverse_getDataId(*DataPath), *rec.DATA_REPL_NUM);
 	}
 }
 

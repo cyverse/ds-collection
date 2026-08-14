@@ -526,8 +526,10 @@ cyverse_repl_api_touch_post(*Instance, *Comm, *JsonInput) {
 # is replicated. This stores the data object path in temporaryStorage using the
 # key `cyverse_repl_dataObjClose_objPath`. The selected resource hierarchy for
 # its replica using the key `cyverse_repl_dataObjClose_selectedHierarchy`. The
-# key `cyverse_repl_dataObjClose_created` is set to 'created'. The replication
-# logic will be triggered in the DATA_OBJ_CLOSE PEP.
+# key `cyverse_repl_dataObjClose_created` is set to 'created', when a data
+# object is being created. The key `cyverse_repl_dataObjClose_modified` is set
+# to `modified` when otherwise. The replication logic will be triggered in the
+# DATA_OBJ_CLOSE PEP.
 #
 # Parameters:
 #  Instance    (string) unknown
