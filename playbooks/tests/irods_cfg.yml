@@ -77,7 +77,7 @@
       failed_when: >-
         not resp.stat.exists
         or resp.stat.pw_name == 'irods'
-        or resp.stat.wgrp or resp.stat.woth or not resp.stat.xoth
+        or resp.stat.wgrp or resp.stat.woth or not resp.stat.xgrp or not resp.stat.rgrp
       # XXX" ^^^
       loop:
         - add-transfer

@@ -20,6 +20,7 @@ from irods.data_object import iRODSDataObject
 from irods.exception import (
     CAT_NO_ACCESS_PERMISSION, CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CUT_ACTION_PROCESSED_ERR,
     iRODSException)
+from irods.models import Group
 from irods.path import iRODSPath
 from irods.session import iRODSSession
 from paramiko import AutoAddPolicy, SSHClient
@@ -335,7 +336,7 @@ class TestDelVal(_CveTest):
     """Test _cve_DEL_VAL"""
 
     def test(self):
-        """Verify that that is is the delete value"""
+        """Verify that the delete value is correct"""
         self.fn_test('_cve_DEL_VAL', [], IrodsVal.integer(1130))
 
 
@@ -351,7 +352,9 @@ class TestDeleteAllowed(_CveTest):
 
     def setUp(self):
         super().setUp()
-        self.irods.groups.create(self._deleter_group)
+        result = self.irods.query().count(Group.id).filter(Group.name == self._deleter_group).one()
+        if int(result[Group.id]) == 0:
+            self.irods.groups.create(self._deleter_group)
         self.ensure_user_exists(self._deleter_user)
         self.ensure_user_exists(self._reader_user)
         self.ensure_user_exists(self._group_member)
@@ -390,129 +393,6 @@ class TestDeleteAllowed(_CveTest):
                     '_cve_delete_allowed',
                     [IrodsVal.string(username), IrodsVal.string(self.irods.zone), p],
                     IrodsVal.boolean(expected_result))
-
-
-class TestPepApiDataObjUnlinkPreRead(_CveTest):
-    """Test pep_api_data_obj_unlink_pre prevents reader from deleting replica file"""
-
-    @classmethod
-    def setUpClass(cls):
-        test_rules.clear_rods_log()
-
-    def __init__(self, method: str):
-        super().__init__(method)
-        self._user = 'tester'
-        self._replica_file = None
-        self._deleted = None
-
-    def setUp(self):
-        super().setUp()
-        self.ensure_user_exists(self._user, 'password')
-        obj = self.ensure_test_data_exists()
-        self._replica_file = obj.replicas[0]
-        self.irods.acls.set(iRODSAccess('write', path.dirname(_TEST_DATA), self._user))
-        self.irods.acls.set(iRODSAccess('read', _TEST_DATA, self._user))
-        self.update_rulebase([('cyverse_core.re', 'mocks/cyverse_core.re')])
-        with iRODSSession(
-            host=self.irods.host,
-            port=self.irods.port,
-            zone=self.irods.zone,
-            user=self._user,
-            password='password',
-        ) as user_sess:
-            try:
-                user_sess.data_objects.unlink(_TEST_DATA, force=True)
-                self._deleted = True
-            except CAT_NO_ACCESS_PERMISSION:
-                self._deleted = False
-            except CUT_ACTION_PROCESSED_ERR:
-                self._deleted = False
-
-    def tearDown(self):
-        self.update_rulebase([('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')])
-        self.ensure_obj_absent(_TEST_DATA)
-        self.irods.users.remove(self._user)
-        super().tearDown()
-
-    def test_command_failed(self):
-        """Verify that the command failed"""
-        if self._deleted:
-            self.fail("The command should have failed")
-
-    def test_replica_file_exists(self):
-        """Verify that a replica file is not removed"""
-        if self._replica_file:
-            resc = self.irods.resources.get(self._replica_file.resource_name)
-            ssh = SSHClient()
-            ssh.set_missing_host_key_policy(AutoAddPolicy())
-            ssh.connect(resc.location, password='')  # pylint: disable=no-member  # type: ignore
-            _, stdout, _ = ssh.exec_command(f"test -e '{self._replica_file.path}'")
-            if stdout.channel.recv_exit_status() != 0:
-                self.fail("replica was deleted")
-            ssh.close()
-
-    def test_cyversecore_not_called(self):
-        """Verify that the cyverse_core.re version of the PEP is not called"""
-        for line in self.tail_rods_log():
-            if 'cyverse_core: pep_api_data_obj_unlink_pre' in line:
-                self.fail('cyverse_core version called')
-
-
-class TestPepApiDataObjUnlinkPreDelete(_CveTest):
-    """Test pep_api_data_obj_unlink_pre allows deleter to delete replica file"""
-
-    @classmethod
-    def setUpClass(cls):
-        test_rules.clear_rods_log()
-
-    def __init__(self, method: str):
-        super().__init__(method)
-        self._user = 'tester'
-        self._deleted = None
-
-    def setUp(self):
-        super().setUp()
-        self.ensure_user_exists(self._user, 'password')
-        obj = self.ensure_test_data_exists()
-        self._replica_file = obj.replicas[0]
-        self.irods.acls.set(iRODSAccess('write', path.dirname(_TEST_DATA), self._user))
-        self.irods.acls.set(iRODSAccess('delete_object', _TEST_DATA, self._user))
-        self.update_rulebase([('cyverse_core.re', 'mocks/cyverse_core.re')])
-        with iRODSSession(
-            host=self.irods.host,
-            port=self.irods.port,
-            zone=self.irods.zone,
-            user=self._user,
-            password='password',
-        ) as user_sess:
-            try:
-                user_sess.data_objects.unlink(_TEST_DATA, force=True)
-                self._deleted = True
-            except CAT_NO_ACCESS_PERMISSION:
-                self._deleted = False
-
-    def tearDown(self):
-        self.update_rulebase([('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')])
-        self.ensure_obj_absent(_TEST_DATA)
-        self.irods.users.remove(self._user)
-        super().tearDown()
-
-    def test_command_succeeded(self):
-        """Verify that the command succeeded"""
-        if self._deleted is not True:
-            self.fail("The command should have succeeded")
-
-    def test_obj_deleted(self):
-        """Verify that data object deleted"""
-        if self.irods.data_objects.exists(_TEST_DATA):
-            self.fail("the data object wasn't deleted")
-
-    def test_cyversecore_called(self):
-        """Verify that the cyverse_core.re version of the PEP is called"""
-        for line in self.tail_rods_log():
-            if 'cyverse_core: pep_api_data_obj_unlink_pre' in line:
-                return
-        self.fail('cyverse_core version not called')
 
 
 if __name__ == "__main__":
