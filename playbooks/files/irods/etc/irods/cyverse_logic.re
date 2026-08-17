@@ -1991,7 +1991,12 @@ cyverse_logic_acPostProcForCollCreate(*CollPath, *ClientUsername, *ClientZone) {
 #  ClientZone      (string) the authentication zone for the client user
 #
 cyverse_logic_acDeleteCollByAdminIfPresent(*ParCollPath, *CollName, *ClientUsername, *ClientZone) {
-	cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName, *ClientUsername, *ClientZone);
+	*path = *ParCollPath ++ '/' ++ *CollName;
+	*uuid = _cyverse_logic_getCollUUID(*path);
+
+	if (*uuid != '') {
+		_cyverse_logic_sendEntityRm(cyverse_COLL, *uuid, *path, *ClientUsername, *ClientZone);
+	}
 }
 
 # This rule stores the name UUID of a collection that is about to be deleted for
