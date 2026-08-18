@@ -911,6 +911,8 @@
 # © 2021 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
+_cyverse_logic_ID = 'cyverse_logic'
+
 
 #
 # LISTS
@@ -964,7 +966,7 @@ _cyverse_logic_getNewAVUSetting(*Orig, *Prefix, *Candidates) =
 	else
 		let *candidate = hd(*Candidates) in
 		if cyverse_startsWith(*candidate, *Prefix)
-		then substr(*candidate, 2, strlen(*candidate))
+		then substr(*candidate, strlen(*Prefix), strlen(*candidate))
 		else _cyverse_logic_getNewAVUSetting(*Orig, *Prefix, tl(*Candidates))
 
 
@@ -1017,14 +1019,13 @@ _cyverse_logic_needsChecksum(*DataObjOpInp) =
 	!cyverse_hasKey(*DataObjOpInp, 'regChksum') && !cyverse_hasKey(*DataObjOpInp, 'verifyChksum')
 
 # Schedule a task for computing the checksum of a given replica of a given data object
-_cyverse_logic_schedChksumRepl(*DataObjPath, *ReplNum) {
-	*dataObjId = cyverse_getDataId(*DataObjPath)
+_cyverse_logic_schedChksumRepl(*DataId, *ReplNum) {
 
 	delay(
 		'<INST_NAME>irods_rule_engine_plugin-irods_rule_language-instance</INST_NAME>' ++
 		'<PLUSET>0s</PLUSET>' ++
 		'<EF>0s REPEAT 0 TIMES</EF>'
-	) {cyverse_logic_chksumRepl(*dataObjId, *ReplNum)}
+	) {cyverse_logic_chksumRepl(*DataId, *ReplNum)}
 }
 
 # Ensures that the replica of a given data object on a given storage resource
@@ -1035,13 +1036,13 @@ _cyverse_logic_schedChksumRepl(*DataObjPath, *ReplNum) {
 #  *RescHier  (string) the resource hierarchy of the storage resource
 #
 _cyverse_logic_ensureReplicaChecksum(*DataPath, *RescHier) {
-	msiSplitPath(*DataPath, *collPath, *dataName);
+	msiSplitPath(str(*DataPath), *collPath, *dataName);
 
 	foreach ( *rec in
 		SELECT DATA_REPL_NUM
 		WHERE COLL_NAME == *collPath AND DATA_NAME == *dataName AND DATA_RESC_HIER == *RescHier
 	) {
-		_cyverse_logic_schedChksumRepl(*DataPath, *rec.DATA_REPL_NUM);
+		_cyverse_logic_schedChksumRepl(cyverse_getDataId(*DataPath), *rec.DATA_REPL_NUM);
 	}
 }
 
@@ -1118,28 +1119,6 @@ _cyverse_logic_ensureUUID(*EntityType, *EntityPath, *ClientName, *ClientZone, *U
 		_cyverse_logic_assignUUID(*EntityType, *EntityPath, *uuid, *ClientName, *ClientZone);
 	}
 	*UUID = *uuid;
-}
-
-
-#
-# ACTION TRACKING
-#
-
-_cyverse_logic_mkActionKey(*EntityId) = 'cyverse_logic' ++ str(*EntityId) ++ '-ROOT_ACTION'
-
-_cyverse_logic_isCurrentAction(*EntityId, *Action) =
-	cyverse_getValue(temporaryStorage, _cyverse_logic_mkActionKey(*EntityId)) == *Action
-
-_cyverse_logic_registerAction(*EntityId, *Action) {
-	*key = _cyverse_logic_mkActionKey(*EntityId);
-	if (!cyverse_hasKey(temporaryStorage, *key)) {
-		temporaryStorage."*key" = *Action;
-	}
-}
-
-_cyverse_logic_unregisterAction(*EntityId, *Action) {
-	*key = _cyverse_logic_mkActionKey(*EntityId);
-	temporaryStorage."*key" = '';
 }
 
 
@@ -1653,13 +1632,13 @@ cyverse_logic_acPreProcForModifyAccessControl(*RecurseFlag, *Perm, *Username, *Z
 cyverse_logic_acPostProcForModifyAccessControl(
 	*RecurseFlag, *Perm, *Username, *UserZone, *Path, *ClientUsername, *ClientZone
 ) {
-	*me = 'cyverse_logic_acPostProcForModifyAccessControl';
+	*me = 'acPostProcForModifyAccessControl';
 	*entityId = _cyverse_logic_getId(*Path);
 
 	if (*entityId >= 0) {
-		_cyverse_logic_registerAction(*entityId, *me);
+		cyverse_registerAction(_cyverse_logic_ID, *me, *entityId);
 
-		if (_cyverse_logic_isCurrentAction(*entityId, *me)) {
+		if (cyverse_isCurrentAction(_cyverse_logic_ID, *me, *entityId)) {
 			*lvl = cyverse_rmPrefix(*Perm, list('admin:'));
 			*type = cyverse_getEntityType(*Path);
 			*userZone = if *UserZone == '' then cyverse_ZONE else *UserZone;
@@ -1680,7 +1659,7 @@ cyverse_logic_acPostProcForModifyAccessControl(
 					*uuid, *lvl, *Username, *userZone, *ClientUsername, *ClientZone );
 			}
 
-			_cyverse_logic_unregisterAction(*entityId, *me);
+			cyverse_unregisterAction(_cyverse_logic_ID, *me, *entityId);
 		}
 	}
 }
@@ -2012,7 +1991,12 @@ cyverse_logic_acPostProcForCollCreate(*CollPath, *ClientUsername, *ClientZone) {
 #  ClientZone      (string) the authentication zone for the client user
 #
 cyverse_logic_acDeleteCollByAdminIfPresent(*ParCollPath, *CollName, *ClientUsername, *ClientZone) {
-	cyverse_logic_acDeleteCollByAdmin(*ParCollPath, *CollName, *ClientUsername, *ClientZone);
+	*path = *ParCollPath ++ '/' ++ *CollName;
+	*uuid = _cyverse_logic_getCollUUID(*path);
+
+	if (*uuid != '') {
+		_cyverse_logic_sendEntityRm(cyverse_COLL, *uuid, *path, *ClientUsername, *ClientZone);
+	}
 }
 
 # This rule stores the name UUID of a collection that is about to be deleted for
@@ -2110,16 +2094,16 @@ cyverse_logic_acPostProcForOpen(*DataPath, *DataSize, *ClientUsername, *ClientZo
 	*id = cyverse_getDataId(*DataPath);
 
 	if (*id >= 0) {
-		_cyverse_logic_registerAction(*id, *me);
+		cyverse_registerAction(_cyverse_logic_ID, *me, *id);
 
-		if (_cyverse_logic_isCurrentAction(*id, *me)) {
+		if (cyverse_isCurrentAction(_cyverse_logic_ID, *me, *id)) {
 			*uuid = '';
 
 			_cyverse_logic_ensureUUID(
 				cyverse_DATA_OBJ, *DataPath, *ClientUsername, *ClientZone, *uuid );
 
 			_cyverse_logic_sendDataObjOpen(*uuid, *DataPath, *DataSize, *ClientUsername, *ClientZone);
-			_cyverse_logic_unregisterAction(*id, *me);
+			cyverse_unregisterAction(_cyverse_logic_ID, *me, *id);
 		}
 	}
 }
@@ -2182,7 +2166,7 @@ cyverse_logic_acPostProcForParallelTransferReceived(*StoreResc) {
 # cyverse_logic_dataObjCreated(*Username, *Zone, *DataObjInfo) {
 # 	*me = 'cyverse_logic_dataObjCreated';
 # 	*id = int(*DataObjInfo.data_id);
-# 	_cyverse_logic_registerAction(*id, *me);
+# 	cyverse_registerAction(_cyverse_logic_ID, *me, *id);
 # 	*err = errormsg(_cyverse_logic_setAdmPerm(*DataObjInfo.logical_path), *msg);
 # 	if (*err < 0) { writeLine('serverLog', *msg); }
 #
@@ -2193,7 +2177,7 @@ cyverse_logic_acPostProcForParallelTransferReceived(*StoreResc) {
 # 		*DataObjInfo.data_owner_name,
 # 		*DataObjInfo.data_owner_zone,
 # 		*uuid );
-# 	_cyverse_logic_unregisterAction(*id, *me);
+# 	cyverse_unregisterAction(_cyverse_logic_ID, *me, *id);
 # }
 #  Step         (string) the current step in the transfer process, one of
 #               'FULL', 'START', or 'FINISH'
@@ -2201,7 +2185,7 @@ cyverse_logic_acPostProcForParallelTransferReceived(*StoreResc) {
 cyverse_logic_dataObjCreated(*Username, *Zone, *DataObjInfo, *Step) {
 	*me = 'cyverse_logic_dataObjCreated';
 	*id = int(*DataObjInfo.data_id);
-	_cyverse_logic_registerAction(*id, *me);
+	cyverse_registerAction(_cyverse_logic_ID, *me, *id);
 
 	*uuid = '';
 
@@ -2218,8 +2202,8 @@ cyverse_logic_dataObjCreated(*Username, *Zone, *DataObjInfo, *Step) {
 	}
 
 	if (*Step != 'START') {
-		if (_cyverse_logic_isCurrentAction(*id, *me)) {
-			_cyverse_logic_unregisterAction(*id, *me);
+		if (cyverse_isCurrentAction(_cyverse_logic_ID, *me, *id)) {
+			cyverse_unregisterAction(_cyverse_logic_ID, *me, *id);
 		}
 	}
 }
@@ -2234,17 +2218,17 @@ cyverse_logic_dataObjCreated(*Username, *Zone, *DataObjInfo, *Step) {
 #  Path      (path) the path to the modified data object
 #
 cyverse_logic_dataObjMetaMod(*Username, *Zone, *Path) {
-	*me = 'cyverse_logic_dataObjMetadataMod';
+	*me = 'dataObjMetaMod';
 	*id = cyverse_getDataId(*Path);
 
 	if (*id >= 0) {
-		_cyverse_logic_registerAction(*id, *me);
+		cyverse_registerAction(_cyverse_logic_ID, *me, *id);
 
-		if (_cyverse_logic_isCurrentAction(*id, *me)) {
+		if (cyverse_isCurrentAction(_cyverse_logic_ID, *me, *id)) {
 			*uuid = '';
 			_cyverse_logic_ensureUUID(cyverse_DATA_OBJ, *Path, *Username, *Zone, *uuid);
 			_cyverse_logic_sendDataObjMetadataMod(*uuid, *Username, *Zone);
-			_cyverse_logic_unregisterAction(*id, *me);
+			cyverse_unregisterAction(_cyverse_logic_ID, *me, *id);
 		}
 	}
 }
@@ -2609,11 +2593,14 @@ cyverse_logic_api_touch_post(*Instance, *Comm, *JsonInput) {
 #
 # DATA OBJ CREATE AND MOD MSG PUBLISHING ALGORITHM:
 #
-# Always publish a data object create message. Store the path to the data object
+# If the open type is FILE_CREATE publish a data object create message, and .
+# Otherwise publish a data object mod message. Store the path to the data object
 # in temporaryStorage using the key `cyverse_logic_dataObjClose_objPath`. Also,
-# set the temporaryStorage key `cyverse_logic_dataObjClose_created` to some
-# value. `data_obj_close` will use the existence of this key and the other
-# object's path to publish a data object create message.
+# depending on whether a create or mod message is to be published, set the
+# temporaryStorage key `cyverse_logic_dataObjClose_created` or
+# `cyverse_logic_dataObjClose_modified` to some value. `data_obj_close` will use
+# the existence of this key and the other object's path to publish a data object
+# create or mod message.
 
 
 # DATA_OBJ_CREATE

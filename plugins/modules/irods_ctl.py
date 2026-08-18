@@ -51,7 +51,7 @@ options:
 '''
 
 EXAMPLES = r'''
-- name: Stop and iRODS server
+- name: Stop an iRODS server
   irods_ctl:
     state: stopped
 '''
