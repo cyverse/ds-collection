@@ -8,6 +8,25 @@
   become: true
   become_flags: '-i'
   tasks:
+    - name: Verify irods limits file is in place
+      ansible.builtin.stat:
+        path: /etc/security/limits.d/irods.conf
+      register: resp
+      failed_when: not resp.stat.exists
+
+    - name: Retrieve irods limits file
+      ansible.builtin.slurp:
+        src: /etc/security/limits.d/irods.conf
+      register: limits_encoded
+
+    - name: Decode irods limits
+      ansible.builtin.set_fact:
+        limits: "{{ limits_encoded.content | b64decode }}"
+
+    - name: Verify max open files set correctly
+      ansible.builtin.assert:
+        that: limits is search('irods *soft *nofile *2000\n')
+
     - name: Verify python packages installed
       community.general.pip_package_info:
         clients: pip3
