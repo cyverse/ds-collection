@@ -35,6 +35,13 @@
       tags:
         - no_testing
 
+    - name: Set open file limit for irods users
+      ansible.builtin.copy:
+        dest: /etc/security/limits.d/irods.conf
+        mode: a+r
+        content: |
+          {{ _irods_service_account_name }}  soft  nofile  2000
+
     - name: Ensure pika installed
       ansible.builtin.pip:
         name: pika>=1.2
