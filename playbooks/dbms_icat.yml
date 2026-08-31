@@ -4,7 +4,6 @@
   run_once: true
   become: true
   become_user: postgres
-  gather_facts: false
   tasks:
     - name: Create DB on primary DBMS
       ansible.builtin.import_role:
@@ -16,3 +15,22 @@
         postgresql_db_admin_username: "{{ _dbms_irods_username }}"
         postgresql_db_admin_password: "{{ _dbms_irods_password }}"
         postgresql_db_client_hosts: "{{ groups['irods_catalog'] }}"
+
+    - name: Create transfer totals table
+      community.postgresql.postgresql_table:
+        login_db: ICAT
+        owner: "{{ _dbms_irods_username }}"
+        name: r_transfer_totals
+        columns:
+          - user_id BIGINT NOT NULL
+          - action VARCHAR(250) NOT NULL
+          - exbibytes BIGINT NOT NULL
+          - bytes BIGINT NOT NULL
+
+    - name: Create index for transfer totals table
+      community.postgresql.postgresql_idx:
+        login_db: ICAT
+        name: unique_user_action
+        table: r_transfer_totals
+        columns: user_id, action
+        unique: true

@@ -53,7 +53,7 @@
               where RESC_NAME = 'pireRes'
                 and META_RESC_ATTR_NAME = 'ipc::hosted-collection'
                 and META_RESC_ATTR_VALUE = '{{ item }}'
-                and META_RESC_ATTR_UNITS = 'required'" )"
+                and META_RESC_ATTR_UNITS = 'forced'" )"
           (( num == 1 ))
       loop:
         - /testing/home/shared/eht

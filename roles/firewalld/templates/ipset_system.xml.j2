@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+{{ ansible_managed | ansible.builtin.comment('xml') }}
+
+<ipset type="hash:ip">
+  <short>{{ firewalld_service_name }}_system</short>
+  <description>
+    The set of system hosts that require access to one of the hosted services
+  </description>
+{% for host in [ firewalld_system_hosts ] | flatten %}
+  <entry>{{ host if host | ansible.utils.ipaddr else lookup('dig', host) }}</entry>
+{% endfor %}
+</ipset>

@@ -10,6 +10,17 @@
       tags:
         - no_testing
 
+    - name: Update package list
+      ansible.builtin.apt:
+        update_cache: true
+
+    - name: Ensure required config tools are installed
+      ansible.builtin.package:
+        name:
+          - curl
+          - jq
+        state: present
+
     - name: Ensure iRODS user for SFTPGo exists  # noqa: run-once[task]
       delegate_to: localhost
       become: false
@@ -26,20 +37,20 @@
         zone: "{{ _sftp_irods_zone }}"
 
     - name: Place TLS certificate chain file
-      when: _sftp_admin_tls_cert_chain
+      when: _sftp_admin_tls_cert_chain|bool and _sftp_admin_tls_cert_chain_file|bool
       ansible.builtin.copy:
         content: "{{ _sftp_admin_tls_cert_chain }}"
-        path: "{{ _sftp_admin_tls_cert_chain_file }}"
+        dest: "{{ _sftp_admin_tls_cert_chain_file }}"
         mode: a+r
-      notify: Reload sftpgo
+      notify: Restart sftpgo
 
     - name: Place TLS certificate key file
-      when: _sftp_admin_tls_key
+      when: _sftp_admin_tls_cert_chain|bool and _sftp_admin_tls_cert_chain_file|bool
       ansible.builtin.copy:
         content: "{{ _sftp_admin_tls_key }}"
-        path: "{{ _sftp_admin_tls_key_file }}"
+        dest: "{{ _sftp_admin_tls_key_file }}"
         mode: ug+r
-      notify: Reload sftpgo
+      notify: Restart sftpgo
 
     - name: Check if sftpgo is already installed
       ansible.builtin.stat:
@@ -66,8 +77,8 @@
       when: >-
         (not sftpgo_resp.stat.exists)
         or (sftpgo_account.rc != 0)
-        or (sftpgo_version.stdout != '2.4.5')
-        or (sftpgo_resp.stat.checksum != '01d5b2133ad07d56b46ae2297e1aa89b8a5a2bef')
+        or (sftpgo_version.stdout != '2.7.3')
+        or (sftpgo_resp.stat.checksum != '77e28f386491d3ecd0ac0853d50eecc6554a485a')
       notify: Restart sftpgo
       block:
         - name: Check if sftpgo service exists
@@ -93,7 +104,7 @@
 
         - name: Download sftpgo package from github and uncompress
           ansible.builtin.unarchive:
-            src: https://github.com/cyverse/sftpgo/releases/download/v2.4.5i5/sftpgo_amd64_linux_v2.4.5i5.tar
+            src: https://github.com/cyverse/sftpgo/releases/download/v2.7.3i/sftpgo_amd64_linux_v2.7.3i.tar
             dest: /tmp/sftpgo_setup
             remote_src: true
           notify: Install sftpgo
@@ -128,7 +139,7 @@
       changed_when: false
 
     - name: Install SFTPGo iRODS Auth plugin
-      when: not sftpgo_auth_irods_resp.stat.exists or sftpgo_auth_irods_version.stdout != 'v0.1.14'
+      when: not sftpgo_auth_irods_resp.stat.exists or sftpgo_auth_irods_version.stdout != 'v0.2.0'
       block:
         - name: Create download dir for sftpgo-auth-irods package
           ansible.builtin.file:
@@ -138,7 +149,7 @@
 
         - name: Download sftpgo-auth-irods package from github and uncompress
           ansible.builtin.unarchive:
-            src: https://github.com/cyverse/sftpgo-auth-irods/releases/download/v0.1.14/sftpgo-auth-irods-v0.1.14-linux-amd64.tar.gz
+            src: https://github.com/cyverse/sftpgo-auth-irods/releases/download/v0.2.0/sftpgo-auth-irods-v0.2.0-linux-amd64.tar.gz
             dest: /tmp/sftpgo_auth_irods_setup
             remote_src: true
           notify: Install sftpgo-auth-irods
@@ -300,6 +311,79 @@
         - Reload systemd
         - Restart sftpgo
 
+    - name: Flush handlers to ensure sftpgo is running before issuing API key
+      ansible.builtin.meta: flush_handlers
+
+    - name: Wait for SFTPGo REST API to become ready
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: curl -sf http://localhost:{{ _sftp_admin_ui_port }}/healthz
+      register: _sftpgo_version
+      retries: 30
+      delay: 2
+      until: _sftpgo_version.rc == 0
+      changed_when: false
+      tags: no_testing
+
+    - name: Get SFTPGo admin JWT token
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          curl --fail --silent --user '{{ _sftp_admin_username }}:{{ _sftp_admin_password }}' \
+              http://localhost:{{ _sftp_admin_ui_port }}/api/v2/token \
+            | sed 's/.*"access_token":"\([^"]*\)".*/\1/'
+      register: _sftpgo_token
+      changed_when: false
+      no_log: true
+      tags: no_testing
+
+    - name: Enable API key auth for SFTPGo admin
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: >-
+          curl -sf -X PUT
+          -H 'Authorization: Bearer {{ _sftpgo_token.stdout }}'
+          -H 'Content-Type: application/json'
+          -d '{"status":1,"username":"{{ _sftp_admin_username }}","password":"{{ _sftp_admin_password }}","permissions":["*"],"filters":{"allow_api_key_auth":true}}'
+          http://localhost:{{ _sftp_admin_ui_port }}/api/v2/admins/{{ _sftp_admin_username }}
+      changed_when: true
+      no_log: true
+      tags: no_testing
+
+    - name: Issue SFTPGo API key for sftpgo-auth-irods
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: >-
+          curl -sf -X POST
+          -H 'Authorization: Bearer {{ _sftpgo_token.stdout }}'
+          -H 'Content-Type: application/json'
+          -d '{"name":"sftpgo-auth-irods","scope":1,"admin":"{{ _sftp_admin_username }}"}'
+          http://localhost:{{ _sftp_admin_ui_port }}/api/v2/apikeys
+          | sed 's/.*"key":"\([^"]*\)".*/\1/'
+      register: _sftpgo_apikey
+      changed_when: true
+      no_log: true
+      tags: no_testing
+
+    - name: Patch sftpgo.json with API key
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          CFG=/etc/sftpgo/sftpgo.json
+          TMP=$(mktemp)
+          jq --arg base_url "http://localhost:{{ _sftp_admin_ui_port }}" \
+             --arg api_key "{{ _sftpgo_apikey.stdout }}" \
+            '.command.commands[0].env +=
+              ["SFTPGO_API_BASE_URL=" + $base_url, "SFTPGO_API_KEY=" + $api_key]' \
+            "$CFG" > "$TMP" && mv "$TMP" "$CFG"
+          chmod 664 "$CFG"
+          chown sftpgo "$CFG"
+      become: true
+      notify: Restart sftpgo
+      tags: no_testing
+
     # It updates MOTD by installing a shell script the shell script generates a
     # message for SFTPGo
     - name: Update message of the day
@@ -325,12 +409,6 @@
       when: notifications_enabled | d(false)
       ansible.builtin.systemd:
         daemon_reload: true
-
-    - name: Reload sftpgo
-      when: notifications_enabled | d(false)
-      ansible.builtin.service:
-        name: sftpgo
-        state: reload
 
     - name: Restart sftpgo
       when: notifications_enabled | d(false)

@@ -35,6 +35,13 @@
       tags:
         - no_testing
 
+    - name: Set open file limit for irods users
+      ansible.builtin.copy:
+        dest: /etc/security/limits.d/irods.conf
+        mode: a+r
+        content: |
+          {{ _irods_service_account_name }}  soft  nofile  2000
+
     - name: Ensure pika installed
       ansible.builtin.pip:
         name: pika>=1.2
@@ -65,8 +72,15 @@
             state: present
 
         - name: CentOS | install PostgreSQL 12 repository
-          ansible.builtin.yum:
-            name: https://download.postgresql.org/pub/repos/yum/reporpms/EL-7-x86_64/pgdg-redhat-repo-latest.noarch.rpm
+          ansible.builtin.copy:
+            dest: /etc/yum.repos.d/pgdg-12.repo
+            mode: a+r
+            content: |
+              [pgdg12-archive]
+              name=PostgreSQL 12 RPMs for RHEL/Rocky Linux/AlmaLinux/CentOS 7
+              baseurl=https://yum-archive.postgresql.org/12/redhat/rhel-7-x86_64
+              enabled=1
+              gpgcheck=0
 
         - name: CentOS | install PostgreSQL 12 clients are installed
           ansible.builtin.package:
@@ -157,6 +171,11 @@
   become_user: "{{ _irods_service_account_name }}"
   become_flags: "-i"
   gather_facts: false
+  vars:
+    amqp_user_info: "{{ _irods_amqp_username }}:{{ _irods_amqp_password }}"
+    amqp_authority: "{{ amqp_user_info }}@{{ _irods_amqp_host }}:{{ _irods_amqp_port }}"
+    amqp_path: /{{ _irods_amqp_vhost | replace('/', '%2F') }}
+    amqp_uri: amqp://{{ amqp_authority }}{{ amqp_path }}
   tasks:
     - name: Set up iRODS
       ansible.builtin.include_role:
@@ -173,7 +192,7 @@
           db_odbc_driver: "{{ _irods_odbc_driver }}"
           db_password: "{{ _irods_db_password }}"
           db_port: "{{ _irods_dbms_port }}"
-          db_username': "{{ _irods_db_username }}"
+          db_username: "{{ _irods_db_username }}"
         irods_cfg_database_user_password_salt: "{{ _irods_user_password_salt }}"
         irods_cfg_default_dir_mode: "{{ _irods_default_dir_mode }}"
         irods_cfg_default_file_mode: "{{ _irods_default_file_mode }}"
@@ -183,8 +202,11 @@
         irods_cfg_default_resource_directory: "{{ _irods_default_vault }}"
         irods_cfg_default_resource_name: "{{ _irods_default_resource }}"
         irods_cfg_environment_variables:
-          IRODS_AMQP_URI: >-
-            amqp://{{ _irods_amqp_username }}:{{ _irods_amqp_password }}@{{ _irods_amqp_host }}:{{ _irods_amqp_port }}/{{ _irods_amqp_vhost | replace('/', '%2F') }}
+          IRODS_AMQP_URI: "{{ amqp_uri }}"
+          IRODS_DB_HOST: "{{ _irods_dbms_host }}"
+          IRODS_DB_PORT: "{{ _irods_dbms_port }}"
+          IRODS_DB_USERNAME: "{{ _irods_db_username }}"
+          IRODS_DB_PASSWORD: "{{ _irods_db_password }}"
         irods_cfg_federation: "{{ _irods_federation }}"
         irods_cfg_host_entries: >-
           {{ [] if _irods_host_aliases | count == 0 else

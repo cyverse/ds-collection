@@ -9,12 +9,25 @@
 import unittest
 
 import test_rules
-from test_rules import IrodsTestCase
+from test_rules import IrodsTestCase, IrodsVal
 
 
-@test_rules.unimplemented
+def setUpModule():  # pylint: disable=invalid-name
+    """Set up main module"""
+    test_rules.setUpModule()
+
+
+def tearDownModule():  # pylint: disable=invalid-name
+    """Tear down main module"""
+    test_rules.tearDownModule()
+
+
 class TestPireEnv(IrodsTestCase):
     """Tests of pire-env.re"""
+
+    def test_resc(self):
+        """Verify that pire_RESC is set correctly"""
+        self.fn_test('pire_RESC', [], IrodsVal.string('pireRes'))
 
 
 if __name__ == "__main__":

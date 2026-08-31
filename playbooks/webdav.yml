@@ -10,6 +10,10 @@
             LoadModule log_forensic_module modules/mod_log_forensic.so
           </IfModule>
 
+          <IfModule !macro_module>
+            LoadModule macro_module modules/mod_macro.so
+          </IfModule>
+
           <IfModule !proxy_html_module>
             LoadModule proxy_html_module modules/mod_proxy_html.so
           </IfModule>
@@ -48,13 +52,19 @@
           ProxyHTMLEnable On
           ProxyHTMLLinks a href
           ProxyHTMLLinks base href
+
+          ErrorDocument 410 /errors/moved_project.html
         apache_vhosts:
           - servername: "{{ _webdav_canonical_hostname }}"
             extra_parameters: |
               ServerAlias {{ inventory_hostname }}
 
               ErrorLog logs/http_error_log
-              CustomLog logs/http_request_log {{ '"%{%Y-%m-%d %T}t.%{usec_frac}t %a \"%r\" %>s %L %{forensic-id}n"' }}
+
+              CustomLog \
+                logs/http_request_log \
+                {{ '"%{%Y-%m-%d %T}t.%{usec_frac}t %a \"%r\" %>s %L %{forensic-id}n"' }}
+
               LogLevel warn
 
               RedirectPermanent / https://{{ _webdav_canonical_hostname }}/
@@ -62,12 +72,16 @@
           - servername: "{{ _webdav_canonical_hostname }}"
             listen_ip: 127.0.0.1
             extra_parameters: |
-              {% if _webdav_davrods_access_limit %}
-              QS_LocRequestLimit /dav {{ _webdav_davrods_access_limit }}
+              {% if _webdav_irods_access_limit %}
+              QS_LocRequestLimit /dav {{ _webdav_irods_access_limit }}
               {% endif %}
 
               ErrorLog logs/error_log
-              CustomLog logs/access_log {{ '"%{%Y-%m-%d %T}t.%{usec_frac}t %{X-Forwarded-For}i \"%r\" %>s %L %{forensic-id}n"' }}
+
+              CustomLog \
+                logs/access_log \
+                {{ '"%{%Y-%m-%d %T}t.%{usec_frac}t %{X-Forwarded-For}i \"%r\" %>s %L %{forensic-id}n"' }}
+
               LogLevel warn
 
               Header set Access-Control-Allow-Headers "Range"
@@ -90,13 +104,26 @@
               RewriteCond expr "unescape($1) =~ /(.+)/"
               RewriteRule .* - [E=DAVRODS_TICKET:%1,QSD,L]
 
+              RewriteRule \
+                "^/dav/{{ _webdav_irods_zone }}/(commons/community_released|projects)/([^/]*)" \
+                - \
+                [E=PROJECT:$2]
+
+              <Macro RedirectMovedProjects $path>
+              {% if _webdav_moved_projects %}
+                <If "%{ENV:PROJECT} in { {{ _webdav_moved_projects | map('regex_replace', '^(.*)$', "'\1'") | join(', ') }} }" >
+                  Redirect gone $path
+                </If>
+              {% endif %}
+              </Macro>
+
               # Redirect dav-anon to dav
-              <LocationMatch "/dav-anon/{{ _irods_zone_name }}/((commons/(community_released|cyverse_curated)|home|projects)(/.*)?)" >
-                Require expr %{REQUEST_URI} !~ m#^/dav-anon/{{ _irods_zone_name }}/home(/[^/]*/?)?$#
+              <LocationMatch "/dav-anon/{{ _webdav_irods_zone }}/((commons/(community_released|cyverse_curated)|home|projects)(/.*)?)" >
+                Require expr %{REQUEST_URI} !~ m#^/dav-anon/{{ _webdav_irods_zone }}/home(/[^/]*/?)?$#
 
                 RequestHeader set Authorization "Basic {{ 'anonymous' | b64encode }}"
 
-                ProxyPassMatch http://127.0.0.1/dav/{{ _irods_zone_name }}/$1 retry=0
+                ProxyPassMatch http://127.0.0.1/dav/{{ _webdav_irods_zone }}/$1 retry=0
                 ProxyHTMLURLMap ^((http://)?[^/]*)/dav/ $1/dav-anon/ [R]
 
                 <If "%{REQUEST_METHOD} == 'PROPFIND'">
@@ -108,36 +135,38 @@
               </LocationMatch>
             comment: The WebDAV host
             locations:
-              - path: /dav/{{ _irods_zone_name }}/commons/community_released
+              - path: /dav/{{ _webdav_irods_zone }}/commons/community_released
                 comment: Anonymous read-only access to the community released data
                 extra_parameters: |
                   {% from 'davrods.j2' import davrods with context %}
                   RedirectPermanent \
-                    /dav/{{ _irods_zone_name }}/commons/community_released/commons_repo/curated \
-                    /dav/{{ _irods_zone_name }}/commons/cyverse_curated
+                    /dav/{{ _webdav_irods_zone }}/commons/community_released/commons_repo/curated \
+                    /dav/{{ _webdav_irods_zone }}/commons/cyverse_curated
 
-                  {{ davrods('/' ~ _irods_zone_name ~ '/home/shared', 'community-head.html') }}
-              - path: /dav/{{ _irods_zone_name }}/commons/cyverse_curated
+                  Use RedirectMovedProjects /dav/{{ _webdav_irods_zone }}/commons/community_released
+                  {{ davrods('/' ~ _webdav_irods_zone ~ '/home/shared', 'community-head.html') }}
+              - path: /dav/{{ _webdav_irods_zone }}/commons/cyverse_curated
                 comment: Anonymous read-only access to the data curated by CyVerse
                 extra_parameters: |
                   {% from 'davrods.j2' import davrods with context %}
-                  {{ davrods('/' ~ _irods_zone_name ~ '/home/shared/commons_repo/curated',
+                  {{ davrods('/' ~ _webdav_irods_zone ~ '/home/shared/commons_repo/curated',
                              'curated-head.html') }}
-              - path: /dav/{{ _irods_zone_name }}/home
+              - path: /dav/{{ _webdav_irods_zone }}/home
                 comment: Authenticated read-write access to the home collection
                 extra_parameters: |
                   {% from 'davrods.j2' import davrods with context %}
-                  RedirectPermanent /dav/{{ _irods_zone_name }}/home/shared \
-                                    /dav/{{ _irods_zone_name }}/projects
+                  RedirectPermanent \
+                    /dav/{{ _webdav_irods_zone }}/home/shared /dav/{{ _webdav_irods_zone }}/projects
 
                   {{ davrods('Home', 'home-head.html',
-                       [ 'expr %{REQUEST_URI} !~ m#^/dav/' ~ _irods_zone_name ~ '/home(/[^/]*/?)?$# || %{REMOTE_USER} != "anonymous"',
+                       [ 'expr %{REQUEST_URI} !~ m#^/dav/' ~ _webdav_irods_zone ~ '/home(/[^/]*/?)?$# || %{REMOTE_USER} != "anonymous"',
                          'valid-user' ]) }}
-              - path: /dav/{{ _irods_zone_name }}/projects
+              - path: /dav/{{ _webdav_irods_zone }}/projects
                 comment: Authenticated read-write access to the project folders
                 extra_parameters: |
                   {% from 'davrods.j2' import davrods with context %}
-                  {{ davrods('/' ~ _irods_zone_name ~ '/home/shared', 'projects-head.html',
+                  Use RedirectMovedProjects /dav/{{ _webdav_irods_zone }}/projects
+                  {{ davrods('/' ~ _webdav_irods_zone ~ '/home/shared', 'projects-head.html',
                        [ 'valid-user' ]) }}
               - path: /server-status
                 comment: Service status monitoring
@@ -163,7 +192,11 @@
               {% endif -%}
 
               ErrorLog logs/https_error_log
-              CustomLog logs/https_request_log {{ '"%{%Y-%m-%d %T}t.%{usec_frac}t %{SSL_PROTOCOL}x %{SSL_CIPHER}x %a \"%r\" %>s %L %{forensic-id}n"' }}
+
+              CustomLog \
+                logs/https_request_log \
+                {{ '"%{%Y-%m-%d %T}t.%{usec_frac}t %{SSL_PROTOCOL}x %{SSL_CIPHER}x %a \"%r\" %>s %L %{forensic-id}n"' }}
+
               LogLevel warn
 
               RewriteEngine On
@@ -192,7 +225,7 @@
             comment: >-
               This proxy handles TLS, corrects requests, enables caching, and anonymous access for
               XMLHttpRequests
-        apache_vhosts_template: ../../templates/webdav/etc/httpd/conf.d/vhosts.conf.j2
+        apache_vhosts_template: templates/webdav/etc/httpd/conf.d/vhosts.conf.j2
       tags:
         - no_testing
 
@@ -314,10 +347,37 @@
       notify:
         - Restart httpd
 
+    - name: Remove outdated irods package lock version
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit -o pipefail
+          readarray -t irods_locks < <(yum versionlock list | sed --quiet '/^0:irods-/p')
+          for lock in "${irods_locks[@]}"; do
+            if ! [[ "$lock" =~ irods-runtime-4\.3\.0 ]]; then
+              pkg="$(sed 's/0:\(irods-.*\)-[0-9\.]\+-.*/\1/' <<< "$lock")"
+              yum versionlock delete "$pkg" > /dev/null
+              echo changed
+            fi
+          done
+      register: resp
+      changed_when: resp.stdout is regex('^changed')
+
     - name: Install davrods
       ansible.builtin.yum:
         name: https://github.com/UtrechtUniversity/davrods/releases/download/4.3.0_1.5.0/davrods-4.3.0_1.5.0-1.rpm
         state: present
+
+    - name: Lock irods-runtime
+# XXX - yum_versionlock version 10.6.0 will not lock packages that are not installed unlike the
+# `yum versionlock` command
+#       community.general.yum_versionlock:
+#         name: irods-runtime
+#         state: present
+      ansible.builtin.command: yum versionlock add irods-runtime
+      register: resp
+      changed_when: 'resp.stdout is regex("versionlock added: 1")'
+# XXX - ^^^
 
     - name: Configure iRODS environment
       ansible.builtin.include_role:
@@ -326,15 +386,16 @@
       vars:
         irods_cfg_environment_file: etc/httpd/irods/irods_environment.json
         irods_cfg_chown: false
-        irods_cfg_host: "{{ _irods_canonical_hostname }}"
-        irods_cfg_zone_name: "{{ _irods_zone_name }}"
+        irods_cfg_host: "{{ _webdav_irods_host }}"
+        irods_cfg_system_account_name: root
+        irods_cfg_zone_name: "{{ _webdav_irods_zone }}"
         irods_cfg_zone_user: anonymous
-        irods_cfg_home: /{{ _irods_zone_name }}
+        irods_cfg_home: /{{ _webdav_irods_zone }}
 
     - name: Make WebDAV directories for static resources
       ansible.builtin.include_tasks: tasks/webdav/mk_dir_head.yml
       vars:
-        head_dav_base: "{{ _irods_zone_name }}/{{ item.base }}"
+        head_dav_base: "{{ _webdav_irods_zone }}/{{ item.base }}"
         head_file: "{{ item.file }}"
       loop:
         - file: home-head.html
@@ -360,6 +421,18 @@
       ansible.builtin.copy:
         src: files/webdav/var/www/html/index.html
         dest: /var/www/html/index.html
+        mode: a+r
+
+    - name: Create errors folder
+      ansible.builtin.file:
+        path: /var/www/html/errors
+        recurse: true
+        state: directory
+
+    - name: Place project moved page
+      ansible.builtin.copy:
+        src: files/webdav/var/www/html/errors/moved_project.html
+        dest: /var/www/html/errors/moved_project.html
         mode: a+r
 
     - name: Add robots.txt

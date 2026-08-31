@@ -2,7 +2,7 @@ FROM test-env-base:ubuntu2004
 
 ARG DB_NAME=ICAT
 ARG DB_PASSWORD=testpassword
-ARG DB_USER=irods
+ARG DB_USER=irodsuser
 ARG DBMS_PORT=5432
 ARG IRODS_DELAY_SERVER=csp
 ARG IRODS_RESOURCES=demoResc:rs:/var/lib/irods/Vault

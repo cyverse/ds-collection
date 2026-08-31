@@ -6,6 +6,12 @@
 
 cyverse_trash_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp) {
 	writeLine('serverLog', "cyverse_trash_api_data_obj_unlink_pre called");
+	if (
+		errorcode(*DataObjUnlinkInp.forceFlag) != 0
+		&& *DataObjUnlinkInp.obj_path == '/testing/home/rods/no-unlink'
+	) {
+		fail;
+	}
 }
 
 cyverse_trash_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp) {

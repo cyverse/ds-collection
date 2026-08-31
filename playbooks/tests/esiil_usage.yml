@@ -1,0 +1,47 @@
+---
+- name: Test create esiil storage resources
+  ansible.builtin.import_playbook: irods_storage_resources.yml
+
+
+- name: Test Configure iRODS for ESIIL
+  hosts: irods_catalog
+  become: true
+  become_user: irods
+  run_once: true
+  tasks:
+    - name: Test make ESIIL resource hierarchy
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          printf -v expHier 'esiilRes:unixfilesystem'
+          actHier="$(ilsresc esiilRes)"
+          [[ "$actHier" == "$expHier" ]]
+      changed_when: false
+
+    - name: Test create project collection
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: ils /testing/home/shared/esiil &> /dev/null
+      changed_when: false
+
+    - name: Verify that project collection has correct owner
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          ils -A /testing/home/shared/esiil | sed --quiet 2p | grep --quiet rods#testing:own
+      changed_when: false
+
+    - name: Test assign collection to ESIIL resource
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          num="$(iquest \
+            '%s' \
+            "select count(META_RESC_ATTR_ID)
+              where RESC_NAME = 'esiilRes'
+                and META_RESC_ATTR_NAME = 'ipc::hosted-collection'
+                and META_RESC_ATTR_VALUE = '/testing/home/shared/esiil'
+                and META_RESC_ATTR_UNITS = 'forced'" )"
+          (( num == 1 ))
+      changed_when: false

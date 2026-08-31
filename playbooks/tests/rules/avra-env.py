@@ -12,6 +12,16 @@ import test_rules
 from test_rules import IrodsTestCase
 
 
+def setUpModule():  # pylint: disable=invalid-name
+    """Set up main module"""
+    test_rules.setUpModule()
+
+
+def tearDownModule():  # pylint: disable=invalid-name
+    """Tear down main module"""
+    test_rules.tearDownModule()
+
+
 @test_rules.unimplemented
 class TestAvraEnv(IrodsTestCase):
     """Tests of avra-env.re"""

@@ -167,7 +167,7 @@
 {}
 {%-  else %}
 {
-{%     for log, lvl in levels | items %}
+{%     for log, lvl in levels.items() %}
     "{{ log }}": "{{ lvl }}"{% if not loop.last %},{% endif +%}
 {%     endfor %}
 }
@@ -252,31 +252,31 @@
 {% macro advanced_settings() -%}
 {
 {%   if irods_cfg_agent_factory_watcher_sleep_time %}
-    "agent_factory_watcher_sleep_time_in_seconds": {{ irods_cfg_agent_factory_watcher_sleep_time }},
+    "agent_factory_watcher_sleep_time_in_seconds": {{ irods_cfg_agent_factory_watcher_sleep_time | string }},
 {%   endif %}
-    "default_number_of_transfer_threads": {{ irods_cfg_default_number_of_transfer_threads }},
-    "default_temporary_password_lifetime_in_seconds": {{ irods_cfg_default_temporary_password_lifetime }},
+    "default_number_of_transfer_threads": {{ irods_cfg_default_number_of_transfer_threads | string }},
+    "default_temporary_password_lifetime_in_seconds": {{ irods_cfg_default_temporary_password_lifetime | string }},
 {%   if irods_cfg_delay_rule_executors is not none %}
     "delay_rule_executors": {{ mk_string_list(irods_cfg_delay_rule_executors) | string | indent(4) }},
 {%   endif %}
 {%   if irods_cfg_delay_server_sleep_time %}
-    "delay_server_sleep_time_in_seconds": {{ irods_cfg_delay_server_sleep_time }},
+    "delay_server_sleep_time_in_seconds": {{ irods_cfg_delay_server_sleep_time | string }},
 {%   endif %}
-    "maximum_size_for_single_buffer_in_megabytes": {{ irods_cfg_maximum_size_for_single_buffer }},
-    "maximum_size_of_delay_queue_in_bytes": {{ irods_cfg_maximum_size_of_delay_queue }},
-    "maximum_temporary_password_lifetime_in_seconds": {{ irods_cfg_maximum_temporary_password_lifetime }},
+    "maximum_size_for_single_buffer_in_megabytes": {{ irods_cfg_maximum_size_for_single_buffer | string }},
+    "maximum_size_of_delay_queue_in_bytes": {{ irods_cfg_maximum_size_of_delay_queue | string  }},
+    "maximum_temporary_password_lifetime_in_seconds": {{ irods_cfg_maximum_temporary_password_lifetime | string }},
 {%   if irods_cfg_migrate_delay_server_sleep_time %}
-    "migrate_delay_server_sleep_time_in_seconds": {{ irods_cfg_migrate_delay_server_sleep_time }},
+    "migrate_delay_server_sleep_time_in_seconds": {{ irods_cfg_migrate_delay_server_sleep_time | string }},
 {%   endif %}
 {%   if irods_cfg_number_of_concurrent_delay_rule_executors %}
-    "number_of_concurrent_delay_rule_executors": {{ irods_cfg_number_of_concurrent_delay_rule_executors }},
+    "number_of_concurrent_delay_rule_executors": {{ irods_cfg_number_of_concurrent_delay_rule_executors | string }},
 {%   endif %}
-    "rule_engine_server_sleep_time_in_seconds": {{ irods_cfg_rule_engine_server_sleep_time }},
+    "rule_engine_server_sleep_time_in_seconds": {{ irods_cfg_rule_engine_server_sleep_time | string }},
 {%   if irods_cfg_stacktrace_file_processor_sleep_time %}
-    "stacktrace_file_processor_sleep_time_in_seconds": {{ irods_cfg_stacktrace_file_processor_sleep_time }},
+    "stacktrace_file_processor_sleep_time_in_seconds": {{ irods_cfg_stacktrace_file_processor_sleep_time | string }},
 {%   endif %}
-    "transfer_buffer_size_for_parallel_transfer_in_megabytes": {{ irods_cfg_transfer_buffer_size_for_parallel_transfer }},
-    "transfer_chunk_size_for_parallel_transfer_in_megabytes": {{ irods_cfg_transfer_chunk_size_for_parallel_transfer }}
+    "transfer_buffer_size_for_parallel_transfer_in_megabytes": {{ irods_cfg_transfer_buffer_size_for_parallel_transfer | string }},
+    "transfer_chunk_size_for_parallel_transfer_in_megabytes": {{ irods_cfg_transfer_chunk_size_for_parallel_transfer | string }}
 }
 {%- endmacro %}
 
@@ -322,7 +322,7 @@
     "log_level": {{ mk_log_level(irods_cfg_log_level) | string | indent }},
     "match_hash_policy": "{{ irods_cfg_match_hash_policy }}",
 {% if irods_cfg_maximum_connections %}
-    "maximum_connections": {{ irods_cfg_maximum_connections }},
+    "maximum_connections": {{ irods_cfg_maximum_connections | string }},
 {% endif %}
     "negotiation_key": "{{ irods_cfg_negotiation_key }}",
     "plugin_configuration": {{ plugin_configuration() | string | indent }},
@@ -331,16 +331,16 @@
     "schema_validation_base_uri": "{{ irods_cfg_schema_validation_base_uri }}",
     "schema_version": "{{ _schema_version }}",
     "server_control_plane_encryption_algorithm": "{{ irods_cfg_server_control_plane_encryption_algorithm }}",
-    "server_control_plane_encryption_num_hash_rounds": {{ irods_cfg_server_control_plane_encryption_num_hash_rounds }},
+    "server_control_plane_encryption_num_hash_rounds": {{ irods_cfg_server_control_plane_encryption_num_hash_rounds | string }},
     "server_control_plane_key": "{{ irods_cfg_server_control_plane_key }}",
-    "server_control_plane_port": {{ irods_cfg_server_control_plane_port }},
-    "server_control_plane_timeout_milliseconds": {{ irods_cfg_server_control_plane_timeout }},
-    "server_port_range_end": {{ irods_cfg_server_port_range_end }},
-    "server_port_range_start": {{ irods_cfg_server_port_range_start }},
+    "server_control_plane_port": {{ irods_cfg_server_control_plane_port | string }},
+    "server_control_plane_timeout_milliseconds": {{ irods_cfg_server_control_plane_timeout | string }},
+    "server_port_range_end": {{ irods_cfg_server_port_range_end | string }},
+    "server_port_range_start": {{ irods_cfg_server_port_range_start | string }},
     "zone_auth_scheme": "{{ irods_cfg_zone_auth_scheme }}",
     "zone_key": "{{ irods_cfg_zone_key }}",
     "zone_name": "{{ irods_cfg_zone_name }}",
-    "zone_port": {{ irods_cfg_zone_port }},
+    "zone_port": {{ irods_cfg_zone_port | string }},
     "zone_user": "{{ irods_cfg_zone_user }}"
 }
 {%- endmacro %}
@@ -361,7 +361,7 @@
     "irods_client_server_policy": "{{ irods_cfg_client_server_policy }}",
 {% endif %}
 {% if irods_cfg_connection_pool_refresh_time %}
-    "irods_connection_pool_refresh_time_in_seconds": {{ irods_cfg_connection_pool_refresh_time }},
+    "irods_connection_pool_refresh_time_in_seconds": {{ irods_cfg_connection_pool_refresh_time | string }},
 {% endif %}
 {% if not irods_cfg_cwd.startswith('__omit_place_holder__') %}
     "irods_cwd": "{{ irods_cfg_cwd }}",
@@ -373,7 +373,7 @@
     "irods_default_hash_scheme": "{{ irods_cfg_client_default_hash_scheme }}",
 {% endif %}
 {% if irods_cfg_default_number_of_transfer_threads %}
-    "irods_default_number_of_transfer_threads": {{ irods_cfg_default_number_of_transfer_threads }},
+    "irods_default_number_of_transfer_threads": {{ irods_cfg_default_number_of_transfer_threads | string }},
 {% endif %}
 {% if irods_cfg_client_default_resource %}
     "irods_default_resource": "{{ irods_cfg_client_default_resource }}",
@@ -382,13 +382,13 @@
     "irods_encryption_algorithm": "{{ irods_cfg_client_encryption_algorithm }}",
 {% endif %}
 {% if irods_cfg_client_encryption_key_size %}
-    "irods_encryption_key_size": {{ irods_cfg_client_encryption_key_size }},
+    "irods_encryption_key_size": {{ irods_cfg_client_encryption_key_size | string }},
 {% endif %}
 {% if irods_cfg_client_encryption_num_hash_rounds %}
-    "irods_encryption_num_hash_rounds": {{ irods_cfg_client_encryption_num_hash_rounds }},
+    "irods_encryption_num_hash_rounds": {{ irods_cfg_client_encryption_num_hash_rounds | string }},
 {% endif %}
 {% if irods_cfg_client_encryption_salt_size %}
-    "irods_encryption_salt_size": {{ irods_cfg_client_encryption_salt_size }},
+    "irods_encryption_salt_size": {{ irods_cfg_client_encryption_salt_size | string }},
 {% endif %}
 {% if irods_cfg_gsi_server_dn %}
     "irods_gsi_server_dn": "{{ irods_cfg_gsi_server_dn }}",
@@ -398,29 +398,29 @@
 {% endif %}
     "irods_host": "{{ irods_cfg_host }}",
 {% if irods_cfg_client_log_level %}
-    "irods_log_level": {{ irods_cfg_client_log_level }},
+    "irods_log_level": {{ irods_cfg_client_log_level | string }},
 {% endif %}
 {% if irods_cfg_match_hash_policy %}
     "irods_match_hash_policy": "{{ irods_cfg_match_hash_policy }}",
 {% endif %}
 {% if irods_cfg_maximum_size_for_single_buffer %}
-    "irods_maximum_size_for_single_buffer_in_megabytes": {{ irods_cfg_maximum_size_for_single_buffer }},
+    "irods_maximum_size_for_single_buffer_in_megabytes": {{ irods_cfg_maximum_size_for_single_buffer | string }},
 {% endif %}
 {% if irods_cfg_plugins_home %}
     "irods_plugins_home": "{{ irods_cfg_plugins_home }}",
 {% endif %}
-    "irods_port": {{ irods_cfg_zone_port }},
+    "irods_port": {{ irods_cfg_zone_port | string }},
 {% if irods_cfg_server_control_plane_encryption_algorithm %}
     "irods_server_control_plane_encryption_algorithm": "{{ irods_cfg_server_control_plane_encryption_algorithm }}",
 {% endif %}
 {% if irods_cfg_server_control_plane_encryption_num_hash_rounds %}
-    "irods_server_control_plane_encryption_num_hash_rounds": {{ irods_cfg_server_control_plane_encryption_num_hash_rounds }},
+    "irods_server_control_plane_encryption_num_hash_rounds": {{ irods_cfg_server_control_plane_encryption_num_hash_rounds | string }},
 {% endif %}
 {% if irods_cfg_server_control_plane_key %}
     "irods_server_control_plane_key": "{{ irods_cfg_server_control_plane_key }}",
 {% endif %}
 {% if irods_cfg_server_control_plane_port %}
-    "irods_server_control_plane_port": {{ irods_cfg_server_control_plane_port }},
+    "irods_server_control_plane_port": {{ irods_cfg_server_control_plane_port | string }},
 {% endif %}
 {% if irods_cfg_ssl_ca_certificate_file %}
     "irods_ssl_ca_certificate_file": "{{ irods_cfg_ssl_ca_certificate_file }}",
@@ -441,16 +441,16 @@
     "irods_ssl_verify_server": "{{ irods_cfg_ssl_verify_server }}",
 {% endif %}
 {% if irods_cfg_tcp_keepalive_intvl %}
-    "irods_tcp_keepalive_intvl_in_seconds": {{ irods_cfg_tcp_keepalive_intvl }},
+    "irods_tcp_keepalive_intvl_in_seconds": {{ irods_cfg_tcp_keepalive_intvl | string }},
 {% endif %}
 {% if irods_cfg_tcp_keepalive_probes %}
-    "irods_tcp_keepalive_probes": {{ irods_cfg_tcp_keepalive_probes }},
+    "irods_tcp_keepalive_probes": {{ irods_cfg_tcp_keepalive_probes | string }},
 {% endif %}
 {% if irods_cfg_tcp_keepalive_time %}
-    "irods_tcp_keepalive_time_in_seconds": {{ irods_cfg_tcp_keepalive_time }},
+    "irods_tcp_keepalive_time_in_seconds": {{ irods_cfg_tcp_keepalive_time | string }},
 {% endif %}
 {% if irods_cfg_transfer_buffer_size_for_parallel_transfer %}
-    "irods_transfer_buffer_size_for_parallel_transfer_in_megabytes": {{ irods_cfg_transfer_buffer_size_for_parallel_transfer }},
+    "irods_transfer_buffer_size_for_parallel_transfer_in_megabytes": {{ irods_cfg_transfer_buffer_size_for_parallel_transfer | string }},
 {% endif %}
     "irods_user_name": "{{ irods_cfg_zone_user }}",
     "irods_zone_name": "{{ irods_cfg_zone_name }}"{% if irods_cfg_for_server %},{% endif %}

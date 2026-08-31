@@ -49,7 +49,7 @@
             entity_name: "{{ _avra_resource_hierarchy.name }}"
             attribute: ipc::hosted-collection
             value: "{{ _avra_base_collection }}"
-            units: required
+            units: forced
             host: "{{ groups['irods_catalog'][0] }}"
             port: "{{ _irods_zone_port }}"
             zone: "{{ _irods_zone_name }}"

@@ -30,7 +30,7 @@
     - name: Add users to group
       delegate_to: localhost
       become: false
-      irods_group_member:
+      cyverse.ds.irods_group_member:
         group: "{{ add_group }}"
         users:
           - "{{ user1 }}"
@@ -56,7 +56,9 @@
       changed_when: false
 
     - name: Remove users from group
-      irods_group_member:
+      delegate_to: localhost
+      become: false
+      cyverse.ds.irods_group_member:
         group: "{{ rm_group }}"
         users:
           - "{{ user1 }}"

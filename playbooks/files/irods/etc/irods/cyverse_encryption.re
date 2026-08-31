@@ -135,42 +135,15 @@ cyverse_encryption_api_coll_create_post(*Instance, *Comm, *CollCreateInp) {
 }
 
 
-# This verifies that an object is encrypted if it is being created and stat'ed
-# in a collection that requires encryption.
+# This verifies that an object is encrypted if it is being created in a
+# collection that requires encryption.
 #
 #  Instance    (string) unknown
 #  Comm        (`KeyValuePair_PI`) user connection and auth information
 #  DataObjInp  (`KeyValuePair_PI`) information related to the created data
 #              object
-#  OpenStat    unknown
-#
-cyverse_encryption_api_data_obj_create_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
-	_cyverse_encryption_checkRequiredDataObj(*DataObjInp.obj_path);
-}
-
-
-# This verifies that an object is encrypted if it is being created in a
-# collection that requires encryption.
-#
-#  Instance	(string) unknown
-#  Comm		(`KeyValuePair_PI`) user connection and auth information
-#  DataObjInp  (`KeyValuePair_PI`) information related to the created data
-#			  object
 #
 cyverse_encryption_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
-	_cyverse_encryption_checkRequiredDataObj(*DataObjInp.obj_path);
-}
-
-
-# This verifies that an object is encrypted if it is being opened for
-# modification in a collection that requires encryption.
-#
-#  Instance    (string) unknown
-#  Comm        (`KeyValuePair_PI`) user connection and auth information
-#  DataObjInp  (`KeyValuePair_PI`) information related to the data object
-#  OpenStat    unknown
-#
-cyverse_encryption_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 	_cyverse_encryption_checkRequiredDataObj(*DataObjInp.obj_path);
 }
 

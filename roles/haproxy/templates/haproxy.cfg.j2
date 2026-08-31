@@ -99,9 +99,9 @@ frontend irods_main
   acl                        throttle-conn  sc1_conn_cur gt 1
   acl                        block-conn     sc1_conn_cur gt 10
   tcp-request inspect-delay  5s
+  tcp-request content        capture req.payload_lv(0,4),regsub(^\s*<MsgHeader_PI\s*>[\s\S]*<type\s*>,),regsub(</type\s*>[\s\S]*</MsgHeader_PI\s*>\s*$,) len 16
   tcp-request content        accept if is-ping or is-conn vip-src
   tcp-request content        reject if !is-conn
-  tcp-request content        capture req.payload_lv(0,4),regsub(^\s*<MsgHeader_PI\s*>[\s\S]*<type\s*>,),regsub(</type\s*>[\s\S]*</MsgHeader_PI\s*>\s*$,) len 16
   tcp-request content        track-sc1 src table concurrency_st if !vip-src
   tcp-request content        reject if block-conn
   use_backend                irods_throttled if throttle-conn
@@ -177,6 +177,6 @@ listen webdavs
   acl             blocked     src -f /etc/haproxy/block.lst
   acl             block-conn  sc1_conn_cur gt 10
   http-request    track-sc1 src table concurrency_st if !vip-src
-  http-request    deny if !vip-src !allowed blocked or block-conn
+  http-request    redirect code 307 location https://unblockme.cyverse.org/ if !vip-src !allowed blocked or block-conn
   server          dav {{ haproxy_webdav_hosts[0] if haproxy_webdav_hosts[0]|ansible.utils.ipaddr else lookup('dig', haproxy_webdav_hosts[0]) }} ssl crt {{ haproxy_tls_crt }} ca-file {{ haproxy_tls_crt }}
 {% endif %}

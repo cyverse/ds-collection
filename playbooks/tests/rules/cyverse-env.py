@@ -52,10 +52,6 @@ class CyverseEnvTest(IrodsTestCase):
         """test cyverse_INIT_REPL_DELAY"""
         self.fn_test('cyverse_INIT_REPL_DELAY', [], IrodsVal.integer(0))
 
-    def test_cyversemaxnumreprocs(self):
-        """test cyverse_MAX_NUM_RE_PROCS"""
-        self.fn_test('cyverse_MAX_NUM_RE_PROCS', [], IrodsVal.integer(4))
-
     def test_cyverse_rehost(self):
         """test cyverse_RE_HOST"""
         self.fn_test(

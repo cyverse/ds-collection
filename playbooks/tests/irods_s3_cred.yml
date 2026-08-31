@@ -14,6 +14,12 @@
         or not resp.stat.rusr
         or not resp.stat.xusr
 
+    - name: Verify stale credential file was removed
+      ansible.builtin.stat:
+        path: /etc/irods/s3-credentials/cred-stale
+      register: resp
+      failed_when: resp.stat.exists
+
     - name: Verify placement
       ansible.builtin.stat:
         path: /etc/irods/s3-credentials/{{ item }}

@@ -23,7 +23,7 @@
 
 
 - name: Test common file deposition
-  hosts: irods_resource:!irods_catalog
+  hosts: irods_resource_native:!irods_catalog
   become: true
   become_user: irods
   tasks:
@@ -50,12 +50,22 @@
         - cyverse_housekeeping.re
         - cyverse_json.re
         - cyverse_logic.re
+        - cyverse_repl.re
+        - cyverse_transfer_tracking.re
         - cyverse_trash.re
-        - ipc-repl.re
         - pire.re
         - pire-env.re
         - server_config.json
         - service_account.config
+
+    - name: Verify old config do not exist
+      ansible.builtin.stat:
+        path: /etc/irods/{{ item }}
+      register: response
+      failed_when: response.stat.exists
+      loop:
+        - host_access_control_config.json
+        - hosts_config.json
 
     - name: Verify irods_environment.json is in place
       ansible.builtin.stat:
@@ -72,21 +82,15 @@
         or response.stat.pw_name != 'irods'
         or not response.stat.xusr
       loop:
+        - add-transfer
         - amqp-topic-send
-        - correct-size
         - delete-scheduled-rule
         - generate-uuid
+        - ichksum-exec
         - imeta-exec
+        - iquest-exec
+        - irepl-exec
         - send-mail
-
-    - name: Verify old config do not exist
-      ansible.builtin.stat:
-        path: /etc/irods/{{ item }}
-      register: response
-      failed_when: response.stat.exists
-      loop:
-        - host_access_control_config.json
-        - hosts_config.json
 
     - name: Retrieve encoded irods_environment.json
       ansible.builtin.slurp:

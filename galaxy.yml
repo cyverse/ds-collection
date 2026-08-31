@@ -11,6 +11,6 @@ dependencies:
   "ansible.posix": "*"
   "ansible.utils": "*"
   "community.docker": "4.5"
-  "community.general": "10.4"
+  "community.general": "10.6"
   "community.postgresql": "3.11"
 repository: https://github.com/cyverse/ds-collection

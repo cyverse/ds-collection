@@ -8,6 +8,21 @@
       tags:
         - no_testing
 
+# XXX: This can be removed after upgrading to iRODS 5.1.0
+- name: TAR slip workaround
+  hosts: irods
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Ensure service account owns msiExecCmd_bin and its contents
+      ansible.builtin.file:
+        path: /var/lib/irods/msiExecCmd_bin
+        state: directory
+        owner: "{{ _irods_service_account_name }}"
+        recurse: true
+      tags: non_idempotent
+# XXX: ^^^
+
 - name: Configure iRODS
   hosts: irods_catalog
   become: "{{ _irods_become_svc_acnt }}"
@@ -22,7 +37,6 @@
     - name: Configure iRODS service
       ansible.builtin.import_role:
         name: cyverse.ds.irods_cfg
-        tasks_from: setup_irods.yml
       vars:
         irods_cfg_catalog_provider_hosts:
           - "{{ inventory_hostname }}"
@@ -46,6 +60,10 @@
         irods_cfg_default_resource_name: "{{ _irods_default_resource }}"
         irods_cfg_environment_variables:
           IRODS_AMQP_URI: "{{ amqp_uri }}"
+          IRODS_DB_HOST: "{{ _irods_dbms_host }}"
+          IRODS_DB_PORT: "{{ _irods_dbms_port }}"
+          IRODS_DB_USERNAME: "{{ _irods_db_username }}"
+          IRODS_DB_PASSWORD: "{{ _irods_db_password }}"
         irods_cfg_federation: "{{ _irods_federation }}"
         irods_cfg_host_entries: >-
           {{ [] if _irods_host_aliases | count == 0 else
@@ -91,7 +109,6 @@
     - name: Configure iRODS service
       ansible.builtin.import_role:
         name: cyverse.ds.irods_cfg
-        tasks_from: setup_irods.yml
       vars:
         irods_cfg_catalog_provider_hosts: "{{ groups['irods_catalog'] }}"
         irods_cfg_catalog_service_role: consumer
@@ -144,13 +161,27 @@
         irods_cfg_zone_port: "{{ _irods_zone_port }}"
         irods_cfg_zone_user: "{{ _irods_clerver_user }}"
 
-- name: Remove ipc-encryption.re
+- name: Remove old rule files and command scripts
   hosts: irods
-  become: "{{ _irods_become_svc_acnt }}"
-  become_user: "{{ _irods_service_account_name }}"
+  become: true
   gather_facts: false
   tasks:
-    - name: Remove it
+    - name: Remove ipc-encryption.re
       ansible.builtin.file:
         path: /etc/irods/ipc-encryption.re
         state: absent
+
+    - name: Remove correct-size
+      ansible.builtin.file:
+        path: /var/lib/irods/msiExecCmd_bin/correct-size
+        state: absent
+
+    # XXX: This can be removed after upgrading to iRODS 5.1.0
+    - name: Ensure service account can't modify msiExecCmd_bin or its contents
+      ansible.builtin.file:
+        path: /var/lib/irods/msiExecCmd_bin
+        state: directory
+        owner: root
+        mode: go-w,g+rx
+        recurse: true
+    # XXX: ^^^

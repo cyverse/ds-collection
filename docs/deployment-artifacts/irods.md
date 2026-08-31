@@ -9,7 +9,10 @@ Here are the command scripts executable through the `msiExecCmd` microservice.
 * [amqp-topic-send](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/amqp-topic-send) publishes audit messages to a RabbitMQ broker.
 * [delete-scheduled-rule](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/delete-scheduled-rule) removes a rule execution from the rule queue.
 * [generate-uuid](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/generate-uuid) generates a time-based UUID.
+* [ichksum-exec](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/ichksum-exec) calls ichksum.
 * [imeta-exec](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/imeta-exec) calls imeta.
+* [iquest-exec](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/iquest-exec)  calls iquest.
+* [irepl-exec](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/irepl-exec)  calls irepl.
 * [send-mail](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/send-mail) sends an email message.
 
 ## Rule Files
@@ -27,8 +30,8 @@ The following files contain the policy that is independent of deployment environ
 * [cyverse_core.re](../../playbooks/files/irods/etc/irods/cyverse_core.re) acts as a switchyard for PEPs, deferring to other rule bases for actual implementations.
 * [cyverse_encryption.re](../../playbooks/files/irods/etc/irods/cyverse_encryption.re) has the encryption enforcement logic.
 * [cyverse_json.re](../../playbooks/files/irods/etc/irods/cyverse_json.re) provides the logic for creating JSON documents.
+* [cyverse_repl.re](../../playbooks/files/irods/etc/irods/cyverse_repl.re) has the resource residency and asynchronous replication logic.
 * [cyverse_trash.re](../../playbooks/files/irods/etc/irods/cyverse_trash.re) has the trash timestamp management logic.
-* [ipc-repl.re](../../playbooks/files/irods/etc/irods/ipc-repl.re) has the resource residency and asynchronous replication logic.
 * [cyverse_logic.re](../../playbooks/files/irods/etc/irods/cyverse_logic.re) has the CyVerse policy logic not implemented in another rule base.
 * [cyverse_housekeeping.re](../../playbooks/files/irods/etc/irods/cyverse_housekeeping.re) provides the logic for the periodically run asynchronous tasks.
 

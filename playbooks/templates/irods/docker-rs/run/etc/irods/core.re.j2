@@ -1,0 +1,87 @@
+# The default implementation of the static iRODS PEPs.
+
+{{ ansible_managed | comment }}
+
+acPreConnect(*OUT) { *OUT="CS_NEG_REFUSE"; }
+
+acCreateUser {
+  acPreProcForCreateUser;
+  acCreateUserF1;
+  acPostProcForCreateUser;
+}
+acCreateUserF1 {
+  on ($otherUserName == "anonymous") {
+    msiCreateUser  :::  msiRollback;
+    msiCommit;
+  }
+}
+acCreateUserF1 {
+  msiCreateUser  :::  msiRollback;
+  acCreateDefaultCollections  :::  msiRollback;
+  msiAddUserToGroup("public")  :::  msiRollback;
+  msiCommit;
+}
+acCreateDefaultCollections { acCreateUserZoneCollections; }
+acCreateUserZoneCollections {
+  acCreateCollByAdmin("/"++$rodsZoneProxy++"/home", $otherUserName);
+  acCreateCollByAdmin("/"++$rodsZoneProxy++"/trash/home", $otherUserName);
+}
+acCreateCollByAdmin(*parColl,*childColl) { msiCreateCollByAdmin(*parColl,*childColl); }
+
+acDeleteUser {
+  acPreProcForDeleteUser;
+  acDeleteUserF1;
+  acPostProcForDeleteUser;
+}
+acDeleteUserF1 {
+  acDeleteDefaultCollections ::: msiRollback;
+  msiDeleteUser ::: msiRollback;
+  msiCommit;
+}
+acDeleteDefaultCollections { acDeleteUserZoneCollections; }
+acDeleteUserZoneCollections {
+  acDeleteCollByAdminIfPresent("/"++$rodsZoneProxy++"/home",$otherUserName);
+  acDeleteCollByAdminIfPresent("/"++$rodsZoneProxy++"/trash/home",$otherUserName);
+}
+acDeleteCollByAdminIfPresent(*parColl,*childColl) {
+  *status=errormsg(msiDeleteCollByAdmin(*parColl,*childColl),*msg);
+  if(*status!=0 && *status!=-808000) { failmsg(*status,*msg) }
+}
+
+acDeleteCollByAdmin(*parColl,*childColl) { msiDeleteCollByAdmin(*parColl,*childColl); }
+
+acRenameLocalZone(*oldZone, *newZone) {
+  msiRenameLocalZoneCollection(*newZone) ::: msiRollback;
+  msiRenameLocalZone(*oldZone,*newZone) ::: msiRollback;
+  msiCommit;
+}
+
+acAclPolicy {msiAclPolicy("STRICT"); }
+
+acSetRescSchemeForCreate { msiSetDefaultResc("{{ _irods_default_resource }}","null"); }
+
+acSetRescSchemeForRepl { msiSetDefaultResc("{{ _irods_default_repl_resource }}","null"); }
+
+acSetNumThreads { msiSetNumThreads("default","default","default"); }
+
+acSetChkFilePathPerm { msiSetChkFilePathPerm("disallowPathReg"); }
+
+acSetVaultPathPolicy { msiSetGraftPathScheme("no","1"); }
+
+acRescQuotaPolicy { msiSetRescQuotaPolicy("off"); }
+
+acBulkPutPostProcPolicy { msiSetBulkPutPostProcPolicy("off"); }
+
+acPreProcForWriteSessionVariable(*var) {
+  on(*var == "status") {
+    succeed;
+  } or {
+    failmsg(-1, "Update session variable $*var not allowed!");
+  }
+}
+
+getSessionVar(*name, *output) { *output = eval("str($"++*name++")"); }
+
+acPostProcForParallelTransferReceived(*leaf_resource) {}
+
+acPostProcForDataCopyReceived(*leaf_resource) {}

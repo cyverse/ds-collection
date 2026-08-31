@@ -20,7 +20,6 @@
           - cyverse_env is search("cyverse_EMAIL_FROM_ADDR = 'irods@localhost'")
           - cyverse_env is search("cyverse_EMAIL_REPORT_ADDR = 'root@localhost'")
           - cyverse_env is search("cyverse_INIT_REPL_DELAY = 0")
-          - cyverse_env is search("cyverse_MAX_NUM_RE_PROCS = 4")
           - cyverse_env is search("cyverse_ZONE = 'testing'")
           - >-
             cyverse_env
@@ -59,7 +58,6 @@
           - cyverse_env is search("cyverse_EMAIL_FROM_ADDR = 'balloon@localhost'")
           - cyverse_env is search("cyverse_EMAIL_REPORT_ADDR = 'bob@reports'")
           - cyverse_env is search("cyverse_INIT_REPL_DELAY = 1")
-          - cyverse_env is search("cyverse_MAX_NUM_RE_PROCS = 1")
           - cyverse_env is search("cyverse_RE_HOST = 'other'")
           - cyverse_env is search("cyverse_ZONE = 'zoner'")
 
@@ -112,6 +110,46 @@
       ansible.builtin.assert:
         that:
           - avra_env is search("avra_RESC = 'avraRes'")
+
+
+- name: Test ESIIL params are set correctly
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/irods.yml
+    - ../group_vars/all/esiil.yml
+  vars:
+    esiil_resource_hierarchy:
+      name: esiilRes
+    esiil_env: "{{ lookup('template', '../templates/irods/etc/irods/esiil-env.re.j2') }}"
+  tasks:
+    - name: Verify ansible managed
+      ansible.builtin.assert:
+        that: esiil_env is search('# Ansible managed')
+
+    - name: Verify params
+      ansible.builtin.assert:
+        that: esiil_env is search("esiil_RESC = 'esiilRes'")
+
+
+- name: Test NCEMS params are set correctly
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/irods.yml
+    - ../group_vars/all/ncems.yml
+  vars:
+    ncems_resource_hierarchy:
+      name: ncemsRes
+    ncems_env: "{{ lookup('template', '../templates/irods/etc/irods/ncems-env.re.j2') }}"
+  tasks:
+    - name: Verify ansible managed
+      ansible.builtin.assert:
+        that: ncems_env is search('# Ansible managed')
+
+    - name: Verify params
+      ansible.builtin.assert:
+        that: ncems_env is search("ncems_RESC = 'ncemsRes'")
 
 
 - name: Test PIRE params are set correctly

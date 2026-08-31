@@ -27,6 +27,36 @@ msiServerMonPerf(*_1, *_2) {
 }
 
 
+# Prevent tar slip security hole. It prevents the microservice
+# `msiTarFileExtract` from executing.
+#
+# This can be removed after upgrading to 5.1.0
+#
+# Parameters:
+#  LogicalPath  (string) the absolute path to the tar file to extract
+#  TargetColl   (string) unused
+#  DestResc     (string) unused
+#  STATUS       (int) unused
+#
+# Session Variables:
+#  userNameClient
+#  rodsZoneClient
+#
+# Error Codes:
+#  -169000 (SYS_NOT_ALLOWED)
+#
+msiTarFileExtract(*LogicalPath, *TargetColl, *DestResc, *STATUS) {
+	*clientUser = $userNameClient;
+	*clientZone = $rodsZoneClient;
+
+	writeLine(
+		'serverLog',
+		'msiTarFileExtract: prevented *clientUser#*clientZone from extracting *LogicalPath' );
+
+	failmsg(-169000, 'msiTarFileExtract is not allowed');
+}
+
+
 # There is a security hole in `icp -p` that allows an overwrite to escape the
 # iRODS access control and overwrite a file not accessible to the user. This
 # prevents `icp -p` from being able to write to client-submitted physical paths.

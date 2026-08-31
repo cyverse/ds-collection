@@ -1,0 +1,58 @@
+---
+- name: Create storage resources
+  ansible.builtin.import_playbook: irods_storage_resources.yml
+
+
+- name: Configure iRODS for ESIIL
+  hosts: irods_catalog
+  run_once: true
+  tasks:
+    - name: Configure iRODS for ESIIL
+      when: _esiil_base_collection != ''
+      delegate_to: localhost
+      block:
+        - name: Create ESIIL resource
+          cyverse.ds.irods_resource_hierarchy:
+            hierarchy: "{{ _esiil_resource_hierarchy }}"
+            host: "{{ groups['irods_catalog'][0] }}"
+            port: "{{ _irods_zone_port }}"
+            zone: "{{ _irods_zone_name }}"
+            admin_username: "{{ _irods_admin_username }}"
+            admin_password: "{{ _irods_admin_password }}"
+
+        - name: Create project collection
+          cyverse.ds.irods_collection:
+            path: "{{ _esiil_base_collection }}"
+            parents: true
+            state: present
+            host: "{{ groups['irods_catalog'][0] }}"
+            port: "{{ _irods_zone_port }}"
+            admin_user: "{{ _irods_admin_username }}"
+            admin_password: "{{ _irods_admin_password }}"
+            zone: "{{ _irods_zone_name }}"
+
+        - name: Assign owner to project collection
+          cyverse.ds.irods_permission:
+            subject: "{{ _esiil_manager }}"
+            permission: own
+            object: "{{ _esiil_base_collection }}"
+            recursion: inclusive
+            host: "{{ groups['irods_catalog'][0] }}"
+            port: "{{ _irods_zone_port }}"
+            admin_user: "{{ _irods_admin_username }}"
+            admin_password: "{{ _irods_admin_password }}"
+            zone: "{{ _irods_zone_name }}"
+
+        - name: Assign project collection to ESIIL resource
+          cyverse.ds.irods_avu:
+            entity_type: resource
+            entity_name: "{{ _esiil_resource_hierarchy.name }}"
+            attribute: ipc::hosted-collection
+            value: "{{ _esiil_base_collection }}"
+            units: forced
+            host: "{{ groups['irods_catalog'][0] }}"
+            port: "{{ _irods_zone_port }}"
+            zone: "{{ _irods_zone_name }}"
+            username: "{{ _irods_admin_username }}"
+            password: "{{ _irods_admin_password }}"
+            state: set

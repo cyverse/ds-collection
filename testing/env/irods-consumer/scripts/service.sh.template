@@ -12,6 +12,9 @@
 # IRODS_SYSTEM_GROUP      the default group of the service account
 # IRODS_SYSTEM_USER       the system user who executes iRODS
 # IRODS_ZONE_PORT         the zone port used by the CSP
+#
+# © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
 
 set -o errexit -o nounset -o pipefail
 
@@ -47,8 +50,18 @@ start() {
 
 		chown --recursive "$IRODS_SYSTEM_USER":"$IRODS_SYSTEM_GROUP" /etc/irods /var/lib/irods
 
+		local cnt=1
+
 		until exec 3<> /dev/tcp/"$IRODS_CATALOG_PROVIDER"/"$IRODS_ZONE_PORT"
 		do
+			(( cnt++ ))
+
+			if (( cnt > 60 ))
+			then
+				printf 'Giving up on catalog service provider\n'
+				return 1
+			fi
+
 			printf 'Waiting for catalog service provider\n'
 			sleep 1
 		done 2> /dev/null

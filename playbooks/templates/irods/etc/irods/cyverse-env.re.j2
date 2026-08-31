@@ -4,6 +4,8 @@
 # © 2024 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
+{{ ansible_managed | comment }}
+
 # the name of the AMQP exchange where iRODS should publish messages
 cyverse_AMQP_EXCHANGE: string
 cyverse_AMQP_EXCHANGE = '{{ _irods_amqp_exchange }}'
@@ -28,10 +30,6 @@ cyverse_EMAIL_REPORT_ADDR = '{{ _irods_report_email_addr }}'
 # or modified data object
 cyverse_INIT_REPL_DELAY: integer
 cyverse_INIT_REPL_DELAY = {{ _irods_init_repl_delay }}
-
-# the maximum number of concurrent rule engine workers
-cyverse_MAX_NUM_RE_PROCS: integer
-cyverse_MAX_NUM_RE_PROCS = {{ _irods_max_num_re_procs }}
 
 # the rule engine host
 cyverse_RE_HOST: string

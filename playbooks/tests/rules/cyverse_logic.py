@@ -8,11 +8,32 @@
 
 import unittest
 
+from irods.path import iRODSPath
+
+import test_rules
 from test_rules import IrodsTestCase, IrodsVal
 
 
-class TestCyverseLogicContains(IrodsTestCase):
-    """Tests of the _cyverse_logic_contains"""
+def setUpModule():  # pylint: disable=invalid-name
+    """Set up main module"""
+    test_rules.setUpModule()
+
+
+def tearDownModule():  # pylint: disable=invalid-name
+    """Tear down main module"""
+    test_rules.tearDownModule()
+
+
+class IdTest(IrodsTestCase):
+    """Tests of _cyverse_logic_ID"""
+
+    def test(self):
+        """Verify that it has the correct value"""
+        self.fn_test('_cyverse_logic_ID', [], IrodsVal.string('cyverse_logic'))
+
+
+class TestContains(IrodsTestCase):
+    """Tests of _cyverse_logic_contains"""
 
     def test_item_not_in_list(self):
         """Verify that it returns false when item not in list"""
@@ -21,29 +42,153 @@ class TestCyverseLogicContains(IrodsTestCase):
             [IrodsVal.string("missing"), IrodsVal.string_list([])],
             IrodsVal.boolean(False))
 
-    @unittest.skip("not implemented")
+    def test_item_in_singleton_list(self):
+        """Verify that it returns true when item in list with only one item"""
+        self.fn_test(
+            '_cyverse_logic_contains',
+            [IrodsVal.string("item"), IrodsVal.string_list(["item"])],
+            IrodsVal.boolean(True))
+
     def test_item_first(self):
         """Verify that it returns true when item is first in list"""
+        self.fn_test(
+            '_cyverse_logic_contains',
+            [IrodsVal.string("item"), IrodsVal.string_list(["item", "last"])],
+            IrodsVal.boolean(True))
 
-    @unittest.skip("not implemented")
     def test_item_last(self):
         """Verify that it returns true when item is last in list"""
+        self.fn_test(
+            '_cyverse_logic_contains',
+            [IrodsVal.string("item"), IrodsVal.string_list(["first", "item"])],
+            IrodsVal.boolean(True))
+
+
+class TestIcatIds(IrodsTestCase):
+    """Tests of ICAT Ids logic"""
+
+    def test_getcollid_present(self):
+        """Test _cyverse_logic_getCollId"""
+        zone_path = iRODSPath(self.irods.zone)
+        zone = self.irods.collections.get(zone_path)
+        if zone:
+            for p in IrodsTestCase.prep_path(zone_path):
+                with self.subTest(p=p):
+                    self.fn_test('_cyverse_logic_getCollId', [p], IrodsVal.integer(zone.id))
+        else:
+            self.fail("zone collection is missing")
+
+    def test_getcollid_missing(self):
+        """Test _cyverse_logic_getCollId with the collection doesn't exist"""
+        self.fn_test(
+            '_cyverse_logic_getCollId',
+            [IrodsVal.string(iRODSPath("missing"))],
+            IrodsVal.integer(-1))
+
+    def test_getid_coll(self):
+        """Test _cyverse_logic_getId for collection"""
+        zone_path = iRODSPath(self.irods.zone)
+        zone = self.irods.collections.get(zone_path)
+        if zone:
+            for p in IrodsTestCase.prep_path(zone_path):
+                with self.subTest(p=p):
+                    self.fn_test('_cyverse_logic_getId', [p], IrodsVal.integer(zone.id))
+        else:
+            self.fail("zone collection is missing")
+
+    def test_getid_data(self):
+        """Test _cyverse_logic_getId for data object"""
+        data_path = iRODSPath(self.irods.zone, 'home', self.irods.username, 'obj')
+        data = self.irods.data_objects.create(data_path)
+        for p in IrodsTestCase.prep_path(data_path):
+            with self.subTest(p=p):
+                self.fn_test('_cyverse_logic_getId', [p], IrodsVal.integer(data.id))  # pylint: disable=no-member,line-too-long # type: ignore # noqa: E501
+
+
+class TestUserInfo(IrodsTestCase):
+    """Tests of private user info rule logic"""
+
+    def test_isadm_groupadmin(self):
+        """
+        Test _cyverse_logic_isAdm correctly identifies that a groupadmin user
+        is not a rodsadmin
+        """
+        name = 'grouphandler'
+        self.irods.users.create(name, 'groupadmin')
+        try:
+            self._test_rule(name, False)
+        finally:
+            self.irods.users.remove(name)
+
+    def test_isadm_rodsadmin(self):
+        """
+        Test _cyverse_logic_isAdm correctly identifies a rodsadmin user is a
+        rodsadmin
+        """
+        self._test_rule(self.irods.username, True)
+
+    def test_isadm_rodsgroup(self):
+        """
+        Test _cyverse_logic_isAdm correctly identifies a group as not a
+        rodsadmin
+        """
+        self._test_rule('public', False)
+
+    def test_isadm_rodsuser(self):
+        """
+        Test _cyverse_logic_isAdm correctly identifies a rodsuser user as not a
+        rodsadmin
+        """
+        name = 'user'
+        self.irods.users.create(name, 'rodsuser')
+        try:
+            self._test_rule(name, False)
+        finally:
+            self.irods.users.remove(name)
+
+    def _test_rule(self, name, expected_result):
+        self.fn_test(
+            '_cyverse_logic_isAdm',
+            [IrodsVal.string(name), IrodsVal.string(self.irods.zone)],
+            IrodsVal.boolean(expected_result))
+
+
+class TestAvus(IrodsTestCase):
+    """Tests of private AVU rule logic"""
+
+    def test_no_candidates(self):
+        """Verify that if no candidates are provided the orignal is returned"""
+        self._test_getnewavusetting('orig', 'prefix', [], 'orig')
+
+    def test_one_candidate_matched(self):
+        """
+        Verify that it works correctly when one candidate is provided that
+        starts with the prefix.
+        """
+        self._test_getnewavusetting('orig', 'prefix', ['prefix' + 'val'], 'val')
+
+    def test_one_candidate_unmatched(self):
+        """
+        Verify that it works correctly when one candidate is provided that
+        doesn't start with the prefix.
+        """
+        self._test_getnewavusetting('orig', 'prefix', ['val'], 'orig')
+
+    @unittest.skip("not implemented")
+    def test_multiple_candidates(self):
+        """
+        Verify that it works correctly when multiple candidates are provided
+        """
+
+    def _test_getnewavusetting(self, orig_val, prefix, candidates, exp_res):
+        self.fn_test(
+            '_cyverse_logic_getNewAVUSetting',
+            [IrodsVal.string(orig_val), IrodsVal.string(prefix), IrodsVal.string_list(candidates)],
+            IrodsVal.string(exp_res))
 
 
 class TestCyVerseLogic(IrodsTestCase):
     """Test cyverse_logic.re"""
-
-    @unittest.skip("not implemented")
-    def test_icat_ids(self):
-        """Test the private ICAT Ids rule logic"""
-
-    @unittest.skip("not implemented")
-    def test_user_info(self):
-        """Test private user info rule logic"""
-
-    @unittest.skip("not implemented")
-    def test_avus(self):
-        """Test private AVU rule logic"""
 
     @unittest.skip("not implemented")
     def test_checksum(self):
@@ -54,16 +199,16 @@ class TestCyVerseLogic(IrodsTestCase):
         """Test private UUID rule logic"""
 
     @unittest.skip("not implemented")
-    def test_action_tracking(self):
-        """Test private action tracking rule logic"""
-
-    @unittest.skip("not implemented")
     def test_message_publishing(self):
         """Test private message publishing rule logic"""
 
     @unittest.skip("not implemented")
     def test_protected_avus(self):
         """Test private protected AVUs rule logic"""
+
+    @unittest.skip("not implemented")
+    def test_resource_free_space_mgmt(self):
+        """Test resource free space management logic"""
 
     @unittest.skip("not implemented")
     def test_rodsadmin_group_permissions(self):

@@ -14,6 +14,7 @@ from irods.access import iRODSAccess
 from irods.collection import iRODSCollection
 from irods.data_object import iRODSDataObject
 from irods.exception import UserDoesNotExist
+from irods.path import iRODSPath
 from irods.rule import Rule
 from irods.session import iRODSSession
 
@@ -38,7 +39,8 @@ class CyverseTestCase(IrodsTestCase):
         self, username: str, access: str, entity: Union[iRODSDataObject, iRODSCollection],
     ) -> bool:
         """
-        Checks to see if a given user has the given access to the given collection or data object
+        Checks to see if a given user has the given access to the given
+        collection or data object
 
         Parameters:
             username  the username to check
@@ -157,23 +159,129 @@ class CyverseRmprefix(CyverseTestCase):
 class CyverseKeyvalpairMsTTests(CyverseTestCase):
     """Tests of `KEYVALPAIR_MS_T` functions"""
 
-    @unittest.skip("not implemented")
-    def test_cyverse_haskey(self):
-        """test cyverse_hasKey"""
+    def test_cyverse_haskey_no_key(self):
+        """test cyverse_hasKey when key not present"""
+        rule_src = """
+            *kvp.key = 'val';
+            writeLine('stdout', if cyverse_hasKey(*kvp, 'missing') then 'true' else 'false');
+        """
+        self.assertEqual(
+            self.exec_rule(self.mk_rule(rule_src), IrodsType.BOOLEAN), IrodsVal.boolean(False))
 
-    @unittest.skip("not implemented")
-    def test_cyverse_getvalue(self):
-        """test cyverse_getValue"""
+    def test_cyverse_haskey_key(self):
+        """test cyverse_hasKey when key present"""
+        rule_src = """
+            *kvp.key = 'val';
+            writeLine('stdout', if cyverse_hasKey(*kvp, 'key') then 'true' else 'false');
+        """
+        self.assertEqual(
+            self.exec_rule(self.mk_rule(rule_src), IrodsType.BOOLEAN), IrodsVal.boolean(True))
+
+    def test_cyverse_getvalue_no_key(self):
+        """test cyverse_getValue when key not present"""
+        rule_src = """
+            *kvp.key = 'val';
+            writeLine('stdout', cyverse_getValue(*kvp, 'missing'));
+        """
+        self.assertEqual(
+            self.exec_rule(self.mk_rule(rule_src), IrodsType.STRING), IrodsVal.string(''))
+
+    def test_cyverse_getvalue_key(self):
+        """test cyverse_getValue when key present"""
+        rule_src = """
+            *kvp.key = 'val';
+            writeLine('stdout', cyverse_getValue(*kvp, 'key'));
+        """
+        self.assertEqual(
+            self.exec_rule(self.mk_rule(rule_src), IrodsType.STRING), IrodsVal.string('val'))
 
 
-@test_rules.unimplemented
 class CyverseFileModeTests(CyverseTestCase):
     """Tests of file mode logic"""
 
+    def test_file_create(self):
+        """Verify cyverse_FILE_CREATE"""
+        self.fn_test('cyverse_FILE_CREATE', [], IrodsVal.string('1'))
 
-@test_rules.unimplemented
+    def test_file_open_write(self):
+        """Verify cyverse_FILE_OPEN_WRITE"""
+        self.fn_test('cyverse_FILE_OPEN_WRITE', [], IrodsVal.string('3'))
+
+
 class CyverseFileOpenFlagTests(CyverseTestCase):
     """Tests of file open flag logic"""
+
+    def test_read_only(self):
+        """Verify cyverse_OPEN_FLAG_R"""
+        self.fn_test('cyverse_OPEN_FLAG_R', [], IrodsVal.string('0'))
+
+    def test_read_write_append(self):
+        """Verify cyverse_OPEN_FLAG_RP"""
+        self.fn_test('cyverse_OPEN_FLAG_RP', [], IrodsVal.string('2'))
+
+    def test_write_only(self):
+        """Verify cyverse_OPEN_FLAG_W"""
+        self.fn_test('cyverse_OPEN_FLAG_W', [], IrodsVal.string('513'))
+
+    def test_write_only_create(self):
+        """Verify cyverse_OPEN_FLAG_W_CREATE"""
+        self.fn_test('cyverse_OPEN_FLAG_W_CREATE', [], IrodsVal.string('577'))
+
+    def test_read_write_trunc(self):
+        """Verify cyverse_OPEN_FLAG_WP"""
+        self.fn_test('cyverse_OPEN_FLAG_WP', [], IrodsVal.string('514'))
+
+    def test_read_write_create(self):
+        """Verify cyverse_OPEN_FLAG_WP_CREATE"""
+        self.fn_test('cyverse_OPEN_FLAG_WP_CREATE', [], IrodsVal.string('578'))
+
+    def test_write_only_append(self):
+        """Verify cyverse_OPEN_FLAG_A"""
+        self.fn_test('cyverse_OPEN_FLAG_A', [], IrodsVal.string('1'))
+
+    def test_write_only_append_create(self):
+        """Verify cyverse_OPEN_FLAG_A_CREATE"""
+        self.fn_test('cyverse_OPEN_FLAG_A_CREATE', [], IrodsVal.string('65'))
+
+    def test_read_write_append_create(self):
+        """Verify cyverse_OPEN_FLAG_AP_CREATE"""
+        self.fn_test('cyverse_OPEN_FLAG_AP_CREATE', [], IrodsVal.string('66'))
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagr(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_R"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagrp(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_RP"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagw(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_W"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagwcreate(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_W_CREATE"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagwp(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_WP"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagwpcreate(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_WP_CREATE"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflaga(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_A"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagacreate(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_A_CREATE"""
+
+    @unittest.skip("not implemented")
+    def test_repltruncated_openflagapcreate(self):
+        """Test cyverse_replTruncated handling of cyverse_OPEN_FLAG_AP_CREATE"""
 
 
 class CyverseIscoll(CyverseTestCase):
@@ -259,12 +367,13 @@ class CyverseGetentitytype(CyverseTestCase):
 
     def test_data_obj(self):
         """Test with data object"""
-        obj = '/testing/home/rods/test_obj'
-        self.irods.data_objects.create(obj)
-        for p in IrodsTestCase.prep_path(obj):
+        obj_path = iRODSPath(self.irods.zone, 'home', self.irods.username, 'test_obj')
+        self.ensure_obj_absent(obj_path)
+        obj = self.irods.data_objects.create(obj_path)
+        for p in IrodsTestCase.prep_path(obj_path):
             with self.subTest(p=p):
                 self.fn_test('cyverse_getEntityType', [p], IrodsVal.string('-d'))
-        self.irods.data_objects.unlink(obj, force=True)
+        obj.unlink(force=True)
 
     def test_resc(self):
         """Test with resource"""
@@ -279,8 +388,48 @@ class CyverseGetentitytype(CyverseTestCase):
         self.fn_test('cyverse_getEntityType', [IrodsVal.string('garbage')], IrodsVal.string(''))
 
 
+class CyverseDataObjTests(CyverseTestCase):
+    """Tests of data object logic"""
+
+    @unittest.skip("not implemented")
+    def test_getdataid_exists_path(self):
+        """
+        Test cyverse_getDataId when data object exists when path is provided as
+        path.
+        """
+
+    @unittest.skip("not implemented")
+    def test_getdataid_exists_str(self):
+        """
+        Test cyverse_getDataId when data object exists when path is provided as
+        string.
+        """
+
+    @unittest.skip("not implemented")
+    def test_getdataid_missing(self):
+        """Test cyverse_getDataId when data object doesn't exist"""
+
+    @unittest.skip("not implemented")
+    def test_getdatapath(self):
+        """Test cyverse_getDataPath"""
+
+    @unittest.skip("not implemented")
+    def test_getdatainfo(self):
+        """Test cyverse_getDataInfo"""
+
+
+@test_rules.unimplemented
+class CyverseActionTrackingTests(CyverseTestCase):
+    """Tests of action tracking logic"""
+
+
+@test_rules.unimplemented
+class CyverseRescTests(CyverseTestCase):
+    """Tests of resource restriction logic"""
+
+
 class CyverseIsforsvc(CyverseTestCase):
-    """Test cyverse_isForSvc"""
+    """Test _cyverse_isForSvc"""
 
     def test_path_in_shared(self):
         """Test entity path in projects folder"""
@@ -302,13 +451,13 @@ class CyverseIsforsvc(CyverseTestCase):
         for p in IrodsTestCase.prep_path(path):
             with self.subTest(p=p):
                 self.fn_test(
-                    'cyverse_isForSvc',
+                    '_cyverse_isForSvc',
                     [IrodsVal.string('rods'), IrodsVal.string('svc_data'), p],
                     IrodsVal.boolean(exp_res))
 
 
 class CyverseGiveaccesscoll(CyverseTestCase):
-    """Tests of cyverse_giveAccessColl"""
+    """Tests of _cyverse_giveAccessColl"""
 
     def setUp(self):
         super().setUp()
@@ -318,7 +467,7 @@ class CyverseGiveaccesscoll(CyverseTestCase):
             pass
         self.irods.users.create('user', 'rodsuser')
         self.exec_rule(
-            self.mk_rule('cyverse_giveAccessColl("user", "read", /testing/home)'),
+            self.mk_rule('_cyverse_giveAccessColl("user", "read", /testing/home)'),
             IrodsType.NONE)
 
     def tearDown(self):
@@ -326,12 +475,16 @@ class CyverseGiveaccesscoll(CyverseTestCase):
         super().tearDown()
 
     def test_coll_acl_set(self):
-        """Test that a collection was given a given permission to a given user"""
+        """
+        Test that a collection was given a given permission to a given user
+        """
         if not self.has_perm('user', 'read_object', self.irods.collections.get('/testing/home')):  # type: ignore # noqa: E501 # pylint: disable=line-too-long
             self.fail('user did not receive read permission on /testing/home')
 
     def test_child_acl_set(self):
-        """Test that a collection member is given a given permission to a given user"""
+        """
+        Test that a collection member is given a given permission to a given user
+        """
         if not self.has_perm(
             'user', 'read_object', self.irods.collections.get('/testing/home/rods')  # type: ignore
         ):
@@ -339,7 +492,7 @@ class CyverseGiveaccesscoll(CyverseTestCase):
 
 
 class CyVerseGiveaccessdataobj(CyverseTestCase):
-    """Tests of  cyverse_giveAccessDataObj"""
+    """Tests of _cyverse_giveAccessDataObj"""
 
     def setUp(self):
         super().setUp()
@@ -347,7 +500,7 @@ class CyVerseGiveaccessdataobj(CyverseTestCase):
         self.ensure_user_exists('user')
         self.irods.data_objects.create(self._obj)
         self.exec_rule(
-            self.mk_rule(f'cyverse_giveAccessDataObj("user", "read", {self._obj})'),
+            self.mk_rule(f'_cyverse_giveAccessDataObj("user", "read", {self._obj})'),
             IrodsType.NONE)
 
     def tearDown(self):
@@ -356,7 +509,9 @@ class CyVerseGiveaccessdataobj(CyverseTestCase):
         super().tearDown()
 
     def test_obj_acl_set(self):
-        """Test that a data object was given a given permission to a given user"""
+        """
+        Test that a data object was given a given permission to a given user
+        """
         if not self.has_perm('user', 'read_object', self.irods.data_objects.get(self._obj)):
             self.fail('user did not receive read permission on data object')
 
@@ -377,7 +532,9 @@ class CyverseEnsureaccessoncreatecoll(CyverseTestCase):
         super().tearDown()
 
     def test_coll_in_svc_coll(self):
-        """Test that a collection in a service collection gets service permission"""
+        """
+        Test that a collection in a service collection gets service permission
+        """
         rule = self.mk_rule(
             f'cyverse_ensureAccessOnCreateColl("svc", "svc_data", "write", {self._coll})')
         self.exec_rule(rule, IrodsType.NONE)
@@ -385,7 +542,10 @@ class CyverseEnsureaccessoncreatecoll(CyverseTestCase):
             self.fail('svc did not receive write permission on collection')
 
     def test_coll_not_in_svc_coll(self):
-        """Test that a collection not in a service collection doesn't get service permission"""
+        """
+        Test that a collection not in a service collection doesn't get service
+        permission
+        """
         other_coll = '/testing/home/rods/coll'
         child = os.path.join(other_coll, 'child')
         self.irods.collections.create(child, recursive=True)
@@ -412,7 +572,9 @@ class CyverseEnsureaccessoncreatedataobj(CyverseTestCase):
         super().tearDown()
 
     def test_obj_in_svc_coll(self):
-        """Test that a data object in a service collection gets service permission"""
+        """
+        Test that a data object in a service collection gets service permission
+        """
         obj = os.path.join(self._svc_coll, 'obj')
         self.irods.data_objects.create(obj)
         rule = self.mk_rule(
@@ -423,7 +585,10 @@ class CyverseEnsureaccessoncreatedataobj(CyverseTestCase):
         self.ensure_obj_absent(obj)
 
     def test_obj_not_in_svc_coll(self):
-        """Test that a data object not in a service collection doesn't get service permission"""
+        """
+        Test that a data object not in a service collection doesn't get service
+        permission
+        """
         obj = os.path.join('/testing/home/rods/obj')
         self.irods.data_objects.create(obj)
         rule = self.mk_rule(
@@ -435,7 +600,7 @@ class CyverseEnsureaccessoncreatedataobj(CyverseTestCase):
 
 
 class CyverseEnsureaccessonmv(CyverseTestCase):
-    """Tests of cyverse_ensureAccessOnMov"""
+    """Tests of cyverse_ensureAccessOnMv"""
 
     def setUp(self):
         super().setUp()
@@ -449,7 +614,9 @@ class CyverseEnsureaccessonmv(CyverseTestCase):
         super().tearDown()
 
     def test_mv_coll_into_svc_coll(self):
-        """Test move collection into service collection gets service permission"""
+        """
+        Test move collection into service collection gets service permission
+        """
         coll = os.path.join(self._svc_coll, 'coll')
         self.irods.collections.create(coll)
         rule = self.mk_rule(
@@ -463,8 +630,8 @@ class CyverseEnsureaccessonmv(CyverseTestCase):
 
     def test_mv_coll_into_not_svc_coll(self):
         """
-        Test move collection into collection that doesn't belong to a service doesn't gets service
-        permission.
+        Test move collection into collection that doesn't belong to a service
+        doesn't gets service permission.
         """
         coll = '/testing/home/rods/coll'
         self.irods.collections.create(coll)
@@ -476,7 +643,9 @@ class CyverseEnsureaccessonmv(CyverseTestCase):
         self.irods.collections.remove(coll, force=True)
 
     def test_mv_data_into_svc_coll(self):
-        """Test move data object into service collection gets service permission"""
+        """
+        Test move data object into service collection gets service permission
+        """
         obj = os.path.join(self._svc_coll, 'obj')
         self.irods.data_objects.create(obj)
         rule = self.mk_rule(
@@ -488,8 +657,8 @@ class CyverseEnsureaccessonmv(CyverseTestCase):
 
     def test_mv_data_into_not_svc_coll(self):
         """
-        Test move data object into collection that doesn't belong to a service doesn't gets service
-        permission.
+        Test move data object into collection that doesn't belong to a service
+        doesn't gets service permission.
         """
         obj = '/testing/home/rods/obj'
         self.irods.data_objects.create(obj)

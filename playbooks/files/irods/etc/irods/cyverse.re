@@ -18,7 +18,7 @@ _cyverse_HOME = '/' ++ cyverse_ZONE ++ '/home'
 #  Str     the string being tested
 #  Suffix  the suffix being matched
 #
-cyverse_endsWith: string * string -> boolean
+cyverse_endsWith : string * string -> boolean
 cyverse_endsWith(*Str, *Suffix) =
 	if strlen(*Str) < strlen(*Suffix) then false
 	else if substr(*Str, strlen(*Str) - strlen(*Suffix), strlen(*Str)) != *Suffix then false
@@ -31,7 +31,7 @@ cyverse_endsWith(*Str, *Suffix) =
 #  Str     the string being tested
 #  Prefix  the prefix to be matched
 #
-cyverse_startsWith: string * string -> boolean
+cyverse_startsWith : string * string -> boolean
 cyverse_startsWith(*Str, *Prefix) =
 	if strlen(*Str) < strlen(*Prefix) then false
 	else if substr(*Str, 0, strlen(*Prefix)) != *Prefix then false
@@ -43,7 +43,7 @@ cyverse_startsWith(*Str, *Prefix) =
 #  Orig      the string with the unwanted prefix
 #  Prefixes  the set of prefixes to potentially remove
 #
-cyverse_rmPrefix: string * list string -> string
+cyverse_rmPrefix : string * list string -> string
 cyverse_rmPrefix(*Orig, *Prefixes) =
 	if size(*Prefixes) == 0 then *Orig
 	else
@@ -62,9 +62,8 @@ cyverse_rmPrefix(*Orig, *Prefixes) =
 #  KVMap  the map being inspected
 #  Key    the key to check for
 #
-cyverse_hasKey: `KeyValPair_PI` * string -> boolean
-cyverse_hasKey(*KVMap, *Key) = errorcode(*KVMap.'*Key') == 0
-
+cyverse_hasKey : `KeyValPair_PI` * string -> boolean
+cyverse_hasKey(*KVMap, *Key) = if errorcode(*KVMap."*Key") == 0 then *KVMap."*Key" != '' else false
 
 # Retrieves the value of the given key from the given map. If the key isn't
 # found, it returns the empty string.
@@ -73,7 +72,7 @@ cyverse_hasKey(*KVMap, *Key) = errorcode(*KVMap.'*Key') == 0
 #  KVMap  the map being inspected
 #  Key    the key used to lookup the value
 #
-cyverse_getValue: `KeyValPair_PI` * string -> string
+cyverse_getValue : `KeyValPair_PI` * string -> string
 cyverse_getValue(*KVMap, *Key) = if cyverse_hasKey(*KVMap, *Key) then *KVMap.'*Key' else ''
 
 
@@ -82,11 +81,11 @@ cyverse_getValue(*KVMap, *Key) = if cyverse_hasKey(*KVMap, *Key) then *KVMap.'*K
 #
 
 # Indicates that a file was created
-cyverse_FILE_CREATE: string
+cyverse_FILE_CREATE : string
 cyverse_FILE_CREATE = '1'
 
 # Indicates that a file was opened for writing
-cyverse_FILE_OPEN_WRITE: string
+cyverse_FILE_OPEN_WRITE : string
 cyverse_FILE_OPEN_WRITE = '3'
 
 
@@ -95,47 +94,47 @@ cyverse_FILE_OPEN_WRITE = '3'
 #
 
 # Indicates that a replica's open mode is 'r', i.e., read-only
-cyverse_OPEN_FLAG_R: string
+cyverse_OPEN_FLAG_R : string
 cyverse_OPEN_FLAG_R = '0'
 
 # Indicates that a replica's open mode is 'r+' or 'a+' no create, i.e.,
 # read-write, where writes append.
-cyverse_OPEN_FLAG_RP: string
+cyverse_OPEN_FLAG_RP : string
 cyverse_OPEN_FLAG_RP = '2'
 
 # Indicates that a replicas's open mode is 'w' no create, i.e., write-only,
 # where the replica is truncated.
-cyverse_OPEN_FLAG_W: string
+cyverse_OPEN_FLAG_W : string
 cyverse_OPEN_FLAG_W = '513'
 
 # Indicates that a replica's open mode is 'w' create, i.e., write-only, where
 # the replica need not exist, but if it does, it will be truncated.
-cyverse_OPEN_FLAG_W_CREATE: string
+cyverse_OPEN_FLAG_W_CREATE : string
 cyverse_OPEN_FLAG_W_CREATE = '577'
 
 # Indicates that a replica's open mode is 'w+' no create, i.e., read-write,
 # where the replica is truncated.
-cyverse_OPEN_FLAG_WP: string
+cyverse_OPEN_FLAG_WP : string
 cyverse_OPEN_FLAG_WP = '514'
 
 # Indicates that a replica's open mode is 'w+' create, i.e., read-write, where
 # the replica need not exist, but if it does, it will be truncated.
-cyverse_OPEN_FLAG_WP_CREATE: string
+cyverse_OPEN_FLAG_WP_CREATE : string
 cyverse_OPEN_FLAG_WP_CREATE = '578'
 
 # Indicates that a replica's open mode is 'a' no create, i.e., write-only, where
 # writes append.
-cyverse_OPEN_FLAG_A: string
+cyverse_OPEN_FLAG_A : string
 cyverse_OPEN_FLAG_A = '1'
 
 # Indicates that a replica's open mode is 'a' create, i.e., write-only, where
 # the replica need not exist and writes append.
-cyverse_OPEN_FLAG_A_CREATE: string
+cyverse_OPEN_FLAG_A_CREATE : string
 cyverse_OPEN_FLAG_A_CREATE = '65'
 
 # Indicates that a replica's open mode is 'a+' create, i.e., read-write, where
 # the replica need not exist and writes append.
-cyverse_OPEN_FLAG_AP_CREATE: string
+cyverse_OPEN_FLAG_AP_CREATE : string
 cyverse_OPEN_FLAG_AP_CREATE = '66'
 
 # Determines if a data object was truncated on open.
@@ -143,7 +142,7 @@ cyverse_OPEN_FLAG_AP_CREATE = '66'
 # Parameters:
 #  OpenFlags  the open flag set
 #
-cyverse_replTruncated: string -> boolean
+cyverse_replTruncated : string -> boolean
 cyverse_replTruncated(*OpenFlags) =
 	*OpenFlags == cyverse_OPEN_FLAG_W || *OpenFlags == cyverse_OPEN_FLAG_W_CREATE ||
 	*OpenFlags == cyverse_OPEN_FLAG_WP || *OpenFlags == cyverse_OPEN_FLAG_WP_CREATE
@@ -154,19 +153,19 @@ cyverse_replTruncated(*OpenFlags) =
 #
 
 # Identifies a collection
-cyverse_COLL: string
+cyverse_COLL : string
 cyverse_COLL = '-C'
 
 # Identifies a data object
-cyverse_DATA_OBJ: string
+cyverse_DATA_OBJ : string
 cyverse_DATA_OBJ = '-d'
 
 # Identifies a resource
-cyverse_RESC: string
+cyverse_RESC : string
 cyverse_RESC = '-R'
 
 # Identifies a user
-cyverse_USER: string
+cyverse_USER : string
 cyverse_USER = '-u'
 
 # tests whether a given entity type identifier indicates a collection
@@ -176,7 +175,7 @@ cyverse_USER = '-u'
 #
 # NB: Sometimes iRODS passes `-c` to indicate a collection
 #
-cyverse_isColl: string -> boolean
+cyverse_isColl : string -> boolean
 cyverse_isColl(*Type) = *Type == cyverse_COLL || *Type == '-c'
 
 # tests whether a given entity type identifier indicates a data object
@@ -184,7 +183,7 @@ cyverse_isColl(*Type) = *Type == cyverse_COLL || *Type == '-c'
 # Parameters:
 #  Type  the entity type identifier
 #
-cyverse_isDataObj: string -> boolean
+cyverse_isDataObj : string -> boolean
 cyverse_isDataObj(*Type) = *Type == cyverse_DATA_OBJ
 
 # tests whether a given entity type identifier indicates a collection or a data
@@ -193,7 +192,7 @@ cyverse_isDataObj(*Type) = *Type == cyverse_DATA_OBJ
 # Parameters:
 #  Type  the entity type identifier
 #
-cyverse_isFSType: string -> boolean
+cyverse_isFSType : string -> boolean
 cyverse_isFSType(*Type) = cyverse_isColl(*Type) || cyverse_isDataObj(*Type)
 
 # tests whether a given entity type identifier indicates a resource
@@ -203,7 +202,7 @@ cyverse_isFSType(*Type) = cyverse_isColl(*Type) || cyverse_isDataObj(*Type)
 #
 # NB: Sometimes iRODS passes `-r` to indicated a resource
 #
-cyverse_isResc: string -> boolean
+cyverse_isResc : string -> boolean
 cyverse_isResc(*Type) = *Type == cyverse_RESC || *Type == '-r'
 
 # tests whether a given entity type identifier indicates a user
@@ -211,7 +210,7 @@ cyverse_isResc(*Type) = *Type == cyverse_RESC || *Type == '-r'
 # Parameters:
 #  Type  the entity type identifier
 #
-cyverse_isUser: string -> boolean
+cyverse_isUser : string -> boolean
 cyverse_isUser(*Type) = *Type == cyverse_USER
 
 # Looks up the type of an entity
@@ -223,7 +222,7 @@ cyverse_isUser(*Type) = *Type == cyverse_USER
 # RETURNS:
 #  It returns the type or '' if the type of Entity can't be determined
 #
-cyverse_getEntityType: forall X in {path string}, X -> string
+cyverse_getEntityType : forall X in {path string}, X -> string
 cyverse_getEntityType(*Entity) =
 	let *entity = str(*Entity) in
 	let *type = '' in
@@ -235,6 +234,184 @@ cyverse_getEntityType(*Entity) =
 		else if cyverse_isResc(*type) then cyverse_RESC
 		else if cyverse_isUser(*type) then cyverse_USER
 		else *type
+
+
+#
+# Logic for working with data objects
+#
+
+# Looks up data object's DB Id
+#
+# PARAMETERS:
+#  Path  the absolute path to the data object
+#
+# RETURNS:
+#  It returns the DB Id if the object exists, otherwise it return -1.
+#
+cyverse_getDataId : forall X in {path string}, X -> int
+cyverse_getDataId(*Path) =
+	let *collPath = '' in
+	let *dataObjName = '' in
+	let *_ = msiSplitPath(str(*Path), *collPath, *dataObjName) in
+	let *id = -1 in
+	let *_ = foreach ( *rec in
+			SELECT DATA_ID WHERE COLL_NAME = *collPath AND DATA_NAME = *dataObjName
+		) { *id = int(*rec.DATA_ID) } in
+	*id
+
+# Looks up a data object's path given its DB Id
+#
+# PARAMETERS:
+#  Id  the object's ICAT DB Id
+#
+# RETURNS:
+#  It return the absolute path to the object if it exists, otherwise it returns /
+#
+cyverse_getDataPath : int -> path
+cyverse_getDataPath(*Id) =
+# XXX - As of iRODS 4.3.1, deferred rules don't propagate ticket information
+# 	let *path = / in
+# 	let *_ = foreach (*rec in SELECT COLL_NAME, DATA_NAME WHERE DATA_ID = '*Id') {
+# 			*path = /(*rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME);
+# 		} in
+# 	*path
+	let *fmtArg = execCmdArg('%s/%s') in
+	let *queryArg = execCmdArg("select COLL_NAME, DATA_NAME where DATA_ID = '*Id'") in
+	let *argStr = '*fmtArg *queryArg' in
+	let *status = errormsg(msiExecCmd('iquest-exec', *argStr, '', '', '', *resp), *err) in
+	if *status < 0
+		then
+			let *_ = msiGetStderrInExecCmdOut(*resp, *msg) in
+			let *_ = writeLine('serverLog', 'failed to resolve data object *Id: *err (*msg)') in
+			/
+		else
+			let *_ = msiGetStdoutInExecCmdOut(*resp, *path) in
+			let *path = trimr(*path, '\n') in
+			/*path
+# XXX - ^^^
+
+
+# Determine the size, type, and owner of a data object
+#
+# PARAMETERS:
+#  Path  the logical path to the data object
+#
+# RETURNS:
+#  It returns a dictionary with four fields. 'size' holds the size in bytes.
+#  'type' holds the file type. 'ownerName' holds the username of the owner, and
+#  'ownerZone' holds the authentication zone for the owner. If the data object
+#  doesn't exist, all values are left empty.
+#
+# XXX: As of iRODS 4.3.1, having `KeyValPair_PI` as a return type causes issues
+#      for dynamic typing
+# cyverse_getDataInfo : forall X in {path string}, X -> `KeyValPair_PI`
+# XXX: ^^^
+cyverse_getDataInfo(*Path) =
+	let *info.'size' = '' in
+	let *info.'type' = '' in
+	let *info.ownerName = '' in
+	let *info.ownerZone = '' in
+	let *collPath = '' in
+	let *dataName = '' in
+	let *_ = msiSplitPath(str(*Path), *collPath, *dataName) in
+	let *_ = foreach( *rec in
+			SELECT DATA_SIZE, DATA_TYPE_NAME, DATA_OWNER_NAME, DATA_OWNER_ZONE
+			WHERE COLL_NAME == *collPath AND DATA_NAME == *dataName AND DATA_REPL_STATUS == '1'
+		) {
+			*info.'size' = *rec.DATA_SIZE;
+			*info.'type' = *rec.DATA_TYPE_NAME;
+			*info.ownerName = *rec.DATA_OWNER_NAME;
+			*info.ownerZone = *rec.DATA_OWNER_ZONE;
+			break;
+		} in
+	*info
+
+
+#
+# Action tracking
+#
+
+_cyverse_mkActionKey(*RuleBase, *EntityId) = *RuleBase ++ '-' ++ str(*EntityId) ++ '-ROOT_ACTION'
+
+# Determine if this is the current action on the given entity within the given
+# rule base.
+#
+# PARAMETERS:
+#  RuleBase  the rule base that would trigger the action
+#  Action    the action in question
+#  SubjId    the entity's DB Id that is subject to the action
+#
+# RETURNS:
+#  whether or not this is the current action action on the given entity
+#
+cyverse_isCurrentAction : string * string * int -> boolean
+cyverse_isCurrentAction(*RuleBase, *Action, *SubjId) =
+	cyverse_getValue(temporaryStorage, _cyverse_mkActionKey(*RuleBase, *SubjId)) == *Action
+
+# Register the current action for the given entity.
+#
+# PARAMETERS:
+#  RuleBase  (string) the rule base triggering the action
+#  Action    (string) the action being performed
+#  SubjId    (int) the entity's DB Id that is subject to the action
+#
+cyverse_registerAction(*RuleBase, *Action, *SubjId) {
+	*key = _cyverse_mkActionKey(*RuleBase, *SubjId);
+
+	if (!cyverse_hasKey(temporaryStorage, *key)) {
+		temporaryStorage."*key" = *Action;
+	}
+}
+
+# Unregister the current action for the given entity.
+#
+# PARAMETERS:
+#  RuleBase  (string) the rule base triggering the action
+#  Action    (string) the action being performed
+#  SubjId    (int) the entity's DB Id that is subject to the action
+#
+cyverse_unregisterAction(*RuleBase, *Action, *SubjId) {
+	*key = _cyverse_mkActionKey(*RuleBase, *SubjId);
+	temporaryStorage."*key" = '';
+}
+
+
+#
+# This is the resource restriction logic for project-specific resources.
+#
+
+# This function determines whether or not a request to put a data object replica
+# on a project-specific resource should be blocked.
+#
+# PARAMETERS:
+#  Op           the operation triggering the resource selection logic
+#  ProjResc     the root resource dedicated to a project
+#  ReqRescHier  the requested resource hierarchy
+#  DataPath     the path to the data object in question
+#
+# RETURNS:
+#  It returns true if operation is attempting to create a replica on a project
+#  resource and the resource isn't the default resource, but is the requested
+#  resource, and the data path isn't under one of a project's collections.
+#  Otherwise, it returns true.
+#
+cyverse_blockRescReq : forall X in {path string}, string * string * string * X -> boolean
+cyverse_blockRescReq(*Op, *ProjResc, *ReqRescHier, *DataPath) =
+	let *reqResc = hd(split(*ReqRescHier, ';')) in
+	if *Op == 'OPEN' || *Op == 'UNLINK' then false
+	else if *ProjResc == cyverse_DEFAULT_RESC || *reqResc != *ProjResc then false
+	else
+		let *block = true in
+		let *_ = foreach( *rec in
+				SELECT META_RESC_ATTR_VALUE
+				WHERE RESC_NAME = *ProjResc AND META_RESC_ATTR_NAME = 'ipc::hosted-collection'
+			) { *block = *block && !(str(*DataPath) like *rec.META_RESC_ATTR_VALUE ++ '/*'); } in
+		*block
+
+
+#
+# This is the service support logic
+#
 
 # This function checks to see if a collection or data object is inside a user
 # collection managed by a service.
@@ -248,8 +425,7 @@ cyverse_getEntityType(*Entity) =
 #  It returns true if the collection or data object is inside the user
 #  collection, otherwise it returns false.
 #
-cyverse_isForSvc: forall X in {path string}, string * string * X -> boolean
-cyverse_isForSvc(*SvcUser, *SvcColl, *Path) =
+_cyverse_isForSvc(*SvcUser, *SvcColl, *Path) =
 	let *path = str(*Path) in
 	*path like regex _cyverse_HOME ++ '/[^/]+/*SvcColl($|/.*)'
 	&& !(*path like _cyverse_HOME ++ '/*SvcUser/*')
@@ -263,7 +439,7 @@ cyverse_isForSvc(*SvcUser, *SvcColl, *Path) =
 #            'own'.
 #  CollPath  the path to the collection of begin given access to
 #
-cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath) {
+_cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath) {
 	*path = str(*CollPath);
 	writeLine('serverLog', 'permitting *SvcUser *Perm access to *path and everything in it');
 	msiSetACL('recursive', *Perm, *SvcUser, *path);
@@ -277,7 +453,7 @@ cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath) {
 #           'own'.
 #  ObjPath  the path to the data object of begin given access to
 #
-cyverse_giveAccessDataObj(*SvcUser, *Perm, *ObjPath) {
+_cyverse_giveAccessDataObj(*SvcUser, *Perm, *ObjPath) {
 	*path = str(*ObjPath);
 	writeLine('serverLog', 'permitting *SvcUser *Perm access to *path');
 	msiSetACL('default', *Perm, *SvcUser, *path);
@@ -295,8 +471,8 @@ cyverse_giveAccessDataObj(*SvcUser, *Perm, *ObjPath) {
 #  CollPath  the path to the collection of interest
 #
 cyverse_ensureAccessOnCreateColl(*SvcUser, *SvcColl, *Perm, *CollPath) {
-	if (cyverse_isForSvc(*SvcUser, *SvcColl, *CollPath)) {
-		cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath);
+	if (_cyverse_isForSvc(*SvcUser, *SvcColl, *CollPath)) {
+		_cyverse_giveAccessColl(*SvcUser, *Perm, *CollPath);
 	}
 }
 
@@ -312,8 +488,8 @@ cyverse_ensureAccessOnCreateColl(*SvcUser, *SvcColl, *Perm, *CollPath) {
 #  ObjPath  the path to the data object of interest
 #
 cyverse_ensureAccessOnCreateDataObj(*SvcUser, *SvcColl, *Perm, *ObjPath) {
-	if (cyverse_isForSvc(*SvcUser, *SvcColl, *ObjPath)) {
-		cyverse_giveAccessDataObj(*SvcUser, *Perm, *ObjPath);
+	if (_cyverse_isForSvc(*SvcUser, *SvcColl, *ObjPath)) {
+		_cyverse_giveAccessDataObj(*SvcUser, *Perm, *ObjPath);
 	}
 }
 
@@ -330,18 +506,23 @@ cyverse_ensureAccessOnCreateDataObj(*SvcUser, *SvcColl, *Perm, *ObjPath) {
 #
 cyverse_ensureAccessOnMv(*SvcUser, *SvcColl, *Perm, *OldPath, *NewPath) {
 	if (
-		!cyverse_isForSvc(*SvcUser, *SvcColl, *OldPath)
-		&& cyverse_isForSvc(*SvcUser, *SvcColl, *NewPath)
+		!_cyverse_isForSvc(*SvcUser, *SvcColl, *OldPath)
+		&& _cyverse_isForSvc(*SvcUser, *SvcColl, *NewPath)
 	) {
 		*type = cyverse_getEntityType(*NewPath);
 
 		if (cyverse_isColl(*type)) {
-			cyverse_giveAccessColl(*SvcUser, *Perm, *NewPath);
+			_cyverse_giveAccessColl(*SvcUser, *Perm, *NewPath);
 		} else if (cyverse_isDataObj(*type)) {
-			cyverse_giveAccessDataObj(*SvcUser, *Perm, *NewPath);
+			_cyverse_giveAccessDataObj(*SvcUser, *Perm, *NewPath);
 		}
 	}
 }
+
+
+#
+# Protected AVU override
+#
 
 # This rule sets a protected AVU on an entity as a rodsadmin user. The user that
 # caused the setting of the AVU needs at least read permission on the Entity.

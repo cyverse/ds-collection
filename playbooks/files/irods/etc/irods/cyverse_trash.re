@@ -121,6 +121,7 @@ cyverse_trash_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp) {
 					*parentCollPath = *parentCollPath ++ "/" ++ elem(*collNameList, *i);
 				}
 
+				msiGetSystemTime(*timestamp, "");
 				_cyverse_trash_manageTimeAVU("set", cyverse_COLL, *parentCollPath, *timestamp);
 			}
 		}
@@ -219,9 +220,11 @@ cyverse_trash_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat) {
 	*timestampVar = _cyverse_trash_mkTimestampVar(/*collNamePath);
 
 	if (errorcode(temporaryStorage.'*timestampVar') == 0) {
-		_cyverse_trash_manageTimeAVU("rm", cyverse_COLL, *collNamePath, temporaryStorage.'*timestampVar');
+		_cyverse_trash_manageTimeAVU(
+			"rm", cyverse_COLL, *collNamePath, temporaryStorage.'*timestampVar' );
 	}
 }
+
 
 # When a collection is created in trash, this sets a trash timestamp on it.
 #
@@ -290,8 +293,9 @@ cyverse_trash_api_data_obj_rename_pre(*Instance, *Comm, *DataObjRenameInp) {
 
 
 # After a collection or data object is moved to trash, this sets a trash
-# timestamp on it. If is a collection, it recursively sets a trash timestamp on
-# everything in it.
+# timestamp on it. If a collection or data object is moved out of trash, the
+# timestamp is removed. For a collection, it recursively removes any trash
+# timestamp from everything in it.
 #
 # Parameters:
 #  Instance          (string) unused
@@ -311,11 +315,10 @@ cyverse_trash_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
 
 	if (*destObjPath like '/*zone/trash/*') {
 		msiGetSystemTime(*timestamp, "");
-		_cyverse_trash_manageTimeAVU("set", cyverse_getEntityType(*destObjPath), *destObjPath, *timestamp);
-	}
-	else if (
-		*DataObjRenameInp.src_obj_path like '/*zone/trash/*'
-		&& *DataObjRenameInp.dst_obj_path not like '/*zone/trash/*'
+		_cyverse_trash_manageTimeAVU(
+			"set", cyverse_getEntityType(*destObjPath), *destObjPath, *timestamp );
+	} else if (
+		*DataObjRenameInp.src_obj_path like '/*zone/trash/*' && *destObjPath not like '/*zone/trash/*'
 	) {
 		*srcObjPath = *DataObjRenameInp.src_obj_path;
 		*timestampVar = _cyverse_trash_mkTimestampVar(/*srcObjPath);
@@ -326,6 +329,26 @@ cyverse_trash_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
 				cyverse_getEntityType(*destObjPath),
 				*destObjPath,
 				temporaryStorage.'*timestampVar' );
+		}
+
+		if (cyverse_isColl(cyverse_getEntityType(*destObjPath))) {
+			foreach ( *rec in
+				SELECT COLL_NAME, DATA_NAME, META_DATA_ATTR_VALUE
+				WHERE COLL_NAME = '*destObjPath' || LIKE '*destObjPath/%'
+					AND META_DATA_ATTR_NAME = 'ipc::trash_timestamp'
+			) {
+				*objPath = *rec.COLL_NAME ++ '/' ++ *rec.DATA_NAME;
+				_cyverse_trash_manageTimeAVU(
+					"rm", cyverse_DATA_OBJ, *objPath, *rec.META_DATA_ATTR_VALUE );
+			}
+
+			foreach ( *rec in
+				SELECT COLL_NAME, META_COLL_ATTR_VALUE
+				WHERE COLL_NAME LIKE '*destObjPath/%' AND META_COLL_ATTR_NAME = 'ipc::trash_timestamp'
+			) {
+				_cyverse_trash_manageTimeAVU(
+					"rm", cyverse_COLL, *rec.COLL_NAME, *rec.META_COLL_ATTR_VALUE );
+			}
 		}
 	}
 }

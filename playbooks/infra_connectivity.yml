@@ -3,7 +3,7 @@
   hosts: all:!unmanaged_systems
   tasks:
     - name: Install key
-      when: not _infra_proxied_ssh
+      when: not (_infra_personal_ssh or _infra_proxied_ssh)
       ansible.posix.authorized_key:
         user: "{{ ansible_user_id }}"
         state: "{{ item.state | d('present') if item is mapping else 'present' }}"

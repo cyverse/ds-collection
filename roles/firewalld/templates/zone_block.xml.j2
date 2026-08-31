@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+{{ ansible_managed | ansible.builtin.comment('xml') }}
+
+<zone target="%%REJECT%%">
+  <short>block</short>
+  <description>
+    Any host not explicitly allowed by one of the other zones is blocked.
+    Incoming packets that are related to outgoing network connections are
+    accepted. Outgoing network connections are allowed.
+  </description>
+  <interface name="{{ firewalld_network_interface }}"/>
+</zone>

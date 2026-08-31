@@ -42,6 +42,6 @@
               where RESC_NAME = 'avraRes'
                 and META_RESC_ATTR_NAME = 'ipc::hosted-collection'
                 and META_RESC_ATTR_VALUE = '/testing/home/shared/avra'
-                and META_RESC_ATTR_UNITS = 'required'" )"
+                and META_RESC_ATTR_UNITS = 'forced'" )"
           (( num == 1 ))
       changed_when: false

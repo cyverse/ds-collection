@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+{{ ansible_managed | ansible.builtin.comment('xml') }}
+
+<zone target="ACCEPT">
+  <short>{{ firewalld_service_name }}_maintenance</short>
+  <description>All network connections from admin hosts are accepted.</description>
+  <source ipset="{{ firewalld_service_name }}_admin"/>
+</zone>

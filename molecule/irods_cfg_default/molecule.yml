@@ -1,7 +1,12 @@
 ---
+driver:
+  name: docker
 platforms:
   - name: ubuntu.localdomain
     image: ubuntu:bionic
     hostname: ubuntu.localdomain
 provisioner:
   name: ansible
+  config_options:
+    defaults:
+      remote_tmp: /tmp

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+{{ ansible_managed | ansible.builtin.comment('xml') }}
+
+<service>
+  <short>{{ firewalld_service_name }}</short>
+{% for port in [ firewalld_service_ports ] | flatten | map('string') | list %}
+  <port protocol="{{ port.split('/')[1] | d('tcp') }}" port="{{ port.split('/')[0] }}"/>
+{% endfor %}
+</service>

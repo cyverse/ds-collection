@@ -1,0 +1,13 @@
+---
+- name: Ensure system access
+  ansible.builtin.lineinfile:
+    path: /etc/firewalld/zones/{{ firewalld_service_name }}_operation.xml
+    insertbefore: '</zone>'
+    line: '  <source ipset="{{ firewalld_service_name }}_system"/>'
+    state: present
+
+- name: Ensure no external access
+  ansible.builtin.lineinfile:
+    path: /etc/firewalld/zones/{{ firewalld_service_name }}_operation.xml
+    regexp: '<source ipset=".*_external"'
+    state: absent

@@ -1,0 +1,7 @@
+FROM almalinux:10
+
+RUN --mount=target=/tmp/config,source=base/config.sh /tmp/config alma 10
+
+COPY base/entrypoint.sh /entrypoint
+
+ENTRYPOINT [ "/entrypoint" ]

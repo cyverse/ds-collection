@@ -30,8 +30,12 @@
             - skip_ansible_lint
 
         - name: Test missing hierarchy
-          ansible.builtin.debug:
-            msg: "TODO: implement"
+          cyverse.ds.irods_resource_hierarchy:
+            admin_username: rods
+            admin_password: password
+            zone: testing
+          register: resp
+          failed_when: resp is not failed
 
         - name: Test missing hierarchy fields
           ansible.builtin.debug:
@@ -41,8 +45,13 @@
             - children
 
         - name: Test missing zone
-          ansible.builtin.debug:
-            msg: "TODO: implement"
+          cyverse.ds.irods_resource_hierarchy:
+            admin_username: rods
+            admin_password: password
+            hierarchy:
+              name: ingestRes
+          register: resp
+          failed_when: resp is not failed
 
         - name: Test all required parameters provided
           ansible.builtin.debug:

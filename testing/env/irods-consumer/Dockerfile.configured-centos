@@ -46,8 +46,7 @@ RUN \
 		irods-netcdf-server_modules \
 		irods-server \
 		rsyslog
-
-	python3 -m pip install python-irodsclient
+	python3 -m pip install 'python-irodsclient<3.2'  # 3.2 does not work on CentOS 7
 
 ### Configure iRODS
 	/tmp/config-irods

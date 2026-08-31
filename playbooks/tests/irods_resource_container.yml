@@ -1,0 +1,374 @@
+---
+- name: Test default template expansions
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Test core.re expansion
+      ansible.builtin.debug:
+        msg: 'TODO: implement for {{ item }}'
+      loop:
+        - Ansible managed
+        - acSetRescSchemeForCreate
+        - acSetRescSchemeForRepl
+
+    - name: Test .env expansion
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Test logrotate.d/irods expansion
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+- name: Test custom template expansions
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Test expansions
+      ansible.builtin.debug:
+        msg: "TODO: implement"
+
+- name: Test prepare docker repository
+  hosts: irods_resource_container
+  tasks:
+    - name: Test set up docker repository on AlmaLinux
+      when: ansible_distribution == 'AlmaLinux'
+      block:
+        - name: Test install DNF core plugins
+          ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
+          vars:
+            pkg: dnf-plugins-core
+
+        - name: Test add Docker repository
+          ansible.builtin.stat:
+            path: /etc/yum.repos.d/docker-ce.repo
+          register: resp
+          failed_when: not resp.stat.exists
+
+    - name: Test set up docker repository on Ubuntu
+      when: ansible_distribution == 'Ubuntu'
+      block:
+        - name: Test ensure keyrings folder exists
+          ansible.builtin.stat:
+            path: /etc/apt/keyrings
+          register: resp
+          failed_when: >
+            not resp.stat.exists
+            or not resp.stat.isdir
+            or not (resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
+            or not (resp.stat.xusr and resp.stat.xgrp and resp.stat.xoth)
+
+        - name: Test install docker repo key
+          ansible.builtin.stat:
+            path: /etc/apt/keyrings/docker.asc
+          register: resp
+          failed_when: >
+            not (resp.stat.exists and resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
+
+        - name: Test docker repo source exists
+          ansible.builtin.stat:
+            path: /etc/apt/sources.list.d/docker.list
+          register: resp
+          failed_when: >
+            not (resp.stat.exists and resp.stat.rusr and resp.stat.rgrp and resp.stat.roth)
+
+        - name: Retrieve encoded docker.list
+          ansible.builtin.slurp:
+            src: /etc/apt/sources.list.d/docker.list
+          register: d_encoded
+
+        - name: Decode docker.list
+          ansible.builtin.set_fact:
+            docker: "{{ d_encoded.content | b64decode }}"
+
+        - name: Test docker repo source contents
+          ansible.builtin.assert:
+            that:
+              - docker is regex('arch=amd64')
+              - docker is regex(' noble stable')
+
+    - name: Test install required packages
+      ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
+      loop:
+        - docker-ce
+        - docker-ce-cli
+        - containerd.io
+        - docker-buildx-plugin
+        - docker-compose-plugin
+        - logrotate
+        - rsyslog
+      loop_control:
+        loop_var: pkg
+
+    - name: Test configure docker daemon for syslog
+      ansible.builtin.stat:
+        path: /etc/docker/daemon.json
+      register: resp
+      failed_when: not (resp.stat.exists and resp.stat.rusr)
+
+    - name: Retrieve encoded daemon.json
+      ansible.builtin.slurp:
+        src: /etc/docker/daemon.json
+      register: d_encoded
+
+    - name: Decode daemon.json
+      ansible.builtin.set_fact:
+        daemon: "{{ d_encoded.content | b64decode }}"
+
+    - name: Define expected tag value
+      ansible.builtin.set_fact:
+        exp_tag: '{{ "{% raw %}docker-{{.Name}}{% endraw %}" }}'
+
+    - name: Test contents of docker/daemon.json
+      ansible.builtin.assert:
+        that: daemon['log-opts']['tag'] == exp_tag
+
+    - name: Verify iRODS group exists
+      ansible.builtin.group:
+        name: irods
+      check_mode: true
+      register: group_resp
+      failed_when: group_resp.state != 'present' or group_resp.gid >= 1000
+
+    - name: Test create iRODS user
+      ansible.builtin.user:
+        name: irods
+      check_mode: true
+      register: resp
+      failed_when: >-
+        resp.state != 'present'
+        or resp.comment != 'iRODS Administrator'
+        or resp.group != group_resp.gid
+        or resp.home != '/var/lib/irods'
+        or resp.shell != '/bin/bash'
+        or resp.uid >= 1000
+
+    - name: Verify iRODS user belongs to Docker group
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          for group in $(groups irods | sed 's/^irods : //'); do
+            if [[ "$group" == docker ]]; then
+              exit 0
+            fi
+          done
+          exit 1
+      changed_when: false
+
+    - name:  Test create iRODS directories
+      ansible.builtin.stat:
+        path: "{{ item }}"
+      register: resp
+      failed_when: >
+        not resp.stat.exists
+        or not resp.stat.isdir
+        or not (resp.stat.pw_name == 'irods' and resp.stat.gr_name == 'irods')
+        or not (resp.stat.rusr and resp.stat.wusr and resp.stat.xusr)
+      loop:
+        - /etc/irods
+        - /var/lib/irods
+        - /var/lib/irods/.irods
+        - /var/lib/irods/msiExecCmd_bin
+
+    - name: Test add irodsctl adapter
+      ansible.builtin.stat:
+        path: /var/lib/irods/irodsctl
+      register: resp
+      failed_when: >
+        not resp.stat.exists
+        or not (resp.stat.pw_name == 'irods' and resp.stat.gr_name == 'irods')
+        or not (resp.stat.rusr and resp.stat.xusr)
+
+    - name: Test required iRODS runtime config files in place
+      ansible.builtin.stat:
+        path: /etc/irods/{{ item }}
+      register: resp
+      failed_when: >-
+        not resp.stat.exists
+        or not (resp.stat.pw_name == 'irods' and resp.stat.gr_name == 'irods')
+        or not resp.stat.rusr
+      loop:
+        - core.dvm
+        - core.fnm
+        - core.re
+
+    - name: Test add command scripts
+      ansible.builtin.stat:
+        path: /var/lib/irods/msiExecCmd_bin/{{ item }}
+      register: resp
+      failed_when: >
+        not resp.stat.exists
+        or not resp.stat.pw_name == 'irods'
+        or not (resp.stat.rusr and resp.stat.xusr)
+      loop:
+        - add-transfer
+        - amqp-topic-send
+        - delete-scheduled-rule
+        - generate-uuid
+        - ichksum-exec
+        - imeta-exec
+        - iquest-exec
+        - irepl-exec
+        - send-mail
+
+    - name: Test add command scripts 2
+      ansible.builtin.debug:
+        msg: "TODO: implement for {{ item }}"
+      loop:
+        - ichksum-exec
+        - iquest-exec
+        - irepl-exec
+
+    - name: Test stage dynamic rule bases
+      ansible.builtin.debug:
+        msg: TODO implement
+
+    - name: Test stage ansible.builtin.static rule bases
+      ansible.builtin.debug:
+        msg: TODO implement
+
+    - name: Verify service_account.config deposition
+      ansible.builtin.stat:
+        path: /etc/irods/service_account.config
+      register: resp
+      failed_when: not resp.stat.exists
+
+    - name: Retrieve encoded service_account.config
+      ansible.builtin.slurp:
+        src: /etc/irods/service_account.config
+      register: sa_encoded
+
+    - name: Decode service_account.config
+      ansible.builtin.set_fact:
+        service_account: "{{ sa_encoded.content | b64decode }}"
+
+    - name: Verify contents of service_account.config
+      ansible.builtin.assert:
+        that:
+          - service_account is search('\nIRODS_SERVICE_ACCOUNT_NAME=irods\n')
+
+    - name: Verify service_account.config contents
+      ansible.builtin.debug:
+        msg: "TODO: verify {{ item }}"
+      loop:
+        - IRODS_SERVICE_GROUP_NAME
+
+    - name: Verify deposition of server_config.json
+      ansible.builtin.stat:
+        path: /etc/irods/server_config.json
+      register: response
+      failed_when: not response.stat.exists
+
+    - name: Retrieve encoded server_config.json
+      ansible.builtin.slurp:
+        src: /etc/irods/server_config.json
+      register: sc_encoded
+
+    - name: Decode server_config.json
+      ansible.builtin.set_fact:
+        server_config: "{{ sc_encoded.content | b64decode }}"
+
+    - name: Verify server_config.json
+      ansible.builtin.assert:
+        that:
+          - server_config.advanced_settings.default_number_of_transfer_threads == 4
+          - server_config.advanced_settings.transfer_buffer_size_for_parallel_transfer_in_megabytes == 4
+          - >-
+            server_config.catalog_provider_hosts
+              | symmetric_difference(
+                [
+                  'dstesting-provider_configured-1.dstesting_default',
+                  'dstesting-provider_unconfigured-1.dstesting_default' ] )
+              | length
+            == 0
+          - server_config.catalog_service_role == 'consumer'
+          - server_config.default_dir_mode == '0750'
+          - server_config.default_file_mode == '0600'
+          - server_config.default_hash_scheme == 'MD5'
+          - server_config.negotiation_key == 'TEMPORARY_32byte_negotiation_key'
+          - server_config.plugin_configuration.rule_engines | length == 2
+          - server_config.plugin_configuration.rule_engines[0].plugin_name == 'irods_rule_engine_plugin-irods_rule_language'
+          - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set | length == 4
+          - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[0] == 'cve'
+          - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[1] == 'cyverse_core'
+
+    - name: Verify server_config.host_resolution
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify server_config.plugin_configuration.rule_engines rule language plugin_specific_configuration.re_rulebase_set
+      ansible.builtin.debug:
+        msg: 'TODO: implement for {{ item }}'
+      loop:
+        - cyverse_housekeeping
+        - core
+
+    - name: Verify server_config.plugin_configuration.rule_engines rule language plugin_specific_configuration
+      ansible.builtin.debug:
+        msg: 'TODO: implement for {{ item }}'
+      loop:
+        - regexes_for_supported_peps
+
+    - name: Verify server_config.plugin_configuration.rule_engines rule language shared_memory_instance
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify server_config.plugin_configuration.rule_engines CPP default policy
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify server_config.schema_validation_base_uri
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify server_config.server_control_plane_key
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify server_config.server_port_range_end
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify server_config.server_port_range_start
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify server_config.zone_key
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify server_config.zone_name
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify server_config.zone_user
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Verify irods_environment.json
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Test add build dir
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Test copy resource server image source
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Test placement of .env file
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Test copy docker-compose.yml
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Test configured rsyslog for iRODS
+      ansible.builtin.debug:
+        msg: 'TODO: implement'
+
+    - name: Test log rotation config placement for iRODS
+      ansible.builtin.debug:
+        msg: 'TODO: implement'

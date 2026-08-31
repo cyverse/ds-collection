@@ -21,9 +21,11 @@ These folder contains all of the playbooks used to deploy and configure a CyVers
 
 Variable                                   | Required | Default                              | Choices | Comments
 ------------------------------------------ | -------- | ------------------------------------ | ------- | --------
+`admin_hosts`                              | no       | `[ 'localhost' ]`                    |         | The set of hosts allowed unfettered access to the Data Store hosts for administration, FQDN, IP address, or CIDR
 `amqp_admin_username`                      | no       | guest                                |         | The AMQP broker admin user
 `amqp_admin_password`                      | no       | guest                                |         | The password for `amqp_admin_username`
 `amqp_broker_port`                         | no       | 5672                                 |         | The port used by the broker
+`amqp_external_clients`                    | no       | []                                   |         | The set of hosts external to the Data Store that are AMQP clients, FQDN, IP address, or CIDR
 `amqp_irods_exchange`                      | no       | irods                                |         | The AMQP exchange used by iRODS to publish events
 `amqp_irods_username`                      | no       | `amqp_admin_username`                |         | The user iRODS uses to connect to the AMQP vhost
 `amqp_irods_password`                      | no       | `amqp_admin_password`                |         | The password iRODS uses to connect to the AMQP vhost
@@ -59,10 +61,14 @@ Variable                                   | Required | Default                 
 `dbms_restart_allowed`                     | no       | false                                |         | whether or not the playbooks are allowed to restart PostgreSQL
 `dbms_wal_keep_segments`                   | no       | 4000                                 |         | the number of WAL files held by the primary server for its replica servers
 `dbms_work_mem`                            | no       | 32                                   |         | the allowed memory in mebibytes for each sort and hash operation
+`esiil_base_collection`                    | no       |                                      |         | The base collection for the ESIIL project. If it isn't present no ESIIL rules will fire.
+`esiil_manager`                            | no       | `irods_admin_username`               |         | The iRODS user who is responsible for ESIIL data.
+`esiil_resource_hierarchy`                 | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the ESIIL project
 `infra_domain_name`                        | yes      |                                      |         | The public FQDN for the environment being configured. This is used for configuring services that require a public domain to work, like mail.
 `infra_maintainer_keys`                    | no       | []                                   |         | A list of public ssh keys allowed or disallowed to connect as the `ansible_user` on all of the managed hosts, __see below__
 `infra_mtu`                                | no       | 1500                                 |         | The MTU to set on the primary NIC
-`infra_package_manager`                    |          | no                                   | auto    | The package manager to use
+`infra_package_manager`                    | no       | auto                                 |         | The package manager to use
+`infra_personal_ssh`                       | no       | false                                |         | Whether or not ansible connects using a deployer's personal account
 `infra_proxied_ssh`                        | no       | false                                |         | Whether or not the connection ansible uses to get to the managed node goes through a bastion host
 `infra_reboot_on_pkg_change`               | no       | false                                |         | Whether or not to automatically reboot the host if a system package was upgraded
 `infra_rebootable`                         | no       | true                                 |         | Whether or not the server being configured is rebootable
@@ -122,6 +128,9 @@ Variable                                   | Required | Default                 
 `irods_zone_key`                           | no       | TEMPORARY_zone_key                   |         | The zone key
 `irods_zone_name`                          | no       | tempZone                             |         | The name of the zone
 `mdrepo_cli_account`                       | no       | null                                 |         | The iRODS account used my the MD Repo CLI
+`ncems_base_collection`                    | no       |                                      |         | The base collection for the NCEMS project. If it isn't present no NCEMS rules will fire.
+`ncems_manager`                            | no       | `irods_admin_username`               |         | The iRODS user who is responsible for NCEMS data.
+`ncems_resource_hierarchy`                 | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the NCEMS project
 `pire_manager`                             | no       | null                                 |         | The username that owns the PIRE project collection, if `null`, the collection isn't created.
 `pire_resource_hierarchy`                  | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the PIRE project
 `proxy_allow_client_hosts`                 | no       | []                                   |         | A list of host names, IP addresses, and CIDR blocks of clients allowed limited concurrent iRODS connections
@@ -138,9 +147,9 @@ Variable                                   | Required | Default                 
 `proxy_vip_client_hosts`                   | no       | []                                   |         | a list of host names, IP addresses, and CIDR blocks of clients allowed unlimited concurrent iRODS connections.
 `sftp_admin_password`                      | yes      |                                      |         | The password of the SFTPGo admin user
 `sftp_admin_tls_cert_chain`                | no       |                                      |         | The TLS certificate chain contents for SFTPGo admin access, if not provided will not create file
-`sftp_admin_tls_cert_chain_file`           | no       | /etc/ssl/certs/dummy-chain.crt       |         | The TLS certificate chain file for SFTPGo admin access
+`sftp_admin_tls_cert_chain_file`           | no       |                                      |         | The TLS certificate chain file for SFTPGo admin access
 `sftp_admin_tls_key`                       | no       |                                      |         | The TLS key contents for SFTPGo admin access, if not provided, will not create file
-`sftp_admin_tls_key_file`                  | no       | /etc/ssl/certs/dummy.key             |         | The TLS key file for SFTPGo admin access
+`sftp_admin_tls_key_file`                  | no       |                                      |         | The TLS key file for SFTPGo admin access
 `sftp_admin_ui_port`                       | no       | 18023                                |         | The SFTPGo admin UI service port number
 `sftp_admin_username`                      | no       | admin                                |         | The SFTPGo admin account name
 `sftp_irods_admin_password`                | yes      |                                      |         | The password for the rodsadmin user that creates the iRODS user for SFTP
@@ -183,6 +192,7 @@ Variable                                   | Required | Default                 
 `webdav_irods_username`                    | no       | rods                                 |         | The irods user who converts data object uuid to path
 `webdav_irods_zone`                        | no       | tempZone                             |         | The local iRODS zone
 `webdav_max_request_workers`               | no       | 192                                  |         | The upper limit on the number of simultaneous requests that will be served. This typically have the value of `webdav_server_limit` multiplied by `webdav_threads_per_child`
+`webdav_moved_projects`                    | no       | []                                   |         | A list of names (not paths) of project home collections that have been moved out of CyVerse.
 `webdav_restart_allowed`                   | no       | false                                |         | Indicated if the WebDAV service can be restarted
 `webdav_server_limit`                      | no       | 48                                   |         | the number of cpu cores to be used
 `webdav_threads_per_child`                 | no       | 4                                    |         | the number of threads per core to be created

@@ -470,7 +470,7 @@ class RescHierMgr:
                     f" {resc_state.resc_type}")
             if resc_state.context != resc.context:  # type: ignore
                 raise ResourceHierarchyException(
-                    f"resource {resc_state.name} exists with context {resc.context} !="  # type: ignore  # noqa: E501
+                    f"resource {resc_state.name} exists with context {resc.context} !="  # type: ignore # noqa: E501 # pylint: disable=line-too-long
                     f"{resc_state.context}")
         elif resc_state.resc_type:
             self._irods.create_resc(resc_state.name, resc_state.resc_type, resc_state.context)
@@ -479,8 +479,8 @@ class RescHierMgr:
     def _create_hier(self, root_resc_state: Resource) -> None:
         if root_resc_state.has_definition():
             self._create_coord_resc(root_resc_state)
-            if self._resc_state.children:
-                for child in self._resc_state.children:
+            if root_resc_state.children:
+                for child in root_resc_state.children:
                     self._create_hier(child)
                     self._add_child(root_resc_state, child)
 

@@ -75,6 +75,7 @@ main() {
 
 	if [[ -n "$inspect" ]]; then
 		printf 'opening shell for inspection of volumes\n'
+		rm --force /root/.irods/.irodsA
 		bash
 	fi || true
 
@@ -104,19 +105,16 @@ do_test() {
 	local pbPath="$PLAYBOOK_DIR"/"$playbook"
 
 	printf 'checking playbook syntax\n'
-	if ! ansible-playbook --syntax-check "${args[@]}" "$pbPath"
-	then
+	if ! ansible-playbook --syntax-check "${args[@]}" "$pbPath"; then
 		return 1
 	fi
 
-	if [[ -n "$verbose" ]]
-	then
+	if [[ -n "$verbose" ]]; then
 		args+=(-vvv)
 	fi
 
 	printf 'running playbook\n'
-	if ! ansible-playbook --skip-tags=no_testing "${args[@]}" "$pbPath"
-	then
+	if ! ansible-playbook --skip-tags=no_testing "${args[@]}" "$pbPath"; then
 		return 1
 	fi
 
@@ -125,8 +123,7 @@ do_test() {
 	if [[ -e "$testPath" ]]; then
 		printf 'testing configuration\n'
 		# shellcheck disable=SC2086
-		if ! ansible-playbook "${args[@]}" "$testPath"
-		then
+		if ! ansible-playbook "${args[@]}" "$testPath"; then
 			return 1
 		fi
 	fi
@@ -166,8 +163,7 @@ setup_env() {
 
 	local args=(--inventory-file="$inventory" --skip-tags=no_testing)
 
-	if [[ -n "$verbose" ]]
-	then
+	if [[ -n "$verbose" ]]; then
 		args+=(-vvv)
 	fi
 
@@ -175,8 +171,7 @@ setup_env() {
 	IFS=, read -r -a setupArray <<< "$setup"
 
 	local playbook
-	for playbook in "${setupArray[@]}"
-	do
+	for playbook in "${setupArray[@]}"; do
 		args+=("$PLAYBOOK_DIR"/"$playbook")
 	done
 

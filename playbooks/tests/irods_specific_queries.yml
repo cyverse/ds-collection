@@ -1,0 +1,31 @@
+---
+- name: Test install specific queries
+  hosts: irods_catalog
+  become: true
+  become_user: irods
+  run_once: true
+  tasks:
+    - name: Verify queries registered
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          test -n "$(iquest --sql ls | sed --quiet '/^{{ item }}$/p')"
+      changed_when: false
+      loop:
+        - IPCCountCollectionsUnderPath
+        - IPCCountDataObjectsAndCollections
+        - IPCCountDataObjectsUnderPath
+        - IPCEntryListingCreatedSortASC
+        - IPCEntryListingCreatedSortDESC
+        - IPCEntryListingLastModSortASC
+        - IPCEntryListingLastModSortDESC
+        - IPCEntryListingNameSortASC
+        - IPCEntryListingNameSortDESC
+        - IPCEntryListingPathSortASC
+        - IPCEntryListingPathSortDESC
+        - IPCEntryListingSizeSortASC
+        - IPCEntryListingSizeSortDESC
+        - IPCListCollectionsUnderPath
+        - IPCUserCollectionPerms
+        - IPCUserDataObjectPerms

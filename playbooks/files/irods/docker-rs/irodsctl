@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+#
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
+show_help() {
+	cat <<EOF
+
+irodsctl version $VERSION
+
+Usage:
+ irodsctl -h|--help
+ irodsctl restart|start|status|stop
+
+This is an implementation of \`irodsctl\` that can manage a containerized iRODS
+server.
+EOF
+}
+
+set -o errexit -o nounset -o pipefail
+
+readonly VERSION=4.3.1
+
+EXEC_DIR="$(dirname "$(realpath --canonicalize-existing "$0")")"
+readonly EXEC_DIR
+
+main() {
+	local opts
+	if ! opts="$(getopt --name irodsctl --longoptions help --options h -- "$@")"; then
+		show_help >&2
+		return 1
+	fi
+
+	eval set -- "$opts"
+
+	local help
+	while true; do
+		case "$1" in
+			-h|--help)
+				help=help
+				shift
+				;;
+			--)
+				shift
+				break
+				;;
+		esac
+	done
+
+	if [[ -n "${help-}" ]]; then
+		show_help
+		return 0
+	fi
+
+	if (( $# < 1 )); then
+		show_help >&2
+		return 1
+	fi
+
+	local cmd="$1"
+
+	case "$cmd" in
+		restart)
+			restart
+			;;
+		start)
+			start
+			;;
+		status)
+			status
+			;;
+		stop)
+			stop
+			;;
+		*)
+			show_help >&2
+			return 1
+	esac
+}
+
+restart() {
+	docker_compose restart
+}
+
+start() {
+	docker_compose up --detach
+}
+
+status() {
+	local status
+	if \
+		status="$(docker_compose exec --user=irods irods-rs /var/lib/irods/irodsctl status 2>&1)"
+	then
+		echo "$status"
+		return
+	fi
+
+	printf 'No iRODS servers running\n'
+}
+
+stop() {
+	docker_compose down
+}
+
+docker_compose() {
+	docker compose --file="$EXEC_DIR"/docker-compose.yml "$@"
+}
+
+main "$@"

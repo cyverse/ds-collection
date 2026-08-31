@@ -1,0 +1,22 @@
+- name: Test update resource free space
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Verify resource free space set
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          iinit <<< password > /dev/null
+          if ! freeSpace="$(iquest '%s' "select RESC_FREE_SPACE where RESC_NAME = '{{ item }}'")"
+          then
+            exit 1
+          fi
+          test -n "$freeSpace"
+      changed_when: false
+      loop:
+        - avra
+        - esiilRes
+        - ingestRes
+        - ncemsRes
+        - pire
+        - replRes

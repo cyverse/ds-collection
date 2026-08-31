@@ -1,6 +1,6 @@
 ---
 - name: Create vaults
-  hosts: irods_resource:!unmanaged_systems
+  hosts: irods_resource_native:!unmanaged_systems
   become: true
   tasks:
     - name: Create vault directory
@@ -13,22 +13,21 @@
         state: directory
       with_items: "{{ _irods_storage_resources }}"
 
-    - name: Install python modules for irods_unixfilesystem_resource
-      ansible.builtin.pip:
-        name: python-irodsclient
-
-
 - name: Create storage resources
-  hosts: irods_resource
-  become: "{{ _irods_become_svc_acnt }}"
-  become_user: "{{ _irods_service_account_name }}"
+  hosts: irods_resource_native
   tasks:
     - name: Define storage resource
+      delegate_to: localhost
       cyverse.ds.irods_unixfilesystem_resource:
         name: "{{ item.name }}"
         host: "{{ inventory_hostname }}"
         vault: "{{ item.vault }}"
         context: "{{ item.context }}"
         status: up
-        init_free_space: true
+        zone: "{{ _irods_zone_name }}"
+        username: "{{ _irods_clerver_user }}"
+        password: "{{ _irods_clerver_password }}"
       with_items: "{{ _irods_storage_resources }}"
+
+- name: Initialize free space
+  ansible.builtin.import_playbook: irods_free_space.yml
