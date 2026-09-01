@@ -1163,35 +1163,28 @@ _cyverse_logic_resolveMsgEntityId(*EntityType, *EntityName, *ClientName, *Client
 	}
 }
 
-cyverse_logic_pubMsg(*Topic, *Msg) {
-	*exchangeArg = execCmdArg(cyverse_AMQP_EXCHANGE);
-	*topicArg = execCmdArg(*Topic);
-	*msgArg = execCmdArg(cyverse_json_serialize(*Msg));
-	*argStr = '*exchangeArg *topicArg *msgArg';
-
-	*status = errormsg(msiExecCmd('amqp-topic-send', *argStr, cyverse_RE_HOST, '', 0, *out), *msg);
-
-	if (*status < 0) {
-		if (*status == -370000) {
-			*err = "The user isn't allowed to execute command scripts";
-		} else {
-			msiGetStderrInExecCmdOut(*out, *err);
-		}
-
-		writeLine("serverLog", "Failed to send AMQP message: *msg (*err)");
-	}
-}
-
-_cyverse_logic_schedPubMsg(*Topic, *Msg) {
-	delay('<PLUSET>0s</PLUSET><EF>0s REPEAT 0 TIMES</EF>')
-	{cyverse_logic_doSendMsg(*Topic, *Msg)}
-}
-
 _cyverse_logic_sendMsg(*AuthorName, *AuthorZone, *Topic, *Msg) {
-	if (*AuthorName == 'anonymous' && *AuthorZone == cyverse_ZONE) {
-		_cyverse_logic_schedPubMsg(*Topic, *Msg);
-	} else {
-		cyverse_logic_pubMsg(*Topic, *Msg);
+	# NOTE: iRODS doesn't allow the anonymous user to trigger msiExecCmd. This
+	# can be removed if https://github.com/irods/irods/issues/5016 gets
+	# implemented.
+	if (*AuthorName != "anonymous" || *AuthorZone != cyverse_ZONE) {
+		*exchangeArg = execCmdArg(cyverse_AMQP_EXCHANGE);
+		*topicArg = execCmdArg(*Topic);
+		*msgArg = execCmdArg(cyverse_json_serialize(*Msg));
+		*argStr = '*exchangeArg *topicArg *msgArg';
+
+		*status = errormsg(
+			msiExecCmd('amqp-topic-send', *argStr, cyverse_RE_HOST, '', 0, *out), *msg );
+
+		if (*status < 0) {
+			if (*status == -370000) {
+				*err = "The user isn't allowed to execute command scripts";
+			} else {
+				msiGetStderrInExecCmdOut(*out, *err);
+			}
+
+			writeLine("serverLog", "Failed to send AMQP message: *msg (*err)");
+		}
 	}
 }
 
@@ -1343,7 +1336,7 @@ _cyverse_logic_sendDataObjAdd(
 		('type', cyverse_json_str(*Type)) ));
 
 	_cyverse_logic_sendMsg(
-		*AuthorName, *AuthorZone, cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.add', *msg );
+		*AuthorName, *AuthorZone, _cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.add', *msg );
 }
 
 # Publish a data-object.sys-metadata.mod message to AMQP exchange

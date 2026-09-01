@@ -181,19 +181,19 @@ class TestAvus(IrodsTestCase):
         """
         self._test_getnewavusetting('orig', 'prefix', ['val1', 'val2'], 'orig')
 
-    @unittest.skip("not implemented")
     def test_multiple_candidates_first_match(self):
         """
         Verify that it works correctly when multiple candidates are provided
         and the first starts with the prefix.
         """
+        self._test_getnewavusetting('orig', 'prefix', ['prefix' + 'val1', 'val2', 'val3'], 'val1')
 
-    @unittest.skip("not implemented")
     def test_multiple_candidates_second_match(self):
         """
         Verify that it works correctly when multiple candidates are provided
         and the second starts with the prefix.
         """
+        self._test_getnewavusetting('orig', 'prefix', ['val1', 'prefix' + 'val2', 'val3'], 'val2')
 
     @unittest.skip("not implemented")
     def test_multiple_candidates_mult_matches(self):
