@@ -410,7 +410,7 @@ class TestPepApiDataObjUnlinkPreRead(_CveTest):
 
     def setUp(self):
         super().setUp()
-        self.ensure_user_exists(self._user, 'password')
+        self.ensure_user_exists(self._user, password='password')
         obj = self.ensure_test_data_exists()
         self._replica_file = obj.replicas[0]
         self.irods.acls.set(iRODSAccess('write', path.dirname(_TEST_DATA), self._user))
@@ -475,7 +475,7 @@ class TestPepApiDataObjUnlinkPreDelete(_CveTest):
 
     def setUp(self):
         super().setUp()
-        self.ensure_user_exists(self._user, 'password')
+        self.ensure_user_exists(self._user, password='password')
         obj = self.ensure_test_data_exists()
         self._replica_file = obj.replicas[0]
         self.irods.acls.set(iRODSAccess('write', path.dirname(_TEST_DATA), self._user))

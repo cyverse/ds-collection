@@ -390,14 +390,20 @@ class IrodsTestCase(TestCase):
             self.irods.acls.set(iRODSAccess('own', obj_path, 'rods'), admin=True)
             self.irods.data_objects.unlink(obj_path, force=True)
 
-    def ensure_user_exists(self, username: str, password: Optional[str] = None) -> None:
-        """
-        Ensures that a user exists
-        """
+    def ensure_user_absent(self, username: str) -> None:
+        """Ensures that there is no user with username"""
+        result = self.irods.query().count(User.id).filter(User.name == username).one()
+        if int(result[User.id]) > 0:
+            self.irods.users.remove(username)
+
+    def ensure_user_exists(
+            self, username: str, user_type: str = 'rodsuser', password: Optional[str] = None
+        ) -> None:
+        """Ensures that a user exists"""
         result = self.irods.query().count(User.id).filter(User.name == username).one()
         if int(result[User.id]) == 0:
             if password is None:
-                self.irods.users.create(username, 'rodsuser')
+                self.irods.users.create(username, user_type)
             else:
                 self.irods.users.create_with_password(username, password)
 
