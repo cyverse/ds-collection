@@ -675,7 +675,7 @@ class CyverseSetprotectedavu(CyverseTestCase):
 
     def setUp(self):
         super().setUp()
-        self.ensure_user_exists('user', 'password')
+        self.ensure_user_exists('user', password='password')
 
     def tearDown(self):
         self.irods.users.remove('user')
