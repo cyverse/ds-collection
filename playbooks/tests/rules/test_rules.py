@@ -397,8 +397,8 @@ class IrodsTestCase(TestCase):
             self.irods.users.remove(username)
 
     def ensure_user_exists(
-            self, username: str, user_type: str = 'rodsuser', password: Optional[str] = None
-        ) -> None:
+        self, username: str, user_type: str = 'rodsuser', password: Optional[str] = None
+    ) -> None:
         """Ensures that a user exists"""
         result = self.irods.query().count(User.id).filter(User.name == username).one()
         if int(result[User.id]) == 0:

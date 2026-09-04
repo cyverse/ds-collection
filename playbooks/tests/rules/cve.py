@@ -9,7 +9,7 @@
 from os import path
 from pathlib import Path
 import subprocess
-from subprocess import CalledProcessError, PIPE
+from subprocess import PIPE
 import tarfile
 import tempfile
 from tempfile import NamedTemporaryFile
@@ -19,7 +19,10 @@ from irods.access import iRODSAccess
 from irods.data_object import iRODSDataObject
 from irods.exception import (
     CAT_NO_ACCESS_PERMISSION, CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CUT_ACTION_PROCESSED_ERR,
-    iRODSException)
+    iRODSException, SYS_NOT_ALLOWED)
+from irods.message import (
+    iRODSMessage, Message, IntegerProperty, LongProperty, RodsHostAddress, StringProperty,
+    SubmessageProperty)
 from irods.models import Group
 from irods.path import iRODSPath
 from irods.session import iRODSSession
@@ -27,8 +30,6 @@ from paramiko import AutoAddPolicy, SSHClient
 
 import test_rules
 from test_rules import IrodsTestCase, IrodsType, IrodsVal
-
-_TEST_DATA = iRODSPath("/testing/home/rods/test_data")
 
 
 def setUpModule():  # pylint: disable=invalid-name
@@ -43,12 +44,25 @@ def tearDownModule():  # pylint: disable=invalid-name
 
 class _CveTest(IrodsTestCase):
 
+    def __init__(self, methodName) -> None:
+        super().__init__(methodName)
+        self._test_data = None
+
+    def setUp(self):
+        super().setUp()
+        self._test_data = iRODSPath(self.irods.zone, "home", self.irods.username, "test_data")
+
+    @property
+    def test_data(self) -> iRODSPath:
+        """Return the test data path."""
+        return self._test_data  # type: ignore
+
     def ensure_test_data_exists(self) -> iRODSDataObject:
         """Ensure that the test data object exists"""
         try:
-            return self.irods.data_objects.create(_TEST_DATA)
+            return self.irods.data_objects.create(self._test_data)
         except CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME:
-            return self.irods.data_objects.get(_TEST_DATA)
+            return self.irods.data_objects.get(self._test_data)
 
 
 class _TarTest(_CveTest):
@@ -58,7 +72,7 @@ class _TarTest(_CveTest):
         self._tar_file = Path(tempfile.gettempdir()) / '_TarTest.tar'
 
     def tearDown(self):
-        self.ensure_obj_absent(_TEST_DATA)
+        self.ensure_obj_absent(self.test_data)
         super().tearDown()
 
     def mk_safe_tar(self) -> iRODSPath:
@@ -67,9 +81,9 @@ class _TarTest(_CveTest):
         file.close()
         with tarfile.open(self._tar_file, "w") as tar:
             tar.add(file.name)
-        self.irods.data_objects.put(self._tar_file, _TEST_DATA)
+        self.irods.data_objects.put(self._tar_file, self.test_data)
         self._tar_file.unlink()
-        return _TEST_DATA
+        return self.test_data
 
     def mk_unsafe_tar(self) -> iRODSPath:
         """Create an unsafe tar file"""
@@ -86,9 +100,9 @@ class _TarTest(_CveTest):
             encoding='utf-8')
         file.unlink()
         msiexeccmd_bin.rmdir()
-        self.irods.data_objects.put(self._tar_file, _TEST_DATA)
+        self.irods.data_objects.put(self._tar_file, self.test_data)
         self._tar_file.unlink()
-        return _TEST_DATA
+        return self.test_data
 
 
 class MsisendmailTest(_CveTest):
@@ -143,7 +157,7 @@ class MsitarfileextractTest(_TarTest):
     def test_log_msg(self):
         """Verify that a message was logged"""
         uz = f"{self.irods.username}#{self.irods.zone}"
-        msg = f'msiTarFileExtract: prevented {uz} from extracting {_TEST_DATA}'
+        msg = f'msiTarFileExtract: prevented {uz} from extracting {self.test_data}'
         for line in self.tail_rods_log():
             if msg in line:
                 return
@@ -169,13 +183,13 @@ class PepApiDataObjCopyPreTestP(_CveTest):
         self.update_rulebase([('cyverse_core.re', 'mocks/cyverse_core.re')])
         _, _, stderr = self.ssh.exec_command(
             f'sudo --login --user=irods'
-            f' icp -p /var/lib/irods/test_data {_TEST_DATA} {self._copy_data_path}')
+            f' icp -p /var/lib/irods/test_data {self.test_data} {self._copy_data_path}')
         self._icp_exit_status = stderr.channel.recv_exit_status()
 
     def tearDown(self):
         self.update_rulebase([('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')])
         self.ensure_obj_absent(self._copy_data_path)
-        self.ensure_obj_absent(_TEST_DATA)
+        self.ensure_obj_absent(self.test_data)
         super().tearDown()
 
     def test_no_copy(self):
@@ -213,12 +227,12 @@ class PepApiDataObjCopyPreTestNoP(_CveTest):
         self.ensure_obj_absent(self._copy_data_path)
         self.update_rulebase([('cyverse_core.re', 'mocks/cyverse_core.re')])
         _, _, stderr = self.ssh.exec_command(
-            f'sudo --login --user=irods icp {_TEST_DATA} {self._copy_data_path}')
+            f'sudo --login --user=irods icp {self.test_data} {self._copy_data_path}')
         self._icp_exit_status = stderr.channel.recv_exit_status()
 
     def tearDown(self):
         self.update_rulebase([('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')])
-        self.ensure_obj_absent(_TEST_DATA)
+        self.ensure_obj_absent(self.test_data)
         self.ensure_obj_absent(self._copy_data_path)
         super().tearDown()
 
@@ -258,7 +272,7 @@ class PepApiDataObjPutPreTestP(_CveTest):
         self.update_rulebase([('cyverse_core.re', 'mocks/cyverse_core.re')])
         iput = f"""
             echo '{test_rules.IRODS_PASSWORD}' \
-                | iput -p /var/lib/irods/tmp_file '{file.name}' '{_TEST_DATA}'
+                | iput -p /var/lib/irods/tmp_file '{file.name}' '{self.test_data}'
         """
         resp = subprocess.run(
             iput,
@@ -275,7 +289,7 @@ class PepApiDataObjPutPreTestP(_CveTest):
 
     def test_no_upload(self):
         """Verify that no upload happened"""
-        if self.irods.data_objects.exists(_TEST_DATA):
+        if self.irods.data_objects.exists(self.test_data):
             self.fail("The file was uploaded when it shouldn't have been")
 
     def test_upload_failed(self):
@@ -305,18 +319,18 @@ class PepApiDataObjPutPreTestNoP(_CveTest):
         super().setUp()
         self.update_rulebase([('cyverse_core.re', 'mocks/cyverse_core.re')])
         try:
-            self.put_empty(_TEST_DATA)
+            self.put_empty(self.test_data)
         except iRODSException as e:
             self._iput_resp = e
 
     def tearDown(self):
         self.update_rulebase([('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')])
-        self.ensure_obj_absent(_TEST_DATA)
+        self.ensure_obj_absent(self.test_data)
         super().tearDown()
 
     def test_upload_exists(self):
         """Verify that no upload happened"""
-        if not self.irods.data_objects.exists(_TEST_DATA):
+        if not self.irods.data_objects.exists(self.test_data):
             self.fail("The file wasn't uploaded")
 
     def test_upload_succeeded(self):
@@ -360,12 +374,12 @@ class TestDeleteAllowed(_CveTest):
         self.ensure_user_exists(self._group_member)
         self.irods.groups.addmember(self._deleter_group, self._group_member)
         self.ensure_test_data_exists()
-        self.irods.acls.set(iRODSAccess('read', _TEST_DATA, self._reader_user))
-        self.irods.acls.set(iRODSAccess('delete_object', _TEST_DATA, self._deleter_user))
-        self.irods.acls.set(iRODSAccess('delete_object', _TEST_DATA, self._deleter_group))
+        self.irods.acls.set(iRODSAccess('read', self.test_data, self._reader_user))
+        self.irods.acls.set(iRODSAccess('delete_object', self.test_data, self._deleter_user))
+        self.irods.acls.set(iRODSAccess('delete_object', self.test_data, self._deleter_group))
 
     def tearDown(self):
-        self.ensure_obj_absent(_TEST_DATA)
+        self.ensure_obj_absent(self.test_data)
         self.irods.users.remove(self._group_member)
         self.irods.users.remove(self._reader_user)
         self.irods.users.remove(self._deleter_user)
@@ -387,7 +401,7 @@ class TestDeleteAllowed(_CveTest):
         self._call_cve_delete_allowed(self._reader_user, False)
 
     def _call_cve_delete_allowed(self, username, expected_result):
-        for p in IrodsTestCase.prep_path(_TEST_DATA):
+        for p in IrodsTestCase.prep_path(self.test_data):
             with self.subTest(p=p):
                 self.fn_test(
                     '_cve_delete_allowed',
@@ -413,8 +427,8 @@ class TestPepApiDataObjUnlinkPreRead(_CveTest):
         self.ensure_user_exists(self._user, password='password')
         obj = self.ensure_test_data_exists()
         self._replica_file = obj.replicas[0]
-        self.irods.acls.set(iRODSAccess('write', path.dirname(_TEST_DATA), self._user))
-        self.irods.acls.set(iRODSAccess('read', _TEST_DATA, self._user))
+        self.irods.acls.set(iRODSAccess('write', path.dirname(self.test_data), self._user))
+        self.irods.acls.set(iRODSAccess('read', self.test_data, self._user))
         self.update_rulebase([('cyverse_core.re', 'mocks/cyverse_core.re')])
         with iRODSSession(
             host=self.irods.host,
@@ -424,7 +438,7 @@ class TestPepApiDataObjUnlinkPreRead(_CveTest):
             password='password',
         ) as user_sess:
             try:
-                user_sess.data_objects.unlink(_TEST_DATA, force=True)
+                user_sess.data_objects.unlink(self.test_data, force=True)
                 self._deleted = True
             except CAT_NO_ACCESS_PERMISSION:
                 self._deleted = False
@@ -433,7 +447,7 @@ class TestPepApiDataObjUnlinkPreRead(_CveTest):
 
     def tearDown(self):
         self.update_rulebase([('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')])
-        self.ensure_obj_absent(_TEST_DATA)
+        self.ensure_obj_absent(self.test_data)
         self.irods.users.remove(self._user)
         super().tearDown()
 
@@ -478,8 +492,8 @@ class TestPepApiDataObjUnlinkPreDelete(_CveTest):
         self.ensure_user_exists(self._user, password='password')
         obj = self.ensure_test_data_exists()
         self._replica_file = obj.replicas[0]
-        self.irods.acls.set(iRODSAccess('write', path.dirname(_TEST_DATA), self._user))
-        self.irods.acls.set(iRODSAccess('delete_object', _TEST_DATA, self._user))
+        self.irods.acls.set(iRODSAccess('write', path.dirname(self.test_data), self._user))
+        self.irods.acls.set(iRODSAccess('delete_object', self.test_data, self._user))
         self.update_rulebase([('cyverse_core.re', 'mocks/cyverse_core.re')])
         with iRODSSession(
             host=self.irods.host,
@@ -489,14 +503,14 @@ class TestPepApiDataObjUnlinkPreDelete(_CveTest):
             password='password',
         ) as user_sess:
             try:
-                user_sess.data_objects.unlink(_TEST_DATA, force=True)
+                user_sess.data_objects.unlink(self.test_data, force=True)
                 self._deleted = True
             except CAT_NO_ACCESS_PERMISSION:
                 self._deleted = False
 
     def tearDown(self):
         self.update_rulebase([('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')])
-        self.ensure_obj_absent(_TEST_DATA)
+        self.ensure_obj_absent(self.test_data)
         self.irods.users.remove(self._user)
         super().tearDown()
 
@@ -507,7 +521,7 @@ class TestPepApiDataObjUnlinkPreDelete(_CveTest):
 
     def test_obj_deleted(self):
         """Verify that data object deleted"""
-        if self.irods.data_objects.exists(_TEST_DATA):
+        if self.irods.data_objects.exists(self.test_data):
             self.fail("the data object wasn't deleted")
 
     def test_cyversecore_called(self):
@@ -516,6 +530,111 @@ class TestPepApiDataObjUnlinkPreDelete(_CveTest):
             if 'cyverse_core: pep_api_data_obj_unlink_pre' in line:
                 return
         self.fail('cyverse_core version not called')
+
+
+class _SpecCollMsg(Message):
+
+    _name = "SpecColl_PI"
+
+    collClass = IntegerProperty()
+    type = IntegerProperty()
+    collection = StringProperty()
+    objPath = StringProperty()
+    resource = StringProperty()
+    rescHier = StringProperty()
+    phyPath = StringProperty()
+    cacheDir = StringProperty()
+    cacheDirty = IntegerProperty()
+    replNum = IntegerProperty()
+
+
+class _SubFile(Message):
+
+    _name = "SubFile_PI"
+
+    addr = SubmessageProperty(RodsHostAddress)
+    subFilePath = StringProperty()
+    mode = IntegerProperty()
+    flags = IntegerProperty()
+    offset = LongProperty()
+    specColl = SubmessageProperty(_SpecCollMsg)
+
+
+class TestPepApiSubStructFilePut(_TarTest):
+    """Tests of pep_api_sub_struct_file_put_pre"""
+
+    def __init__(self, methodName: str) -> None:
+        super().__init__(methodName)
+        self._mnt_coll_path = None
+        self._result = None
+
+    def setUp(self):
+        """Test it"""
+        super().setUp()
+        tar_obj_path = self.mk_safe_tar()
+        tar_repl = self.irods.data_objects.get(tar_obj_path).replicas[0]
+        self._mnt_coll_path = iRODSPath(self.irods.zone, "home", self.irods.username, "mnt")
+        self.irods.collections.create(self._mnt_coll_path)
+        cmd = f"""
+            echo '{test_rules.IRODS_PASSWORD}' | imcoll -m tar {tar_obj_path} {self._mnt_coll_path}
+        """
+        subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+            check=True,
+            encoding='utf-8')
+        sc = _SpecCollMsg(
+            collClass=1,
+            type=2,
+            collection=self._mnt_coll_path,
+            objPath=tar_obj_path,
+            resource=tar_repl.resource_name,
+            rescHier=tar_repl.resc_hier,
+            phyPath=tar_repl.path,
+            cacheDir=tar_repl.path+".cacheDir0",
+            cacheDirty=1,
+            replNum=0)
+        sub = _SubFile(
+            addr=RodsHostAddress(hostAddr="", rodsZone="", port=0, dummyInt=0),
+            subFilePath=iRODSPath(self._mnt_coll_path, "..", "outside.txt"),
+            mode=33261,
+            flags=0,
+            offset=0,
+            specColl=sc)
+        with self.irods.pool.get_connection() as conn:  # type: ignore
+            conn.send(iRODSMessage("RODS_API_REQ", msg=sub, int_info=658, bs=b"PAYLOAD"))  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+            try:
+                conn.recv()
+            except SYS_NOT_ALLOWED as e:
+                self._result = e
+
+    def tearDown(self):
+        subprocess.run(
+            f"echo '{test_rules.IRODS_PASSWORD}' | imcoll -U {self._mnt_coll_path}",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+            check=True,
+            encoding='utf-8')
+        self.irods.collections.remove(self._mnt_coll_path)
+        super().tearDown()
+
+    def test_fail(self):
+        """Verify that the PEP rejects a subfile upload"""
+        self.assertIsInstance(self._result, SYS_NOT_ALLOWED)
+
+    def test_log_msg(self):
+        """Verify that a message was logged"""
+        msg = (
+            f"pep_api_sub_struct_file_put_pre: prevented "
+            f"[{self.irods.username}#{self.irods.zone}] from putting a subfile"
+        )
+        for line in self.tail_rods_log():
+            if msg in line:
+                return
+        self.fail("Didn't log correct message")
 
 
 if __name__ == "__main__":

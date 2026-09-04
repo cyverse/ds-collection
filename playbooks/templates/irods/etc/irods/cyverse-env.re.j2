@@ -31,6 +31,10 @@ cyverse_EMAIL_REPORT_ADDR = '{{ _irods_report_email_addr }}'
 cyverse_INIT_REPL_DELAY: integer
 cyverse_INIT_REPL_DELAY = {{ _irods_init_repl_delay }}
 
+cyverse_IS_CATALOG_PROVIDER: boolean
+cyverse_IS_CATALOG_PROVIDER = {{
+	(inventory_hostname in groups['irods_catalog']) | ternary('true', 'false') }}
+
 # the rule engine host
 cyverse_RE_HOST: string
 cyverse_RE_HOST = '{{ _irods_re_host }}'
