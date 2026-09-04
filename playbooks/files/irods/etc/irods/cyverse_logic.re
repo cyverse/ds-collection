@@ -1163,31 +1163,28 @@ _cyverse_logic_resolveMsgEntityId(*EntityType, *EntityName, *ClientName, *Client
 	}
 }
 
-# sends a message to a given AMQP topic exchange
-#
-# Parameters:
-# *Topic (string) the topic of the message
-# *Msg (string) the message to send
-#
-# Remote Execution:
-# It executes the amqp-topic-send command script on the rule engine host
-#
-_cyverse_logic_sendMsg(*Topic, *Msg) {
-	*exchangeArg = execCmdArg(cyverse_AMQP_EXCHANGE);
-	*topicArg = execCmdArg(*Topic);
-	*msgArg = execCmdArg(cyverse_json_serialize(*Msg));
-	*argStr = '*exchangeArg *topicArg *msgArg';
+_cyverse_logic_sendMsg(*AuthorName, *AuthorZone, *Topic, *Msg) {
+	# NOTE: iRODS doesn't allow the anonymous user to trigger msiExecCmd. This
+	# can be removed if https://github.com/irods/irods/issues/5016 gets
+	# implemented.
+	if (*AuthorName != "anonymous" || *AuthorZone != cyverse_ZONE) {
+		*exchangeArg = execCmdArg(cyverse_AMQP_EXCHANGE);
+		*topicArg = execCmdArg(*Topic);
+		*msgArg = execCmdArg(cyverse_json_serialize(*Msg));
+		*argStr = '*exchangeArg *topicArg *msgArg';
 
-	*status = errormsg(msiExecCmd('amqp-topic-send', *argStr, cyverse_RE_HOST, '', 0, *out), *msg);
+		*status = errormsg(
+			msiExecCmd('amqp-topic-send', *argStr, cyverse_RE_HOST, '', 0, *out), *msg );
 
-	if (*status < 0) {
-		if (*status == -370000) {
-			*err = "The user isn't allowed to execute command scripts";
-		} else {
-			msiGetStderrInExecCmdOut(*out, *err);
+		if (*status < 0) {
+			if (*status == -370000) {
+				*err = "The user isn't allowed to execute command scripts";
+			} else {
+				msiGetStderrInExecCmdOut(*out, *err);
+			}
+
+			writeLine("serverLog", "Failed to send AMQP message: *msg (*err)");
 		}
-
-		writeLine("serverLog", "Failed to send AMQP message: *msg (*err)");
 	}
 }
 
@@ -1199,7 +1196,8 @@ _cyverse_logic_sendAVUAddWildcard(
 		('pattern', cyverse_json_str(*DataObjPattern)),
 		('metadatum', _cyverse_logic_mkAVUObj(*AttrName, *AttrVal, *AttrUnit)) ));
 
-	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.metadata.addw', *msg);
+	_cyverse_logic_sendMsg(
+		*AuthorName, *AuthorZone, _cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.metadata.addw', *msg );
 }
 
 _cyverse_logic_sendAVUCp(*SrcType, *Src, *TgtType, *Tgt, *AuthorName, *AuthorZone) {
@@ -1209,7 +1207,8 @@ _cyverse_logic_sendAVUCp(*SrcType, *Src, *TgtType, *Tgt, *AuthorName, *AuthorZon
 		('source-type', cyverse_json_str(_cyverse_logic_getMsgType(*SrcType))),
 		('destination', cyverse_json_str(*Tgt)) ));
 
-	_cyverse_logic_sendMsg(_cyverse_logic_getMsgType(*TgtType) ++ '.metadata.cp', *msg);
+	_cyverse_logic_sendMsg(
+		*AuthorName, *AuthorZone, _cyverse_logic_getMsgType(*TgtType) ++ '.metadata.cp', *msg );
 }
 
 _cyverse_logic_sendAVUMod(
@@ -1230,7 +1229,8 @@ _cyverse_logic_sendAVUMod(
 		('old-metadatum', _cyverse_logic_mkAVUObj(*OldName, *OldVal, *OldUnit)),
 		('new-metadatum', _cyverse_logic_mkAVUObj(*NewName, *NewVal, *NewUnit)) ) );
 
-	_cyverse_logic_sendMsg(_cyverse_logic_getMsgType(*EntityType) ++ '.metadata.mod', *msg);
+	_cyverse_logic_sendMsg(
+		*AuthorName, *AuthorZone, _cyverse_logic_getMsgType(*EntityType) ++ '.metadata.mod', *msg );
 }
 
 _cyverse_logic_sendAVURmWildcard(
@@ -1243,7 +1243,8 @@ _cyverse_logic_sendAVURmWildcard(
 		('value-pattern', cyverse_json_str(*ValPat)),
 		('unit-pattern', cyverse_json_str(*UnitPat)) ));
 
-	_cyverse_logic_sendMsg(_cyverse_logic_getMsgType(*EntityType) ++ '.metadata.rmw', *msg);
+	_cyverse_logic_sendMsg(
+		*AuthorName, *AuthorZone, _cyverse_logic_getMsgType(*EntityType) ++ '.metadata.rmw', *msg );
 }
 
 _cyverse_logic_sendAVUOp(
@@ -1254,7 +1255,11 @@ _cyverse_logic_sendAVUOp(
 		_cyverse_logic_mkEntityField(*Entity),
 		('metadatum', _cyverse_logic_mkAVUObj(*AttrName, *AttrVal, *AttrUnit)) ));
 
-	_cyverse_logic_sendMsg(_cyverse_logic_getMsgType(*EntityType) ++ '.metadata.' ++ *Op, *msg);
+	_cyverse_logic_sendMsg(
+		*AuthorName,
+		*AuthorZone,
+		_cyverse_logic_getMsgType(*EntityType) ++ '.metadata.' ++ *Op,
+		*msg );
 }
 
 _cyverse_logic_sendCollACLMod(
@@ -1267,7 +1272,8 @@ _cyverse_logic_sendCollACLMod(
 		('permission', cyverse_json_str(*AccessLvl)),
 		('user', _cyverse_logic_mkUserObj(*Username, *UserZone)) ));
 
-	_cyverse_logic_sendMsg(_cyverse_logic_COLL_MSG_TYPE ++ '.acl.mod', *msg);
+	_cyverse_logic_sendMsg(
+		*AuthorName, *AuthorZone, _cyverse_logic_COLL_MSG_TYPE ++ '.acl.mod', *msg );
 }
 
 _cyverse_logic_sendCollInheritMod(*Coll, *Inherit, *Recurse, *AuthorName, *AuthorZone) {
@@ -1277,7 +1283,8 @@ _cyverse_logic_sendCollInheritMod(*Coll, *Inherit, *Recurse, *AuthorName, *Autho
 		('recursive', cyverse_json_bool(*Recurse)),
 		('inherit', cyverse_json_bool(*Inherit)) ));
 
-	_cyverse_logic_sendMsg(_cyverse_logic_COLL_MSG_TYPE ++ '.acl.mod', *msg);
+	_cyverse_logic_sendMsg(
+		*AuthorName, *AuthorZone, _cyverse_logic_COLL_MSG_TYPE ++ '.acl.mod', *msg );
 }
 
 _cyverse_logic_sendCollAccessMod(
@@ -1301,7 +1308,7 @@ _cyverse_logic_sendCollAdd(*Id, *Path, *AuthorName, *AuthorZone) {
 		_cyverse_logic_mkEntityField(*Id),
 		_cyverse_logic_mkPathField(*Path) ));
 
-	_cyverse_logic_sendMsg(_cyverse_logic_COLL_MSG_TYPE ++ '.add', *msg);
+	_cyverse_logic_sendMsg(*AuthorName, *AuthorZone, _cyverse_logic_COLL_MSG_TYPE ++ '.add', *msg);
 }
 
 _cyverse_logic_sendDataObjACLMod(
@@ -1313,7 +1320,8 @@ _cyverse_logic_sendDataObjACLMod(
 		('permission', cyverse_json_str(*AccessLvl)),
 		('user', _cyverse_logic_mkUserObj(*Username, *UserZone)) ));
 
-	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.acl.mod', *msg);
+	_cyverse_logic_sendMsg(
+		*AuthorName, *AuthorZone, _cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.acl.mod', *msg );
 }
 
 _cyverse_logic_sendDataObjAdd(
@@ -1327,7 +1335,8 @@ _cyverse_logic_sendDataObjAdd(
 		('size', cyverse_json_num(double(*Size))),
 		('type', cyverse_json_str(*Type)) ));
 
-	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.add', *msg);
+	_cyverse_logic_sendMsg(
+		*AuthorName, *AuthorZone, _cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.add', *msg );
 }
 
 # Publish a data-object.sys-metadata.mod message to AMQP exchange
@@ -1336,7 +1345,8 @@ _cyverse_logic_sendDataObjMetadataMod(*Id, *AuthorName, *AuthorZone) {
 		_cyverse_logic_mkAuthorField(*AuthorName, *AuthorZone),
 		_cyverse_logic_mkEntityField(*Id) ));
 
-	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.sys-metadata.mod', *msg);
+	_cyverse_logic_sendMsg(
+		*AuthorName, *AuthorZone, _cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.sys-metadata.mod', *msg );
 }
 
 # Publish a data-object.mod message to AMQP exchange
@@ -1350,7 +1360,8 @@ _cyverse_logic_sendDataObjMod(
 		('size', cyverse_json_num(double(*Size))),
 		('type', cyverse_json_str(*Type)) ));
 
-	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.mod', *msg);
+	_cyverse_logic_sendMsg(
+		*AuthorName, *AuthorZone, _cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.mod', *msg );
 }
 
 _cyverse_logic_sendDataObjOpen(*Id, *Path, *Size, *AuthorName, *AuthorZone) {
@@ -1363,7 +1374,8 @@ _cyverse_logic_sendDataObjOpen(*Id, *Path, *Size, *AuthorName, *AuthorZone) {
 		('size', cyverse_json_num(double(*Size))),
 		('timestamp', cyverse_json_str(*timestamp)) ));
 
-	_cyverse_logic_sendMsg(_cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.open', *msg);
+	_cyverse_logic_sendMsg(
+		*AuthorName, *AuthorZone, _cyverse_logic_DATA_OBJ_MSG_TYPE ++ '.open', *msg );
 }
 
 _cyverse_logic_sendEntityMv(*Type, *Id, *OldPath, *NewPath, *AuthorName, *AuthorZone) {
@@ -1379,7 +1391,7 @@ _cyverse_logic_sendEntityMv(*Type, *Id, *OldPath, *NewPath, *AuthorName, *Author
 			('old-path', cyverse_json_str(str(*OldPath))),
 			('new-path', cyverse_json_str(str(*NewPath))) ));
 
-		_cyverse_logic_sendMsg(*msgType ++ '.mv', *msg);
+		_cyverse_logic_sendMsg(*AuthorName, *AuthorZone, *msgType ++ '.mv', *msg);
 	}
 }
 
@@ -1389,7 +1401,8 @@ _cyverse_logic_sendEntityRm(*Type, *Id, *Path, *AuthorName, *AuthorZone) {
 		_cyverse_logic_mkEntityField(*Id),
 		_cyverse_logic_mkPathField(*Path) ));
 
-	_cyverse_logic_sendMsg(_cyverse_logic_getMsgType(*Type) ++ '.rm', *msg);
+	_cyverse_logic_sendMsg(
+		*AuthorName, *AuthorZone, _cyverse_logic_getMsgType(*Type) ++ '.rm', *msg );
 }
 
 # Publishes a message indicating that a data object was created.

@@ -114,7 +114,7 @@ class TestUserInfo(IrodsTestCase):
         is not a rodsadmin
         """
         name = 'grouphandler'
-        self.irods.users.create(name, 'groupadmin')
+        self.ensure_user_exists(name, user_type='groupadmin')
         try:
             self._test_rule(name, False)
         finally:
@@ -160,13 +160,6 @@ class TestAvus(IrodsTestCase):
         """Verify that if no candidates are provided the orignal is returned"""
         self._test_getnewavusetting('orig', 'prefix', [], 'orig')
 
-    def test_one_candidate_matched(self):
-        """
-        Verify that it works correctly when one candidate is provided that
-        starts with the prefix.
-        """
-        self._test_getnewavusetting('orig', 'prefix', ['prefix' + 'val'], 'val')
-
     def test_one_candidate_unmatched(self):
         """
         Verify that it works correctly when one candidate is provided that
@@ -174,10 +167,39 @@ class TestAvus(IrodsTestCase):
         """
         self._test_getnewavusetting('orig', 'prefix', ['val'], 'orig')
 
-    @unittest.skip("not implemented")
-    def test_multiple_candidates(self):
+    def test_one_candidate_matched(self):
+        """
+        Verify that it works correctly when one candidate is provided that
+        starts with the prefix.
+        """
+        self._test_getnewavusetting('orig', 'prefix', ['prefix' + 'val'], 'val')
+
+    def test_multiple_candidates_unmatched(self):
         """
         Verify that it works correctly when multiple candidates are provided
+        and none start with the prefix.
+        """
+        self._test_getnewavusetting('orig', 'prefix', ['val1', 'val2'], 'orig')
+
+    def test_multiple_candidates_first_match(self):
+        """
+        Verify that it works correctly when multiple candidates are provided
+        and the first starts with the prefix.
+        """
+        self._test_getnewavusetting('orig', 'prefix', ['prefix' + 'val1', 'val2', 'val3'], 'val1')
+
+    def test_multiple_candidates_second_match(self):
+        """
+        Verify that it works correctly when multiple candidates are provided
+        and the second starts with the prefix.
+        """
+        self._test_getnewavusetting('orig', 'prefix', ['val1', 'prefix' + 'val2', 'val3'], 'val2')
+
+    @unittest.skip("not implemented")
+    def test_multiple_candidates_mult_matches(self):
+        """
+        Verify that it works correctly when multiple candidates are provided
+        and multiple start with the prefix.
         """
 
     def _test_getnewavusetting(self, orig_val, prefix, candidates, exp_res):
