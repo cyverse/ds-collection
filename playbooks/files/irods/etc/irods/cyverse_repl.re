@@ -66,11 +66,13 @@ _repl_replicate(*Object, *RescName) {
 
     temporaryStorage.cyverse_repl_replicate = '';
 
-    if (*status < 0) {
-      if (*status == -808000 || *status == -817000) {
+    if (*status < 0 && *status != error("SYS_NOT_ALLOWED")) {
+      # SYS_NOT_ALLOWED happens when then data object is already replicated
+
+      if (*status == error("CAT_NO_ROWS_FOUND") || *status == error("CAT_UNKNOWN_FILE")) {
         _repl_logMsg(
           'failed to replicate data object *Object (*objPath), data no longer exists: *err' );
-      } else if (*status == -314000) {
+      } else if (*status == error("USER_CHKSUM_MISMATCH")) {
         _repl_logMsg(
           'failed to replicate data object *Object (*objPath) due to checksum error: *err' );
       } else {
