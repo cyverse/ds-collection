@@ -523,19 +523,22 @@ acPostProcForRmColl {
 # N.B. large files are not passed through rcBulkDataObjPut
 #
 pep_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
-	*status = errormsg(
-		cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf),
-		*msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
+	if (cyverse_IS_CATALOG_PROVIDER) {
+		*status = errormsg(
+			cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf),
+			*msg );
+		if (*status < 0) { writeLine('serverLog', *msg); }
 
-	*status = errormsg(
-		cyverse_repl_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf), *msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
+		*status = errormsg(
+			cyverse_repl_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf),
+			*msg );
+		if (*status < 0) { writeLine('serverLog', *msg); }
 
-	*status = errormsg(
-		cyverse_transfer_tracking_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf),
-		*msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
+		*status = errormsg(
+			cyverse_transfer_tracking_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf),
+			*msg );
+		if (*status < 0) { writeLine('serverLog', *msg); }
+	}
 }
 
 
