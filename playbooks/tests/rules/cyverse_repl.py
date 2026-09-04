@@ -26,16 +26,21 @@ def tearDownModule():  # pylint: disable=invalid-name
     test_rules.tearDownModule()
 
 
-class TestReplReplicate(IrodsTestCase):
-    """Tests of _repl_replicate"""
+class TestReplReplicateObjExists(IrodsTestCase):
+    """Tests its handling of a object that still exists"""
 
     @unittest.skip("not implemented")
-    def test_object_exists(self):
-        """Tests its handling of a object that still exists"""
+    def test_failure(self):
+        """Test when replication fails"""
 
     @unittest.skip("not implemented")
-    def test_object_gone(self):
-        """Tests its handling of an object that not longer exists"""
+    def test_success(self):
+        """Test when replication succeeds"""
+
+
+@test_rules.unimplemented
+class TestReplReplicateObjGone(IrodsTestCase):
+    """Tests its handling of an object that not longer exists"""
 
 
 class TestAcsetrescschemeforcreate(IrodsTestCase):
@@ -179,7 +184,6 @@ class TestPepResourceResolveHierarchyPre(IrodsTestCase):
         for line in self.tail_rods_log():
             if 'cyverse_core: pep_resource_resolve_hierarchy_pre' in line:
                 self.fail('did not intercept PEP')
-                break
 
 
 class TestCyverseRepl(IrodsTestCase):
