@@ -328,8 +328,8 @@ class IrodsTestCase(TestCase):
         """
         return (IrodsVal.path(irods_path), IrodsVal.string(irods_path))
 
-    def setUp(self):
-        super().setUp()
+    def __init__(self, methodName: str = "runTest") -> None:
+        super().__init__(methodName)
         self._irods = None
         self._ssh = None
         self._scp = None
