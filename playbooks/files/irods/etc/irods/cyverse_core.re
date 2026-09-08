@@ -555,7 +555,7 @@ pep_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
 #                         replica registration
 #  BULK_DATA_OBJ_REG_OUT  unknown
 #
-# N.B. This isn't used by iCommands or any official API as of iRODS 4.2.10, so
+# N.B. This isn't used by iCommands or any official API as of iRODS 4.3.1, so
 # let's not implement it.
 #
 pep_api_bulk_data_obj_reg_post(*Instance, *Comm, *BulkDataObjRegInp, *BULK_DATA_OBJ_REG_OUT) {
@@ -908,7 +908,7 @@ pep_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 # DATA_OBJ_CREATE_AND_STAT
 #
 # NB: This PEP is used together with DATA_OBJ_CLOSE
-# NB: This isn't used by iCommands or any official API as of iRODS 4.2.10
+# NB: This isn't used by iCommands or any official API as of iRODS 4.3.1
 
 # This is the pre processing logic for when an attempt is made to create a data
 # object and stat its replica through the API using a DATA_OBJ_CREATE_AND_STAT
@@ -961,7 +961,7 @@ pep_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
 # DATA_OBJ_OPEN_AND_STAT
 #
 # NB: This PEP is used together with DATA_OBJ_CLOSE and possibly DATA_OBJ_WRITE.
-# N.B. This isn't used by iCommands or any official API as of iRODS 4.2.8
+# N.B. This isn't used by iCommands or any official API as of iRODS 4.3.1
 
 # This is the pre processing logic for when an attempt is made to open a data
 # object through the API using a DATA_OBJ_OPEN_AND_STAT request.
@@ -987,14 +987,14 @@ pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 # This is the post processing logic for when a DATA_OBJ_READ request happened.
 #
 # Parameters:
-#  Instance             (string) unknown
-#  Comm                 (`KeyValuePair_PI`) user connection and auth information
-#  DataObjReadInp       (`KeyValuePair_PI`) information about the read request
-#  DATA_OBJ_READ_B_BUF  (unknown) the contents that were read from the object
+#  Instance         (string) unknown
+#  Comm             (`KeyValuePair_PI`) user connection and auth information
+#  DataObjReadInp   (`KeyValuePair_PI`) information about the read request
+#  DataObjReadBBuf  (unknown) the contents that were read from the object
 #
-pep_api_data_obj_read_post(*Instance, *Comm, *DataObjReadInp, *DATA_OBJ_READ_B_BUF) {
+pep_api_data_obj_read_post(*Instance, *Comm, *DataObjReadInp, *DataObjReadBBuf) {
 	cyverse_transfer_tracking_api_data_obj_read_post(
-		*Instance, *Comm, *DataObjReadInp, *DATA_OBJ_READ_B_BUF );
+		*Instance, *Comm, *DataObjReadInp, *DataObjReadBBuf );
 }
 
 
@@ -1070,7 +1070,6 @@ pep_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 pep_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
 	cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
 	cyverse_repl_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
-	cyverse_transfer_tracking_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
 }
 
 
@@ -1091,10 +1090,6 @@ pep_api_replica_close_post(*Instance, *Comm, *JsonInput) {
 	if (*status < 0) { writeLine('serverLog', *msg); }
 
 	*status = errormsg(cyverse_repl_api_replica_close_post(*Instance, *Comm, *JsonInput), *msg);
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(
-		cyverse_transfer_tracking_api_replica_close_post(*Instance, *Comm, *JsonInput), *msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
