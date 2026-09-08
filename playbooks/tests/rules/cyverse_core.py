@@ -8,6 +8,7 @@
 
 from abc import ABC, abstractmethod
 import os
+import subprocess
 import unittest
 
 from irods.exception import (
@@ -25,10 +26,28 @@ from test_rules import IrodsTestCase, IrodsType, IrodsVal
 def setUpModule():  # pylint: disable=invalid-name
     """Set up the module."""
     test_rules.setUpModule()
+    IrodsTestCase().update_rulebase([
+        ('cyverse_encryption.re', 'mocks/cyverse_encryption.re'),
+        ('cyverse_logic.re', 'mocks/cyverse_logic.re'),
+        ('cyverse_repl.re', 'mocks/cyverse_repl.re'),
+        ('cyverse_transfer_tracking.re', 'mocks/cyverse_transfer_tracking.re'),
+        ('cyverse_trash.re', 'mocks/cyverse_trash.re'),
+        ('coge.re', 'mocks/coge.re'),
+    ])
 
 
 def tearDownModule():  # pylint: disable=invalid-name
     """Tear down the module."""
+    trans_track = (
+        'cyverse_transfer_tracking.re', '../../files/irods/etc/irods/cyverse_transfer_tracking.re')
+    IrodsTestCase().update_rulebase([
+        ('coge.re', '../../files/irods/etc/irods/coge.re'),
+        trans_track,
+        ('cyverse_trash.re', '../../files/irods/etc/irods/cyverse_trash.re'),
+        ('cyverse_repl.re', '../../files/irods/etc/irods/cyverse_repl.re'),
+        ('cyverse_logic.re', '../../files/irods/etc/irods/cyverse_logic.re'),
+        ('cyverse_encryption.re', '../../files/irods/etc/irods/cyverse_encryption.re'),
+    ])
     test_rules.tearDownModule()
 
 
@@ -43,26 +62,6 @@ class CyverseCoreTestCase(IrodsTestCase):
     def artifact_file(self) -> str:
         """A file name to be used for testing"""
         return self._test_file
-
-    def setUp(self):
-        super().setUp()
-        self.update_rulebase([
-            ('cyverse_encryption.re', 'mocks/cyverse_encryption.re'),
-            ('cyverse_logic.re', 'mocks/cyverse_logic.re'),
-            ('cyverse_repl.re', 'mocks/cyverse_repl.re'),
-            ('cyverse_trash.re', 'mocks/cyverse_trash.re'),
-            ('coge.re', 'mocks/coge.re'),
-        ])
-
-    def tearDown(self):
-        self.update_rulebase([
-            ('coge.re', '../../files/irods/etc/irods/coge.re'),
-            ('cyverse_trash.re', '../../files/irods/etc/irods/cyverse_trash.re'),
-            ('cyverse_repl.re', '../../files/irods/etc/irods/cyverse_repl.re'),
-            ('cyverse_logic.re', '../../files/irods/etc/irods/cyverse_logic.re'),
-            ('cyverse_encryption.re', '../../files/irods/etc/irods/cyverse_encryption.re'),
-        ])
-        super().tearDown()
 
     def verify_msg_logged(self, msg_frag) -> bool:
         """Verify that a message fragment was logged"""
@@ -294,11 +293,41 @@ class Acdatadeletepolicy(CyverseCoreTestCase):
 
     def test_cyverselogic_called(self):
         """Verify that the cyverse_logic.re is called"""
-        objPath = iRODSPath(self.irods.zone, 'home', self.irods.username, 'obj')
-        obj = self.irods.data_objects.create(objPath)
+        obj_path = iRODSPath(self.irods.zone, 'home', self.irods.username, 'obj')
+        obj = self.irods.data_objects.create(obj_path)
         obj.unlink(force=True)
-        if not self.verify_msg_logged(f"cyverse_logic_acDataDeletePolicy({objPath})"):
+        if not self.verify_msg_logged(f"cyverse_logic_acDataDeletePolicy({obj_path})"):
             self.fail("cyverse_logic_acDataDeletePolicy not called")
+
+
+class Acdeletecollbyadminifpresent(CyverseCoreTestCase):
+    """Tests of acDeleteCollByAdminIfPresent"""
+
+    def __init__(self, method_name: str):
+        super().__init__(method_name)
+        self._coll_path = None
+
+    def setUp(self) -> None:
+        super().setUp()
+        self._coll_path = iRODSPath(self.irods.zone, 'home', self.irods.username, 'coll')
+        self.irods.collections.create(self._coll_path)
+        subprocess.run(
+            f"echo '{test_rules.IRODS_PASSWORD}' | iadmin rmdir '{self._coll_path}'",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+            check=True,
+            encoding='utf-8')
+
+    def test_cyverse_logic(self):
+        """Verify that the cyverse_logic version of this PEP is called"""
+        if not self.verify_msg_logged("cyverse_logic_acDeleteCollByAdminIfPresent"):
+            self.fail("cyverse_logic_acDeleteCollByAdminIfPresent not called")
+
+    def test_deleted(self):
+        """Verify that the collection was deleted"""
+        if self.irods.collections.exists(self._coll_path):
+            self.fail("the collection wasn't deleted")
 
 
 class Acsetrescschemeforcreate(CyverseCoreTestCase):
@@ -535,11 +564,12 @@ class PepApiDataObjPutTest(CyverseCoreTestCase):
         if not self.verify_msg_logged('cyverse_repl_api_data_obj_put_post'):
             self.fail('cyverse_repl_api_data_obj_put_post not called')
 
-    @unittest.skip("not implemented")
     def test_cyversetransfertracking_called(self):
         """
         Test that cyverse_transfer_tracking's version of this rule is called.
         """
+        if not self.verify_msg_logged('cyverse_transfer_tracking_api_data_obj_put_post'):
+            self.fail('cyverse_transfer_tracking_api_data_obj_put_post not called')
 
     def test_cyversetrash_called(self):
         """Test that cyverse_trash's version of this rule is called."""
@@ -653,10 +683,6 @@ class PepApiStructFileExtAndRegPre(CyverseCoreTestCase):
 
 class CyverseCorePublicTest(CyverseCoreTestCase):
     """Test the public entities cyverse_core.re rule-base"""
-
-    @unittest.skip("not implemented")
-    def test_acdeleteobjbyadminifpresent(self):
-        """Test acDeleteObjByAdminIfPresent"""
 
     @unittest.skip("not implemented")
     def test_acpreconnect(self):
