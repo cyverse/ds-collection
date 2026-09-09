@@ -27,16 +27,16 @@ class CyverseJsonListTest(IrodsTestCase):
 
     def test_revaccum_empty(self):
         """test _cyverse_json_revAccum with empty list"""
-        rev_acc = IrodsVal.string_list(["hi"])
-        self.fn_test("_cyverse_json_revAccum", [rev_acc, IrodsVal.string_list([])], rev_acc)
+        rev_acc = IrodsVal.list_string(["hi"])
+        self.fn_test("_cyverse_json_revAccum", [rev_acc, IrodsVal.list_string([])], rev_acc)
 
     def test_revaccum_one_empty_rev(self):
         """
         test _cyverse_json_revAccum with list containing one item and an empty
         reverse list
         """
-        item = IrodsVal.string_list(["hi"])
-        self.fn_test("_cyverse_json_revAccum", [IrodsVal.string_list([]), item], item)
+        item = IrodsVal.list_string(["hi"])
+        self.fn_test("_cyverse_json_revAccum", [IrodsVal.list_string([]), item], item)
 
     def test_revaccum_one_nonempty_rev(self):
         """
@@ -45,15 +45,15 @@ class CyverseJsonListTest(IrodsTestCase):
         """
         self.fn_test(
             "_cyverse_json_revAccum",
-            [IrodsVal.string_list(["1"]), IrodsVal.string_list(["2"])],
-            IrodsVal.string_list(["2", "1"]))
+            [IrodsVal.list_string(["1"]), IrodsVal.list_string(["2"])],
+            IrodsVal.list_string(["2", "1"]))
 
     def test_rev(self):
         """test the _cyverse_json_rev"""
         self.fn_test(
             "_cyverse_json_rev",
-            [IrodsVal.string_list(["a", "b"])],
-            IrodsVal.string_list(["b", "a"]))
+            [IrodsVal.list_string(["a", "b"])],
+            IrodsVal.list_string(["b", "a"]))
 
 
 class CyverseJsonStringTest(IrodsTestCase):

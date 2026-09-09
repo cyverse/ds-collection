@@ -40,6 +40,7 @@ _Setup = False  # pylint: disable=invalid-name
 def setUpModule():  # pylint: disable=invalid-name
     """Prepares the testing env for testing"""
     global _Setup  # pylint: disable=global-statement
+    _init_rods_sess()
     _place_mocks()
     clear_rods_log()
     _Setup = True
@@ -60,6 +61,16 @@ def clear_rods_log():
 
         if stdout.channel.recv_exit_status() != 0:
             raise RuntimeError("Failed to clear the rodsLog")
+
+
+def _init_rods_sess():
+    subprocess.run(
+        'iinit',
+        stdout=subprocess.PIPE,
+        shell=True,
+        check=True,
+        input=f"{IRODS_PASSWORD}",
+        encoding='utf-8')
 
 
 def _place_mocks():
@@ -84,8 +95,8 @@ def _connect_scp(ssh: SSHClient) -> SCPClient:
 
     if transport:
         return SCPClient(transport)
-    else:
-        raise RuntimeError("Could not get ssh transport")
+
+    raise RuntimeError("Could not get ssh transport")
 
 
 def _connect_ssh() -> SSHClient:
@@ -102,9 +113,10 @@ class IrodsType(Enum):
     BOOLEAN = enum.auto()
     INTEGER = enum.auto()
     KEY_VAL_PAIR = enum.auto()
+    LIST_STRING = enum.auto()
     PATH = enum.auto()
     STRING = enum.auto()
-    STRING_LIST = enum.auto()
+    TUPLE_STRING_STRING = enum.auto()
 
     def format(self, value: Any) -> Optional[str]:
         """
@@ -124,12 +136,14 @@ class IrodsType(Enum):
             return str(value)
         if self == IrodsType.KEY_VAL_PAIR:
             return "++++".join([key + "=" + value[key] for key in value])
+        if self == IrodsType.LIST_STRING:
+            return 'list(' + ','.join(map(IrodsType._fmt_str, value)) + ')'
         if self == IrodsType.PATH:
             return str(value)
         if self == IrodsType.STRING:
             return IrodsType._fmt_str(value)
-        if self == IrodsType.STRING_LIST:
-            return 'list(' + ','.join(map(IrodsType._fmt_str, value)) + ')'
+        if self == IrodsType.TUPLE_STRING_STRING:
+            return '(' + IrodsType._fmt_str(value[0]) + ',' + IrodsType._fmt_str(value[1]) + ')'
         return None
 
     @staticmethod
@@ -146,12 +160,14 @@ class IrodsType(Enum):
             return int(fmt_val)
         if self == IrodsType.KEY_VAL_PAIR:
             return IrodsType._restore_key_val_pair(fmt_val)
+        if self == IrodsType.LIST_STRING:
+            return IrodsType._restore_list_str(fmt_val)
         if self == IrodsType.PATH:
             return fmt_val
         if self == IrodsType.STRING:
             return IrodsType._restore_str(fmt_val)
-        if self == IrodsType.STRING_LIST:
-            return IrodsType._restore_str_list(fmt_val)
+        if self == IrodsType.TUPLE_STRING_STRING:
+            return IrodsType._restore_tuple_str_str(fmt_val)
         return None
 
     @staticmethod
@@ -170,7 +186,7 @@ class IrodsType(Enum):
         return res
 
     @staticmethod
-    def _restore_str_list(fmt_val: str) -> list[str]:
+    def _restore_list_str(fmt_val: str) -> list[str]:
         value = []
         for str_val in fmt_val.removeprefix("list(").removesuffix(")").split(','):
             value.append(IrodsType._restore_str(str_val.strip(' ')))
@@ -179,6 +195,11 @@ class IrodsType(Enum):
     @staticmethod
     def _restore_str(fmt_val: str) -> str:
         return fmt_val.strip("'\"")
+
+    @staticmethod
+    def _restore_tuple_str_str(fmt_val: str) -> tuple[str, str]:
+        elmts = fmt_val.removeprefix("(").removesuffix(")").split(",")
+        return (IrodsType._restore_str(elmts[0]), IrodsType._restore_str(elmts[1]))
 
 
 class IrodsVal:
@@ -234,6 +255,19 @@ class IrodsVal:
         return IrodsVal(IrodsType.KEY_VAL_PAIR, val)
 
     @staticmethod
+    def list_string(val: list[str]) -> "IrodsVal":
+        """
+        Construct an iRODS list of strings
+
+        Parameters:
+            val  the python list of strings to convert
+
+        Returns
+            an IrodsVal of type IrodsType.LIST_STRING
+        """
+        return IrodsVal(IrodsType.LIST_STRING, val)
+
+    @staticmethod
     def path(irods_path: str) -> "IrodsVal":
         """
         Construct an iRODS path.
@@ -260,19 +294,22 @@ class IrodsVal:
         return IrodsVal(IrodsType.STRING, val)
 
     @staticmethod
-    def string_list(val: list[str]) -> "IrodsVal":
+    def tuple_string_string(val: tuple[str, str]) -> "IrodsVal":
         """
-        Construct an iRODS list of strings
+        Construct and iRODS tuple of two strings
 
         Parameters:
-            val  the python list of strings to convert
+            val  the tuple value
 
-        Returns
-            an IrodsVal of type IrodsType.STRING_LIST
+        Return:
+            an IrodsVal of type IrodsType.TUPLE_STRING_STRING
         """
-        return IrodsVal(IrodsType.STRING_LIST, val)
+        return IrodsVal(IrodsType.TUPLE_STRING_STRING, val)
 
-    def __init__(self, irods_type, val: Optional[bool | int | str | list[str] | Mapping[str, str]]):
+    def __init__(
+        self, irods_type,
+        val: Optional[bool | int | str | list[str] | tuple[str, str] | Mapping[str, str]]
+    ):
         self._type = irods_type
         self._irods_val = irods_type.format(val)
 
@@ -282,14 +319,28 @@ class IrodsVal:
     def __repr__(self):
         return self._irods_val
 
+    def __str__(self):
+        return self._irods_val
+
     @property
     def type(self) -> IrodsType:
         """The iRODS type of the value"""
         return self._type
 
 
-class _RuleExecFailure(Exception):
-    pass
+class RuleExecFailure(Exception):
+    """Indicates that an iRODS rule failed"""
+
+    def __init__(self, resp_code: int, msg: str):
+        self._resp_code = resp_code
+        self._msg = msg
+
+    def __str__(self):
+        return self._msg
+
+    def resp_code(self) -> int:
+        """Return the response code of the rule that failed"""
+        return self._resp_code
 
 
 def unimplemented(test_case):
@@ -355,6 +406,12 @@ class IrodsTestCase(TestCase):
                 password=IRODS_PASSWORD)
         return self._irods
 
+    def close_irods(self):
+        """Closes the current iRODS session"""
+        if self._irods:
+            self.irods.cleanup()
+            self._irods = None
+
     @property
     def scp(self) -> SCPClient:
         """provides access to an open SCP session"""
@@ -379,7 +436,7 @@ class IrodsTestCase(TestCase):
         if self.irods.collections.exists(coll_path):
             self.irods.collections.remove(coll_path, force=True)
 
-    def ensure_obj_absent(self, obj_path: str | iRODSPath) -> None:
+    def ensure_obj_absent(self, obj_path: iRODSPath | str) -> None:
         """
         Ensures that a data object is not in iRODS
 
@@ -412,13 +469,7 @@ class IrodsTestCase(TestCase):
         with NamedTemporaryFile(delete=False) as file:
             file.close()
             try:
-                subprocess.run(
-                    f"echo '{IRODS_PASSWORD}' | iput '{file.name}' '{irods_path}'",
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE,
-                    shell=True,
-                    check=True,
-                    encoding='utf-8')
+                subprocess.run(f"iput '{file.name}' '{irods_path}'", shell=True, check=True)
             except CalledProcessError:
                 return False
             return True
@@ -453,7 +504,7 @@ class IrodsTestCase(TestCase):
             exp_res  the expected result of the function call
         """
         irods_fn = f"*resp = {fn}({', '.join(map(repr, args))});"
-        if exp_res.type == IrodsType.STRING_LIST:
+        if exp_res.type == IrodsType.LIST_STRING:
             irods_res_fmt = """
                 *res = "";
                 foreach (*e in *resp)  {
@@ -463,6 +514,11 @@ class IrodsTestCase(TestCase):
                     *res = *res ++ "'*e'";
                 }
                 *res = "list(" ++ *res ++ ")";
+            """
+        elif exp_res.type == IrodsType.TUPLE_STRING_STRING:
+            irods_res_fmt = """
+                (*f, *s) = *resp;
+                *res = "('*f','*s')";
             """
         else:
             irods_res_fmt = "*res = *resp;"
@@ -474,8 +530,8 @@ class IrodsTestCase(TestCase):
         try:
             act_res = self.exec_rule(self.mk_rule(rule_src), exp_res.type)
             self.assertEqual(act_res, exp_res)
-        except _RuleExecFailure as ref:
-            self.fail(str(ref))
+        except RuleExecFailure as e:
+            self.fail(repr(e))
 
     def mk_rule(self, logic: str) -> Rule:
         """
@@ -506,16 +562,14 @@ class IrodsTestCase(TestCase):
         """
         output = rule.execute(r_error=(r_errs := RErrorStack()))
         if r_errs:
-            raise _RuleExecFailure(pprint.pformat([vars(r) for r in r_errs]))
+            raise RuleExecFailure(r_errs[-1].status, pprint.pformat([vars(r) for r in r_errs]))
         if not output or len(output.MsParam_PI) == 0:
             return IrodsVal.none()
         err_buf = output.MsParam_PI[0].inOutStruct.stderrBuf.buf
         if err_buf:
-            raise _RuleExecFailure(err_buf.rstrip(b'\0').decode('utf-8'))
+            raise RuleExecFailure(-1, err_buf.rstrip(b'\0').decode('utf-8'))
         buf = output.MsParam_PI[0].inOutStruct.stdoutBuf.buf
-        return IrodsVal(
-            res_type,
-            res_type.restore(buf.rstrip(b'\0').decode('utf-8').rstrip('\n')))
+        return IrodsVal(res_type, res_type.restore(buf.rstrip(b'\0').decode('utf-8').rstrip('\n')))
 
     def tail_rods_log(self, num_lines: int = 0) -> list[str]:
         """

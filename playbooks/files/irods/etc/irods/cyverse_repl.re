@@ -39,131 +39,141 @@
 
 # DEFERRED FUNCTIONS AND RULES
 
-_repl_replicate(*Object, *RescName) {
-  _repl_logMsg('replicating data object *Object to *RescName');
+_repl_replicate(*DataId, *RescName) {
+	*dataPath = str(cyverse_getDataPath(*DataId));
 
-  *objPath = str(cyverse_getDataPath(*Object));
-
-  if (*objPath == '/') {
-    _repl_logMsg('data object *Object no longer exists');
-  } else {
-    temporaryStorage.cyverse_repl_replicate = 'REPL_FORCED_REPL_RESC';
+	if (*dataPath == '/') {
+		_repl_logMsg('data object *DataId no longer exists');
+	} else {
+		temporaryStorage.cyverse_repl_replicate = 'REPL_FORCED_REPL_RESC';
 
 # XXX - As of iRODS 4.3.1, ticket information doesn't get sent to deferred rules.
-#     msiAddKeyValToMspStr('backupRescName', *RescName, *opts);
-#     msiAddKeyValToMspStr('verifyChksum', '', *opts);
-#     *status = errormsg(msiDataObjRepl(*objPath, *opts, *_), *err);
-    *admArg = execCmdArg('-M');
-    *backupArg = execCmdArg('-B');
-    *destRescFlgArg = execCmdArg('-R');
-    *destRescArg = execCmdArg(*RescName);
-    *dataArg = execCmdArg(*objPath);
-    *args = '*admArg *backupArg *destRescFlgArg *destRescArg *dataArg';
-    *status = errormsg(msiExecCmd('irepl-exec', *args, '', '', '', *resp), *err);
-    msiGetStderrInExecCmdOut(*resp, *msg);
-    *err = *err ++ ' (' ++ *msg ++ ')';
+# 		msiAddKeyValToMspStr('backupRescName', *RescName, *opts);
+# 		msiAddKeyValToMspStr('verifyChksum', '', *opts);
+# 		*status = errormsg(msiDataObjRepl(*dataPath, *opts, *status), *err);
+#
+# 		temporaryStorage.cyverse_repl_replicate = '';
+#
+# 		if (*status < 0 && *status != error("SYS_NOT_ALLOWED")) {
+# 			# SYS_NOT_ALLOWED happens when then data object is already replicated
+#
+# 			if (*status == error("USER_CHKSUM_MISMATCH")) {
+		*admArg = execCmdArg('-M');
+		*backupArg = execCmdArg('-B');
+		*destRescFlgArg = execCmdArg('-R');
+		*destRescArg = execCmdArg(*RescName);
+		*dataArg = execCmdArg(*dataPath);
+		*args = '*admArg *backupArg *destRescFlgArg *destRescArg *dataArg';
+		*status = errormsg(msiExecCmd('irepl-exec', *args, '', '', '', *eco), *err);
+
+		temporaryStorage.cyverse_repl_replicate = '';
+
+		if (*status < 0 && *status != error("SYS_NOT_ALLOWED")) {
+			msiGetStderrInExecCmdOut(*eco, *msg);
+			*err = *err ++ ' (' ++ *msg ++ ')';
+
+			if (*msg like '\*SYS_NOT_ALLOWED*') {
+				_repl_logMsg('data object *dataPath already replicated');
+			} else if (*msg like '\*USER_CHKSUM_MISMATCH*') {
 # XXX - ^^^
-
-    temporaryStorage.cyverse_repl_replicate = '';
-
-    if (*status < 0 && *status != error("SYS_NOT_ALLOWED")) {
-      # SYS_NOT_ALLOWED happens when then data object is already replicated
-
-      if (*status == error("CAT_NO_ROWS_FOUND") || *status == error("CAT_UNKNOWN_FILE")) {
-        _repl_logMsg(
-          'failed to replicate data object *Object (*objPath), data no longer exists: *err' );
-      } else if (*status == error("USER_CHKSUM_MISMATCH")) {
-        _repl_logMsg(
-          'failed to replicate data object *Object (*objPath) due to checksum error: *err' );
-      } else {
-        _repl_logMsg('failed to replicate data object *Object (*objPath), retry in 8 hours: *err');
-        *status;
-      }
-    } else {
-      _repl_logMsg('replicated data object *Object (*objPath)');
-    }
-  }
+				_repl_logMsg('failed to replicate data object *dataPath due to checksum error: *err');
+			} else {
+				_repl_logMsg('failed to replicate data object *dataPath, retry in 8 hours: *err');
+				fail;
+			}
+		} else {
+			_repl_logMsg('replicated data object *dataPath');
+		}
+	}
 }
 
+_repl_mvReplicas(*DataId, *IngestName, *ReplName) {
+	*dataPath = cyverse_getDataPath(*DataId);
 
-_repl_mvReplicas(*Object, *IngestName, *ReplName) {
-  _repl_logMsg('moving replicas of data object *Object');
+	if (*dataPath != /) {
+		_repl_logMsg('moving replicas of data object *dataPath');
 
-  *dataPath = cyverse_getDataPath(*Object);
+		*replFail = false;
 
-  if (*dataPath != /) {
-    *replFail = false;
+		*curRescs = list();
+		foreach (*rec in SELECT DATA_RESC_HIER WHERE DATA_ID = '*DataId') {
+			*curRescs = cons(elem(split(*rec.DATA_RESC_HIER, ';'), 0), *curRescs);
+		}
 
-    if (_repl_replicate(*Object, *IngestName) < 0) {
-      *replFail = true;
-    }
+		if (!cyverse_contains(*IngestName, *curRescs)) {
+			if (errorcode(_repl_replicate(*DataId, *IngestName)) < 0) {
+				*replFail = true;
+			}
+		}
 
-    if (*ReplName != *IngestName) {
-      if (_repl_replicate(*Object, *ReplName) < 0) {
-        *replFail = true;
-      }
-    }
+		if (*ReplName != *IngestName) {
+			if (!cyverse_contains(*ReplName, *curRescs)) {
+				if (errorcode(_repl_replicate(*DataId, *ReplName)) < 0) {
+					*replFail = true;
+				}
+			}
+		}
 
-    if (*replFail) {
-      fail;
-    }
+		if (!*replFail) {
+			# Once a replica exists on all the project's resource, remove the other
+			# replicas
+			foreach (*rec in SELECT DATA_RESC_HIER, DATA_REPL_NUM WHERE DATA_ID = '*DataId') {
+				*rescHier = *rec.DATA_RESC_HIER;
+				*replNum = *rec.DATA_REPL_NUM;
 
-    # Once a replica exists on all the project's resource, remove the other replicas
-    foreach (*rec in SELECT DATA_RESC_HIER, DATA_REPL_NUM WHERE DATA_ID = '*Object') {
-      *rescHier = *rec.DATA_RESC_HIER;
-      *replNum = *rec.DATA_REPL_NUM;
+				if (!(*rescHier like regex '^(*IngestName|*ReplName)(;.*)?$')) {
+					*status = errormsg(
+						msiDataObjTrim(str(*dataPath), 'null', *replNum, '1', 'null', *_), *err );
 
-      if (!(*rescHier like regex '^(*IngestName|*ReplName)(;.*)?$')) {
-        if (errorcode(msiDataObjTrim(str(*dataPath), 'null', *replNum, '1', 'null', *status)) < 0) {
-          _repl_logMsg('failed to trim replica of *Object on *rescHier (*status)');
-          *replFail = true;
-        }
-      }
-    }
+					if (*status < 0) {
+						_repl_logMsg('failed to trim replica of *dataPath on *rescHier: *err');
+						*replFail = true;
+					}
+				}
+			}
+		}
 
-    if (*replFail) {
-      _repl_logMsg('failed to completely move replicas of data object *Object');
-      fail;
-    }
-  }
-
-  _repl_logMsg('moved replicas of data object *Object');
+		if (*replFail) {
+			_repl_logMsg('failed to completely move replicas of data object *dataPath');
+			fail;
+		} else {
+			_repl_logMsg('moved replicas of data object *dataPath');
+		}
+	}
 }
 
+_repl_syncReplicas(*DataId) {
+	*dataPath = str(cyverse_getDataPath(*DataId));
 
-_repl_syncReplicas(*Object) {
-  _repl_logMsg('syncing replicas of data object *Object');
+	if (*dataPath != '/') {
+		_repl_logMsg('syncing replicas of data object *dataPath');
 
-  *dataPath = str(cyverse_getDataPath(*Object));
-
-  if (*dataPath == '/') {
-    _repl_logMsg('data object *Object no longer exists');
-  } else {
 # XXX - As of iRODS 4.3.1, ticket information doesn't get sent to deferred rules.
-#     msiAddKeyValToMspStr('all', '', *opts);
-#     msiAddKeyValToMspStr('irodsAdmin', '', *opts);
-#     msiAddKeyValToMspStr('updateRepl', '', *opts);
-#     msiAddKeyValToMspStr('verifyChksum', '', *opts);
-#     *status = errormsg(msiDataObjRepl(*dataPath, *opts, *status), *msg);
-    *admArg = execCmdArg('-M');
-    *allArg = execCmdArg('-a');
-    *updateArg = execCmdArg('-U');
-    *dataArg = execCmdArg(*dataPath);
-    *args = '*admArg *allArg *updateArg *dataArg';
-    *status = errormsg(msiExecCmd('irepl-exec', *args, '', '', '', *out), *msg);
+# 		msiAddKeyValToMspStr('all', '', *opts);
+# 		msiAddKeyValToMspStr('irodsAdmin', '', *opts);
+# 		msiAddKeyValToMspStr('updateRepl', '', *opts);
+# 		msiAddKeyValToMspStr('verifyChksum', '', *opts);
+# 		*status = errormsg(msiDataObjRepl(*dataPath, *opts, *_), *msg);
+		*admArg = execCmdArg('-M');
+		*allArg = execCmdArg('-a');
+		*updateArg = execCmdArg('-U');
+		*dataArg = execCmdArg(*dataPath);
+		*args = '*admArg *allArg *updateArg *dataArg';
+		*status = errormsg(msiExecCmd('irepl-exec', *args, '', '', '', *out), *msg);
 # XXX - ^^^
 
-    if (*status < 0 && *status != -808000) {
-      msiGetStderrInExecCmdOut(*out, *err);
-      _repl_logMsg(
-        'failed to sync replicas of data object *Object (*dataPath) trying again in 8 hours:'
-        ++ ' *msg (*err)' );
+		if (*status < 0 && *status != -808000) {
+			msiGetStderrInExecCmdOut(*out, *err);
 
-      *status;
-    } else {
-      _repl_logMsg('synced replicas of data object *Object (*dataPath)');
-    }
-  }
+			_repl_logMsg(
+				'failed to sync replicas of data object *dataPath trying again in 8 hours:'
+				++ ' *msg (*err)' );
+
+			fail;
+		} else {
+			_repl_logMsg('synced replicas of data object *dataPath');
+		}
+	}
 }
 
 
@@ -174,134 +184,121 @@ _cyverse_repl_ID = 'cyverse_repl'
 _cyverse_repl_ACTION = 'deferred replication'
 
 _delayTime =
-  let *_ = if (!cyverse_hasKey(temporaryStorage, 'cyverse_repl_delayTime')) {
-      temporaryStorage.cyverse_repl_delayTime = str(cyverse_INIT_REPL_DELAY);
-    } in
-  int(temporaryStorage.cyverse_repl_delayTime);
-
+	let *_ = if (!cyverse_hasKey(temporaryStorage, 'cyverse_repl_delayTime')) {
+			temporaryStorage.cyverse_repl_delayTime = str(cyverse_INIT_REPL_DELAY);
+		} in
+	int(temporaryStorage.cyverse_repl_delayTime);
 
 _incDelayTime {
-  temporaryStorage.cyverse_repl_delayTime = str(1 + int(temporaryStorage.cyverse_repl_delayTime));
+	temporaryStorage.cyverse_repl_delayTime = str(1 + _delayTime);
 }
-
 
 _repl_logMsg(*Msg) {
-  writeLine('serverLog', 'DS: *Msg');
+	writeLine('serverLog', 'DS: *Msg');
 }
-
 
 _repl_scheduleMv(*Object, *IngestName, *ReplName) {
-  if (!cyverse_isCurrentAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object)) {
-    cyverse_registerAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object);
+	if (!cyverse_isCurrentAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object)) {
+		cyverse_registerAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object);
 
-    delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
-    {_repl_mvReplicas(*Object, *IngestName, *ReplName)}
+		delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
+		{_repl_mvReplicas(*Object, *IngestName, *ReplName)}
 
-    _incDelayTime;
-  }
+		_incDelayTime;
+	}
 }
-
 
 _repl_scheduleRepl(*Object, *RescName) {
-  if (!cyverse_isCurrentAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object)) {
-    cyverse_registerAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object);
+	if (!cyverse_isCurrentAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object)) {
+		cyverse_registerAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object);
 
-    delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
-    {_repl_replicate(*Object, *RescName)}
+		delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
+		{_repl_replicate(*Object, *RescName)}
 
-    _incDelayTime;
-  }
+		_incDelayTime;
+	}
 }
-
 
 _repl_scheduleSyncReplicas(*Object) {
-# XXX - There is a bug in iRODS 4.3.1 that prevents a general query that doesn't
-#       explicitly use r_coll_main from working when authorization is controlled
-#       by a ticket on a collection.
-#   foreach ( *rec in
-#     SELECT COUNT(DATA_REPL_NUM) WHERE DATA_ID = '*Object' AND DATA_REPL_STATUS = '0'
-#   ) {
-  foreach ( *rec in
-    SELECT COUNT(DATA_REPL_NUM), COLL_ID WHERE DATA_ID = '*Object' AND DATA_REPL_STATUS = '0'
-  ) {
-# XXX - ^^^
-    if (
-      int(*rec.DATA_REPL_NUM) > 0
-      && !cyverse_isCurrentAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object)
-    ) {
-      cyverse_registerAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object);
+	if (!cyverse_isCurrentAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object)) {
+		cyverse_registerAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object);
 
-      delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
-      {_repl_syncReplicas(*Object)}
+		delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
+		{_repl_syncReplicas(*Object)}
 
-      _incDelayTime;
-    }
-  }
+		_incDelayTime;
+	}
 }
-
 
 # Given an absolute path to a data object, this rule determines the resource
 # where member data objects have their primary replicas stored. It returns a
 # two-tuple with the first is element is the name of the resource, and the
 # second is the value 'forced' or 'preferred'. 'forced' means that the user
 # cannot override this choice, and 'preferred' means they can.
-_repl_findResc(*DataPath) {
-  msiSplitPath(*DataPath, *collPath, *dataName);
-  *resc = cyverse_DEFAULT_RESC;
-  *residency = 'preferred';
-  *bestColl = '/';
-
-  foreach (*record in SELECT META_RESC_ATTR_VALUE, META_RESC_ATTR_UNITS, RESC_NAME
-                      WHERE META_RESC_ATTR_NAME = 'ipc::hosted-collection') {
-    if (*collPath ++ '/' like *record.META_RESC_ATTR_VALUE ++ '/*') {
-      if (strlen(*record.META_RESC_ATTR_VALUE) > strlen(*bestColl)) {
-        *bestColl = *record.META_RESC_ATTR_VALUE;
-        *residency = *record.META_RESC_ATTR_UNITS;
-        *resc = *record.RESC_NAME;
-      }
-    }
-  }
-
-  *result = (*resc, *residency);
-  *result;
-}
-
+_repl_findResc(*ObjPath) =
+	let *collPath = '' in
+	let *objName = '' in
+	let *_ = msiSplitPath(str(*ObjPath), *collPath, *objName) in
+	let *resc = cyverse_DEFAULT_RESC in
+	let *residency = 'preferred' in
+	let *bestColl = '/' in
+	let *_ = foreach ( *rec in
+			SELECT META_RESC_ATTR_VALUE, META_RESC_ATTR_UNITS, RESC_NAME
+			WHERE META_RESC_ATTR_NAME = 'ipc::hosted-collection'
+		) {
+			if (*collPath ++ '/' like *rec.META_RESC_ATTR_VALUE ++ '/*') {
+				if (strlen(*rec.META_RESC_ATTR_VALUE) > strlen(*bestColl)) {
+					*bestColl = *rec.META_RESC_ATTR_VALUE;
+					*residency = *rec.META_RESC_ATTR_UNITS;
+					*resc = *rec.RESC_NAME;
+				}
+			}
+		} in
+	(*resc, *residency)
 
 # Given a resource, this rule determines the list of resources that
 # asynchronously replicate its replicas.
-_repl_findReplResc(*Resc) {
-  *residency = 'preferred';
-
-  if (*Resc == cyverse_DEFAULT_RESC) {
-    *repl = cyverse_DEFAULT_REPL_RESC;
-  } else {
-    *repl = *Resc;
-
-    foreach ( *rec in
-      SELECT META_RESC_ATTR_VALUE, META_RESC_ATTR_UNITS
-      WHERE RESC_NAME = *Resc AND META_RESC_ATTR_NAME = 'ipc::replica-resource'
-    ) {
-      *repl = *rec.META_RESC_ATTR_VALUE;
-      *residency = *rec.META_RESC_ATTR_UNITS;
-    }
-  }
-
-  *result = (*repl, *residency);
-  *result;
-}
-
+_repl_findReplResc(*Resc) =
+	let *repl = *Resc in
+	let *residency = 'preferred' in
+	let *_ = if (*Resc == cyverse_DEFAULT_RESC) {
+			*repl = cyverse_DEFAULT_REPL_RESC;
+		} else {
+			foreach ( *rec in
+				SELECT META_RESC_ATTR_VALUE, META_RESC_ATTR_UNITS
+				WHERE RESC_NAME = *Resc AND META_RESC_ATTR_NAME = 'ipc::replica-resource'
+			) {
+				*repl = *rec.META_RESC_ATTR_VALUE;
+				*residency = *rec.META_RESC_ATTR_UNITS;
+			}
+		} in
+	(*repl, *residency)
 
 _ipcRepl_createOrOverwrite(*DataPath, *DestRescHier, *New) {
-  *dataId = cyverse_getDataId(*DataPath);
-  (*ingestResc, *_) = _repl_findResc(*DataPath);
-  (*replResc, *_) = _repl_findReplResc(*ingestResc);
+	if (*New) {
+		(*ingestResc, *_) = _repl_findResc(*DataPath);
+		(*replResc, *_) = _repl_findReplResc(*ingestResc);
 
-  if (*New) {
-    _repl_scheduleRepl(
-      *dataId, if hd(split(*DestRescHier, ';')) == *replResc then *ingestResc else *replResc );
-  } else {
-    _repl_scheduleSyncReplicas(*dataId);
-  }
+		_repl_scheduleRepl(
+			cyverse_getDataId(*DataPath),
+			if hd(split(*DestRescHier, ';')) == *replResc then *ingestResc else *replResc );
+	} else {
+		*dataId = cyverse_getDataId(*DataPath);
+# XXX - There is a bug in iRODS 4.3.1 that prevents a general query that doesn't
+#       explicitly use r_coll_main from working when authorization is controlled
+#       by a ticket on a collection.
+# 	 	foreach ( *rec in
+# 			SELECT COUNT(DATA_REPL_NUM) WHERE DATA_ID = '*dataId' AND DATA_REPL_STATUS = '0'
+# 		) {
+		foreach ( *rec in
+			SELECT COUNT(DATA_REPL_NUM), COLL_ID WHERE DATA_ID = '*dataId' AND DATA_REPL_STATUS = '0'
+		) {
+# XXX - ^^^
+			if (int(*rec.DATA_REPL_NUM) > 0) {
+				_repl_scheduleSyncReplicas(*dataId);
+			}
+		}
+	}
 }
 
 
@@ -314,10 +311,9 @@ _ipcRepl_createOrOverwrite(*DataPath, *DestRescHier, *New) {
 #  DataPath  (path) the path to the data object being created
 #
 cyverse_repl_acSetRescSchemeForCreate(*DataPath) {
-  (*resc, *residency) = _repl_findResc(*DataPath);
-  msiSetDefaultResc(*resc, *residency);
+	(*resc, *residency) = _repl_findResc(*DataPath);
+	msiSetDefaultResc(*resc, *residency);
 }
-
 
 # This rule ensures that the correct resource is chosen for the second and
 # subsequent replicas of a data object.
@@ -326,27 +322,25 @@ cyverse_repl_acSetRescSchemeForCreate(*DataPath) {
 #  DataPath  (path) the path to the data object being replicated
 #
 cyverse_repl_acSetRescSchemeForRepl(*DataPath) {
-  if (cyverse_getValue(temporaryStorage, 'cyverse_repl_replicate') != 'REPL_FORCED_REPL_RESC') {
-    (*resc, *_) = _repl_findResc(*DataPath);
-    (*repl, *residency) = _repl_findReplResc(*resc);
-    msiSetDefaultResc(*repl, *residency);
-  }
+	if (cyverse_getValue(temporaryStorage, 'cyverse_repl_replicate') != 'REPL_FORCED_REPL_RESC') {
+		(*resc, *_) = _repl_findResc(*DataPath);
+		(*repl, *residency) = _repl_findReplResc(*resc);
+		msiSetDefaultResc(*repl, *residency);
+	}
 }
-
 
 # This rule ensures that uploaded files are replicated.
 #
 # Parameters:
-#  User           (string) unused
-#  Zone           (string) unused
-#  DATA_OBJ_INFO  (`KeyValuePair_PI`) information related to the created data
-#                 object
+#  User     (string) unused
+#  Zone     (string) unused
+#  ObjInfo  (`KeyValuePair_PI`) information related to the created data object
 #
 cyverse_repl_dataObjCreated(*User, *Zone, *DATA_OBJ_INFO) {
-  _ipcRepl_createOrOverwrite(
-    cyverse_getValue(*DATA_OBJ_INFO, 'logical_path'),
-    cyverse_getValue(*DATA_OBJ_INFO, 'resc_hier'),
-    true );
+	_ipcRepl_createOrOverwrite(
+		cyverse_getValue(*DATA_OBJ_INFO, 'logical_path'),
+		cyverse_getValue(*DATA_OBJ_INFO, 'resc_hier'),
+		true );
 }
 
 
@@ -361,13 +355,13 @@ cyverse_repl_dataObjCreated(*User, *Zone, *DATA_OBJ_INFO) {
 #  BulkOpInpBBuf  (unknown) may contain the contents of the uploaded files
 #
 cyverse_repl_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
-  *rescHier = cyverse_getValue(*BulkOpInp, 'resc_hier');
+	*rescHier = cyverse_getValue(*BulkOpInp, 'resc_hier');
 
-  foreach (*key in *BulkOpInp) {
-    if (*key like 'logical_path_*') {
-      _ipcRepl_createOrOverwrite(cyverse_getValue(*BulkOpInp, *key), *rescHier, true);
-    }
-  }
+	foreach (*key in *BulkOpInp) {
+		if (*key like 'logical_path_*') {
+			_ipcRepl_createOrOverwrite(cyverse_getValue(*BulkOpInp, *key), *rescHier, true);
+		}
+	}
 }
 
 
@@ -384,10 +378,10 @@ cyverse_repl_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInp
 #  TransStat       unknown
 #
 cyverse_repl_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
-  _ipcRepl_createOrOverwrite(
-    cyverse_getValue(*DataObjCopyInp, 'dst_obj_path'),
-    cyverse_getValue(*DataObjCopyInp, 'dst_resc_hier'),
-    cyverse_getValue(*DataObjCopyInp, 'dst_openType') == cyverse_FILE_CREATE );
+	_ipcRepl_createOrOverwrite(
+		cyverse_getValue(*DataObjCopyInp, 'dst_obj_path'),
+		cyverse_getValue(*DataObjCopyInp, 'dst_resc_hier'),
+		cyverse_getValue(*DataObjCopyInp, 'dst_openType') == cyverse_FILE_CREATE );
 }
 
 
@@ -404,12 +398,12 @@ cyverse_repl_api_data_obj_copy_post(*Instance, *Comm, *DataObjCopyInp, *TransSta
 #  PORTAL_OPR_OUT  unknown
 #
 cyverse_repl_api_data_obj_put_post(
-  *Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT
+	*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT
 ) {
-  _ipcRepl_createOrOverwrite(
-    cyverse_getValue(*DataObjInp, 'obj_path'),
-    cyverse_getValue(*DataObjInp, 'resc_hier'),
-    cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE );
+	_ipcRepl_createOrOverwrite(
+		cyverse_getValue(*DataObjInp, 'obj_path'),
+		cyverse_getValue(*DataObjInp, 'resc_hier'),
+		cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE );
 }
 
 
@@ -425,31 +419,31 @@ cyverse_repl_api_data_obj_put_post(
 #                    its old path
 #
 cyverse_repl_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
-  *dstPath = cyverse_getValue(*DataObjRenameInp, 'dst_obj_path');
-  (*dstResc, *_) = _repl_findResc(*dstPath);
-  (*srcResc, *_) = _repl_findResc(cyverse_getValue(*DataObjRenameInp, 'src_obj_path'));
+	*dstPath = cyverse_getValue(*DataObjRenameInp, 'dst_obj_path');
+	(*dstResc, *_) = _repl_findResc(*dstPath);
+	(*srcResc, *_) = _repl_findResc(cyverse_getValue(*DataObjRenameInp, 'src_obj_path'));
 
-  if (*dstResc != cyverse_DEFAULT_RESC) {
-    if (*srcResc != *dstResc) {
-      (*dstRepl, *_) = _repl_findReplResc(*dstResc);
-    }
-  } else {
-    if (*srcResc != cyverse_DEFAULT_RESC) {
-      *dstRepl = cyverse_DEFAULT_REPL_RESC;
-    }
-  }
+	if (*dstResc != cyverse_DEFAULT_RESC) {
+		if (*srcResc != *dstResc) {
+			(*dstRepl, *_) = _repl_findReplResc(*dstResc);
+		}
+	} else {
+		if (*srcResc != cyverse_DEFAULT_RESC) {
+			*dstRepl = cyverse_DEFAULT_REPL_RESC;
+		}
+	}
 
-  if (*dstResc != *srcResc) {
-    *srcType = int(cyverse_getValue(*DataObjRenameInp, 'src_opr_type'));
+	if (*dstResc != *srcResc) {
+		*srcType = int(cyverse_getValue(*DataObjRenameInp, 'src_opr_type'));
 
-    if (*srcType == 11) {  # data object
-      _repl_scheduleMv(cyverse_getDataId(*dstPath), *dstResc, *dstRepl);
-    } else {  # collection
-      foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = *dstPath || LIKE '*dstPath/%') {
-        _repl_scheduleMv(int(*rec.DATA_ID), *dstResc, *dstRepl);
-      }
-    }
-  }
+		if (*srcType == 11) {  # data object
+			_repl_scheduleMv(cyverse_getDataId(*dstPath), *dstResc, *dstRepl);
+		} else {  # collection
+			foreach (*rec in SELECT DATA_ID WHERE COLL_NAME = *dstPath || LIKE '*dstPath/%') {
+				_repl_scheduleMv(int(*rec.DATA_ID), *dstResc, *dstRepl);
+			}
+		}
+	}
 }
 
 
@@ -466,10 +460,10 @@ cyverse_repl_api_data_obj_rename_post(*Instance, *Comm, *DataObjRenameInp) {
 #                 registration
 #
 cyverse_repl_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp) {
-  _ipcRepl_createOrOverwrite(
-    cyverse_getValue(*PhyPathRegInp, 'obj_path'),
-    cyverse_getValue(*PhyPathRegInp, 'resc_hier'),
-    !cyverse_hasKey(*PhyPathRegInp, 'regRepl') );
+	_ipcRepl_createOrOverwrite(
+		cyverse_getValue(*PhyPathRegInp, 'obj_path'),
+		cyverse_getValue(*PhyPathRegInp, 'resc_hier'),
+		!cyverse_hasKey(*PhyPathRegInp, 'regRepl') );
 }
 
 
@@ -484,39 +478,41 @@ cyverse_repl_api_phy_path_reg_post(*Instance, *Comm, *PhyPathRegInp) {
 #
 cyverse_repl_api_touch_post(*Instance, *Comm, *JsonInput) {
 # XXX - As of iRODS 4.3.1, *JsonInput buffer ends with a serialized NUL, i.e., the string '\x00'
-#   (*input, *_) = match cyverse_json_deserialize(*JsonInput.buf) with
-#     | cyverse_json_deserialize_val(*v, *_) => (*v, "")
-  (*input, *_) = match cyverse_json_deserialize(trimr(*JsonInput.buf, '\\x00')) with
-    | cyverse_json_deserialize_val(*v, *_) => (*v, "");
+# 	(*input, *_) = match cyverse_json_deserialize(*JsonInput.buf) with
+# 		| cyverse_json_deserialize_val(*v, *_) => (*v, "")
+	(*input, *_) = match cyverse_json_deserialize(trimr(*JsonInput.buf, '\\x00')) with
+		| cyverse_json_deserialize_val(*v, *_) => (*v, "");
 # XXX - ^^^
 
-  *dataPath = match cyverse_json_getValue(*input, 'logical_path') with
-    | cyverse_json_empty => ''
-    | cyverse_json_str(*s) => *s;
+	*dataPath = match cyverse_json_getValue(*input, 'logical_path') with
+		| cyverse_json_empty => ''
+		| cyverse_json_str(*s) => *s;
 
-  if (*dataPath != '') {
-    *options = cyverse_json_getValue(*input, 'options');
+	if (*dataPath != '') {
+		*options = cyverse_json_getValue(*input, 'options');
 
-    *noCreate = match cyverse_json_getValue(*options, 'no_create') with
-      | cyverse_json_empty => false
-      | cyverse_json_bool(*b) => *b;
+		*noCreate = match cyverse_json_getValue(*options, 'no_create') with
+			| cyverse_json_empty => false
+			| cyverse_json_bool(*b) => *b;
 
-    *replNumSet = match cyverse_json_getValue(*options, 'replica_number') with
-      | cyverse_json_empty => false
-      | cyverse_json_num(*n) => true;
+		*replNumSet = match cyverse_json_getValue(*options, 'replica_number') with
+			| cyverse_json_empty => false
+			| cyverse_json_num(*n) => true;
 
-    *rescNameSet = match cyverse_json_getValue(*options, 'leaf_resource_name') with
-      | cyverse_json_empty => false
-      | cyverse_json_str(*_) => true;
+		*rescNameSet = match cyverse_json_getValue(*options, 'leaf_resource_name') with
+			| cyverse_json_empty => false
+			| cyverse_json_str(*_) => true;
 
-    if (!*noCreate && !*replNumSet && !*rescNameSet) {
-      msiSplitPath(*dataPath, *collPath, *dataName);
+		if (!*noCreate && !*replNumSet && !*rescNameSet) {
+			msiSplitPath(*dataPath, *collPath, *dataName);
 
-      foreach(*rec in SELECT DATA_RESC_HIER WHERE COLL_NAME = *collPath AND DATA_NAME = *dataName) {
-        _ipcRepl_createOrOverwrite(*dataPath, *rec.DATA_RESC_HIER, true);
-      }
-    }
-  }
+			foreach( *rec in
+				SELECT DATA_RESC_HIER WHERE COLL_NAME = *collPath AND DATA_NAME = *dataName
+			) {
+				_ipcRepl_createOrOverwrite(*dataPath, *rec.DATA_RESC_HIER, true);
+			}
+		}
+	}
 }
 
 
@@ -540,14 +536,14 @@ cyverse_repl_api_touch_post(*Instance, *Comm, *JsonInput) {
 #              object
 #
 cyverse_repl_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
-  temporaryStorage.cyverse_repl_dataObjClose_objPath = cyverse_getValue(*DataObjInp, 'obj_path');
-  temporaryStorage.cyverse_repl_dataObjClose_rescHier = cyverse_getValue(
-    *DataObjInp, 'selected_hierarchy' );
-  if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
-    temporaryStorage.cyverse_repl_dataObjClose_created = 'created';
-  } else {
-    temporaryStorage.cyverse_repl_dataObjClose_modified = 'modified';
-  }
+	temporaryStorage.cyverse_repl_dataObjClose_objPath = cyverse_getValue(*DataObjInp, 'obj_path');
+	temporaryStorage.cyverse_repl_dataObjClose_rescHier = cyverse_getValue(
+		*DataObjInp, 'selected_hierarchy' );
+	if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
+		temporaryStorage.cyverse_repl_dataObjClose_created = 'created';
+	} else {
+		temporaryStorage.cyverse_repl_dataObjClose_modified = 'modified';
+	}
 }
 
 
@@ -571,19 +567,22 @@ cyverse_repl_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
 #  DataObjInp  (`KeyValuePair_PI`) information related to the data object
 #
 cyverse_repl_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
-  *flags = cyverse_getValue(*DataObjInp, 'open_flags');
+	*flags = cyverse_getValue(*DataObjInp, 'open_flags');
 
-  if (*flags != cyverse_OPEN_FLAG_R) {
-    temporaryStorage.cyverse_repl_dataObjClose_objPath = cyverse_getValue(*DataObjInp, 'obj_path');
-    temporaryStorage.cyverse_repl_dataObjClose_rescHier = cyverse_getValue(
-      *DataObjInp, 'selected_hierarchy' );
-    if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
-      temporaryStorage.cyverse_repl_dataObjClose_created = 'created';
-    }
-    if (cyverse_replTruncated(*flags)) {
-      temporaryStorage.cyverse_repl_dataObjClose_modified = 'modified';
-    }
-  }
+	if (*flags != cyverse_OPEN_FLAG_R) {
+		temporaryStorage.cyverse_repl_dataObjClose_objPath = cyverse_getValue(
+			*DataObjInp, 'obj_path' );
+
+		temporaryStorage.cyverse_repl_dataObjClose_rescHier = cyverse_getValue(
+			*DataObjInp, 'selected_hierarchy' );
+
+		if (cyverse_getValue(*DataObjInp, 'openType') == cyverse_FILE_CREATE) {
+			temporaryStorage.cyverse_repl_dataObjClose_created = 'created';
+		}
+		if (cyverse_replTruncated(*flags)) {
+			temporaryStorage.cyverse_repl_dataObjClose_modified = 'modified';
+		}
+	}
 }
 
 
@@ -602,7 +601,7 @@ cyverse_repl_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
 #  DataObjWriteInpBBuf  (unknown) the contents that were added to the object
 #
 cyverse_repl_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataObjWriteInpBBuf) {
-  temporaryStorage.cyverse_repl_dataObjClose_modified = 'modified';
+	temporaryStorage.cyverse_repl_dataObjClose_modified = 'modified';
 }
 
 
@@ -622,31 +621,31 @@ cyverse_repl_api_data_obj_write_post(*Instance, *Comm, *DataObjWriteInp, *DataOb
 #                   close request
 #
 cyverse_repl_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
-  *path = cyverse_getValue(temporaryStorage, 'cyverse_repl_dataObjClose_objPath');
+	*path = cyverse_getValue(temporaryStorage, 'cyverse_repl_dataObjClose_objPath');
 
-  if (*path != '') {
-    *destResc = cyverse_getValue(temporaryStorage, 'cyverse_repl_dataObjClose_rescHier');
+	if (*path != '') {
+		*destResc = cyverse_getValue(temporaryStorage, 'cyverse_repl_dataObjClose_rescHier');
 
-    *needsRepl = false;
-    if (cyverse_getValue(temporaryStorage, 'cyverse_repl_dataObjClose_created') == 'created') {
-      *new = true;
-      *needsRepl = true;
-    } else if (
-      cyverse_getValue(temporaryStorage, 'cyverse_repl_dataObjClose_modified') == 'modified'
-    ) {
-      *new = false;
-      *needsRepl = true;
-    }
+		*needsRepl = false;
+		if (cyverse_getValue(temporaryStorage, 'cyverse_repl_dataObjClose_created') == 'created') {
+			*new = true;
+			*needsRepl = true;
+		} else if (
+			cyverse_getValue(temporaryStorage, 'cyverse_repl_dataObjClose_modified') == 'modified'
+		) {
+			*new = false;
+			*needsRepl = true;
+		}
 
-    if (*needsRepl) {
-      _ipcRepl_createOrOverwrite(*path, *destResc, *new);
-    }
+		if (*needsRepl) {
+			_ipcRepl_createOrOverwrite(*path, *destResc, *new);
+		}
 
-    temporaryStorage.cyverse_repl_dataObjClose_objPath = '';
-    temporaryStorage.cyverse_repl_dataObjClose_rescHier = '';
-    temporaryStorage.cyverse_repl_dataObjClose_created = '';
-    temporaryStorage.cyverse_repl_dataObjClose_modified = '';
-  }
+		temporaryStorage.cyverse_repl_dataObjClose_objPath = '';
+		temporaryStorage.cyverse_repl_dataObjClose_rescHier = '';
+		temporaryStorage.cyverse_repl_dataObjClose_created = '';
+		temporaryStorage.cyverse_repl_dataObjClose_modified = '';
+	}
 }
 
 
@@ -664,15 +663,16 @@ cyverse_repl_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 #  JSON_OUTPUT  unknown
 #
 cyverse_repl_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
-  *path = cyverse_getValue(*DataObjInp, 'obj_path');
+	*path = cyverse_getValue(*DataObjInp, 'obj_path');
 
-  if (*path != '') {
-    temporaryStorage.cyverse_repl_replica_dataObjPath = *path;
-    temporaryStorage.cyverse_repl_replica_rescHier = cyverse_getValue(*DataObjInp, 'resc_hier');
-    temporaryStorage.cyverse_repl_replica_openType =
-      if cyverse_hasKey(*DataObjInp, 'openType') then cyverse_getValue(*DataObjInp, 'openType')
-      else cyverse_FILE_OPEN_WRITE;
-  }
+	if (*path != '') {
+		temporaryStorage.cyverse_repl_replica_dataObjPath = *path;
+		temporaryStorage.cyverse_repl_replica_rescHier = cyverse_getValue(*DataObjInp, 'resc_hier');
+
+		temporaryStorage.cyverse_repl_replica_openType =
+			if cyverse_hasKey(*DataObjInp, 'openType') then cyverse_getValue(*DataObjInp, 'openType')
+			else cyverse_FILE_OPEN_WRITE;
+	}
 }
 
 
@@ -689,41 +689,42 @@ cyverse_repl_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) 
 #  JsonInput  (string) a JSON-serialized description of the replica change
 #
 cyverse_repl_api_replica_close_post(*Instance, *Comm, *JsonInput) {
-  *path = cyverse_getValue(temporaryStorage, 'cyverse_repl_replica_dataObjPath');
+	*path = cyverse_getValue(temporaryStorage, 'cyverse_repl_replica_dataObjPath');
 
-  if (*path != '') {
-    *destResc = cyverse_getValue(temporaryStorage, 'cyverse_repl_replica_rescHier');
-    *openType = cyverse_getValue(temporaryStorage, 'cyverse_repl_replica_openType');
-    _ipcRepl_createOrOverwrite(*path, *destResc, *openType == cyverse_FILE_CREATE);
-    temporaryStorage.cyverse_repl_replica_dataObjPath = '';
-    temporaryStorage.cyverse_repl_replica_rescHier = '';
-    temporaryStorage.cyverse_repl_replica_openType = '';
-  }
+	if (*path != '') {
+		*destResc = cyverse_getValue(temporaryStorage, 'cyverse_repl_replica_rescHier');
+		*openType = cyverse_getValue(temporaryStorage, 'cyverse_repl_replica_openType');
+		_ipcRepl_createOrOverwrite(*path, *destResc, *openType == cyverse_FILE_CREATE);
+		temporaryStorage.cyverse_repl_replica_dataObjPath = '';
+		temporaryStorage.cyverse_repl_replica_rescHier = '';
+		temporaryStorage.cyverse_repl_replica_openType = '';
+	}
 }
 
 
 # RESOURCE
 
-# This rule is provides the preprocessing logic for determine which  storage
+# This rule provides the preprocessing logic for determining which storage
 # resource to choose for a replica. It is meant for project specific
 # implementations where a project implementation is within an `on` block that
 # restricts the resource resolution to entities relevant to the project.post
 #
 # Parameters:
-#  INSTANCE   (string) the resource being considered
-#  CONTEXT    (`KeyValuePair_PI`) the resource plugin context
-#  OUT        (`KeyValuePair_PI`) unused
-#  OPERATION  (string) the operation that will be performed on the replica,
-#             "CREATE" for creating the replica, "OPEN" for reading the replica,
-#             and "WRITE" for overwriting an existing replica.
-#  HOST       (string) the host executing this policy
-#  PARSER     (`KeyValuePair_PI`) unused
-#  VOTE       (float) unused
+#  Inst     (string) the resource being considered
+#  Context  (`KeyValuePair_PI`) the resource plugin context
+#  OUT      (`KeyValuePair_PI`) unused
+#  Op       (string) the operation that will be performed on the replica,
+#           "CREATE" for creating the replica, "OPEN" for reading the replica,
+#           and "WRITE" for overwriting an existing replica.
+#  Host     (string) the host executing this policy
+#  Parser   (`KeyValuePair_PI`) unused
+#  VOTE     (float) unused
 #
 # temporaryStorage:
 #  cyverse_repl_replicate  this value is read to see if replication is forced to
 #                          a specific resource
 #
-pep_resource_resolve_hierarchy_pre(*INSTANCE, *CONTEXT, *OUT, *OPERATION, *HOST, *PARSER, *VOTE) {
-  on (cyverse_getValue(temporaryStorage, 'cyverse_repl_replicate') == 'REPL_FORCED_REPL_RESC') {}
+pep_resource_resolve_hierarchy_pre(*Inst, *Context, *OUT, *Op, *Host, *Parser, *VOTE) {
+	on (cyverse_getValue(temporaryStorage, 'cyverse_repl_replicate') == 'REPL_FORCED_REPL_RESC') {
+	}
 }

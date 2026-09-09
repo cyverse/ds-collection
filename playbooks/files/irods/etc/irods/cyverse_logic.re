@@ -915,16 +915,6 @@ _cyverse_logic_ID = 'cyverse_logic'
 
 
 #
-# LISTS
-#
-
-_cyverse_logic_contains(*Item, *List) =
-	if size(*List) == 0 then false
-	else if *Item == hd(*List) then true
-	else _cyverse_logic_contains(*Item, tl(*List))
-
-
-#
 # ICAT IDS
 #
 
@@ -1621,6 +1611,11 @@ cyverse_logic_acPreProcForModifyAccessControl(*RecurseFlag, *Perm, *Username, *Z
 	}
 }
 
+
+#
+# STATIC PEPS
+#
+
 # This sends a collection or data-object ACL modification message for the
 # updated object.
 #
@@ -1799,7 +1794,7 @@ cyverse_logic_acPostProcForModifyAVUMetadata(
 	*Opt, *EntityType, *EntityName, *Attr, *Val, *Unit, *ClientUsername, *ClientZone
 ) {
 	if (cyverse_isFSType(*EntityType) && *Attr != _cyverse_logic_UUID_ATTR) {
-		if (_cyverse_logic_contains(*Opt, list('add', 'adda', 'rm', 'set'))) {
+		if (cyverse_contains(*Opt, list('add', 'adda', 'rm', 'set'))) {
 			*uuid = '';
 			_cyverse_logic_ensureUUID(*EntityType, *EntityName, *ClientUsername, *ClientZone, *uuid);
 

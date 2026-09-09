@@ -38,6 +38,7 @@ def setUpModule():  # pylint: disable=invalid-name
 
 
 def tearDownModule():  # pylint: disable=invalid-name
+
     """Tear down main module"""
     test_rules.tearDownModule()
 
@@ -276,8 +277,8 @@ class PepApiDataObjPutPreTestP(_CveTest):
         """
         resp = subprocess.run(
             iput,
-            stdout=PIPE,
-            stderr=PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             shell=True,
             check=False,
             encoding='utf-8')
