@@ -74,24 +74,38 @@ class _AddtransferTest(IrodsTestCase):
 class TestAddtransferFailure(_AddtransferTest):
     """Test how cyverse_transfer_tracking_addTransfer fails"""
 
+    def __init__(self, methodName: str) -> None:
+        super().__init__(methodName)
+        self._cwd = path.dirname(__file__)
+
+    def setUp(self):
+        super().setUp()
+        mock_at_path = path.join(self._cwd, 'mocks/add-transfer')
+        self.scp.put(mock_at_path, '/var/lib/irods/msiExecCmd_bin')
+
+    def tearDown(self):
+        real_at_path = path.join(
+            self._cwd, '../../files/irods/var/lib/irods/msiExecCmd_bin/add-transfer')
+        self.scp.put(real_at_path, '/var/lib/irods/msiExecCmd_bin')
+        super().tearDown()
+
     def test_failure(self):
         """Verify that failure is handled correctly"""
-        cwd = path.dirname(__file__)
-        mock_at_path = path.join(cwd, 'mocks/add-transfer')
-        self.scp.put(mock_at_path, '/var/lib/irods/msiExecCmd_bin')
         try:
             self.exec_addtransfer(self.rodsuser, 'in', 5)
             self.fail("failure didn't return a failure status code")
         except iRODSException:
             pass
-        finally:
-            real_at_path = path.join(
-                cwd, '../../files/irods/var/lib/irods/msiExecCmd_bin/add-transfer')
-            self.scp.put(real_at_path, '/var/lib/irods/msiExecCmd_bin')
 
-    @unittest.skip("not implemented")
     def test_log_msg(self):
         """Verify that a message is logged"""
+        try:
+            self.exec_addtransfer(self.rodsuser, 'in', 5)
+        except iRODSException:
+            for line in self.tail_rods_log():
+                if 'add-transfer failed:' in line:
+                    return
+        self.fail("failure didn't log message")
 
 
 class TestAddtransferSuccess(_AddtransferTest):
@@ -101,12 +115,12 @@ class TestAddtransferSuccess(_AddtransferTest):
     """
 
     def test_success_download_rodsadmin(self):
-        """Verify that an download not recorded when downloader is rodsadmin"""
+        """Verify that a download not recorded when downloader is rodsadmin"""
         if self.exec_addtransfer('rods', 'out', 1):
             self.fail("recorded download for admin user")
 
     def test_success_download_rodsuser(self):
-        """Verify that an download is recorded when downloader is rodsuser"""
+        """Verify that a download is recorded when downloader is rodsuser"""
         res = self.exec_addtransfer(self.rodsuser, 'out', 2)
         if not res or res != ('out', 0, 2):
             self.fail(f"failed to correctly record result for normal user: {res}")
@@ -123,9 +137,28 @@ class TestAddtransferSuccess(_AddtransferTest):
             self.fail(f"failed to correctly record result for normal user: {res}")
 
 
-@test_rules.unimplemented
 class PublicLogicTest(IrodsTestCase):
     """Tests of cyverse_transfer_tracking.re public rule logic"""
+
+    @unittest.skip("not implemented")
+    def test_apibulkdataobjput(self):
+        """test cyverse_transfer_tracking_api_bulk_data_obj_put_post"""
+
+    @unittest.skip("not implemented")
+    def test_apidataobjget(self):
+        """test cyverse_transfer_tracking_api_data_obj_get_post"""
+
+    @unittest.skip("not implemented")
+    def test_apidataobjput(self):
+        """test cyverse_transfer_tracking_api_data_obj_put_post"""
+
+    @unittest.skip("not implemented")
+    def test_apidataobjread(self):
+        """test cyverse_transfer_tracking_api_data_obj_read_post"""
+
+    @unittest.skip("not implemented")
+    def test_apidataobjwrite(self):
+        """test cyverse_transfer_tracking_api_data_obj_write_post"""
 
 
 if __name__ == "__main__":
