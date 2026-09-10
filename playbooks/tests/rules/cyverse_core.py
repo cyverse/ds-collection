@@ -330,6 +330,14 @@ class Acdeletecollbyadminifpresent(CyverseCoreTestCase):
             self.fail("the collection wasn't deleted")
 
 
+class Acpreconnect(CyverseCoreTestCase):
+    """Tests of acPreConnect"""
+
+    @unittest.skip("not implemented")
+    def test_cyverse_logic(self):
+        """Verify that the cyverse_logic version of this PEP is called"""
+
+
 class Acsetrescschemeforcreate(CyverseCoreTestCase):
     """Tests of acSetRescSchemeForCreate"""
 
@@ -683,10 +691,6 @@ class PepApiStructFileExtAndRegPre(CyverseCoreTestCase):
 
 class CyverseCorePublicTest(CyverseCoreTestCase):
     """Test the public entities cyverse_core.re rule-base"""
-
-    @unittest.skip("not implemented")
-    def test_acpreconnect(self):
-        """Test acPreConnect"""
 
     @unittest.skip("not implemented")
     def test_acsetnumthreads(self):
