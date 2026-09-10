@@ -164,6 +164,13 @@ class MsitarfileextractTest(_TarTest):
         self.fail("Didn't log correct message")
 
 
+# NB: This PEP cannot be triggered except through a custom implementation of the
+# iRODS protocol. For now, let's skip testing it.
+@test_rules.unimplemented
+class PepApiBulkDataObjReg:
+    """Test pep_api_bulk_data_obj_reg_pre"""
+
+
 class PepApiDataObjCopyPreTestP(_CveTest):
     """Test pep_api_data_obj_copy_pre with -p option"""
 
@@ -530,6 +537,13 @@ class TestPepApiDataObjUnlinkPreDelete(_CveTest):
             if 'cyverse_core: pep_api_data_obj_unlink_pre' in line:
                 return
         self.fail('cyverse_core version not called')
+
+
+# NB: This PEP cannot be triggered except through a custom implementation of the
+# iRODS protocol. For now, let's skip testing it.
+@test_rules.unimplemented
+class TestPepApiRegDataObj:
+    """Tests of pep_api_reg_data_obj_pre"""
 
 
 # NB: This PEP cannot be triggered except through a custom implementation of the
