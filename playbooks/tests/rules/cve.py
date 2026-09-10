@@ -9,7 +9,7 @@
 from os import path
 from pathlib import Path
 import subprocess
-from subprocess import PIPE
+from subprocess import PIPE, CalledProcessError
 import tarfile
 import tempfile
 from tempfile import NamedTemporaryFile
@@ -539,11 +539,45 @@ class TestPepApiDataObjUnlinkPreDelete(_CveTest):
         self.fail('cyverse_core version not called')
 
 
-# NB: This PEP cannot be triggered except through a custom implementation of the
-# iRODS protocol. For now, let's skip testing it.
-@test_rules.unimplemented
-class TestPepApiRegDataObj:
+class TestPepApiRegDataObj(IrodsTestCase):
     """Tests of pep_api_reg_data_obj_pre"""
+
+    def test_direct_consumer_put(self):
+        """
+        Verify that a user can upload a file directly to a catalog consumer
+        """
+        username = "user"
+        password = "password"
+        self.ensure_user_exists(username, password=password)
+        obj_path = iRODSPath(self.irods.zone, "home", username, "obj")
+        try:
+            with NamedTemporaryFile(delete=False) as file:
+                file.close()
+                csc_env = {
+                    "IRODS_HOST": "dstesting-consumer_configured_centos-1.dstesting_default",
+                    "IRODS_PORT": "1247",
+                    "IRODS_ZONE_NAME": self.irods.zone,
+                    "IRODS_USER_NAME": username,
+                }
+                subprocess.run(
+                    f"echo '{password}' | iput '{file.name}' '{obj_path}'",
+                    env=csc_env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    shell=True,
+                    check=True,
+                    encoding='utf-8')
+            if not self.irods.data_objects.exists(obj_path):
+                self.fail("Put to catalog consumer was blocked")
+        finally:
+            self.ensure_obj_absent(obj_path)
+            self.ensure_user_absent(username)
+
+    # NB: This PEP cannot be triggered except through a custom implementation of
+    # the iRODS protocol. For now, let's skip testing it.
+    @unittest.skip("not implemented")
+    def test_verify_roduser_blocked(self):
+        """Verify that a normal user cannot directly call rcRegDataObj"""
 
 
 # NB: This PEP cannot be triggered except through a custom implementation of the
