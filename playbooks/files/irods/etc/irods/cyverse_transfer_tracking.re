@@ -5,7 +5,6 @@
 # For license information, see https://cyverse.org/license.
 
 _cyverse_transfer_tracking_addTransfer(*User, *Zone, *Dir, *Vol) {
-	# XXX: As of iRODS 4.3.1, anonymous isn't allowed to trigger msiExecCmd
 	if (*User != 'anonymous') {
 		foreach( *res in
 			select USER_ID where USER_NAME = '*User' and USER_ZONE = '*Zone' and USER_TYPE = 'rodsuser'

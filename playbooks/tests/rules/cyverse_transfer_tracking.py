@@ -115,9 +115,13 @@ class TestAddtransferSuccess(_AddtransferTest):
     """
 
     def test_success_download_rodsadmin(self):
-        """Verify that a download not recorded when downloader is rodsadmin"""
+        """Verify that a download is not recorded when downloader is rodsadmin"""
         if self.exec_addtransfer('rods', 'out', 1):
             self.fail("recorded download for admin user")
+
+    @unittest.skip("not implemented")
+    def test_success_download_anonymous(self):
+        """Verify that a download is not recorded when downloader is anonymous"""
 
     def test_success_download_rodsuser(self):
         """Verify that a download is recorded when downloader is rodsuser"""
@@ -129,6 +133,10 @@ class TestAddtransferSuccess(_AddtransferTest):
         """Verify that an upload is not recorded when uploader is rodsadmin"""
         if self.exec_addtransfer('rods', 'in', 3):
             self.fail("recorded upload by rodsadmin")
+
+    @unittest.skip("not implemented")
+    def test_success_upload_anonymous(self):
+        """Verify that an upload is not recorded when downloader is anonymous"""
 
     def test_success_upload_rodsuser(self):
         """Verify that an upload is recorded when uploader is rodsuser"""
