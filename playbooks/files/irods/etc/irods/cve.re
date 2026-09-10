@@ -195,8 +195,8 @@ pep_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp) {
 #  -169000 (SYS_NOT_ALLOWED)
 #
 pep_api_reg_data_obj_pre(*Instance, *Comm, *DataObjInfo, *OUT_DATA_OBJ_INFO) {
-	*proxyUser = *COMM.proxy_user_name;
-	*proxyZone = *COMM.proxy_rods_zone;
+	*proxyUser = *Comm.proxy_user_name;
+	*proxyZone = *Comm.proxy_rods_zone;
 
 	foreach(*row in SELECT USER_TYPE where USER_NAME = '*proxyUser' and USER_ZONE = '*proxyZone') {
 		*userType = *row.USER_TYPE;
