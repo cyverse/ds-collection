@@ -195,13 +195,22 @@ pep_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp) {
 #  -169000 (SYS_NOT_ALLOWED)
 #
 pep_api_reg_data_obj_pre(*Instance, *Comm, *DataObjInfo, *OUT_DATA_OBJ_INFO) {
-	*msg = 'pep_api_reg_data_obj_pre: prevented'
-		++ ' [' ++ *Comm.user_user_name ++ '#' ++ *Comm.user_rods_zone ++ '] from registering'
-		++ ' logical_path[' ++ *DataObjInfo.logical_path ++ '] with'
-		++ ' physical_path[' ++ *DataObjInfo.physical_path ++ ']';
+	*proxyUser = *COMM.proxy_user_name;
+	*proxyZone = *COMM.proxy_rods_zone;
 
-	writeLine('serverLog', *msg);
-	failmsg(-169000, 'rcRegDataObj is not allowed');
+	foreach(*row in SELECT USER_TYPE where USER_NAME = '*proxyUser' and USER_ZONE = '*proxyZone') {
+		*userType = *row.USER_TYPE;
+	}
+
+	if (*userType != 'rodsadmin') {
+		*msg = 'pep_api_reg_data_obj_pre: prevented'
+			++ ' [' ++ *Comm.user_user_name ++ '#' ++ *Comm.user_rods_zone ++ '] from registering'
+			++ ' logical_path[' ++ *DataObjInfo.logical_path ++ '] with'
+			++ ' physical_path[' ++ *DataObjInfo.physical_path ++ ']';
+
+		writeLine('serverLog', *msg);
+		failmsg(-169000, 'rcRegDataObj is not allowed');
+	}
 }
 
 # There is a security hole that allows a user to retrieve sensitive information
