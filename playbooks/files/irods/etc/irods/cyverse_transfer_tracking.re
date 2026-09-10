@@ -5,18 +5,20 @@
 # For license information, see https://cyverse.org/license.
 
 _cyverse_transfer_tracking_addTransfer(*User, *Zone, *Dir, *Vol) {
-	foreach( *res in
-		select USER_ID where USER_NAME = '*User' and USER_ZONE = '*Zone' and USER_TYPE = 'rodsuser'
-	) {
-		*userArg = execCmdArg(*res.USER_ID);
-		*dirArg = execCmdArg(*Dir);
-		*volArg = execCmdArg(str(*Vol));
-		*args = "*userArg *dirArg *volArg";
-		*ec = errormsg(msiExecCmd("add-transfer", *args, "null", "null", "null", *out), *msg);
-		if (*ec != 0) {
-			msiGetStderrInExecCmdOut(*out, *err);
-			writeLine('serverLog', "add-transfer failed: *msg (*err)");
-			failmsg(*ec, *err);
+	if (*User != 'anonymous') {
+		foreach( *res in
+			select USER_ID where USER_NAME = '*User' and USER_ZONE = '*Zone' and USER_TYPE = 'rodsuser'
+		) {
+			*userArg = execCmdArg(*res.USER_ID);
+			*dirArg = execCmdArg(*Dir);
+			*volArg = execCmdArg(str(*Vol));
+			*args = "*userArg *dirArg *volArg";
+			*ec = errormsg(msiExecCmd("add-transfer", *args, "null", "null", "null", *out), *msg);
+			if (*ec != 0) {
+				msiGetStderrInExecCmdOut(*out, *err);
+				writeLine('serverLog', "add-transfer failed: *msg (*err)");
+				failmsg(*ec, *err);
+			}
 		}
 	}
 }

@@ -778,7 +778,9 @@ pep_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp) {
 #                    deleted
 #
 pep_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp) {
-	cyverse_trash_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp);
+	*status = errormsg(
+		cyverse_trash_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -829,7 +831,9 @@ pep_api_rm_coll_pre(*Instance, *Comm, *RmCollInp, *CollOprStat) {
 #  CollOprStat  unknown
 #
 pep_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat) {
-	cyverse_trash_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat);
+	*status = errormsg(
+		cyverse_trash_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -899,9 +903,14 @@ pep_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
 #              object
 #
 pep_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
-	cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
-	cyverse_repl_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
-	cyverse_trash_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
+	*status = errormsg(cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(cyverse_repl_api_data_obj_create_post(*Instance, *Comm, *DataObjInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(cyverse_trash_api_data_obj_create_post(*Instance, *Comm, *DataObjInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -953,8 +962,11 @@ pep_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
 #  DataObjInp  (`KeyValuePair_PI`) information related to the data object
 #
 pep_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
-	cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp);
-	cyverse_repl_api_data_obj_open_post(*Instance, *Comm, *DataObjInp);
+	*status = errormsg(cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(cyverse_repl_api_data_obj_open_post(*Instance, *Comm, *DataObjInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -993,8 +1005,10 @@ pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 #  DataObjReadBBuf  (unknown) the contents that were read from the object
 #
 pep_api_data_obj_read_post(*Instance, *Comm, *DataObjReadInp, *DataObjReadBBuf) {
-	cyverse_transfer_tracking_api_data_obj_read_post(
-		*Instance, *Comm, *DataObjReadInp, *DataObjReadBBuf );
+	*status = errormsg(
+		cyverse_transfer_tracking_api_data_obj_read_post(*Instance, *Comm, *DataObjReadInp, *DataObjReadBBuf),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -1068,8 +1082,13 @@ pep_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 #  JSON_OUTPUT  unknown
 #
 pep_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
-	cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
-	cyverse_repl_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
+	*status = errormsg(
+		cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_repl_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
