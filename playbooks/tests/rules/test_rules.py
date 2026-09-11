@@ -527,7 +527,6 @@ class IrodsTestCase(TestCase):
             check=True,
             encoding='utf-8')
 
-
     def tail_rods_log(self, num_lines: int = 0) -> list[str]:
         """
         Reads the last part of the rodsLog on the connected iRODS server.
