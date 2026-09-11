@@ -178,6 +178,37 @@ pep_api_data_obj_unlink_pre(*Instance, *Comm, *DataObjUnlinkInp) {
 	}
 }
 
+# The `rcExecRuleExpression` API is vulnerable to direct NATIVE_PROT client
+# payloads of Python code to be run on the iRODS Server when the iRODS Python
+# Rule Engine Plugin is installed. This rule prevents this.
+#
+# This can be removed after upgrading to iRODS 5.1.0.
+#
+# Parameters:
+#  Instance  (string) unused
+#  Comm      (`KeyValuePair_PI`) information related to the session
+#  ExecRule  (unknown) unused
+#
+# Error Codes:
+#  -169000 (SYS_NOT_ALLOWED)
+#
+pep_api_exec_rule_expression_pre(*Instance, *Comm, *ExecRule) {
+	*proxyUser = *Comm.proxy_user_name
+	*proxyZone = *Comm.proxy_rods_zone
+
+	foreach(*row in SELECT USER_TYPE where USER_NAME = '*proxyUser' and USER_ZONE = '*proxyZone') {
+		*userType = *row.USER_TYPE;
+	}
+
+	if ("rodsadmin" != *userType) {
+		*msg = 'pep_api_exec_rule_expression_pre: prevented [*proxyUser#*proxyZone] from calling'
+			++ ' rcExecRuleExpression (AN 1206)';
+
+		writeLine('serverLog', *msg);
+		failmsg(-169000, 'rcExecRuleExpression is not allowed');
+	}
+}
+
 # The `rcRegDataObj` API is vulnerable to raw packstruct payloads that can
 # register files anywhere already on the iRODS Server. The implementation blocks
 # this API call.
