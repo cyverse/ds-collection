@@ -9,21 +9,23 @@
 from os import path
 from pathlib import Path
 import subprocess
-from subprocess import PIPE
 import tarfile
 import tempfile
 from tempfile import NamedTemporaryFile
+import time
 import unittest
 
 from irods.access import iRODSAccess
+from irods import api_number
+from irods.column import Like
 from irods.data_object import iRODSDataObject
 from irods.exception import (
     CAT_NO_ACCESS_PERMISSION, CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME, CUT_ACTION_PROCESSED_ERR,
     iRODSException, SYS_NOT_ALLOWED)
 from irods.message import (
-    iRODSMessage, Message, IntegerProperty, LongProperty, RodsHostAddress, StringProperty,
-    SubmessageProperty)
-from irods.models import Group
+    GenQueryResponse, GenQueryResponseColumn, IntegerProperty, iRODSMessage, LongProperty, Message,
+    RodsHostAddress, StringProperty, StringStringMap, SubmessageProperty)
+from irods.models import Group, RuleExec
 from irods.path import iRODSPath
 from irods.session import iRODSSession
 from paramiko import AutoAddPolicy, SSHClient
@@ -93,8 +95,8 @@ class _TarTest(_CveTest):
         file.touch()
         subprocess.run(
             f"tar --absolute-names --create --file={self._tar_file} {file}",
-            stdout=PIPE,
-            stderr=PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             shell=True,
             check=True,
             encoding='utf-8')
@@ -164,11 +166,42 @@ class MsitarfileextractTest(_TarTest):
         self.fail("Didn't log correct message")
 
 
-# NB: This PEP cannot be triggered except through a custom implementation of the
-# iRODS protocol. For now, let's skip testing it.
-@test_rules.unimplemented
-class PepApiBulkDataObjReg:
-    """Test pep_api_bulk_data_obj_reg_pre"""
+class PepApiBulkDataObjReg(IrodsTestCase):
+    """Tests of pep_api_bulk_data_obj_reg_pre"""
+
+    def __init__(self, methodName: str) -> None:
+        super().__init__(methodName)
+        self._result = None
+
+    def setUp(self) -> None:
+        super().setUp()
+        sql_res = [GenQueryResponseColumn(attriInx=0, reslen=0, value=[]) for _ in range(50)]
+        msg = GenQueryResponse(
+            rowCnt=0, attriCnt=0, continueInx=0, totalRowCount=0, SqlResult_PI=sql_res)
+        req = iRODSMessage(
+            "RODS_API_REQ", msg=msg, int_info=api_number.api_number["BULK_DATA_OBJ_REG_AN"])  # type: ignore # noqa: E501 # pylint: disable=line-too-long
+        with self.irods.pool.get_connection() as conn:  # type: ignore
+            conn.send(req)
+            try:
+                conn.recv()
+                self.fail("rcBulkDataObjReg was allowed")
+            except SYS_NOT_ALLOWED as e:
+                self._result = e
+
+    def test_blocked(self):
+        """Verify that no one can call rcBulkDataObjReg."""
+        self.assertIsInstance(self._result, SYS_NOT_ALLOWED, "rcBulkDataObjReg was allowed")
+
+    def test_log_msg(self):
+        """Verify that a message was logged"""
+        msg = (
+            f'pep_api_bulk_data_obj_reg_pre: prevented [{self.irods.username}#{self.irods.zone}]'
+            ' from bulk registering files'
+        )
+        for line in self.tail_rods_log():
+            if msg in line:
+                return
+        self.fail("Didn't log correct message")
 
 
 class PepApiDataObjCopyPreTestP(_CveTest):
@@ -283,8 +316,8 @@ class PepApiDataObjPutPreTestP(_CveTest):
         """
         resp = subprocess.run(
             iput,
-            stdout=PIPE,
-            stderr=PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             shell=True,
             check=False,
             encoding='utf-8')
@@ -539,18 +572,196 @@ class TestPepApiDataObjUnlinkPreDelete(_CveTest):
         self.fail('cyverse_core version not called')
 
 
-# NB: This PEP cannot be triggered except through a custom implementation of the
-# iRODS protocol. For now, let's skip testing it.
-@test_rules.unimplemented
-class TestPepApiRegDataObj:
-    """Tests of pep_api_reg_data_obj_pre"""
+class TestPepApiExecRuleExpression(IrodsTestCase):
+    """Tests of pep_api_exec_rule_expression_pre"""
+
+    # Since we don't use the Python Rule Engine Plugin, this test isn't
+    # implemented.
+    @unittest.skip("not implemented")
+    def test_prevent_python_code_injection(self):
+        """
+        Verify that arbitrary Python code cannot be run by client in Python Rule
+        Engine Plugin.
+        """
+
+    def test_allow_delay_exec(self):
+        """Verify that delay rules still work"""
+        self.clear_delay_queue()
+        marker = "CVE_DELAY_EXECUTION_TEST"
+        rule = self.mk_rule(f"delay('<PLUSET>0s</PLUSET>') {{writeLine('serverLog', '{marker}')}}")
+        self.exec_rule(rule, IrodsType.NONE)
+        while True:
+            query = self.irods.query().count(RuleExec.id).filter(Like(RuleExec.name, f'%{marker}%'))
+            if query.one()[RuleExec.id] == 0:
+                break
+            time.sleep(1)
+        for line in self.tail_rods_log():
+            if marker in line:
+                return
+        self.fail("rule was blocked")
 
 
-# NB: This PEP cannot be triggered except through a custom implementation of the
-# iRODS protocol. For now, let's skip testing it.
-@test_rules.unimplemented
-class TestPepApiSubStructFileGet:
-    """Tests of pep_api_sub_struct_file_get_pre"""
+class TestPepApiRegDataObjDirectConsumerPut(IrodsTestCase):
+    """
+    Tests of pep_api_reg_data_obj_pre when a file is uploaded directly to a
+    catalog consumer
+    """
+
+    def test(self):
+        """verify possible"""
+        username = "user"
+        password = "password"
+        self.ensure_user_exists(username, password=password)
+        obj_path = iRODSPath(self.irods.zone, "home", username, "obj")
+        try:
+            with NamedTemporaryFile(delete=False) as file:
+                file.close()
+                csc_env = {
+                    "IRODS_HOST": "dstesting-consumer_configured_centos-1.dstesting_default",
+                    "IRODS_PORT": "1247",
+                    "IRODS_ZONE_NAME": self.irods.zone,
+                    "IRODS_USER_NAME": username,
+                }
+                subprocess.run(
+                    f"echo '{password}' | iput '{file.name}' '{obj_path}'",
+                    env=csc_env,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    shell=True,
+                    check=True,
+                    encoding='utf-8')
+            if not self.irods.data_objects.exists(obj_path):
+                self.fail("Put to catalog consumer was blocked")
+        finally:
+            self.ensure_obj_absent(obj_path)
+            self.ensure_user_absent(username)
+
+
+class _DataObjInfoMsg(Message):
+    _name = 'DataObjInfo_PI'
+
+    objPath = StringProperty()
+    rescName = StringProperty()
+    rescHier = StringProperty()
+    dataType = StringProperty()
+    dataSize = LongProperty()
+    chksum = StringProperty()
+    version = StringProperty()
+    filePath = StringProperty()
+    dataOwnerName = StringProperty()
+    dataOwnerZone = StringProperty()
+    replNum = IntegerProperty()
+    replStatus = IntegerProperty()
+    statusString = StringProperty()
+    dataId = LongProperty()
+    collId = LongProperty()
+    dataMapId = IntegerProperty()
+    dataComments = StringProperty()
+    dataMode = StringProperty()
+    dataExpiry = StringProperty()
+    dataCreate = StringProperty()
+    dataModify = StringProperty()
+    dataAccess = StringProperty()
+    dataAccessInx = IntegerProperty()
+    writeFlag = IntegerProperty()
+    destRescName = StringProperty()
+    backupRescName = StringProperty()
+    subPath = StringProperty()
+    specColl = IntegerProperty()
+    regUid = IntegerProperty()
+    otherFlags = IntegerProperty()
+    KeyValPair_PI = SubmessageProperty(StringStringMap)
+    in_pdmo = StringProperty()
+    next = IntegerProperty()
+    rescId = LongProperty()
+
+
+class TestPepApiRegDataObjClient(IrodsTestCase):
+    """Verify that a normal user cannot directly call rcRegDataObj"""
+
+    def __init__(self, methodName: str) -> None:
+        super().__init__(methodName)
+        self._username = 'reg_data_obj_test'
+        self._password = 'password'
+        self._obj_path = None
+        self._repl_path = Path('tmp', 'obj').absolute()
+        self._result = None
+
+    def setUp(self):
+        super().setUp()
+        self.ensure_user_exists(self._username, password=self._password)
+        try:
+            self._obj_path = iRODSPath(self.irods.zone, "home", self._username, "obj")
+            with iRODSSession(
+                host=self.irods.host,
+                port=self.irods.port,
+                zone=self.irods.zone,
+                user=self._username,
+                password=self._password,
+            ) as user_session:
+                data_obj_info = _DataObjInfoMsg(
+                    objPath=self._obj_path,
+                    rescName='',
+                    rescHier='',
+                    dataType='',
+                    dataSize=0,
+                    chksum='',
+                    version='',
+                    filePath=self._repl_path,
+                    dataOwnerName=self._username,
+                    dataOwnerZone=self.irods.zone,
+                    replNum=0,
+                    replStatus=0,
+                    statusString='',
+                    dataId=0,
+                    collId=0,
+                    dataMapId=0,
+                    dataComments='',
+                    dataMode='',
+                    dataExpiry='',
+                    dataCreate='',
+                    dataModify='',
+                    dataAccess='',
+                    dataAccessInx=0,
+                    writeFlag=0,
+                    destRescName='',
+                    backupRescName='',
+                    subPath='',
+                    specColl=0,
+                    regUid=0,
+                    otherFlags=0,
+                    KeyValPair_PI=StringStringMap(),
+                    in_pdmo='',
+                    next=0,
+                    rescId=0,
+                )
+                request = iRODSMessage(
+                    'RODS_API_REQ',  # type: ignore
+                    msg=data_obj_info,
+                    int_info=api_number.api_number['REG_DATA_OBJ_AN'],
+                )
+                with user_session.pool.get_connection() as conn:  # type: ignore
+                    conn.send(request)
+                    conn.recv()
+        except SYS_NOT_ALLOWED as error:
+            self._result = error
+        finally:
+            self.ensure_user_absent(self._username)
+
+    def test_blocked(self):
+        """Verify that a normal user cannot call rcRegDataObj."""
+        self.assertIsInstance(self._result, SYS_NOT_ALLOWED, 'rcRegDataObj was allowed')
+
+    def test_log_msg(self):
+        """Verify that the PEP writes the expected log message."""
+        msg = (
+            f'pep_api_reg_data_obj_pre: prevented [{self._username}#{self.irods.zone}] from'
+            f' registering logical_path[{self._obj_path}] with physical_path[{self._repl_path}]'
+        )
+        for line in self.tail_rods_log():
+            if msg in line:
+                return
+        self.fail("Didn't log correct message")
 
 
 class _SpecCollMsg(Message):
@@ -579,6 +790,90 @@ class _SubFile(Message):
     flags = IntegerProperty()
     offset = LongProperty()
     specColl = SubmessageProperty(_SpecCollMsg)
+
+
+class TestPepApiSubStructFileGet(_TarTest):
+    """Tests of pep_api_sub_struct_file_get_pre"""
+
+    def __init__(self, methodName: str) -> None:
+        super().__init__(methodName)
+        self._mnt_coll_path = None
+        self._result = None
+
+    def setUp(self):
+        super().setUp()
+        tar_obj_path = self.mk_safe_tar()
+        tar_repl = self.irods.data_objects.get(tar_obj_path).replicas[0]
+        self._mnt_coll_path = iRODSPath(self.irods.zone, "home", self.irods.username, "mnt")
+        self.irods.collections.create(self._mnt_coll_path)
+        cmd = f"""
+            echo '{test_rules.IRODS_PASSWORD}' | imcoll -m tar {tar_obj_path} {self._mnt_coll_path}
+        """
+        subprocess.run(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+            check=True,
+            encoding='utf-8',
+        )
+        sc = _SpecCollMsg(
+            collClass=1,
+            type=2,
+            collection=self._mnt_coll_path,
+            objPath=tar_obj_path,
+            resource=tar_repl.resource_name,
+            rescHier=tar_repl.resc_hier,
+            phyPath=tar_repl.path,
+            cacheDir=tar_repl.path + ".cacheDir0",
+            cacheDirty=1,
+            replNum=0,
+        )
+        sub = _SubFile(
+            addr=RodsHostAddress(hostAddr="", rodsZone="", port=0, dummyInt=0),
+            subFilePath=iRODSPath(self._mnt_coll_path, "..", "outside.txt"),
+            mode=33261,
+            flags=0,
+            offset=0,
+            specColl=sc,
+        )
+        with self.irods.pool.get_connection() as conn:  # type: ignore
+            conn.send(iRODSMessage(
+                "RODS_API_REQ",  # type: ignore
+                msg=sub,
+                int_info=api_number.api_number["SUB_STRUCT_FILE_GET_AN"]))
+            try:
+                conn.recv()
+                self.fail("subfile download was allowed")
+            except SYS_NOT_ALLOWED as error:
+                self._result = error
+
+    def tearDown(self):
+        subprocess.run(
+            f"echo '{test_rules.IRODS_PASSWORD}' | imcoll -U {self._mnt_coll_path}",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+            check=True,
+            encoding='utf-8',
+        )
+        self.irods.collections.remove(self._mnt_coll_path)
+        super().tearDown()
+
+    def test_blocked(self):
+        """Verify that a user cannot download a subfile."""
+        self.assertIsInstance(self._result, SYS_NOT_ALLOWED)
+
+    def test_log_msg(self):
+        """Verify that the PEP writes the expected log message."""
+        msg = (
+            f"pep_api_sub_struct_file_get_pre: prevented "
+            f"[{self.irods.username}#{self.irods.zone}] from getting a subfile"
+        )
+        for line in self.tail_rods_log():
+            if msg in line:
+                return
+        self.fail("Didn't log correct message")
 
 
 class TestPepApiSubStructFilePut(_TarTest):
@@ -649,8 +944,8 @@ class TestPepApiSubStructFilePut(_TarTest):
     def test_log_msg(self):
         """Verify that a message was logged"""
         msg = (
-            f"pep_api_sub_struct_file_put_pre: prevented "
-            f"[{self.irods.username}#{self.irods.zone}] from putting a subfile"
+            f"pep_api_sub_struct_file_put_pre: prevented [{self.irods.username}#{self.irods.zone}]"
+            " from putting a subfile"
         )
         for line in self.tail_rods_log():
             if msg in line:

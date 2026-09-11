@@ -517,6 +517,16 @@ class IrodsTestCase(TestCase):
             res_type,
             res_type.restore(buf.rstrip(b'\0').decode('utf-8').rstrip('\n')))
 
+    def clear_delay_queue(self):
+        """Removes all rules from the delayed execution queue"""
+        subprocess.run(
+            f"echo '{IRODS_PASSWORD}' | iqdel -a",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+            check=True,
+            encoding='utf-8')
+
     def tail_rods_log(self, num_lines: int = 0) -> list[str]:
         """
         Reads the last part of the rodsLog on the connected iRODS server.
