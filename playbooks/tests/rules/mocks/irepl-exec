@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+#
+# This is a stub version of irepl-exec. It always fails.
+#
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
+set -o errexit -o nounset -o pipefail
+
+main() {
+	return 1
+}
+
+main "$@"

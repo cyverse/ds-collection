@@ -39,7 +39,7 @@
 
 # DEFERRED FUNCTIONS AND RULES
 
-_repl_replicate(*DataId, *RescName) {
+cyverse_repl_replicate(*DataId, *RescName) {
 	*dataPath = str(cyverse_getDataPath(*DataId));
 
 	if (*dataPath == '/') {
@@ -87,7 +87,7 @@ _repl_replicate(*DataId, *RescName) {
 	}
 }
 
-_repl_mvReplicas(*DataId, *IngestName, *ReplName) {
+cyverse_repl_mvReplicas(*DataId, *IngestName, *ReplName) {
 	*dataPath = cyverse_getDataPath(*DataId);
 
 	if (*dataPath != /) {
@@ -101,14 +101,14 @@ _repl_mvReplicas(*DataId, *IngestName, *ReplName) {
 		}
 
 		if (!cyverse_contains(*IngestName, *curRescs)) {
-			if (errorcode(_repl_replicate(*DataId, *IngestName)) < 0) {
+			if (errorcode(cyverse_repl_replicate(*DataId, *IngestName)) < 0) {
 				*replFail = true;
 			}
 		}
 
 		if (*ReplName != *IngestName) {
 			if (!cyverse_contains(*ReplName, *curRescs)) {
-				if (errorcode(_repl_replicate(*DataId, *ReplName)) < 0) {
+				if (errorcode(cyverse_repl_replicate(*DataId, *ReplName)) < 0) {
 					*replFail = true;
 				}
 			}
@@ -142,7 +142,7 @@ _repl_mvReplicas(*DataId, *IngestName, *ReplName) {
 	}
 }
 
-_repl_syncReplicas(*DataId) {
+cyverse_repl_syncReplicas(*DataId) {
 	*dataPath = str(cyverse_getDataPath(*DataId));
 
 	if (*dataPath != '/') {
@@ -202,7 +202,7 @@ _repl_scheduleMv(*Object, *IngestName, *ReplName) {
 		cyverse_registerAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object);
 
 		delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
-		{_repl_mvReplicas(*Object, *IngestName, *ReplName)}
+		{cyverse_repl_mvReplicas(*Object, *IngestName, *ReplName)}
 
 		_incDelayTime;
 	}
@@ -213,7 +213,7 @@ _repl_scheduleRepl(*Object, *RescName) {
 		cyverse_registerAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object);
 
 		delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
-		{_repl_replicate(*Object, *RescName)}
+		{cyverse_repl_replicate(*Object, *RescName)}
 
 		_incDelayTime;
 	}
@@ -224,7 +224,7 @@ _repl_scheduleSyncReplicas(*Object) {
 		cyverse_registerAction(_cyverse_repl_ID, _cyverse_repl_ACTION, *Object);
 
 		delay('<PLUSET>' ++ str(_delayTime) ++ 's</PLUSET><EF>8h REPEAT UNTIL SUCCESS</EF>')
-		{_repl_syncReplicas(*Object)}
+		{cyverse_repl_syncReplicas(*Object)}
 
 		_incDelayTime;
 	}

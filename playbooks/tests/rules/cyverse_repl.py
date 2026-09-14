@@ -7,6 +7,7 @@
 """Tests of cyverse_repl.re rule logic."""
 
 import json
+from pathlib import Path
 import subprocess
 from subprocess import CalledProcessError
 from typing import Any
@@ -32,7 +33,7 @@ def tearDownModule():  # pylint: disable=invalid-name
 
 
 class TestReplReplicateFailureChecksum(IrodsTestCase):
-    """Tests _repl_replicate handling of checksum error"""
+    """Tests cyverse_repl_replicate handling of checksum error"""
 
     def __init__(self, method: str):
         super().__init__(method)
@@ -46,7 +47,7 @@ class TestReplReplicateFailureChecksum(IrodsTestCase):
         self.irods.data_objects.modDataObjMeta({"objPath": self._objPath}, {"chksum": "bad"})
         oid = obj.id  # pylint: disable=no-member  # type: ignore
         ruleSrc = f"""
-            *ec = errorcode(_repl_replicate({oid}, 'replRes'));
+            *ec = errorcode(cyverse_repl_replicate({oid}, 'replRes'));
             writeLine('stdout', *ec);
         """
         self._ruleExecOut = self.exec_rule(self.mk_rule(ruleSrc), IrodsType.INTEGER)
@@ -69,32 +70,55 @@ class TestReplReplicateFailureChecksum(IrodsTestCase):
 
 
 class TestReplReplicateFailureReplGone(IrodsTestCase):
-    """Tests _repl_replicate handles an object that has been deleted"""
+    """Tests cyverse_repl_replicate handles an object that has been deleted"""
 
     def test(self):
         """
         Verify an attempt to replicate an object that no longer exists is logged
         """
         try:
-            self.exec_rule(self.mk_rule("_repl_replicate(1, 'ingestRes')"), IrodsType.NONE)
+            self.exec_rule(self.mk_rule("cyverse_repl_replicate(1, 'ingestRes')"), IrodsType.NONE)
         except RuleExecFailure:
-            self.fail("_repl_replicate failed when obj gone")
+            self.fail("cyverse_repl_replicate failed when obj gone")
 
 
 class TestReplReplicateFailureReplicated(IrodsTestCase):
-    """Tests _repl_replicate handling the case when the data object is already replicated"""
+    """
+    Tests cyverse_repl_replicate handling the case when the data object is
+    already replicated
+    """
 
-    @unittest.skip("not implemented")
+    def __init__(self, method: str):
+        super().__init__(method)
+        self._objPath = None
+        self._ruleExecOut = None
+
+    def setUp(self):
+        super().setUp()
+        self._objPath = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
+        obj = self.irods.data_objects.create(self._objPath)
+        obj.replicate()
+        rule_src = f'writeLine("stdout", errorcode(cyverse_repl_replicate({obj.id}, "replRes")));'  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+        self._ruleExecOut = self.exec_rule(self.mk_rule(rule_src), IrodsType.INTEGER)
+
+    def tearDown(self):
+        self.irods.data_objects.unlink(self._objPath, force=True)
+        super().tearDown()
+
     def test_log_msg(self):
         """Verify that a message is logged"""
+        for line in self.tail_rods_log():
+            if f'data object {self._objPath} already replicated' in line:
+                return
+        self.fail("didn't log correct message")
 
-    @unittest.skip("not implemented")
     def test_resp_code(self):
         """Verify that it returns a 0"""
+        self.assertEqual(self._ruleExecOut, IrodsVal.integer(0))
 
 
 class TestReplReplicateFailureUnknown(IrodsTestCase):
-    """Tests _repl_replicate handling of failure"""
+    """Tests cyverse_repl_replicate handling of failure"""
 
     def __init__(self, method: str):
         super().__init__(method)
@@ -106,7 +130,8 @@ class TestReplReplicateFailureUnknown(IrodsTestCase):
         self._objPath = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
         obj = self.irods.data_objects.create(self._objPath)
         try:
-            self.exec_rule(self.mk_rule(f"_repl_replicate({obj.id}, 'fakeRes')"), IrodsType.NONE)  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+            self.exec_rule(
+                self.mk_rule(f"cyverse_repl_replicate({obj.id}, 'fakeRes')"), IrodsType.NONE)  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
         except RuleExecFailure as e:
             self._ruleExecOut = e.resp_code()
 
@@ -128,7 +153,7 @@ class TestReplReplicateFailureUnknown(IrodsTestCase):
 
 
 class TestReplReplicateSuccess(IrodsTestCase):
-    """Tests _repl_replicate success"""
+    """Tests cyverse_repl_replicate success"""
 
     def __init__(self, method: str):
         super().__init__(method)
@@ -142,7 +167,7 @@ class TestReplReplicateSuccess(IrodsTestCase):
         obj.chksum()
         oid = obj.id  # pylint: disable=no-member  # type: ignore
         ruleSrc = f"""
-            _repl_replicate({oid}, 'replRes');
+            cyverse_repl_replicate({oid}, 'replRes');
             writeLine('stdout', temporaryStorage.cyverse_repl_replicate);
         """
         self._ruleExecOut = self.exec_rule(self.mk_rule(ruleSrc), IrodsType.STRING)
@@ -170,7 +195,7 @@ class TestReplReplicateSuccess(IrodsTestCase):
 
 
 class TestMvreplicasNoMv(IrodsTestCase):
-    """Tests of when no replicas need to be moved"""
+    """Tests of cyverse_repl_mvReplicas when no replicas need to be moved"""
 
     def test(self):
         """Verify no replicas moved"""
@@ -180,7 +205,8 @@ class TestMvreplicasNoMv(IrodsTestCase):
         obj.chksum()
         obj.replicate()
         self.exec_rule(
-            self.mk_rule(f"_repl_mvReplicas({obj.id}, 'ingestRes', 'replRes')"), IrodsType.NONE)  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+            self.mk_rule(f"cyverse_repl_mvReplicas({obj.id}, 'ingestRes', 'replRes')"),  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+            IrodsType.NONE)
         obj = self.irods.data_objects.get(objPath)
         if (
             len(obj.replicas) != 2
@@ -201,7 +227,8 @@ class TestMvreplicasMvIngestSuccess(IrodsTestCase):
         obj = self.irods.data_objects.create(objPath, 'replRes')
         obj.chksum()
         self.exec_rule(
-            self.mk_rule(f"_repl_mvReplicas({obj.id}, 'ingestRes', 'ingestRes')"), IrodsType.NONE)  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+            self.mk_rule(f"cyverse_repl_mvReplicas({obj.id}, 'ingestRes', 'ingestRes')"),  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+            IrodsType.NONE)
         obj = self.irods.data_objects.get(objPath)
         self.assertEqual(
             obj.replicas[0].resource_name, 'ingestRes', "failed to move replica to ingestRes")
@@ -222,7 +249,9 @@ class TestMvreplicasMvIngestFailure(IrodsTestCase):
         self.ensure_obj_absent(self._objPath)
         obj = self.irods.data_objects.create(self._objPath, 'replRes')
         oid = obj.id  # pylint: disable=no-member  # type: ignore
-        ruleSrc = f"writeLine('stdout', errorcode(_repl_mvReplicas({oid}, 'pireRes', 'pireRes')));"
+        ruleSrc = f'''
+            writeLine('stdout', errorcode(cyverse_repl_mvReplicas({oid}, 'pireRes', 'pireRes')));
+        '''
         self._response_code = self.exec_rule(self.mk_rule(ruleSrc), IrodsType.INTEGER)
 
     def tearDown(self):
@@ -250,7 +279,9 @@ class TestMvreplicasMvIngestFailure(IrodsTestCase):
 
 
 class TestMvreplicasMvReplSuccess(IrodsTestCase):
-    """Test _repl_mvReplicas, successfully moving the replicated replica"""
+    """
+    Test cyverse_repl_mvReplicas, successfully moving the replicated replica
+    """
 
     def test(self):
         """Test it"""
@@ -262,7 +293,7 @@ class TestMvreplicasMvReplSuccess(IrodsTestCase):
             obj.chksum()
             obj.replicate('replRes')
             self.exec_rule(
-                self.mk_rule(f"_repl_mvReplicas({obj.id}, 'ingestRes', 'pireRes')"),  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+                self.mk_rule(f"cyverse_repl_mvReplicas({obj.id}, 'ingestRes', 'pireRes')"),  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
                 IrodsType.NONE)
             obj = self.irods.data_objects.get(objPath)
             if (
@@ -272,14 +303,14 @@ class TestMvreplicasMvReplSuccess(IrodsTestCase):
             ):
                 self.fail("failed to move both replicas")
         except RuleExecFailure as e:
-            self.fail(f"_repl_mvReplicas failed: {e}")
+            self.fail(f"cyverse_repl_mvReplicas failed: {e}")
         finally:
             obj.unlink(force=True)
             self.update_rulebase([('pire.re', '../../files/irods/etc/irods/pire.re')])
 
 
 class TestMvreplicasMvReplFailure(IrodsTestCase):
-    """Tests of _repl_mvReplicas, when moving the replica fails"""
+    """Tests of cyverse_repl_mvReplicas, when moving the replica fails"""
 
     def __init__(self, methodName) -> None:
         super().__init__(methodName)
@@ -294,7 +325,7 @@ class TestMvreplicasMvReplFailure(IrodsTestCase):
         obj.chksum()
         oid = obj.id  # type: ignore  # pylint: disable=no-member
         ruleSrc = f"""
-            writeLine('serverLog', errorcode(_repl_mvReplicas({oid}, 'replRes', 'avraRes')));
+            writeLine('serverLog', errorcode(cyverse_repl_mvReplicas({oid}, 'replRes', 'avraRes')));
         """
         self._resp_code = self.exec_rule(self.mk_rule(ruleSrc),  IrodsType.INTEGER)
 
@@ -325,12 +356,12 @@ class TestMvreplicasMvReplFailure(IrodsTestCase):
 
 
 class TestMvreplicasGone(IrodsTestCase):
-    """Tests of _repl_mvReplicas with the data object no longer exists"""
+    """Tests of cyverse_repl_mvReplicas with the data object no longer exists"""
 
     def test(self):
         """Verify that the rule succeeds"""
         ruleSrc = """
-            *rc = _repl_mvReplicas(1, "ingestRes", "replRes");
+            *rc = cyverse_repl_mvReplicas(1, "ingestRes", "replRes");
             writeLine('stdout', *rc);
         """
         rc = self.exec_rule(self.mk_rule(ruleSrc), IrodsType.INTEGER)
@@ -338,43 +369,66 @@ class TestMvreplicasGone(IrodsTestCase):
 
 
 class TestSyncreplicasGone(IrodsTestCase):
-    """Test _repl_syncReplicas when data object no longer exists"""
+    """Test cyverse_repl_syncReplicas when data object no longer exists"""
 
     def test(self):
         """Test rule succeeds"""
         rc = self.exec_rule(
-            self.mk_rule("writeLine('stdout', _repl_syncReplicas(1))"), IrodsType.INTEGER)
+            self.mk_rule("writeLine('stdout', cyverse_repl_syncReplicas(1))"), IrodsType.INTEGER)
         self.assertEqual(rc, IrodsVal.integer(0), "sync failed when object no longer exists")
 
 
 class TestSyncreplicasSuccess(IrodsTestCase):
-    """Tests of _repl_syncReplicas success"""
+    """Tests of cyverse_repl_syncReplicas success"""
 
     def test(self):
         """Test it"""
         objPath = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
         obj = self.irods.data_objects.create(objPath)
         rc = self.exec_rule(
-            self.mk_rule(f"writeLine('stdout', _repl_syncReplicas({obj.id}))"), IrodsType.INTEGER)  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+            self.mk_rule(f"writeLine('stdout', errorcode(cyverse_repl_syncReplicas({obj.id})))"),  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+            IrodsType.INTEGER)
         self.assertEqual(rc, IrodsVal.integer(0), "sync failed")
         obj.unlink(force=True)
 
 
-# NB: I cannot find a way to test this. `irepl -a -U fails` silently when the
-# resource with the stale replica is not accessible do to either status=down or
-# context=write=0. I don't know another way to make a replica synchronization
-# fail.
-@test_rules.unimplemented
 class TestSyncreplicasFailure(IrodsTestCase):
-    """Tests of _repl_syncReplicas failure logic"""
+    """Tests of cyverse_repl_syncReplicas failure logic"""
 
-    @unittest.skip("not implemented")
+    def __init__(self, methodName: str) -> None:
+        super().__init__(methodName)
+        self._objPath = None
+        self._execPath = Path('var', 'lib', 'irods', 'msiExecCmd_bin', 'irepl-exec')
+        self._rc = None
+
+    def setUp(self):
+        super().setUp()
+        self._objPath = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
+        self.scp.put(Path(__file__).parent / 'mocks' / 'irepl-exec', self._execPath.absolute())
+        obj = self.irods.data_objects.create(self._objPath)
+        rule = self.mk_rule(
+            f"writeLine('stdout', errorcode(cyverse_repl_syncReplicas({obj.id})))")  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+        self._rc = self.exec_rule(rule, IrodsType.INTEGER)
+
+    def tearDown(self):
+        if self._objPath:
+            self.ensure_obj_absent(self._objPath)
+        self.scp.put(
+            Path(__file__).parent / '..' / '..' / 'files' / 'irods' / self._execPath,
+            self._execPath.absolute())
+        super().tearDown()
+
     def test_fail_status(self):
         """Test handling of replication failure other than -808000"""
+        self.assertLess(self._rc.val, 0, "sync succeeded")  # type: ignore
 
-    @unittest.skip("not implemented")
     def test_log_msg(self):
         """Verify that a retry message was logged"""
+        msg = f"failed to sync replicas of data object {self._objPath} trying again in 8 hours:"
+        for line in self.tail_rods_log():
+            if msg in line:
+                return
+        self.fail("Failed replica sync not logged")
 
 
 class TestConsts(IrodsTestCase):
@@ -467,15 +521,16 @@ class TestSchedulemv(_TestScheduleRule):
         super().__init__(methodName, "_repl_scheduleMv(1, 'ingestRes', 'replRes')")
 
     def test_rule_scheduled(self):
-        """Verify that the rule _repl_mvReplicas is scheduled correctly"""
-        if not self._is_scheduled('_repl_mvReplicas(*Object, *IngestName, *ReplName)'):
-            self.fail('Failed to schedule _repl_mvReplicas')
+        """Verify that the rule cyverse_repl_mvReplicas is scheduled correctly"""
+        if not self._is_scheduled('cyverse_repl_mvReplicas(*Object, *IngestName, *ReplName)'):
+            self.fail('Failed to schedule cyverse_repl_mvReplicas')
 
     def test_exec_freq(self):
         """Verify that the execution frequency is set correctly"""
         if (
             self._is_exec_freq(
-                '_repl_mvReplicas(*Object, *IngestName, *ReplName)', '8h REPEAT UNTIL SUCCESS')
+                'cyverse_repl_mvReplicas(*Object, *IngestName, *ReplName)',
+                '8h REPEAT UNTIL SUCCESS')
         ):
             self.fail('The execution frequency is incorrect')
 
@@ -500,12 +555,15 @@ class TestSchedulerepl(_TestScheduleRule):
 
     def test_rule_scheduled(self):
         """Verify that the rule _repl_scheduleRepl is scheduled correctly"""
-        if not self._is_scheduled('_repl_replicate(*Object, *RescName)'):
-            self.fail('Failed to schedule _repl_replicate')
+        if not self._is_scheduled('cyverse_repl_replicate(*Object, *RescName)'):
+            self.fail('Failed to schedule cyverse_repl_replicate')
 
     def test_exec_freq(self):
         """Verify that the execution frequency is set correctly"""
-        if self._is_exec_freq('_repl_replicate(*Object, *RescName)', '8h REPEAT UNTIL SUCCESS'):
+        if (
+            self._is_exec_freq(
+                'cyverse_repl_replicate(*Object, *RescName)', '8h REPEAT UNTIL SUCCESS')
+        ):
             self.fail('The execution frequency is incorrect')
 
     def test_delay_time_incremented(self):
@@ -550,9 +608,9 @@ class TestSchedulesyncreplicas(IrodsTestCase):
         super().tearDown()
 
     def test_rule_scheduled(self):
-        """Verify that _repl_syncReplicas is scheduled correctly"""
+        """Verify that cyverse_repl_syncReplicas is scheduled correctly"""
         query = self.irods.query(RuleExec)
-        query = query.filter(Criterion('=', RuleExec.name, "_repl_syncReplicas(*Object)"))
+        query = query.filter(Criterion('=', RuleExec.name, "cyverse_repl_syncReplicas(*Object)"))
         for _ in query.get_results():
             return True
         return False
@@ -560,7 +618,7 @@ class TestSchedulesyncreplicas(IrodsTestCase):
     def test_exec_freq(self):
         """Verify that the execution frequency is set correctly"""
         query = self.irods.query(RuleExec.frequency)
-        query = query.filter(Criterion('=', RuleExec.name, "_repl_syncReplicas(*Object)"))
+        query = query.filter(Criterion('=', RuleExec.name, "cyverse_repl_syncReplicas(*Object)"))
         rec = query.first()
         return not rec or rec[RuleExec.frequency] != '8h REPEAT UNTIL SUCCESS'
 
@@ -675,11 +733,12 @@ class _CreateoroverwriteTest(IrodsTestCase):
 
     def is_replreplicate_sched(self):
         """
-        Indicates whether or not _repl_replicate is scheduled as a deferred
+        Indicates whether or not cyverse_repl_replicate is scheduled as a deferred
         execution
         """
         query = self.irods.query(RuleExec)
-        query = query.filter(Criterion('=', RuleExec.name, '_repl_replicate(*Object, *RescName)'))
+        query = query.filter(
+            Criterion('=', RuleExec.name, 'cyverse_repl_replicate(*Object, *RescName)'))
         return query.first() is not None
 
 
@@ -697,20 +756,20 @@ class TestCreateoroverwriteCreateIngestPath(_CreateoroverwriteTest):
 
     def test_rule_sched(self):
         """
-        Verify that a _repl_replicate is scheduled when a replica is created on
-        the ingest resource when the data path is provided as a path
+        Verify that a cyverse_repl_replicate is scheduled when a replica is
+        created on the ingest resource when the data path is provided as a path
         """
         if not self.is_replreplicate_sched():
-            self.fail("_repl_replicate not scheduled")
+            self.fail("cyverse_repl_replicate not scheduled")
 
     def test_rule_correct_id(self):
         """
         Verify that when called for a data object replica that is being created
         on the ingest resource, the correct Id is passed to the rule.
         """
-        context = self.get_rule_exec_context('_repl_replicate(*Object, *RescName)')
+        context = self.get_rule_exec_context('cyverse_repl_replicate(*Object, *RescName)')
         if not context:
-            self.fail("_repl_replicate not scheduled")
+            self.fail("cyverse_repl_replicate not scheduled")
         objectParam = context['ms_param_array']['ms_params'][0]['in_out_struct']
         oid = self.irods.data_objects.get(self.objPath).id  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
         self.assertEqual(objectParam, oid, "Scheduled replication of wrong data object")
@@ -720,9 +779,9 @@ class TestCreateoroverwriteCreateIngestPath(_CreateoroverwriteTest):
         Verify that when called for a data object replica that is being created
         on the ingest resource, the repl resource is passed to the rule.
         """
-        context = self.get_rule_exec_context('_repl_replicate(*Object, *RescName)')
+        context = self.get_rule_exec_context('cyverse_repl_replicate(*Object, *RescName)')
         if not context:
-            self.fail("_repl_replicate not scheduled")
+            self.fail("cyverse_repl_replicate not scheduled")
         rescNameParam = context['ms_param_array']['ms_params'][1]['in_out_struct']
         self.assertEqual(rescNameParam, 'replRes', "Scheduled replication on wrong resource")
 
@@ -742,7 +801,7 @@ class TestCreateoroverwriteCreateIngestStr(_CreateoroverwriteTest):
             self.mk_rule(f"_ipcRepl_createOrOverwrite('{self.objPath}', 'ingestRes', true)"),
             IrodsType.NONE)
         if not self.is_replreplicate_sched():
-            self.fail("_repl_replicate not scheduled")
+            self.fail("cyverse_repl_replicate not scheduled")
 
 
 class TestCreateoroverwriteCreateRepl(_CreateoroverwriteTest):
@@ -752,13 +811,15 @@ class TestCreateoroverwriteCreateRepl(_CreateoroverwriteTest):
     """
 
     def test(self):
-        """Verify that it passes the ingest resource to _repl_replicate"""
+        """
+        Verify that it passes the ingest resource to cyverse_repl_replicate
+        """
         self.exec_rule(
             self.mk_rule(f"_ipcRepl_createOrOverwrite({self.objPath}, 'replRes', true)"),
             IrodsType.NONE)
-        context = self.get_rule_exec_context('_repl_replicate(*Object, *RescName)')
+        context = self.get_rule_exec_context('cyverse_repl_replicate(*Object, *RescName)')
         if not context:
-            self.fail("_repl_replicate not scheduled")
+            self.fail("cyverse_repl_replicate not scheduled")
         rescNameParam = context['ms_param_array']['ms_params'][1]['in_out_struct']
         self.assertEqual(rescNameParam, 'ingestRes', "Scheduled replication on wrong resource")
 
@@ -780,17 +841,17 @@ class TestCreateoroverwriteOverwrite(_CreateoroverwriteTest):
             IrodsType.NONE)
 
     def test_sched(self):
-        """Verify that it schedules a _repl_syncReplicas rule."""
+        """Verify that it schedules a cyverse_repl_syncReplicas rule."""
         query = self.irods.query(RuleExec)
-        query = query.filter(Criterion('=', RuleExec.name, '_repl_syncReplicas(*Object)'))
+        query = query.filter(Criterion('=', RuleExec.name, 'cyverse_repl_syncReplicas(*Object)'))
         if not query.first():
-            self.fail("_repl_syncReplicas not scheduled")
+            self.fail("cyverse_repl_syncReplicas not scheduled")
 
     def test_rule_correct_id(self):
         """Verify that the correct data id is passed to the rule."""
-        context = self.get_rule_exec_context('_repl_syncReplicas(*Object)')
+        context = self.get_rule_exec_context('cyverse_repl_syncReplicas(*Object)')
         if not context:
-            self.fail("_repl_syncReplicas not scheduled")
+            self.fail("cyverse_repl_syncReplicas not scheduled")
         objectParam = context['ms_param_array']['ms_params'][0]['in_out_struct']
         oid = self.irods.data_objects.get(self.objPath).id  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
         self.assertEqual(objectParam, oid, "Scheduled replica synchronization of wrong data object")
@@ -878,12 +939,12 @@ class TestDataobjcreated(IrodsTestCase):
         self.exec_rule(self.mk_rule(rule), IrodsType.NONE)
         ruleFound = False
         for result in self.irods.query(RuleExec.name):
-            if result[RuleExec.name].find('_repl_replicate') != -1:
+            if result[RuleExec.name].find('cyverse_repl_replicate') != -1:
                 ruleFound = True
                 break
         if not ruleFound:
             self.fail(
-                "cyverse_repl_dataObjCreated did not schedule the _repl_replicate rule")
+                "cyverse_repl_dataObjCreated did not schedule the cyverse_repl_replicate rule")
         obj.unlink(force=True)
 
 

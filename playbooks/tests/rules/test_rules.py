@@ -327,6 +327,11 @@ class IrodsVal:
         """The iRODS type of the value"""
         return self._type
 
+    @property
+    def val(self) -> Optional[bool | int | str | list[str] | tuple[str, str] | Mapping[str, str]]:
+        """The value expressed as a Python type"""
+        return self._type.restore(self._irods_val)
+
 
 class RuleExecFailure(Exception):
     """Indicates that an iRODS rule failed"""
