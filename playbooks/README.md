@@ -127,7 +127,6 @@ Variable                                   | Required | Default                 
 `irods_version`                            | no       | 4.3.1                                |         | The version of iRODS to work with
 `irods_zone_key`                           | no       | TEMPORARY_zone_key                   |         | The zone key
 `irods_zone_name`                          | no       | tempZone                             |         | The name of the zone
-`mdrepo_cli_account`                       | no       | null                                 |         | The iRODS account used my the MD Repo CLI
 `ncems_base_collection`                    | no       |                                      |         | The base collection for the NCEMS project. If it isn't present no NCEMS rules will fire.
 `ncems_manager`                            | no       | `irods_admin_username`               |         | The iRODS user who is responsible for NCEMS data.
 `ncems_resource_hierarchy`                 | no       | `irods_resource_hierarchies[0]`      |         | The resource used by the NCEMS project

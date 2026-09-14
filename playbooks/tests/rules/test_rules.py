@@ -384,8 +384,8 @@ class IrodsTestCase(TestCase):
         """
         return (IrodsVal.path(irods_path), IrodsVal.string(irods_path))
 
-    def setUp(self):
-        super().setUp()
+    def __init__(self, methodName: str = "runTest") -> None:
+        super().__init__(methodName)
         self._irods = None
         self._ssh = None
         self._scp = None
@@ -575,6 +575,16 @@ class IrodsTestCase(TestCase):
             raise RuleExecFailure(-1, err_buf.rstrip(b'\0').decode('utf-8'))
         buf = output.MsParam_PI[0].inOutStruct.stdoutBuf.buf
         return IrodsVal(res_type, res_type.restore(buf.rstrip(b'\0').decode('utf-8').rstrip('\n')))
+
+    def clear_delay_queue(self):
+        """Removes all rules from the delayed execution queue"""
+        subprocess.run(
+            f"echo '{IRODS_PASSWORD}' | iqdel -a",
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            shell=True,
+            check=True,
+            encoding='utf-8')
 
     def tail_rods_log(self, num_lines: int = 0) -> list[str]:
         """

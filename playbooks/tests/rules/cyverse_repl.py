@@ -1,4 +1,4 @@
-#!/usr/bin/env python  # pylint: disable=invalid-name
+#!/usr/bin/env python  # pylint: disable=invalid-name,too-many-lines
 # -*- coding: utf-8 -*-
 #
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.

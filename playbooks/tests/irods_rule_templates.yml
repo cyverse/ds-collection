@@ -20,6 +20,7 @@
           - cyverse_env is search("cyverse_EMAIL_FROM_ADDR = 'irods@localhost'")
           - cyverse_env is search("cyverse_EMAIL_REPORT_ADDR = 'root@localhost'")
           - cyverse_env is search("cyverse_INIT_REPL_DELAY = 0")
+          - cyverse_env is search("cyverse_IS_CATALOG_PROVIDER = false")
           - cyverse_env is search("cyverse_ZONE = 'testing'")
           - >-
             cyverse_env
@@ -36,8 +37,7 @@
 
 
 - name: Test non resource custom values set correctly in cyverse-env.re
-  hosts: localhost
-  gather_facts: false
+  hosts: dstesting-provider_configured-1.dstesting_default
   vars_files:
     - ../group_vars/all/irods.yml
   vars:
@@ -55,9 +55,10 @@
       ansible.builtin.assert:
         that:
           - cyverse_env is search("cyverse_AMQP_EXCHANGE = 'exchange'")
-          - cyverse_env is search("cyverse_EMAIL_FROM_ADDR = 'balloon@localhost'")
+          - cyverse_env is search("cyverse_EMAIL_FROM_ADDR = 'balloon@dstesting-provider_configured-1.dstesting_default'")
           - cyverse_env is search("cyverse_EMAIL_REPORT_ADDR = 'bob@reports'")
           - cyverse_env is search("cyverse_INIT_REPL_DELAY = 1")
+          - cyverse_env is search("cyverse_IS_CATALOG_PROVIDER = true")
           - cyverse_env is search("cyverse_RE_HOST = 'other'")
           - cyverse_env is search("cyverse_ZONE = 'zoner'")
 

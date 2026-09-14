@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+#
+# This is a mock version of add-transfer command script. It always fails.
+#
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
+set -o errexit -o nounset -o pipefail
+
+main() {
+	printf 'fail\n' >&2
+	return 1
+}
+
+main "$@"
