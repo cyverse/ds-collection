@@ -81,6 +81,31 @@ class CyverseConstantsTest(CyverseTestCase):
         self.fn_test('cyverse_USER', [], IrodsVal.string('-u'))
 
 
+class TestCyverseContains(CyverseTestCase):
+    """Tests of the cyverse_contains"""
+
+    def test_item_not_in_list(self):
+        """Verify that it returns false when item not in list"""
+        self.fn_test(
+            'cyverse_contains',
+            [IrodsVal.string("missing"), IrodsVal.list_string([])],
+            IrodsVal.boolean(False))
+
+    def test_item_first(self):
+        """Verify that it returns true when item is first in list"""
+        self.fn_test(
+            'cyverse_contains',
+            [IrodsVal.string('first'), IrodsVal.list_string(['first'])],
+            IrodsVal.boolean(True))
+
+    def test_item_last(self):
+        """Verify that it returns true when item is last in list"""
+        self.fn_test(
+            'cyverse_contains',
+            [IrodsVal.string('last'), IrodsVal.list_string(['first', 'next', 'last'])],
+            IrodsVal.boolean(True))
+
+
 class CyverseEndswith(CyverseTestCase):
     """Test cyverse_endsWith"""
 
@@ -138,21 +163,21 @@ class CyverseRmprefix(CyverseTestCase):
         """Test no prefixes provided"""
         self.fn_test(
             'cyverse_rmPrefix',
-            [IrodsVal.string('orig'), IrodsVal.string_list([])],
+            [IrodsVal.string('orig'), IrodsVal.list_string([])],
             IrodsVal.string('orig'))
 
     def test_no_matching_prefix(self):
         """Test none of the provided prefixes match"""
         self.fn_test(
             'cyverse_rmPrefix',
-            [IrodsVal.string('orig'), IrodsVal.string_list(['q', 'w'])],
+            [IrodsVal.string('orig'), IrodsVal.list_string(['q', 'w'])],
             IrodsVal.string('orig'))
 
     def test_matching_prefix(self):
         """Test a provided prefix matches"""
         self.fn_test(
             'cyverse_rmPrefix',
-            [IrodsVal.string('orig'), IrodsVal.string_list(['e', 'o'])],
+            [IrodsVal.string('orig'), IrodsVal.list_string(['e', 'o'])],
             IrodsVal.string('rig'))
 
 

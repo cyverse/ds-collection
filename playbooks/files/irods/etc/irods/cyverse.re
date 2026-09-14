@@ -7,6 +7,24 @@
 
 _cyverse_HOME = '/' ++ cyverse_ZONE ++ '/home'
 
+
+#
+# These are list manipulation functions
+#
+
+# Determine whether a list contains a certain item
+#
+# Parameters:
+#  Item  the test item
+#  List  the list being inspected
+#
+cyverse_contains : ? * list ? -> boolean
+cyverse_contains(*Item, *List) =
+	if size(*List) == 0 then false
+	else if *Item == hd(*List) then true
+	else cyverse_contains(*Item, tl(*List))
+
+
 #
 # These are string manipulation functions
 #

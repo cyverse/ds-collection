@@ -40,6 +40,7 @@ def setUpModule():  # pylint: disable=invalid-name
 
 
 def tearDownModule():  # pylint: disable=invalid-name
+
     """Tear down main module"""
     test_rules.tearDownModule()
 
