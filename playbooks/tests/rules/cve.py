@@ -40,6 +40,7 @@ def setUpModule():  # pylint: disable=invalid-name
 
 
 def tearDownModule():  # pylint: disable=invalid-name
+
     """Tear down main module"""
     test_rules.tearDownModule()
 
@@ -327,16 +328,19 @@ class PepApiDataObjPutPreTestP(_CveTest):
         self.update_rulebase([('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')])
         super().tearDown()
 
+    @unittest.skip("pep_api_data_obj_put_pre has memory leak. Fixed in 4.3.4")
     def test_no_upload(self):
         """Verify that no upload happened"""
         if self.irods.data_objects.exists(self.test_data):
             self.fail("The file was uploaded when it shouldn't have been")
 
+    @unittest.skip("pep_api_data_obj_put_pre has memory leak. Fixed in 4.3.4")
     def test_upload_failed(self):
         """Verify that the upload command failed"""
         if self._iput_resp == 0:
             self.fail("upload succeeded instead of failed")
 
+    @unittest.skip("pep_api_data_obj_put_pre has memory leak. Fixed in 4.3.4")
     def test_cyversecore_not_called(self):
         """Verify that the cyverse_core.re version of the PEP is not called"""
         for line in self.tail_rods_log():

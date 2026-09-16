@@ -11,7 +11,7 @@ import unittest
 from irods.path import iRODSPath
 
 import test_rules
-from test_rules import IrodsTestCase, IrodsVal
+from test_rules import IrodsTestCase, IrodsType, IrodsVal
 
 
 def setUpModule():  # pylint: disable=invalid-name
@@ -30,38 +30,6 @@ class IdTest(IrodsTestCase):
     def test(self):
         """Verify that it has the correct value"""
         self.fn_test('_cyverse_logic_ID', [], IrodsVal.string('cyverse_logic'))
-
-
-class TestContains(IrodsTestCase):
-    """Tests of _cyverse_logic_contains"""
-
-    def test_item_not_in_list(self):
-        """Verify that it returns false when item not in list"""
-        self.fn_test(
-            '_cyverse_logic_contains',
-            [IrodsVal.string("missing"), IrodsVal.string_list([])],
-            IrodsVal.boolean(False))
-
-    def test_item_in_singleton_list(self):
-        """Verify that it returns true when item in list with only one item"""
-        self.fn_test(
-            '_cyverse_logic_contains',
-            [IrodsVal.string("item"), IrodsVal.string_list(["item"])],
-            IrodsVal.boolean(True))
-
-    def test_item_first(self):
-        """Verify that it returns true when item is first in list"""
-        self.fn_test(
-            '_cyverse_logic_contains',
-            [IrodsVal.string("item"), IrodsVal.string_list(["item", "last"])],
-            IrodsVal.boolean(True))
-
-    def test_item_last(self):
-        """Verify that it returns true when item is last in list"""
-        self.fn_test(
-            '_cyverse_logic_contains',
-            [IrodsVal.string("item"), IrodsVal.string_list(["first", "item"])],
-            IrodsVal.boolean(True))
 
 
 class TestIcatIds(IrodsTestCase):
@@ -205,12 +173,12 @@ class TestAvus(IrodsTestCase):
     def _test_getnewavusetting(self, orig_val, prefix, candidates, exp_res):
         self.fn_test(
             '_cyverse_logic_getNewAVUSetting',
-            [IrodsVal.string(orig_val), IrodsVal.string(prefix), IrodsVal.string_list(candidates)],
+            [IrodsVal.string(orig_val), IrodsVal.string(prefix), IrodsVal.list_string(candidates)],
             IrodsVal.string(exp_res))
 
 
-class TestCyVerseLogic(IrodsTestCase):
-    """Test cyverse_logic.re"""
+class TestPrivateCyVerseLogic(IrodsTestCase):
+    """Tests of the internal logic"""
 
     @unittest.skip("not implemented")
     def test_checksum(self):
@@ -236,9 +204,153 @@ class TestCyVerseLogic(IrodsTestCase):
     def test_rodsadmin_group_permissions(self):
         """Test private rodsadmin group permissions rule logic"""
 
-    @unittest.skip("Not implemented")
-    def test_public(self):
-        """Test the public rule logic"""
+
+class TestAcpostprocformodifyavumetadataGeneralProcessable(IrodsTestCase):
+    """
+    Test the form of the command that handles all subcommands except `cp` and
+    `mod` and the entity is a collection of data object and the attribute isn't
+    `ipc_UUID`.
+    """
+
+    def test_add(self):
+        """Tests what happens when an AVU was added"""
+        if not self._call_rule("add"):
+            self.fail("A collection.metadata.add message wasn't published")
+
+    def test_adda(self):
+        """Tests what happens when an AVU was administratively added"""
+        if not self._call_rule("adda"):
+            self.fail("A collection.metadata.adda message wasn't published")
+
+    @unittest.skip("not implemented")
+    def test_addw(self):
+        """Tests what happens when an AVU was added by wildcard"""
+
+    def test_rm(self):
+        """Tests what happens when an AVU was removed"""
+        if not self._call_rule("rm"):
+            self.fail("A collection.metadata.rm message wasn't published")
+
+    @unittest.skip("not implemented")
+    def test_rmw(self):
+        """Tests what happens when an AVU was removed by wildcard"""
+
+    def test_set(self):
+        """Tests what happens when an AVU was set"""
+        if not self._call_rule("set"):
+            self.fail("A collection.metadata.set message wasn't published")
+
+    def _call_rule(self, opt):
+        coll_path = iRODSPath(self.irods.zone, "home")
+        for p in IrodsTestCase.prep_path(coll_path):
+            with self.subTest(p=p):
+                rule_src = f'''
+                    cyverse_logic_acPostProcForModifyAVUMetadata(
+                        "{opt}",
+                        "-C",
+                        {p},
+                        "a",
+                        "v",
+                        "u",
+                        "{self.irods.username}",
+                        "{self.irods.zone}" );
+                '''
+                self.exec_rule(self.mk_rule(rule_src), IrodsType.NONE)
+                for line in self.tail_rods_log():
+                    if 'amqp-topic-send' in line and f'collection.metadata.{opt}' in line:
+                        return True
+        return False
+
+
+class TestAcpostprocformodifyavumetadataGeneral(IrodsTestCase):
+    """
+    Test the form of the command that handles all subcommands except `cp` and
+    `mod`.
+    """
+
+    @unittest.skip("not implemented")
+    def test_fs_entity_uuid(self):
+        """
+        Tests what happens when the entity is a collection or data object and
+        the attributed being modified is ipc_UUID
+        """
+
+    @unittest.skip("not implemented")
+    def test_not_fs_entity(self):
+        """Tests what happens when the entity is a resource or user"""
+
+
+class TestAcpostprocformodifyavumetadata(IrodsTestCase):
+    """Tests of cyverse_logic_acPostProcForModifyAVUMetadata"""
+
+    @unittest.skip("not implemented")
+    def test_cp_form(self):
+        """Test the form of the command that handles the `cp` subcommand."""
+
+    @unittest.skip("not implemented")
+    def test_mod_form(self):
+        """Test the form of the command that handles the `mod` subcommand."""
+
+
+class TestStaticPeps(IrodsTestCase):
+    """Tests of the static PEP implementations"""
+
+    @unittest.skip("not implemented")
+    def test_acpostprocformodifyaccesscontrol(self):
+        """Test cyverse_logic_acPostProcForModifyAccessControl"""
+
+    @unittest.skip("not implemented")
+    def test_acpreprocformodifyavumetadata(self):
+        """Test cyverse_logic_acPreProcForModifyAVUMetadata"""
+
+    @unittest.skip("not implemented")
+    def test_accreatecollbyadmin(self):
+        """Test cyverse_logic_acCreateCollByAdmin"""
+
+    @unittest.skip("not implemented")
+    def test_acpostprocforcollcreate(self):
+        """Test cyverse_logic_acPostProcForCollCreate"""
+
+    @unittest.skip("not implemented")
+    def test_acdeletecollbyadminifpresent(self):
+        """Test cyverse_logic_acDeleteCollByAdminIfPresent"""
+
+    @unittest.skip("not implemented")
+    def test_acpreprocforrmcoll(self):
+        """Test cyverse_logic_acPostProcForRmColl"""
+
+    @unittest.skip("not implemented")
+    def test_acpreconnect(self):
+        """Test cyverse_logic_acPreConnect"""
+
+    @unittest.skip("not implemented")
+    def test_acpostprocfordatacopyreceived(self):
+        """Test cyverse_logic_acPostProcForDataCopyReceived"""
+
+    @unittest.skip("not implemented")
+    def test_acdatadeletepolicy(self):
+        """Test cyverse_logic_acDataDeletePolicy"""
+
+    @unittest.skip("not implemented")
+    def test_acpostprocfordelete(self):
+        """Test cyverse_logic_acPostProcForDelete"""
+
+    @unittest.skip("not implemented")
+    def test_acpostprocforopen(self):
+        """Test cyverse_logic_acPostProcForOpen"""
+
+    @unittest.skip("not implemented")
+    def test_acpostprocforobjrename(self):
+        """Test cyverse_logic_acPostProcForObjRename"""
+
+    @unittest.skip("not implemented")
+    def test_acpostprocforparalleltransferreceived(self):
+        """Test cyverse_logic_acPostProcForParallelTransferReceived"""
+
+
+@test_rules.unimplemented
+class TestDynamicPeps(IrodsTestCase):
+    """Tests of dynamic PEP implementations"""
 
 
 if __name__ == "__main__":

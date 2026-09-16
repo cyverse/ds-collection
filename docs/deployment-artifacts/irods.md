@@ -6,6 +6,7 @@ Here are the files used to configure iRODS.
 
 Here are the command scripts executable through the `msiExecCmd` microservice.
 
+* [add-transfer](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/add-transfer) adds a transfer event to the `r_transfer_totals` custom table in the ICAT DB.
 * [amqp-topic-send](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/amqp-topic-send) publishes audit messages to a RabbitMQ broker.
 * [delete-scheduled-rule](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/delete-scheduled-rule) removes a rule execution from the rule queue.
 * [generate-uuid](../../playbooks/files/irods/var/lib/irods/msiExecCmd_bin/generate-uuid) generates a time-based UUID.
@@ -31,6 +32,7 @@ The following files contain the policy that is independent of deployment environ
 * [cyverse_encryption.re](../../playbooks/files/irods/etc/irods/cyverse_encryption.re) has the encryption enforcement logic.
 * [cyverse_json.re](../../playbooks/files/irods/etc/irods/cyverse_json.re) provides the logic for creating JSON documents.
 * [cyverse_repl.re](../../playbooks/files/irods/etc/irods/cyverse_repl.re) has the resource residency and asynchronous replication logic.
+* [cyverse_transfer_tracking.re](../../playbooks/files/irods/etc/irods/cyverse_transfer_tracking.re) has the logic for tracking user transfers.
 * [cyverse_trash.re](../../playbooks/files/irods/etc/irods/cyverse_trash.re) has the trash timestamp management logic.
 * [cyverse_logic.re](../../playbooks/files/irods/etc/irods/cyverse_logic.re) has the CyVerse policy logic not implemented in another rule base.
 * [cyverse_housekeeping.re](../../playbooks/files/irods/etc/irods/cyverse_housekeeping.re) provides the logic for the periodically run asynchronous tasks.
@@ -44,6 +46,14 @@ Two rule bases implement the AVRA project's Data Store policy. The file [avra.re
 ### BH-PIRE and EHT Rule Files
 
 Two rule bases implement the BH-PIRE and EHT projects' Data Store policy. The file [pire.re](../../playbooks/files/irods/etc/irods/pire.re) contains the BH-PIRE and EHT policy independent of the deployment environment. The template [pire-env.re](../../playbooks/templates/irods/etc/irods/pire-env.re.j2) contains the environment dependent BH-PIRE and EHT constants.
+
+### ESIIL Rule Files
+
+Two rule bases implement the ESIIL project's Data Store policy. The file [esiil.re](../../playbooks/files/irods/etc/irods/esiil.re) contains the ESIIL policy that is independent of the deployment environment. The template [esiil-env.re](../../playbooks/templates/irods/etc/irods/esiil-env.re.j2) contains the environment-dependent ESIIL constants.
+
+### NCEMS Rule Files
+
+Two rule bases implement the NCEMS project's Data Store policy. The file [ncems.re](../../playbooks/files/irods/etc/irods/ncems.re) contains the NCEMS policy that is independent of the deployment environment. The template [ncems-env.re](../../playbooks/templates/irods/etc/irods/ncems-env.re.j2) contains the environment-dependent NCEMS constants.
 
 ### CoGe Rule File
 

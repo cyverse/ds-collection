@@ -661,9 +661,12 @@ pep_api_data_obj_get_post(*Instance, *Comm, *DataObjInp, *PORTAL_OPR, *DATA_OBJ_
 #  DataObjInpBBuf  (unknown) may contain the contents of the file being uploaded
 #  PORTAL_OPR_OUT  unknown
 #
-pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
-	cyverse_encryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp);
-}
+# XXX: This PEP has a huge memory leak:
+#      https://github.com/irods/irods/issues/8106. Fixed in 4.3.4. There is no
+#      workaround.
+# pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
+#	cyverse_encryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp);
+# }
 
 # This is the post processing logic for when a data object is uploaded through
 # the API using a DATA_OBJ_PUT request.
@@ -678,7 +681,25 @@ pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL
 # *DataObjInp:
 #   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
 #
-pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR) {
+# XXX: This PEP has a huge memory leak:
+#      https://github.com/irods/irods/issues/8106. Fixed in 4.3.4.
+# pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR) {
+acPostProcForPut {
+	*Instance = '';
+
+	*Comm.user_rods_zone = $rodsZoneClient;
+	*Comm.user_user_name = $userNameClient;
+
+	*DataObjInpBBuf = '';
+
+	*DataObjInp.obj_path = $objPath;
+	*DataObjInp.data_size = str($dataSize);
+
+	foreach(*rec in SELECT DATA_RESC_HIER where DATA_RESC_NAME = $rescName) {
+		*DataObjInp.resc_hier = *rec.DATA_RESC_HIER;
+	}
+
+# XXX: ^^^
 	*status = errormsg(
 		cyverse_logic_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
 		*msg );
