@@ -118,12 +118,15 @@ pep_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 # Error Codes:
 #  -31000 (SYS_INVALID_FILE_PATH)
 #
-pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
-	on (errorcode(*DataObjInp.filePath) == 0) {
-		cut;
-		failmsg(-31000, 'CYVERSE ERROR: no physical path allowed');
-	}
-}
+# XXX: This PEP has a huge memory leak:
+#      https://github.com/irods/irods/issues/8106. Fixed in 4.3.4. There is no
+#      workaround.
+# pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
+# 	on (errorcode(*DataObjInp.filePath) == 0) {
+# 		cut;
+# 		failmsg(-31000, 'CYVERSE ERROR: no physical path allowed');
+# 	}
+# }
 
 # There is a security hole in irm -f that allows a user with read permission on
 # a data object to silently delete the underlying physical files. See
