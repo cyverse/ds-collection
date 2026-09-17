@@ -7,7 +7,10 @@
 
 set -o errexit -o nounset -o pipefail
 
-EXEC_NAME="$(readlink --canonicalize "$0")"
+#shellcheck source=testing/portability.inc
+. "$(cd -- "$(dirname -- "$0")" && pwd -P)"/../portability.inc
+
+EXEC_NAME="$(ds_canonicalize "$0")"
 readonly EXEC_NAME
 
 declare BaseDir
@@ -30,12 +33,13 @@ main()
   # shellcheck disable=SC1090
   . "$cfg"
 
-  trap 'rm --force "$BaseDir"/requirements.txt "$BaseDir"/requirements.yml' EXIT
-  cp --update=none "$BaseDir"/../../requirements.txt "$BaseDir"/../../requirements.yml "$BaseDir"/
+  trap 'rm -f "$BaseDir"/requirements.txt "$BaseDir"/requirements.yml' EXIT
+  cp -n "$BaseDir"/../../requirements.txt "$BaseDir"/../../requirements.yml "$BaseDir"/
 
   local buildArgs=(
 #    --no-cache
     --build-arg=IRODS_CLERVER_PASSWORD="$IRODS_CLERVER_PASSWORD"
+    --platform=linux/amd64
     --tag=ansible-tester )
 
   docker buildx build "${buildArgs[@]}" "$BaseDir"

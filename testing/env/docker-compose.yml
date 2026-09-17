@@ -2,6 +2,7 @@
 services:
   amqp:
     image: test-env-base:ubuntu2204
+    platform: linux/amd64
     privileged: true
     tty: true
 
@@ -9,6 +10,7 @@ services:
     build:
       context: .
       dockerfile: sftp/Dockerfile
+    platform: linux/amd64
     privileged: true
     tty: true
 
@@ -16,6 +18,7 @@ services:
     build:
       context: .
       dockerfile: webdav/Dockerfile.configured
+    platform: linux/amd64
     privileged: true
     tty: true
 
@@ -23,6 +26,7 @@ services:
     build:
       context: .
       dockerfile: webdav/Dockerfile.unconfigured
+    platform: linux/amd64
     privileged: true
     tty: true
 
@@ -35,6 +39,7 @@ services:
         IRODS_RESOURCES: "$IRODS_RES_CONF_CENTOS_NAME:$IRODS_CONSUMER_CONF_CENTOS_HOST:$IRODS_VAULT $IRODS_RES_CONF_UBUNTU_NAME:$IRODS_CONSUMER_CONF_UBUNTU_HOST:$IRODS_VAULT"
         IRODS_ZONE_NAME: "$IRODS_ZONE_NAME"
         IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
+    platform: linux/amd64
     privileged: true
     tty: true
 
@@ -42,6 +47,7 @@ services:
     build:
       context: .
       dockerfile: postgresql/Dockerfile.unconfigured
+    platform: linux/amd64
     privileged: true
     tty: true
 
@@ -59,6 +65,7 @@ services:
         IRODS_ZONE_NAME: "$IRODS_ZONE_NAME"
         IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
     hostname: "$IRODS_PROVIDER_CONF_HOST"
+    platform: linux/amd64
     privileged: true
     security_opt:
       - apparmor=docker-default
@@ -74,6 +81,7 @@ services:
         DBMS_HOST: "$DBMS_HOST"
         IRODS_SYSTEM_GROUP: "$IRODS_PROVIDER_SYSTEM_GROUP"
     hostname: "$IRODS_PROVIDER_UNCONF_HOST"
+    platform: linux/amd64
     privileged: true
     security_opt:
       - apparmor=docker-default
@@ -93,6 +101,7 @@ services:
         IRODS_ZONE_NAME: "$IRODS_ZONE_NAME"
         IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
     hostname: "$IRODS_CONSUMER_CONF_CENTOS_HOST"
+    platform: linux/amd64
     privileged: true
     tty: true
     security_opt:
@@ -114,6 +123,7 @@ services:
         IRODS_ZONE_NAME: "$IRODS_ZONE_NAME"
         IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
     hostname: "$IRODS_CONSUMER_CONF_UBUNTU_HOST"
+    platform: linux/amd64
     privileged: true
     security_opt:
       - apparmor=docker-default
@@ -128,6 +138,7 @@ services:
       args:
         IRODS_CATALOG_PROVIDER: "$IRODS_PROVIDER_CONF_HOST"
     hostname: "${ENV_NAME}-consumer_unconfigured-1.${DOMAIN}"
+    platform: linux/amd64
     privileged: true
     security_opt:
       - apparmor=docker-default
@@ -136,6 +147,7 @@ services:
 
   consumer_containerized_alma:
     image: test-env-base:alma10
+    platform: linux/amd64
     privileged: true
     security_opt:
       - apparmor=docker-default
@@ -143,8 +155,10 @@ services:
 
   consumer_containerized_ubuntu:
     image: test-env-base:ubuntu2404
+    platform: linux/amd64
     privileged: true
     tty: true
 
   cbuoy:
     image: test-env-base:alma9
+    platform: linux/amd64
