@@ -2,6 +2,17 @@
 
 ## 2026-09-17
 
+* **Update**: Recorded three latent issues found during the review:
+  * [cyverse_logic.re](/irods-rules/cyverse-logic.md): the read-only branch of
+    `cyverse_logic_api_replica_close_post` passes unbound variables to
+    `_cyverse_logic_ensureUUID`.
+  * [avra.re](/irods-rules/avra.md), [esiil.re](/irods-rules/esiil.md),
+    [ncems.re](/irods-rules/ncems.md), and [pire.re](/irods-rules/pire.md):
+    each test's "equal to the default resource" `setUp` runs `sed` with no file
+    argument.
+  * [cve.re](/irods-rules/cve.md): `test_cyversecore_called` only exercises a
+    PEP that the mock defines and the deployed rule files have commented out.
+
 * **Update**: Reviewed every page against its sources and corrected 40 of
   them. Notable corrections:
   * [irods_cfg Role](/ansible-roles/irods-cfg.md): a null `irods_cfg_re` still

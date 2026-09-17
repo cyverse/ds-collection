@@ -62,6 +62,12 @@ loaded through `@include 'avra'` in `cyverse_core.re`.
 - `playbooks/tests/irods_rule_templates.yml` — asserts
   `avra_RESC = 'demoResc'` with the default variables.
 
+The `setUp` of `TestPepResourceResolveHierarchyPreAvraResDefault` copies
+`/etc/irods/avra-env.re` to the local `/tmp` and then runs
+`sed --in-place 's/avra_RESC = .*/avra_RESC = cyverse_DEFAULT_RESC/'` over SSH
+with no file argument, so neither the server's `avra-env.re` nor the local copy
+is edited before the rules are reloaded.
+
 # Citations
 
 [1] `playbooks/files/irods/etc/irods/avra.re` — the rule.

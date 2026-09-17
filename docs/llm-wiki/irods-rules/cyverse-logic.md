@@ -93,6 +93,12 @@ registered for the entity.
 since the iRODS issue 8106 workaround; see
 [cyverse_core.re](/irods-rules/cyverse-core.md#issue-8106-workaround).
 
+In `cyverse_logic_api_replica_close_post`, the read-only branch (open flag
+`cyverse_OPEN_FLAG_R`) calls `_cyverse_logic_ensureUUID` with `*DataPath`,
+`*ClientUsername`, and `*ClientZone`. None of these is a parameter of the rule
+(`*Instance`, `*Comm`, `*JsonInput`) or assigned in its body, which instead
+holds the path in `*path` and the user in `*authorName` and `*authorZone`.
+
 ## Dependencies
 
 Uses [cyverse.re](/irods-rules/cyverse.md) (helpers, action tracking,

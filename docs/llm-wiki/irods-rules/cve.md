@@ -65,6 +65,13 @@ the `cyverse_core.re` version of a PEP isn't reached when a workaround fires.
 The three `pep_api_data_obj_put_pre` `-p` tests are skipped with the reason
 "pep_api_data_obj_put_pre has memory leak. Fixed in 4.3.4".
 
+`PepApiDataObjPutPreTestNoP` is not skipped. Its `test_cyversecore_called`
+looks for the log line `cyverse_core: pep_api_data_obj_put_pre`, which only
+`mocks/cyverse_core.re` can produce: that mock still defines
+`pep_api_data_obj_put_pre`, while the deployed `cve.re` and `cyverse_core.re`
+both have it commented out. The test therefore exercises the mock rather than
+any deployed rule.
+
 # Citations
 
 [1] `playbooks/files/irods/etc/irods/cve.re` — the workarounds.
@@ -74,3 +81,4 @@ The three `pep_api_data_obj_put_pre` `-p` tests are skipped with the reason
 [5] `docs/deployment-artifacts/irods.md` — describes `cve.re` and the rule base order.
 [6] Commit `1631907` — disabled `pep_api_data_obj_put_pre`.
 [7] https://github.com/irods/irods/issues/8106 — the memory leak.
+[8] `playbooks/files/irods/etc/irods/cyverse_core.re` — deployed rule file with its `pep_api_data_obj_put_pre` commented out.

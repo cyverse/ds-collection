@@ -60,6 +60,12 @@ through `@include 'pire'` in `cyverse_core.re`.
 - `playbooks/tests/rules/mocks/pire.re` — an empty stub that
   `cyverse_repl.py` swaps in to remove this rule.
 
+The `setUp` of `TestPepResourceResolveHierarchyPrePireResDefault` copies
+`/etc/irods/pire-env.re` to the local `/tmp` and then runs
+`sed --in-place 's/pire_RESC = .*/pire_RESC = cyverse_DEFAULT_RESC/'` over SSH
+with no file argument, so neither the server's `pire-env.re` nor the local copy
+is edited before the rules are reloaded.
+
 # Citations
 
 [1] `playbooks/files/irods/etc/irods/pire.re` — the rule.
