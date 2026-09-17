@@ -94,8 +94,9 @@ Uses [cyverse.re](/irods-rules/cyverse.md) helpers and constants, and
 move, and sync success and failure paths (using the failing
 `mocks/irepl-exec`), delay time and scheduling, `_repl_findResc` and
 `_repl_findReplResc`, `_ipcRepl_createOrOverwrite`, the resource scheme rules,
-the API PEPs, and `pep_resource_resolve_hierarchy_pre`. Some tests replace
-`pire.re` with the empty `mocks/pire.re` and `cyverse_core.re` with
+`cyverse_repl_dataObjCreated`, and `pep_resource_resolve_hierarchy_pre`. The
+dynamic API PEP test class is marked `@test_rules.unimplemented`. Some tests
+replace `pire.re` with the empty `mocks/pire.re` and `cyverse_core.re` with
 `mocks/cyverse_core.re`. `mocks/cyverse_repl.re` stubs this file for
 `cyverse_core.re` tests.
 

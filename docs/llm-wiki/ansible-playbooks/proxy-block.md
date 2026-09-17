@@ -20,8 +20,10 @@ disables, in order:
 2. server `dav` in backend `webdavs`;
 3. server `irods` in backend `irods_direct`.
 
-Those backend and server names match the ones defined in the haproxy role's
-`haproxy.cfg.j2` template.
+Those proxy and server names match the ones defined in the haproxy role's
+`haproxy.cfg.j2` template, where `sftp` and `webdavs` are `listen` sections
+rather than `backend` sections, and `webdavs` exists only when
+`haproxy_tls_crt` is set.
 
 There is no `playbooks/tests/proxy_block.yml`.
 

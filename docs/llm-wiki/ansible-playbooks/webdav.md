@@ -47,11 +47,11 @@ One play on `webdav` with `become: true`. The package tasks use `yum`,
     `playbooks/tasks/webdav/install_html.yml`, plus `index.html`, `robots.txt`,
     and `errors/moved_project.html` under `/var/www/html`.
 11. Upgrades Varnish: if a version older than 6.5.1 is installed it stops and
-    removes it, deletes its service file, logs, and cache files, then installs
-    Varnish 6.5.1 from packagecloud. It sets `varnishd_t` permissive under
-    SELinux, mounts a 4 GB tmpfs at `/var/lib/varnish` (tagged `no_testing`),
-    creates `webdav_cache_dir` and `/var/log/varnish`, and renders
-    `default.vcl` and `varnish.service`.
+    removes it and deletes its service file, logs, and cache files. It then
+    installs Varnish 6.5.1 from packagecloud on every host, sets `varnishd_t`
+    permissive under SELinux, mounts a 4 GB tmpfs at `/var/lib/varnish`
+    (tagged `no_testing`), creates `webdav_cache_dir` and `/var/log/varnish`,
+    and renders `default.vcl` and `varnish.service`.
 12. Sets `httpd_t` permissive under SELinux.
 
 ## Apache role
@@ -81,8 +81,8 @@ Worker limits come from `webdav_server_limit`, `webdav_threads_per_child`, and
 2. Adds systemd `requires` links so httpd pulls in Varnish, and Varnish pulls
    in `varnishncsa` and purgeman.
 3. Installs purgeman `v0.3.0` from GitHub (via `make install_centos`) if it's
-   missing or a different version, renders `/etc/purgeman/purgeman.conf`, and
-   installs `purgeman.service`.
+   missing, a different version, or lacks its `purgeman` account, renders
+   `/etc/purgeman/purgeman.conf`, and installs `purgeman.service`.
 
 ## Variables
 
@@ -123,14 +123,19 @@ file uses `_irods_zone_name` for paths, while the rest of the playbook uses
   titles, links, and base URLs;
 - on the `webdav` hosts, checks the TLS files' contents and permissions, the
   installed packages (`davrods`, `mod_proxy_html`, `mod_qos`, `mod_ssl`,
-  `yum-plugin-versionlock`, `varnish` 6.5.1), the iRODS signing key and repo,
+  `yum-plugin-versionlock`, `varnish`), the iRODS signing key and repo,
   that `ssl.conf` is gone, that `irods-runtime` is locked, the davrods head
   files and `irods_environment.json` contents, the Apache module files, the web
   pages, Varnish's directories and config, the log rotation config, the
   systemd dependency links, and the purgeman binary, config, and unit.
 
+The Varnish package check passes `version: "6.5.1"`, but
+`playbooks/tests/tasks/test_pkg_installed.yml` reads `ver`, so the installed
+version isn't actually checked.
+
 The testing inventory's `webdav` group vars set the cache directory to
-`/cache_vol`, the zone to `testing`, and the TLS file paths under `/tmp`.
+`/cache_vol`, the zone to `testing`, the certificate and key paths under
+`/tmp`, and the chain path to `/etc/httpd/testing.crt`.
 
 # Citations
 

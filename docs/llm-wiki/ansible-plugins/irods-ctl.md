@@ -29,7 +29,9 @@ servers running".
 | `restarted_if_running` | Restarts only if running; if the status check itself fails, does nothing | true only if it restarted |
 
 If an `irodsctl` call fails, the module fails with "iRODS server failed to
-<state>". The result echoes the module `params`.
+<command>", where `<command>` is the `irodsctl` subcommand that failed
+(`status`, `start`, `stop`, or `restart`). The result echoes the module
+`params`.
 
 ## Usage
 
@@ -43,14 +45,17 @@ If an `irodsctl` call fails, the module fails with "iRODS server failed to
 
 ## Tests
 
-`plugins/modules/tests/irods_ctl.yml` stops the service and then checks each
-transition:
+`plugins/modules/tests/irods_ctl.yml` stops the service on `irods_catalog` and
+then checks each transition:
 
 - `restarted` on a stopped server, with and without `test_log`;
 - `restarted_if_running` on a stopped server, confirming it stays stopped;
 - `started` without a test log;
 - `restarted` on a running server, with and without `test_log`;
 - `restarted_if_running` on a running server, with and without `test_log`.
+
+Two further plays test `started` with `test_log` on the CentOS consumer
+container and `stopped` on the Ubuntu consumer container.
 
 Each step checks whether the server is running and whether the test log file
 exists. See

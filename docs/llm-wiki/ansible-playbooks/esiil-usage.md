@@ -33,7 +33,7 @@ Defaults from `playbooks/group_vars/all/esiil.yml`:
 
 | Variable | Default |
 | --- | --- |
-| `esiil_base_collection` | none (the play is skipped when empty) |
+| `esiil_base_collection` | none (the configuration tasks are skipped) |
 | `esiil_manager` | the iRODS admin user |
 | `esiil_resource_hierarchy` | the first entry of the iRODS resource hierarchies |
 

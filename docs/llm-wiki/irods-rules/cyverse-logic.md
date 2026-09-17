@@ -97,15 +97,18 @@ since the iRODS issue 8106 workaround; see
 
 Uses [cyverse.re](/irods-rules/cyverse.md) (helpers, action tracking,
 `cyverse_setProtectedAVU`, constants) and
-[cyverse_json.re](/irods-rules/cyverse-json.md) (message serialization and touch
-input parsing). Included by [cyverse_core.re](/irods-rules/cyverse-core.md).
+[cyverse_json.re](/irods-rules/cyverse-json.md) (message serialization and
+touch and replica-close input parsing). Included by
+[cyverse_core.re](/irods-rules/cyverse-core.md).
 
 ## Tests
 
 `playbooks/tests/rules/cyverse_logic.py` has 44 test methods, more than half
-marked skipped or not implemented, covering the ID, user info, and AVU helpers,
-`acPostProcForModifyAVUMetadata`, and groups of static and dynamic PEPs. The
-tests install `mocks/amqp-topic-send` in place of the real command script.
+marked skipped or not implemented, covering the ID, user info, and AVU helpers
+and `acPostProcForModifyAVUMetadata`; the static and dynamic PEP test groups
+are entirely skipped or unimplemented. The
+shared module setup in `playbooks/tests/rules/test_rules.py` installs
+`mocks/amqp-topic-send` in place of the real command script.
 `mocks/cyverse_logic.re` stubs this file for `cyverse_core.re` tests.
 
 # Citations

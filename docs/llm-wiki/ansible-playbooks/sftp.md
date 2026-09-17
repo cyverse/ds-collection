@@ -30,6 +30,9 @@ One play on `sftp` with `become: true` and `strategy: linear`.
    `sftp_admin_tls_cert_chain` and `sftp_admin_tls_key`. Both tasks are gated
    on `sftp_admin_tls_cert_chain|bool and sftp_admin_tls_cert_chain_file|bool`;
    the key task checks the chain variables rather than the key variables.
+   Ansible's `bool` filter returns false for any string other than `yes`,
+   `on`, `1`, or `true`, so PEM text and a file path never pass this gate and
+   neither file is written.
 5. Installs SFTPGo when `/usr/bin/sftpgo` is missing, the `sftpgo` account is
    missing, the version isn't `2.7.3`, or the binary's checksum differs. It
    stops a running service, downloads

@@ -55,9 +55,11 @@ default), `irods_default_resource` (the first resource hierarchy's name),
 ownership of `/etc/irods` and `/var/lib/irods`, imports
 `irods_rule_templates.yml`, and checks the deployed configuration files,
 command scripts, `irods_environment.json`, and `server_config.json`. On the
-`consumer_unconfigured` test host it verifies that the clerver user exists
-and is in `rodsadmin`, and that iRODS is running. It ends by importing the
-storage resources test.
+`consumer_unconfigured` test host it verifies that its clerver user
+`rs7_admin` exists as a `rodsadmin` and can authenticate, that `rods` is in
+the `rodsadmin` group (the group check doesn't test `rs7_admin`), that
+`.irodsA` exists, and that iRODS is running. It ends by importing the storage
+resources test.
 
 ## Related
 

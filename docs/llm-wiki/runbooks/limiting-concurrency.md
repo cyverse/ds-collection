@@ -31,8 +31,9 @@ connections per IP address, and only for iRODS.
 ## Unlimited starting point
 
 Each service gets a combined `listen` block. Each backend is capped at `100`
-connections, so WebDAV's own iRODS connections leave room for at least 100
-direct iRODS connections.
+connections. Because WebDAV itself connects to iRODS, capping WebDAV at 100
+leaves at least 100 of the provider's 200 connections for direct iRODS
+connections.
 
 ```haproxy
 listen irods
@@ -101,8 +102,8 @@ listen irods
 davrods uses HTTP Basic authentication and only serves the local zone, so the
 zone is assumed to be `tempZone`. The `Authorization` value is
 `Basic <base64 of user:password>`; with a 250-character user name and a
-password under 250 characters, the header value is under 674 characters, so
-it is captured with length `700`. The proxy strips `Basic `, decodes base64,
+password under 250 characters, the header value is at most 674 characters,
+so it is captured with length `700`. The proxy strips `Basic `, decodes base64,
 removes `:<password>`, appends `#tempZone`, and tracks and rejects as for
 iRODS.
 

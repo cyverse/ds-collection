@@ -34,7 +34,8 @@ without the leading underscore (e.g. `irods_init_repl_delay`).
 Constant consumers: `cyverse_AMQP_EXCHANGE` and `cyverse_RE_HOST` in
 [cyverse_logic.re](/irods-rules/cyverse-logic.md);
 `cyverse_DEFAULT_RESC`, `cyverse_DEFAULT_REPL_RESC`, and
-`cyverse_INIT_REPL_DELAY` in [cyverse_repl.re](/irods-rules/cyverse-repl.md);
+`cyverse_INIT_REPL_DELAY` in [cyverse_repl.re](/irods-rules/cyverse-repl.md)
+(`cyverse_DEFAULT_RESC` also in `cyverse_blockRescReq`);
 the email constants in
 [cyverse_housekeeping.re](/irods-rules/cyverse-housekeeping.md);
 `cyverse_IS_CATALOG_PROVIDER` in `cyverse_core.re`; and `cyverse_ZONE` in
@@ -83,8 +84,10 @@ listed in `re_rulebase_set`; they load through `@include`.
 
 - `playbooks/tests/rules/cyverse.py` — 81 test methods (some skipped) covering
   the constants, list/string helpers, key-value functions, open-flag logic,
-  entity type predicates, data object lookups, action tracking, resource
-  restriction, service access helpers, and `cyverse_setProtectedAVU`.
+  entity type predicates, service access helpers, and
+  `cyverse_setProtectedAVU`. The data object lookup tests are skipped as not
+  implemented, and the action tracking and resource restriction test classes
+  are marked `@test_rules.unimplemented`.
 - `playbooks/tests/rules/cyverse-env.py` — checks each constant in the deployed
   `cyverse-env.re`, including `cyverse_IS_CATALOG_PROVIDER` on a provider and a
   consumer.

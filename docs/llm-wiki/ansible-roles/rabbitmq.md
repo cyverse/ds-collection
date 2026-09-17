@@ -9,8 +9,9 @@ timestamp: 2026-09-17T00:00:00Z
 
 `cyverse.ds.rabbitmq` installs and configures the RabbitMQ broker the Data
 Store publishes events to. The role has no README. `playbooks/amqp.yml` applies
-it with the `_amqp_admin_username`, `_amqp_admin_password`, and
-`_amqp_broker_port` values; see [amqp.yml](/ansible-playbooks/amqp.md) and
+it with the `_amqp_admin_username`, `_amqp_admin_password`,
+`_amqp_broker_port`, and `_amqp_management_port` values; see
+[amqp.yml](/ansible-playbooks/amqp.md) and
 [AMQP Broker](/components/amqp-broker.md).
 
 ## Task files

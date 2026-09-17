@@ -32,14 +32,17 @@ syslog with the tag `docker-<container name>`.
    `/var/lib/irods/.irods`, and `/var/lib/irods/msiExecCmd_bin`.
 2. Install `files/irods/docker-rs/irodsctl` as `/var/lib/irods/irodsctl`, a
    wrapper that maps `start`, `stop`, `restart`, and `status` onto
-   `docker compose` for the `irods-rs` service.
+   `docker compose` commands for the compose project in `/var/lib/irods`.
 3. Copy `core.dvm` and `core.fnm` from `files/irods/docker-rs/run/etc/irods/`
    and render `templates/irods/docker-rs/run/etc/irods/core.re.j2` into
    `/etc/irods/`.
 4. Import the [irods_cfg role](/ansible-roles/irods-cfg.md) as a consumer
    with `irods_cfg_chown: false`, `irods_cfg_validate: false`,
    `irods_cfg_schema_validation_base_uri: 'off'`, `irods_cfg_host` set to the
-   inventory hostname, and the usual rule bases and command scripts.
+   inventory hostname, no database settings, rule bases from
+   `files/irods/etc/irods/*` and `templates/irods/etc/irods/*`, and command
+   scripts from `files/irods/var/lib/irods/msiExecCmd_bin/*`. A change
+   notifies `Restart irods`.
 5. Copy `Dockerfile` and `entrypoint.sh` into `/var/lib/irods/build`, render
    `templates/irods/docker-rs/env.j2` to `/var/lib/irods/.env`, and copy
    `docker-compose.yml` to `/var/lib/irods/`.
@@ -76,15 +79,16 @@ the vault path, the zone name, and the zone port.
 
 ## Tests
 
-`playbooks/tests/irods_resource_container.yml` checks the default and custom
-expansions of `core.re`, `.env`, and the logrotate template on localhost.
-On the container hosts it checks the Docker repository setup and packages,
-`daemon.json` contents, the `irods` user and its `docker` membership, the
-directories, the `irodsctl` adapter, runtime config files, command scripts,
-rule bases, and the contents of `service_account.config`,
-`server_config.json`, and `irods_environment.json`. It also checks the build
-directory, image source, `.env`, `docker-compose.yml`, rsyslog config, and
-logrotate config.
+`playbooks/tests/irods_resource_container.yml` has real checks for the Docker
+repository setup and packages, `daemon.json` contents, the `irods` user and
+its `docker` membership, the directories, the `irodsctl` adapter, the runtime
+config files (`core.dvm`, `core.fnm`, `core.re`), command scripts, the
+service account name in `service_account.config`, and some
+`server_config.json` fields. The template expansion plays on localhost and
+the checks for rule base staging, the remaining `server_config.json` fields,
+`irods_environment.json`, the build directory, image source, `.env`,
+`docker-compose.yml`, rsyslog config, and logrotate config are placeholder
+`debug` tasks reading `TODO: implement`.
 
 ## Related
 

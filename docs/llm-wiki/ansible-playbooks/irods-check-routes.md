@@ -9,7 +9,8 @@ timestamp: 2026-09-17T00:00:00Z
 
 `irods_check_routes.yml` checks that the ports iRODS needs are reachable
 between hosts. It stops iRODS so that a test listener can bind to those ports.
-Every play is tagged `non_idempotent`.
+Every play except the final restart play is tagged `non_idempotent`; that
+play's restart task carries the tag instead.
 
 ## Play order
 
@@ -44,7 +45,9 @@ unreachable port shows as a failed task without aborting the run.
 | `irods_check_routes_timeout` | `3` (seconds per port check) |
 | `irods_server_port_range_start` / `_end` | `20000` / `20199` |
 
-The zone port (1247) and control plane port (1248) are constants in
+The timeout isn't passed to the providers' own and other-provider control
+plane checks, which use the `port_check_sender` default of 4 seconds. The
+zone port (1247) and control plane port (1248) are constants in
 `playbooks/group_vars/all/irods.yml`.
 
 ## Tests

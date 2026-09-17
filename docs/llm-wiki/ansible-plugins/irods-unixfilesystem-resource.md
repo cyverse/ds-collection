@@ -36,7 +36,8 @@ python-irodsclient and supports check mode, in which it makes no changes.
   then sets its status. If either step raises, it tries to remove the partly
   created resource and fails with "unable to create resource", or "unable to
   fully create resource" if the cleanup also failed.
-- **Connection failure.** It fails with "unable to connect to iRODS server".
+- **Session failure.** If constructing the python-irodsclient session raises,
+  it fails with "unable to connect to iRODS server".
 
 ## Return values
 

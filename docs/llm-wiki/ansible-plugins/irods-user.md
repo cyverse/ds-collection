@@ -58,8 +58,8 @@ Used by [irods_runtime_init.yml](/ansible-playbooks/irods-runtime-init.md),
 
 `plugins/modules/tests/irods_user.yml` covers:
 
-- creating a user, checking with `iadmin lu` for type `rodsuser` and zone
-  `testing`, and checking the password;
+- creating a user, checking with `iadmin lu` for type `rodsuser`, zone
+  `testing`, and info `foo_bar`, and checking the password;
 - updating the password, type (to `rodsadmin`), and info of an existing user;
 - removing a user without data, and with `force`, a user with data.
 

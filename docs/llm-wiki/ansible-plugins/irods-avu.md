@@ -46,7 +46,9 @@ Each state reports `changed` only when it modifies metadata.
 `RETURN` is empty; the module returns only `changed`. It fails with a message
 when the entity doesn't exist, when authentication fails
 (`CAT_INVALID_AUTHENTICATION`, `CAT_INVALID_CLIENT_USER`, `CAT_INVALID_USER`),
-on a network error, or when python-irodsclient can't be imported.
+or on a network error. Its "python-irodsclient issue" message for a failed
+import is unreachable: the module-level `_IrodsEntity` type alias names the
+python-irodsclient classes, so loading the module raises `NameError` first.
 
 ## Usage
 
@@ -58,8 +60,9 @@ the project playbooks [avra_usage.yml](/ansible-playbooks/avra-usage.md),
 
 ## Tests
 
-`plugins/modules/tests/irods_avu.yml` first uploads `add-object` and
-`set-object` and seeds AVUs on them and on the `ingestRes` resource. It then
+`plugins/modules/tests/irods_avu.yml` first creates a `tester` rodsuser,
+uploads `add-object` and `set-object`, and seeds AVUs on `set-object` and on
+the `ingestRes` resource. It then
 exercises:
 
 - `add` with and without units and on a second attribute;

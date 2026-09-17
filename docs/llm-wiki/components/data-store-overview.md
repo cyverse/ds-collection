@@ -29,12 +29,13 @@ target. The testing inventory
 `irods_resource_native` hosts run iRODS installed from OS packages;
 `irods_resource_container` hosts run it in Docker. The `proxy` group isn't in
 the testing inventory, so the proxy playbooks aren't exercised by the harness.
+`hosts-all` also defines a `cbuoy` group that no playbook targets.
 
 `unmanaged_systems` is excluded from most host-level playbooks with patterns
-such as `all:!unmanaged_systems:!localhost`. In the testing inventory it holds
+such as `all:!unmanaged_systems:!localhost`. In `hosts-all` it holds
 `localhost`, the AMQP host, and the containerized resource servers.
 `infra_network.yml` also builds a dynamic `physical` group from hosts whose
-`ansible_virtualization_type` is `NA`.
+`ansible_virtualization_type` is `NA` or `kvm`.
 
 ## Playbooks by group
 

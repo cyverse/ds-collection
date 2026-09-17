@@ -2,6 +2,24 @@
 
 ## 2026-09-17
 
+* **Update**: Reviewed every page against its sources and corrected 40 of
+  them. Notable corrections:
+  * [irods_cfg Role](/ansible-roles/irods-cfg.md): a null `irods_cfg_re` still
+    renders both rule engine plugins, with only the `core` rule base.
+  * [irods_resource_container.yml](/ansible-playbooks/irods-resource-container.md):
+    most of its test playbook is `TODO` placeholders.
+  * [cve.re](/irods-rules/cve.md): the `iput -p` physical-path check is commented
+    out for issue 8106 on every iRODS version.
+  * [esiil.re](/irods-rules/esiil.md) and [ncems.re](/irods-rules/ncems.md): the
+    template test does check their env templates.
+  * Several rule pages overstated test coverage that is skipped or marked
+    unimplemented.
+  * [iRODS Deployment Artifacts](/components/irods-deployment-artifacts.md) now
+    flags each place where `docs/deployment-artifacts/irods.md` disagrees with
+    the code, rather than silently correcting it.
+  * [webdav.yml](/ansible-playbooks/webdav.md): its test never checks the Varnish
+    version, because it passes `version:` where the shared task reads `ver`.
+
 * **New**: Populated every section from the repo's own sources — 9
   [components](/components/index.md) pages including the
   [Data Store Overview](/components/data-store-overview.md), 6

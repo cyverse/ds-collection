@@ -27,8 +27,9 @@ group, from bare OS to a running, initialized catalog service provider.
      CentOS 7), installs `mailx`, adds the PostgreSQL 12 archive yum repo,
      installs `postgresql12` and `postgresql12-odbc`, copies
      `files/irods/etc/profile.d/*` to put the PostgreSQL 12 clients on the
-     path, registers the PostgreSQL 12 ODBC driver with `odbcinst` from
-     `files/irods/postgresql-odbc-tmpl.ini`, and version-locks
+     path, redefines an existing `PostgreSQL` ODBC driver entry with
+     `odbcinst` from `files/irods/postgresql-odbc-tmpl.ini` when it doesn't
+     already point at the PostgreSQL 12 libraries, and version-locks
      `irods-database-plugin-postgres` (tagged `non_idempotent` because of
      community.general issue 4470);
    - **Ubuntu**: installs `bsd-mailx`, the PostgreSQL apt archive key and

@@ -103,10 +103,10 @@ run them is an inference; the repo doesn't say.
 matching playbook in `playbooks/`, that renders `cyverse-env.re.j2`,
 `avra-env.re.j2`, `esiil-env.re.j2`, `ncems-env.re.j2`, and `pire-env.re.j2`
 with `lookup('template', ...)` and asserts the constants they expand to, using
-the defaults in `playbooks/group_vars/all/` and several custom-value plays. It
-targets `localhost`, but the template needs an inventory with an
-`irods_catalog` group, and the expected defaults name the testing
-environment's provider host
+the defaults in `playbooks/group_vars/all/` and several custom-value plays.
+All but one play target `localhost` (the other targets the testing provider
+host), but the template needs an inventory with an `irods_catalog` group, and
+the expected defaults name the testing environment's provider host
 (`dstesting-provider_configured-1.dstesting_default`). Run without an
 inventory, it fails on the missing `irods_catalog` group.
 

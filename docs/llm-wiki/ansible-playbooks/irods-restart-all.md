@@ -37,8 +37,8 @@ tasks tagged `no_testing` are skipped, as in the test harness.
 `tests/tasks/irods/test_running.yml` on every `irods` host. That task file
 greps `irodsctl status` output with `--invert` for `No servers running`. The
 check passes whenever any line of output doesn't match, and the containerized
-`irodsctl` adapter prints `No iRODS servers running` instead, so it is a weak
-check.
+`irodsctl` adapter prints `No iRODS servers running` instead when it can't
+reach the container, so it is a weak check.
 
 ## Related
 

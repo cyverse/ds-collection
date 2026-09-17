@@ -26,8 +26,8 @@ provider, using the clerver credentials and the cyverse.ds iRODS modules.
    `/<zone>/trash/home/public`, and creates
    `/<zone>/home/shared/commons_repo/curated`
    ([irods_collection](/ansible-plugins/irods-collection.md)).
-3. Gives the zone, home, shared, and trash collections, and the clerver's home
-   and trash collections, an `ipc_UUID` AVU
+3. Gives the zone, home, shared, trash, and trash home collections, and the
+   clerver's home and trash collections, an `ipc_UUID` AVU
    ([irods_avu](/ansible-plugins/irods-avu.md), with a value from the
    [uuid lookup](/ansible-plugins/uuid.md)).
 4. Only when `init_rodsadmin_perms` is true (default false): grants

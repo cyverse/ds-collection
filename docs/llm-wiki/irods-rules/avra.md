@@ -36,8 +36,8 @@ Getting AVRA data *onto* the AVRA resource is handled by
 | `avra_RESC` | `_avra_resource_hierarchy.name` | `avra_resource_hierarchy`, else the first entry of `_irods_resource_hierarchies` |
 
 Because the default is the first resource hierarchy, which is also the default
-for `cyverse_DEFAULT_RESC`, the restriction does nothing unless
-`avra_resource_hierarchy` is set to a different hierarchy.
+for `cyverse_DEFAULT_RESC`, the restriction does nothing unless `avra_RESC` and
+`cyverse_DEFAULT_RESC` name different resources.
 
 ## Setup
 

@@ -37,7 +37,7 @@ Defaults from `playbooks/group_vars/all/ncems.yml`:
 
 | Variable | Default |
 | --- | --- |
-| `ncems_base_collection` | none (the play is skipped when empty) |
+| `ncems_base_collection` | none (the configuration tasks are skipped) |
 | `ncems_manager` | the iRODS admin user |
 | `ncems_resource_hierarchy` | the first entry of the iRODS resource hierarchies |
 

@@ -92,6 +92,8 @@ the inventory is not covered by it.
 
 - The README's pip package list includes `wheel`, but `requirements.txt` does
   not.
+- The README lists `molecule` unpinned, but `requirements.txt` pins
+  `molecule<25`.
 
 # Citations
 

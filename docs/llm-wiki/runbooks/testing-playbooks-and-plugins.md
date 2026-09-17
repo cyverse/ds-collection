@@ -47,8 +47,8 @@ and the container host names, which have the form
 
 ## The environment
 
-`testing/env/docker-compose.yml` defines these services. All run privileged
-with a TTY.
+`testing/env/docker-compose.yml` defines these services. All but `cbuoy` run
+privileged with a TTY.
 
 | Service | Image / build | Role in tests |
 | --- | --- | --- |

@@ -54,7 +54,8 @@ through `@include 'ncems'` in `cyverse_core.re`.
   don't add a replica.
 - `playbooks/tests/rules/ncems-env.py` — checks the deployed `ncems_RESC`.
 
-`playbooks/tests/irods_rule_templates.yml` doesn't check `ncems-env.re.j2`.
+`playbooks/tests/irods_rule_templates.yml` also asserts `ncems_RESC = 'ncemsRes'`
+when `ncems_resource_hierarchy` is set to `{name: ncemsRes}`.
 
 # Citations
 
@@ -63,3 +64,4 @@ through `@include 'ncems'` in `cyverse_core.re`.
 [3] `playbooks/group_vars/all/ncems.yml` — NCEMS variable defaults.
 [4] `playbooks/ncems_usage.yml` — creates the resource, collection, and AVU.
 [5] `playbooks/tests/rules/ncems.py`, `playbooks/tests/rules/ncems-env.py` — tests.
+[6] `playbooks/tests/irods_rule_templates.yml` — template expansion test.

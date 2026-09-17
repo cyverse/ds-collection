@@ -41,7 +41,7 @@ in the repo.
 | `rabbitmq_vhost` | [rabbitmq_vhost](/ansible-roles/rabbitmq-vhost.md) | Built from `Dockerfile` (`rabbitmq:management`) |
 | `irods_cfg_client` | [irods_cfg](/ansible-roles/irods-cfg.md) `client.yml` | CentOS 7 (`centos-archive`) and `ubuntu:bionic` |
 | `irods_cfg_default` | `irods_cfg` internal `_system_account_own.yml`, with and without giving files irods ownership | `ubuntu:bionic` |
-| `irods_cfg_initialize` | `irods_cfg` `setup_irods.yml` | A provider image built from `provider/Dockerfile`, a consumer, and an unconfigured provider, on a `molecule` network |
+| `irods_cfg_initialize` | `irods_cfg` `setup_irods.yml` | A provider image built from `provider/Dockerfile` and an `ubuntu:bionic` consumer, both on a `molecule` network, plus an unconfigured `ubuntu:bionic` provider |
 | `irods_cfg_update` | `irods_cfg` `main.yml` against existing configuration | CentOS 7 and `ubuntu:bionic` |
 | `irods_cfg_upgrade` | `irods_cfg` `main.yml` after an upgrade setup | CentOS 7 and `ubuntu:bionic` |
 
@@ -58,8 +58,9 @@ import from it:
   `vault.centos.org`.
 - `prepare.yml` is imported by the `client`, `default`, and `upgrade`
   scenarios; `prepare_with_431.yml` imports `prepare.yml` and additionally
-  installs and version-locks iRODS 4.3.1 packages and a PostgreSQL server on
-  the CentOS hosts; it is used by `initialize` and `update`.
+  installs and version-locks iRODS 4.3.1 packages on the CentOS and Ubuntu
+  hosts, and installs PostgreSQL and creates the ICAT DB on the
+  `irods_catalog` hosts; it is used by `initialize` and `update`.
 - `tasks/validate_deposition.yml` is included from the `initialize` and
   `upgrade` verify playbooks.
 - `base.yml` holds a galaxy dependency, Docker driver, and Ansible verifier

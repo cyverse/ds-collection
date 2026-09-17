@@ -33,7 +33,7 @@ Defaults from `playbooks/group_vars/all/avra.yml`:
 
 | Variable | Default |
 | --- | --- |
-| `avra_base_collection` | none (the play is skipped when empty) |
+| `avra_base_collection` | none (the configuration tasks are skipped) |
 | `avra_manager` | the clerver user |
 | `avra_resource_hierarchy` | the first entry of the iRODS resource hierarchies |
 

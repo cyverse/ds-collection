@@ -9,10 +9,10 @@ timestamp: 2026-09-17T00:00:00Z
 
 Catalog service providers are the hosts in the `irods_catalog` inventory
 group. They connect directly to the ICAT database and, unlike resource
-servers, are configured with the `provider` catalog service role. Many
-playbooks use `groups['irods_catalog'][0]` as the zone's primary host, e.g. as
-the default `irods_dbms_host`, `irods_re_host`, and `irods_canonical_hostname`,
-and as the host HAProxy forwards iRODS traffic to.
+servers, are configured with the `provider` catalog service role. The
+collection treats `groups['irods_catalog'][0]` as the zone's primary host: it
+is the default `irods_dbms_host`, `irods_re_host`, and
+`irods_canonical_hostname`, and the host `proxy.yml` forwards iRODS traffic to.
 
 ## Deployment
 

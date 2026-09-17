@@ -30,18 +30,20 @@ protocol; see [HAProxy Proxy](/components/haproxy-proxy.md).
   host's SSH host keys for SFTPGo's use, and installs the systemd unit and a
   message-of-the-day script.
 - Outside testing, waits for the REST API, enables API-key auth for the admin,
-  issues an API key for `sftpgo-auth-irods`, and patches it into
-  `sftpgo.json` as `SFTPGO_API_BASE_URL` and `SFTPGO_API_KEY`.
+  issues an API key for `sftpgo-auth-irods`, and patches it into the
+  `sftpgo-auth-irods` command's environment in `sftpgo.json` as
+  `SFTPGO_API_BASE_URL` and `SFTPGO_API_KEY`.
 
 `sftp_start.yml` and `sftp_stop.yml` start/enable or stop/disable the
 `sftpgo` service; both are tagged `no_testing`.
 
 ## Configuration
 
-In `sftpgo.json`, the SFTP binding listens on `sftp_port` with
-`proxy_protocol` enabled and `proxy_allowed` set from `sftp_proxy_allowed`.
-User homes live under `<sftp_vault_dir>/data`, and
-`external_auth_hook` is `/usr/bin/sftpgo-auth-irods`, which receives the
+In `sftpgo.json`, the `common` section enables `proxy_protocol` with
+`proxy_allowed` set from `sftp_proxy_allowed`, and the SFTP binding listens on
+`sftp_port` and applies that proxy configuration. User homes live under
+`<sftp_vault_dir>/data`, and `external_auth_hook` is
+`/usr/bin/sftpgo-auth-irods`. The `command` section passes that program the
 iRODS host, port, zone, proxy credentials, auth scheme, and SSL settings as
 environment variables. The admin web UI listens on `sftp_admin_ui_port`, with
 optional TLS files. `sftpgo.conf` sets the default admin credentials, home

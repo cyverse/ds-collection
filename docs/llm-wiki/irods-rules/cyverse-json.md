@@ -34,7 +34,8 @@ helpers, escaping, per-type deserializers).
 ## Consumers
 
 - [cyverse_logic.re](/irods-rules/cyverse-logic.md) builds AMQP message bodies
-  with `cyverse_json_obj` and `cyverse_json_serialize`, and parses touch input.
+  with `cyverse_json_obj` and `cyverse_json_serialize`, and parses the JSON
+  input of the `TOUCH` and `REPLICA_CLOSE` API PEPs.
 - [cyverse_repl.re](/irods-rules/cyverse-repl.md) parses the `TOUCH` API's JSON
   input.
 

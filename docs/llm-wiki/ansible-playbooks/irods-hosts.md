@@ -8,8 +8,8 @@ timestamp: 2026-09-17T00:00:00Z
 ---
 
 `irods_hosts.yml` targets `irods:!unmanaged_systems` with `become: true`.
-The whole play is tagged `no_testing`, because `/etc/hosts` can't be
-modified inside the test containers.
+The whole play is tagged `no_testing`, so it doesn't run in the containerized
+test environment.
 
 ## What it does
 

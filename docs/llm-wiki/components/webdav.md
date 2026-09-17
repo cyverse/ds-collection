@@ -22,8 +22,8 @@ EL7 Varnish RPM, so it targets CentOS 7 hosts.
 
 `webdav_start.yml` starts varnish, varnishncsa, httpd, then purgeman;
 `webdav_stop.yml` stops them in reverse order. Both are tagged `no_testing`.
-Systemd dependency drop-ins make Varnish run with Apache, varnishncsa with
-Varnish, and purgeman with Varnish.
+Symlinks in systemd `.requires` directories make Varnish run with Apache,
+and varnishncsa and purgeman run with Varnish.
 
 ## Deployment
 

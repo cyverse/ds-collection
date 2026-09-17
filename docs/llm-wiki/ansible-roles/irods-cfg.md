@@ -24,7 +24,7 @@ scripts.
 | `irods_environment.yml` | Validates the environment variables if `irods_cfg_validate` is true, then renders `irods_cfg_environment_file`. For a server it loads `vars/irods_environment_server.yml` first. |
 | `server_config.yml` | Loads `vars/server_config.yml`, validates ICAT, federation, port-range, key-length, and other settings if `irods_cfg_validate` is true, then renders `etc/irods/server_config.json`. |
 | `service_account.yml` | Renders `etc/irods/service_account.config`. |
-| `setup_irods.yml` | Not part of `main.yml`. If `var/lib/irods/version.json` is missing, renders `/tmp/setup_configuration.json` and runs `python3 /var/lib/irods/scripts/setup_irods.py`, then imports `server.yml`. If setup fails, it removes `version.json` and fails. |
+| `setup_irods.yml` | Not part of `main.yml`. If `var/lib/irods/version.json` is missing, renders `/tmp/setup_configuration.json` and runs `python3 /var/lib/irods/scripts/setup_irods.py`; if that block fails, it removes `version.json` and fails. It then imports `server.yml` in either case. |
 | `_cfg_template.yml` | Internal helper. Creates the parent directory and templates a file with `backup: true`, owned by the service account, and notifies `Restart iRODS`. |
 | `_system_account_own.yml` | Internal helper. Gives the service account ownership of a path when `irods_cfg_chown` is true. |
 
@@ -82,9 +82,11 @@ of them; this is a summary by group, so consult `roles/irods_cfg/README.md` and
   `irods_cfg_home`, `irods_cfg_cwd`, `irods_cfg_authentication_file`, and the
   `irods_cfg_client_*` and `irods_cfg_ssl_*` settings.
 
-When `irods_cfg_re` is null, `mk_rule_engines` renders an empty `rule_engines`
-list. When it is set, the list holds the iRODS rule language plugin and the
-C++ default policy plugin.
+`server_config.json` passes `_re` from `vars/main.yml`, which is always a
+mapping, to `mk_rule_engines`, so the `rule_engines` list always holds the iRODS
+rule language plugin and the C++ default policy plugin. With `irods_cfg_re`
+null, the rule language plugin loads only the `core` rule base, data variable
+mapping, and function name mapping.
 
 ## Playbooks that use the role
 
@@ -100,7 +102,8 @@ C++ default policy plugin.
 
 The scenarios share files in `molecule/_irods_cfg_shared/`:
 
-- `base.yml` — galaxy dependency, docker driver, and ansible verifier settings;
+- `base.yml` — galaxy dependency, docker driver, and ansible verifier settings
+  (no scenario's `molecule.yml` references it);
 - `prepare.yml` — groups hosts by OS, updates apt on Ubuntu, installs pip and
   `jsonschema`;
 - `prepare_with_431.yml` — preparation with iRODS 4.3.1 installed;
@@ -111,8 +114,8 @@ The scenarios share files in `molecule/_irods_cfg_shared/`:
 | --- | --- | --- |
 | `irods_cfg_default` | Ubuntu bionic | Converges only `_system_account_own.yml`. `verify.yml` renders the templates locally and checks the client and server `irods_environment.json`, `server_config.json`, `service_account.config`, and `setup_configuration.json` for default and custom values (options in `vars/`), plus ownership assignment with `irods_cfg_chown` true and false. |
 | `irods_cfg_client` | CentOS, Ubuntu bionic | Runs `client.yml` with defaults and with a custom environment file path. Verifies both files were deposited and validate against the iRODS 4.3.1 client environment JSON schema. |
-| `irods_cfg_initialize` | A provider image, an Ubuntu consumer, and an unconfigured Ubuntu provider | Runs `setup_irods.yml`. Verifies the ICAT schema version and admin password, deposition of `server_config.json`, `irods_environment.json`, and `service_account.config`, that the old config isn't deposited, and that `core.re` names the default resource `ingestRes`. |
-| `irods_cfg_update` | CentOS, Ubuntu bionic | Initializes iRODS, then runs `main.yml` with artifacts from `artifacts/`. Verifies command script and rule base deposition and the contents of static and templated rule bases. |
+| `irods_cfg_initialize` | A provider image, an Ubuntu consumer, and an unconfigured Ubuntu provider | Runs `setup_irods.yml`. Verifies the ICAT schema version (and queries the admin password), deposition of `server_config.json`, `irods_environment.json`, and `service_account.config`, that the old config isn't deposited, and that `core.re` names the default resource `ingestRes`. |
+| `irods_cfg_update` | CentOS, Ubuntu bionic | Initializes iRODS, then runs `main.yml` with artifacts from `artifacts/`. Verifies command script and rule base deposition and the contents of the templated rule base. |
 | `irods_cfg_upgrade` | CentOS, Ubuntu bionic | Installs iRODS 4.2.8, upgrades to 4.3.1, patches config files with the [json_patch module](/ansible-plugins/json-patch.md) (see https://github.com/irods/irods/issues/8052), then runs `main.yml`. Verifies deposition of the three config files and that the old config isn't deposited. |
 
 See [Testing Roles with Molecule](/runbooks/testing-roles-with-molecule.md).
@@ -121,8 +124,9 @@ See [Testing Roles with Molecule](/runbooks/testing-roles-with-molecule.md).
 
 The README and the code disagree in a few places:
 
-- The README gives `irods_cfg_re` a default of `core` and describes a `core`
-  value; `defaults/main.yml` sets it to `null`.
+- The README gives `irods_cfg_re` a default of `core` and says `null` means no
+  rule engine; `defaults/main.yml` sets it to `null`, which still renders the
+  rule language plugin with only the `core` sets.
 - The README's client example includes a task file `init_zone_user.yml` that
   doesn't exist in `tasks/`.
 - The README calls the ICAT type field `db_type`, but `vars/main.yml` reads

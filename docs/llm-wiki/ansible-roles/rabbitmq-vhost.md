@@ -85,8 +85,10 @@ The README's item tables are headed with `irods_vhost_parameters`,
 `irods_vhost_policies`, `irods_vhost_users`, `irods_vhost_exchanges`, and
 `irods_vhost_queues`, which don't match the role's variable names. The README
 also gives exchange defaults of `durable: true` and `type: direct`, and user
-permission defaults of `^$`. The task files don't set those defaults; they omit
-unset fields and leave the defaults to the `community.rabbitmq` modules.
+permission defaults of `^$`. The task files don't set those defaults
+themselves; they omit unset fields, so the `community.rabbitmq` module defaults
+apply. The molecule scenario confirms that a user given no privileges ends up
+with `^$`.
 
 # Citations
 

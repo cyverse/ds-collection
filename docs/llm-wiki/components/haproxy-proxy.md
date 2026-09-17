@@ -31,9 +31,10 @@ The role's `haproxy.cfg.j2` defines:
 
 - **iRODS** (`irods_main` on port 1247): inspects the iRODS message header,
   accepts `HEARTBEAT` requests and `RODS_CONNECT` requests from VIP sources
-  without tracking, rejects anything that isn't `RODS_CONNECT`, tracks concurrent connections per source
-  IP, rejects sources with more than 10, and sends sources with more than 1 to
-  a throttled backend that loops back through a Unix socket. Reconnection
+  without tracking, rejects anything that isn't `RODS_CONNECT`, tracks
+  concurrent connections per source IP, rejects sources with more than 10, and
+  sends sources with more than 1 to a throttled backend that loops back
+  through a Unix socket. Reconnection
   ports (`irods_reconn`) go straight to `irods_direct`. Health checks on the
   iRODS backend are commented out until iRODS servers are load balanced.
 - **SFTP** (`listen sftp`): accepts VIP sources, rejects sources with more

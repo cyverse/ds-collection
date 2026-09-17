@@ -65,7 +65,9 @@ authenticates as `irodsuser` and connects through the CNAME
 `icat.cyverse.org`, set in `plugin_configuration.database.postgres` of
 `/etc/irods/server_config.json` on the catalog provider. The variables are
 `irods_dbms_host`, `irods_dbms_port`, `irods_db_username`, and
-`irods_db_password`. See [ICAT DBMS](/components/icat-dbms.md).
+`irods_db_password`. The source document instead names `irods_db_user` and
+`irods_dbms_pg_hba`, neither of which exists in the collection. See
+[ICAT DBMS](/components/icat-dbms.md).
 
 ### Rule bases
 
@@ -85,8 +87,11 @@ replication resource is `taccRes`. This is enforced in three places:
 
 1. `irods_default_resource` in `irods_environment.json`.
 2. The `acSetRescSchemeForCreate` and `acSetRescSchemeForRepl` PEPs, which
-   [cyverse_core](/irods-rules/cyverse-core.md) routes to
-   [cyverse_repl](/irods-rules/cyverse-repl.md).
+   set `CyVerseRes` and `taccRes`. The source document places them in
+   `/etc/irods/core.re`; in the repo,
+   [cyverse_core](/irods-rules/cyverse-core.md) defines them and routes them
+   to [cyverse_repl](/irods-rules/cyverse-repl.md). The containerized
+   resource server's templated `core.re` also defines them.
 3. `cyverse_DEFAULT_RESC` and `cyverse_DEFAULT_REPL_RESC` in
    `cyverse-env.re`.
 
@@ -113,9 +118,10 @@ is `irods_zone_name`.
 
 ### Ephemeral ports
 
-Production uses the server port range 20000–20399 in `server_config.json`,
-controlled by `irods_server_port_range_start` and
-`irods_server_port_range_end` (collection defaults 20000 and 20199).
+To support many iRODS connections, production uses the server port range
+20000–20399 in `server_config.json`, controlled by
+`irods_server_port_range_start` and `irods_server_port_range_end` (collection
+defaults 20000 and 20199).
 
 ### Encryption policy
 
@@ -135,16 +141,19 @@ All replicas receive MD5 checksums, to support metadata requirements of some
 publication repositories. `default_hash_scheme` in `server_config.json` and
 `irods_default_hash_scheme` in `irods_environment.json` are `MD5`, and
 [cyverse_logic](/irods-rules/cyverse-logic.md) ensures new data objects
-receive a checksum. The source document also says `match_hash_policy` is
-`strict`; the playbooks don't set it, and the `irods_cfg` role's default is
-`compatible`.
+receive a checksum. The source document also says `match_hash_policy` in
+`server_config.json` and `irods_match_hash_policy` in `irods_environment.json`
+are `strict`; the playbooks set neither, and the `irods_cfg` role's default
+for both is `compatible`.
 
 ### Concurrent delay rule executors
 
 CyVerse found 12 concurrent delay rule executors optimal in production. The
-setting is `number_of_concurrent_delay_rule_executors` in
-`server_config.json`, controlled by `irods_max_num_re_procs` (collection
-default 4).
+setting is `number_of_concurrent_delay_rule_executors` in the
+`advanced_settings` object of `server_config.json`, controlled by
+`irods_max_num_re_procs` (collection default 4). The source document names
+`irods_default_number_of_transfer_threads` here, but the playbooks pass
+`irods_max_num_re_procs` to the setting.
 
 ### Federation
 
@@ -156,10 +165,15 @@ the `federation` array of `server_config.json` by `irods_federation`.
 
 The Data Store publishes iRODS change events; see
 [cyverse_logic](/irods-rules/cyverse-logic.md). The catalog provider's
-`IRODS_AMQP_URI` environment variable has the form
-`amqp://<user>:<password>@<host>:<port>/<vhost>` with the vhost URL-encoded.
-The variables are `irods_amqp_host`, `irods_amqp_port`, `irods_amqp_vhost`,
-`irods_amqp_username`, `irods_amqp_password`, and `irods_amqp_exchange`. See
+`IRODS_AMQP_URI` environment variable references the RabbitMQ server that
+hosts the exchange where events are published. It has the form
+`amqp://<user>:<password>@<host>:<port>/<vhost>`. The source document says
+every part is URL-encoded, but `irods_catalog_provider.yml` only replaces `/`
+in the vhost with `%2F`. The exchange name reaches the rules as
+`cyverse_AMQP_EXCHANGE` in `cyverse-env.re`. The variables are
+`irods_amqp_host`, `irods_amqp_port`, `irods_amqp_vhost`,
+`irods_amqp_username`, `irods_amqp_password`, and `irods_amqp_exchange`; the
+source document's `irods_amqp_user` doesn't exist. See
 [AMQP Broker](/components/amqp-broker.md).
 
 # Citations
@@ -170,4 +184,5 @@ The variables are `irods_amqp_host`, `irods_amqp_port`, `irods_amqp_vhost`,
 [4] `playbooks/templates/irods/etc/irods/` — environment-dependent rule templates.
 [5] `playbooks/irods_catalog_provider.yml` — rule base list and AMQP URI construction.
 [6] `playbooks/group_vars/all/irods.yml` — variable names and collection defaults.
-[7] `roles/irods_cfg/vars/server_config.yml`, `roles/irods_cfg/defaults/main.yml` — `match_hash_policy` and delay rule executor settings.
+[7] `roles/irods_cfg/vars/server_config.yml`, `roles/irods_cfg/defaults/main.yml`, `roles/irods_cfg/templates/macros.j2` — `match_hash_policy` and delay rule executor settings.
+[8] `playbooks/templates/irods/docker-rs/run/etc/irods/core.re.j2` — containerized resource server `core.re`.

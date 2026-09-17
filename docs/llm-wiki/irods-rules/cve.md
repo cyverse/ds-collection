@@ -21,7 +21,7 @@ CyVerse rule file.
 | `msiSendMail` | Replaces the microservice with a log line (CVE-2024-38462, issues 7651 and 7562). | 4.3.2 |
 | `msiServerMonPerf` | Replaces the microservice with a log line (CVE-2024-38461, issue 7652). | 4.3.3 |
 | `msiTarFileExtract` | Logs and fails with -169000 (`SYS_NOT_ALLOWED`) to prevent tar slip. | 5.1.0 |
-| `pep_api_bulk_data_obj_reg_pre` | Blocks `rcBulkDataObjReg` for everyone, failing with -169000. | 5.1.0 |
+| `pep_api_bulk_data_obj_reg_pre` | Blocks `rcBulkDataObjReg` for everyone, failing with -169000 (its header comment lists -31000). | 5.1.0 |
 | `pep_api_data_obj_copy_pre` | Fails with -31000 when the copy request carries a destination physical path (`icp -p`). | 4.3.5 |
 | `pep_api_data_obj_put_pre` | **Disabled** — see below. | 4.3.5 |
 | `pep_api_data_obj_unlink_pre` | Fails with -818000 unless one of the client's groups has at least `delete_object` (`_cve_DEL_VAL` = 1130) on the data object. Prevents `irm -f` by a reader deleting physical files (issue 8441). | 4.3.5 |
@@ -39,9 +39,11 @@ don't match, the same-named PEP in
 Commit `1631907` commented out `pep_api_data_obj_put_pre`, which blocked
 `iput -p` from writing to a client-supplied physical path. The comment says the
 PEP has "a huge memory leak" (https://github.com/irods/irods/issues/8106),
-fixed in iRODS 4.3.4, and that there is no workaround. So while this collection
-runs an earlier iRODS version, the `iput -p` protection is not in effect.
-`cyverse_core.re` disabled its `DATA_OBJ_PUT` PEPs in the same commit.
+fixed in iRODS 4.3.4, and that there is no workaround. The rule is commented
+out unconditionally, so the `iput -p` protection is not in effect on any iRODS
+version until it is restored. In the same commit `cyverse_core.re` commented out
+its `pep_api_data_obj_put_pre` and replaced its `pep_api_data_obj_put_post`
+with `acPostProcForPut`.
 
 ## Deployment
 

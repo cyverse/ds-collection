@@ -52,7 +52,8 @@ through `@include 'esiil'` in `cyverse_core.re`.
   (open, unlink) that don't add a replica.
 - `playbooks/tests/rules/esiil-env.py` — checks the deployed `esiil_RESC`.
 
-`playbooks/tests/irods_rule_templates.yml` doesn't check `esiil-env.re.j2`.
+`playbooks/tests/irods_rule_templates.yml` also asserts `esiil_RESC = 'esiilRes'`
+when `esiil_resource_hierarchy` is set to `{name: esiilRes}`.
 
 # Citations
 
@@ -61,3 +62,4 @@ through `@include 'esiil'` in `cyverse_core.re`.
 [3] `playbooks/group_vars/all/esiil.yml` — ESIIL variable defaults.
 [4] `playbooks/esiil_usage.yml` — creates the resource, collection, and AVU.
 [5] `playbooks/tests/rules/esiil.py`, `playbooks/tests/rules/esiil-env.py` — tests.
+[6] `playbooks/tests/irods_rule_templates.yml` — template expansion test.

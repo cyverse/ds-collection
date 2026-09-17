@@ -50,7 +50,7 @@ installs `haproxy` and `socat`, and enables the service. It also sets
 | `backend irods_throttled` / `frontend irods_indirect` | Loop through a Unix socket so throttled connections are capped at `haproxy_irods_throttled_max_conn` |
 | `backend irods_direct` | The iRODS server `haproxy_irods_host`; health checks are commented out in the template |
 | `listen sftp` | Listens on `haproxy_sftp_port`, rejects non-VIP sources with more than 10 connections, and forwards to the first SFTP host on `haproxy_sftp_backend_port` with PROXY protocol v2 |
-| `listen webdav` | HTTP on `haproxy_webdav_port`. Denies non-VIP sources that aren't in `allow.lst` and are in `block.lst` or have more than 10 connections. With TLS configured it redirects to HTTPS, otherwise it forwards to the first WebDAV host |
+| `listen webdav` | HTTP on `haproxy_webdav_port`. Denies non-VIP sources that are in `block.lst` but not `allow.lst`, and non-VIP sources with more than 10 connections. With TLS configured it redirects to HTTPS, otherwise it forwards to the first WebDAV host |
 | `listen webdavs` | Rendered only with TLS. HTTPS on `haproxy_webdav_tls_port`; denied requests get a 307 redirect to `https://unblockme.cyverse.org/` |
 
 Host names in the address lists and server lines are resolved with a `dig`
