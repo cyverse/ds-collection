@@ -14,3 +14,11 @@ dependencies:
   "community.general": "10.6"
   "community.postgresql": "3.11"
 repository: https://github.com/cyverse/ds-collection
+build_ignore:
+  - .agents
+  - .claude
+  - AGENTS.md
+  - CLAUDE.md
+  - docs/llm-wiki
+  - skills
+  - tools
