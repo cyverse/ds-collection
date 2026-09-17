@@ -56,11 +56,13 @@ class CyverseCoreTestCase(IrodsTestCase):
 
     def __init__(self, method_name: str):
         super().__init__(method_name)
-        self._test_file = '/testing/home/rods/tmp'
+        self._test_file = None
 
     @property
     def artifact_file(self) -> str:
         """A file name to be used for testing"""
+        if not self._test_file:
+            self._test_file = iRODSPath(self.irods.zone, "home", self.irods.username, "tmp")
         return self._test_file
 
     def verify_msg_logged(self, msg_frag) -> bool:
@@ -186,9 +188,28 @@ class CyverseCoreDataobjcreatedFinish(CyverseCoreDataobjcreated):
 class CyverseCoreDataobjmetadatamodified(CyverseCoreTestCase):
     """Tests of _cyverse_core_dataObjMetadataModified """
 
-    @unittest.skip("not implemented")
     def test_cyverse_logic(self):
         """Test _cyverse_logic version called """
+        obj = self.irods.data_objects.create(self.artifact_file)
+        try:
+            cmd = f"""
+                echo '{test_rules.IRODS_PASSWORD}' \
+                    | isysmeta mod {self.artifact_file} datatype 'tar file'
+            """
+            subprocess.run(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                shell=True,
+                check=True,
+                encoding='utf-8')
+            msg = (
+                "cyverse_logic_dataObjMetaMod("
+                f"{self.irods.username}, {self.irods.zone}, {self.artifact_file})")
+            if not self.verify_msg_logged(msg):
+                self.fail("cyverse_logic_dataObjMetaMod not called")
+        finally:
+            obj.unlink(force=True)
 
 
 class AccreatecollbyadminTest(CyverseCoreTestCase):
@@ -323,9 +344,11 @@ class Acdeletecollbyadminifpresent(CyverseCoreTestCase):
 class Acpreconnect(CyverseCoreTestCase):
     """Tests of acPreConnect"""
 
-    @unittest.skip("not implemented")
     def test_cyverse_logic(self):
         """Verify that the cyverse_logic version of this PEP is called"""
+        _ = self.irods.data_objects.exists(self.artifact_file)
+        if not self.verify_msg_logged("cyverse_logic_acPreConnect"):
+            self.fail("cyverse_logic_acPreConnect wasn't called")
 
 
 class Acsetrescschemeforcreate(CyverseCoreTestCase):
