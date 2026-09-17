@@ -695,7 +695,12 @@ acPostProcForPut {
 	*DataObjInp.obj_path = $objPath;
 	*DataObjInp.data_size = str($dataSize);
 
-	foreach(*rec in SELECT DATA_RESC_HIER where DATA_RESC_NAME = $rescName) {
+	msiSplitPath($objPath, *collPath, *dataName);
+
+	foreach( *rec in
+		SELECT DATA_RESC_HIER
+		WHERE COLL_NAME = *collPath AND DATA_NAME = *dataName AND DATA_RESC_NAME = $rescName
+	) {
 		*DataObjInp.resc_hier = *rec.DATA_RESC_HIER;
 	}
 
@@ -1260,8 +1265,8 @@ pep_database_close_finally(*Instance, *Context, *OUT) {
 pep_database_mod_data_obj_meta_post(*Instance, *Context, *OUT, *DataObjInfo, *RegParam) {
 	*handled = false;
 	*logicalPath = if *DataObjInfo.logical_path != ''
-		then /*DataObjInfo.logical_path
-		else cyverse_getDataPath(int(*DataObjInfo.data_id));
+		then *DataObjInfo.logical_path
+		else str(cyverse_getDataPath(int(*DataObjInfo.data_id)));
 # XXX - Because of https://github.com/irods/irods/issues/5540,
 # _cyverse_core_dataObjCreated needs to be called here when not created through file
 # registration
