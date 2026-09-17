@@ -36,9 +36,11 @@ tasks tagged `no_testing` are skipped, as in the test harness.
 `playbooks/tests/irods_restart_all.yml` imports
 `tests/tasks/irods/test_running.yml` on every `irods` host. That task file
 greps `irodsctl status` output with `--invert` for `No servers running`. The
-check passes whenever any line of output doesn't match, and the containerized
-`irodsctl` adapter prints `No iRODS servers running` instead when it can't
-reach the container, so it is a weak check.
+check passes whenever any line of output doesn't match. No output contains
+that string: when no server is running, iRODS 4.3.1's `irodsctl` prints
+`No iRODS servers running.`, and the containerized `irodsctl` adapter prints
+`No iRODS servers running` when it can't reach the container. So it is a weak
+check.
 
 ## Related
 
@@ -51,3 +53,4 @@ reach the container, so it is a weak check.
 [2] `playbooks/tasks/irods/restart.yml` — the restart task file.
 [3] `playbooks/tests/irods_restart_all.yml` — the test playbook.
 [4] `playbooks/tests/tasks/irods/test_running.yml` — the running check.
+[5] https://github.com/irods/irods/blob/4.3.1/scripts/irods/controller.py — `irodsctl status` output.

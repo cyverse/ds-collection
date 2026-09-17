@@ -106,9 +106,11 @@ differ. The variable is `irods_default_vault`.
 
 ### Host entries
 
-`hosts_entries` in `server_config.json` lists every FQDN and CNAME for the
-local host; for the production catalog provider this includes
-`data.cyverse.org`, the proxy's CNAME. The variable is `irods_host_aliases`.
+The `local` entry of `host_resolution.host_entries` in `server_config.json`
+lists every FQDN and CNAME for the local host; for the production catalog
+provider this includes `data.cyverse.org`, the proxy's CNAME. The source
+document calls the field `hosts_entries`, which iRODS 4.3.1 doesn't define.
+The variable is `irods_host_aliases`.
 
 ### Zone
 
@@ -127,7 +129,9 @@ defaults 20000 and 20199).
 
 Because of iRODS bugs, server-to-server and client-to-server communication
 isn't encrypted. This is configured by the `cyverse_logic_acPreConnect` rule
-and by `client_server_policy` `CS_NEG_REFUSE` in `irods_environment.json`.
+and by `irods_client_server_policy` `CS_NEG_REFUSE` in the service account's
+`irods_environment.json` (the source document shortens the key to
+`client_server_policy`).
 
 ### Transfer threads
 
@@ -186,3 +190,5 @@ source document's `irods_amqp_user` doesn't exist. See
 [6] `playbooks/group_vars/all/irods.yml` — variable names and collection defaults.
 [7] `roles/irods_cfg/vars/server_config.yml`, `roles/irods_cfg/defaults/main.yml`, `roles/irods_cfg/templates/macros.j2` — `match_hash_policy` and delay rule executor settings.
 [8] `playbooks/templates/irods/docker-rs/run/etc/irods/core.re.j2` — containerized resource server `core.re`.
+[9] https://docs.irods.org/4.3.1/system_overview/configuration/ — `host_resolution.host_entries` structure.
+[10] https://docs.irods.org/4.3.1/getting_started/installation/ — `irods_client_server_policy` key.

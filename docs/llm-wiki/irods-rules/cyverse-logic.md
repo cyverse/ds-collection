@@ -29,20 +29,26 @@ AMQP message. [cyverse_core.re](/irods-rules/cyverse-core.md) calls its
   `cyverse_logic_chksumRepl` on the delay queue, which runs
   `ichksum-exec -M -f -n <repl> <path>` for a replica with no checksum.
 - **Protected AVUs.** Attributes starting with `ipc` can only be added,
-  modified, or removed by `rodsadmin` users; other attempts fail with -830000.
-  `adda` is exempt from this pre-check. AVU copies (`imeta cp`) copy only
-  allowed AVUs, never `ipc_UUID`, then deliberately fail with status 0 and
-  `CYVERSE SUCCESS: Successfully copied the allowed metadata.` so iRODS doesn't
-  also copy the protected ones.
+  modified, or removed by `rodsadmin` users; other attempts are rejected with
+  `failmsg(-830000, ...)`. `adda` is exempt from this pre-check. AVU copies
+  (`imeta cp`) copy only allowed AVUs, never `ipc_UUID`, then deliberately call
+  `failmsg(0, 'CYVERSE SUCCESS: Successfully copied the allowed metadata.')` so
+  iRODS doesn't also copy the protected ones.
 - **rodsadmin group permissions.** New collections and data objects give the
   `rodsadmin` group `own` under `/<zone>/home/` and `/<zone>/trash/home/`, and
   `write` elsewhere. Changing the `rodsadmin` group's permission to any other
-  level fails with -830000 unless it is an administrative (`admin:`) ACL change.
+  level is rejected with `failmsg(-830000, ...)` unless it is an administrative
+  (`admin:`) ACL change.
   (The header says "own permission on all collections and data objects"; the
   code grants `write` outside home and trash home.)
 - **Resource free space.** After a parallel transfer or data copy is received,
   `msi_update_unixfilesystem_resource_free_space` runs on the resource's host.
 - **TLS policy.** `cyverse_logic_acPreConnect` returns `CS_NEG_REFUSE`.
+
+Each of these `failmsg` calls follows `cut`. In the iRODS 4.3.1 rule language
+engine, an action that fails after `cut` makes the rule return
+`CUT_ACTION_PROCESSED_ERR` (-1089000), so that, not -830000 or 0, is the status
+the operation fails with.
 
 ## Published topics
 
@@ -125,3 +131,5 @@ shared module setup in `playbooks/tests/rules/test_rules.py` installs
 [4] `playbooks/tests/rules/cyverse_logic.py` — tests.
 [5] `playbooks/tests/rules/mocks/amqp-topic-send`, `playbooks/tests/rules/mocks/cyverse_logic.re` — stubs.
 [6] `docs/deployment-artifacts/irods.md` — event publishing configuration.
+[7] https://github.com/irods/irods/blob/4.3.1/plugins/rule_engines/irods_rule_language/src/arithmetics.cpp — `evaluateActions` returns `CUT_ACTION_PROCESSED_ERR` for a failure after `cut`.
+[8] https://github.com/irods/irods/blob/4.3.1/lib/core/include/irods/rodsErrorTable.h — `CUT_ACTION_PROCESSED_ERR` is -1089000.

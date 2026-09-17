@@ -10,9 +10,10 @@ timestamp: 2026-09-17T00:00:00Z
 `cyverse_encryption.re` implements CyVerse's opt-in encryption policy. A user
 sets the AVU `encryption::required` = `true` on a collection. Afterwards, any
 data object created in it, or in a collection under it, must have a name ending
-in `.enc`, the extension GoCommands uses when it encrypts a file. Violations fail
-with -815000 and the message `CYVERSE ERROR:  attempt to create unencrypted data
-object`.
+in `.enc`, the extension GoCommands uses when it encrypts a file. Violations call
+`failmsg(-815000, 'CYVERSE ERROR:  attempt to create unencrypted data object')`
+after `cut`. In iRODS 4.3.1 a failure after `cut` makes the rule return
+`CUT_ACTION_PROCESSED_ERR` (-1089000) instead, which is what the tests expect.
 
 ## Rules called from cyverse_core.re
 
@@ -59,3 +60,5 @@ testing `cyverse_core.re`.
 [2] `playbooks/files/irods/etc/irods/cyverse_core.re` — PEPs that call it.
 [3] `playbooks/tests/rules/cyverse_encryption.py` — tests.
 [4] `playbooks/tests/rules/mocks/cyverse_encryption.re` — stub.
+[5] https://github.com/irods/irods/blob/4.3.1/plugins/rule_engines/irods_rule_language/src/arithmetics.cpp — `evaluateActions` returns `CUT_ACTION_PROCESSED_ERR` for a failure after `cut`.
+[6] https://github.com/irods/irods/blob/4.3.1/lib/core/include/irods/rodsErrorTable.h — `CUT_ACTION_PROCESSED_ERR` is -1089000.

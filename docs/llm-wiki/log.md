@@ -2,6 +2,27 @@
 
 ## 2026-09-17
 
+* **Update**: Checked the pages' statements about iRODS itself against the
+  iRODS 4.3.1 documentation (https://docs.irods.org/4.3.1/) and, where the docs
+  are silent, the `irods/irods` source at tag 4.3.1. Corrections:
+  * [cve.re](/irods-rules/cve.md),
+    [cyverse_encryption.re](/irods-rules/cyverse-encryption.md), and
+    [cyverse_logic.re](/irods-rules/cyverse-logic.md): a `failmsg` after `cut`
+    makes the operation fail with `CUT_ACTION_PROCESSED_ERR` (-1089000), not
+    the code passed to `failmsg`.
+  * [iRODS Deployment Artifacts](/components/irods-deployment-artifacts.md):
+    the local host's aliases belong in `host_resolution.host_entries`, and the
+    environment key is `irods_client_server_policy`.
+  * [Installing the Audit Plugin](/runbooks/installing-the-audit-plugin.md):
+    the 4.3.1 package is `irods-rule-engine-plugin-audit-amqp`. This is added
+    as a note; the migrated command is unchanged.
+  * [irods_restart_all.yml](/ansible-playbooks/irods-restart-all.md): 4.3.1's
+    `irodsctl status` prints `No iRODS servers running.`, so the shared running
+    check never detects a stopped server.
+  * [irods_user Module](/ansible-plugins/irods-user.md): 4.3.1 reports a
+    mismatched password as `CAT_INVALID_AUTHENTICATION`, which the module
+    doesn't catch, so it can set a password only for a user who has none.
+
 * **Update**: Recorded three latent issues found during the review:
   * [cyverse_logic.re](/irods-rules/cyverse-logic.md): the read-only branch of
     `cyverse_logic_api_replica_close_post` passes unbound variables to

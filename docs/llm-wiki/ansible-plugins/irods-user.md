@@ -71,7 +71,18 @@ See [Testing Playbooks and Plugins](/runbooks/testing-playbooks-and-plugins.md).
 it applies only when creating. The argument spec has no default; the code
 substitutes `rodsuser` at creation time.
 
+In iRODS 4.3.1, the catalog's password check (`db_check_auth_op` in the
+PostgreSQL database plugin) returns `CAT_INVALID_USER` only when the user has no
+stored password; a password that doesn't match returns
+`CAT_INVALID_AUTHENTICATION`. `check_password` catches only
+`CAT_INVALID_USER`, so it sets a password only for a user that has none. For a
+user whose existing password differs, the login error isn't caught and the task
+is expected to fail with "unhandled exception". The test's "Update password"
+step doesn't exercise that case: `existing` is created by `iadmin mkuser` with
+no password.
+
 # Citations
 
 [1] `plugins/modules/irods_user.py` — module source and documentation.
 [2] `plugins/modules/tests/irods_user.yml` — module test playbook.
+[3] https://raw.githubusercontent.com/irods/irods/4.3.1/plugins/database/src/db_plugin.cpp — `db_check_auth_op` error codes in iRODS 4.3.1.

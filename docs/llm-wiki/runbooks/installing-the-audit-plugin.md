@@ -165,6 +165,11 @@ On the [iRODS catalog service provider](/components/irods-catalog-provider.md):
    sudo apt install irods_rule-engine-plugin-audit-amqp
    ```
 
+   **Note:** this package name, copied from the original doc, does not match
+   the 4.3.1 plugin release. Its build sets the package name to
+   `irods-rule-engine-plugin-audit-amqp` (all hyphens), and the iRODS apt
+   repository publishes version `4.3.1.0` under that name.
+
 2. Prepend its configuration to the rule engine list in
    `/etc/irods/server_config.json`:
 
@@ -206,3 +211,5 @@ hand-added audit plugin entry.
 
 [1] `docs/install-audit.md` — the original procedure.
 [2] `roles/irods_cfg/templates/server_config.json.j2`, `roles/irods_cfg/templates/macros.j2` — template that generates `server_config.json` and its rule engine list.
+[3] https://github.com/irods/irods_rule_engine_plugin_audit_amqp/blob/4.3.1.0/CMakeLists.txt — `PLUGIN_PACKAGE_NAME` for the 4.3.1 plugin release.
+[4] https://packages.irods.org/apt/dists/jammy/main/binary-amd64/Packages.gz — apt package index listing `irods-rule-engine-plugin-audit-amqp` `4.3.1.0-0~jammy`.

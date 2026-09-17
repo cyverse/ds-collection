@@ -22,9 +22,9 @@ CyVerse rule file.
 | `msiServerMonPerf` | Replaces the microservice with a log line (CVE-2024-38461, issue 7652). | 4.3.3 |
 | `msiTarFileExtract` | Logs and fails with -169000 (`SYS_NOT_ALLOWED`) to prevent tar slip. | 5.1.0 |
 | `pep_api_bulk_data_obj_reg_pre` | Blocks `rcBulkDataObjReg` for everyone, failing with -169000 (its header comment lists -31000). | 5.1.0 |
-| `pep_api_data_obj_copy_pre` | Fails with -31000 when the copy request carries a destination physical path (`icp -p`). | 4.3.5 |
+| `pep_api_data_obj_copy_pre` | Calls `failmsg(-31000, ...)` after `cut` when the copy request carries a destination physical path (`icp -p`). | 4.3.5 |
 | `pep_api_data_obj_put_pre` | **Disabled** — see below. | 4.3.5 |
-| `pep_api_data_obj_unlink_pre` | Fails with -818000 unless one of the client's groups has at least `delete_object` (`_cve_DEL_VAL` = 1130) on the data object. Prevents `irm -f` by a reader deleting physical files (issue 8441). | 4.3.5 |
+| `pep_api_data_obj_unlink_pre` | Calls `failmsg(-818000, ...)` after `cut` unless one of the client's groups has at least `delete_object` (`_cve_DEL_VAL` = 1130) on the data object. Prevents `irm -f` by a reader deleting physical files (issue 8441). | 4.3.5 |
 | `pep_api_exec_rule_expression_pre` | Fails with -169000 unless the proxy user is a `rodsadmin`. | 5.1.0 |
 | `pep_api_reg_data_obj_pre` | Fails with -169000 unless the proxy user is a `rodsadmin`. | 5.1.0 |
 | `pep_api_sub_struct_file_get_pre` | Blocks getting subfiles, failing with -169000. | 5.1.0 |
@@ -33,6 +33,10 @@ CyVerse rule file.
 The copy and unlink rules use `on (...)` conditions with `cut`, so when they
 don't match, the same-named PEP in
 [cyverse_core.re](/irods-rules/cyverse-core.md) (loaded after `cve`) still runs.
+When they match, `cut` stops that PEP from being tried. In the iRODS 4.3.1 rule
+language engine, an action that fails after `cut` makes the rule return
+`CUT_ACTION_PROCESSED_ERR` (-1089000) instead of the `failmsg` code, so these
+two rules fail with -1089000, not -31000 or -818000.
 
 ## Issue 8106 workaround
 
@@ -82,3 +86,5 @@ any deployed rule.
 [6] Commit `1631907` — disabled `pep_api_data_obj_put_pre`.
 [7] https://github.com/irods/irods/issues/8106 — the memory leak.
 [8] `playbooks/files/irods/etc/irods/cyverse_core.re` — deployed rule file with its `pep_api_data_obj_put_pre` commented out.
+[9] https://github.com/irods/irods/blob/4.3.1/plugins/rule_engines/irods_rule_language/src/arithmetics.cpp — `evaluateActions` returns `CUT_ACTION_PROCESSED_ERR` for a failure after `cut`.
+[10] https://github.com/irods/irods/blob/4.3.1/lib/core/include/irods/rodsErrorTable.h — `CUT_ACTION_PROCESSED_ERR` is -1089000.
