@@ -48,6 +48,7 @@ _TEST_CMD_FORM = """
             --env IRODS_ZONE_NAME="$IRODS_ZONE_NAME" \
             --env PGHOST="$DBMS_HOST" \
             --network "$DOMAIN" \
+            --platform=linux/amd64 \
             --volume "{1}":/root/.ansible/collections/ansible_collections/cyverse/ds:ro \
             --volume "{2}":/playbooks-under-test:ro \
             ansible-tester "{3}" "{4}" "{5}" "{6}" '' "{7}")
