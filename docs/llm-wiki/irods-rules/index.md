@@ -1,2 +1,17 @@
 # irods-rules
 
+* [avra.re and avra-env.re — AVRA Project Policy](/irods-rules/avra.md) - Restricts the AVRA project resource to data objects in the AVRA project collection; the root resource name comes from the avra-env template.
+* [coge.re — CoGe Service Policy](/irods-rules/coge.md) - Gives the coge user write access to coge_data collections at the top of user home collections and to anything created in or moved into them.
+* [cve.re — iRODS CVE Workarounds](/irods-rules/cve.md) - Rules that block or neuter iRODS APIs and microservices with known security holes until the Data Store upgrades past the iRODS versions that fix them.
+* [cyverse_core.re — PEP Switchyard](/irods-rules/cyverse-core.md) - The root CyVerse rule base that includes every other policy file and attaches their logic to iRODS policy enforcement points, including the iRODS issue 8106 memory-leak workaround.
+* [cyverse_encryption.re — Encryption Enforcement](/irods-rules/cyverse-encryption.md) - Rejects unencrypted data objects in collections marked encryption::required and propagates that marker to subcollections.
+* [cyverse_housekeeping.re — Periodic Tasks](/irods-rules/cyverse-housekeeping.md) - Delay-queue rules for hourly quota usage updates, daily storage free-space determination, and weekly removal of trash older than 30 days.
+* [cyverse_json.re — JSON Support](/irods-rules/cyverse-json.md) - An iRODS rule language implementation of JSON values, serialization, and deserialization used for AMQP messages and API PEP inputs.
+* [cyverse_logic.re — General Data Store Policy](/irods-rules/cyverse-logic.md) - The general CyVerse policy not implemented elsewhere — AMQP event publishing, UUID assignment, asynchronous checksums, protected ipc AVUs, rodsadmin permissions, free-space updates, and TLS refusal.
+* [cyverse_repl.re — Resource Residency and Replication](/irods-rules/cyverse-repl.md) - Chooses the resource for a data object's primary replica from ipc::hosted-collection AVUs, and schedules asynchronous replication, replica moves, and replica syncs on the delay queue.
+* [cyverse_transfer_tracking.re — Transfer Volume Tracking](/irods-rules/cyverse-transfer-tracking.md) - Records per-user upload and download byte counts in the ICAT's r_transfer_totals table through the add-transfer command script.
+* [cyverse_trash.re — Trash Timestamps](/irods-rules/cyverse-trash.md) - Maintains the ipc::trash_timestamp AVU on collections and data objects as they enter, leave, or are created in trash, so housekeeping can purge old trash.
+* [cyverse.re and cyverse-env.re — Shared Library and Environment Constants](/irods-rules/cyverse.md) - The shared rule library used by the core and service rule bases, plus the templated environment constants (zone, default resources, AMQP exchange, email addresses) it includes.
+* [esiil.re and esiil-env.re — ESIIL Project Policy](/irods-rules/esiil.md) - Restricts the ESIIL project resource to data objects in the ESIIL project collection; the root resource name comes from the esiil-env template.
+* [ncems.re and ncems-env.re — NCEMS Project Policy](/irods-rules/ncems.md) - Restricts the NCEMS project resource to data objects in the NCEMS project collection; the root resource name comes from the ncems-env template.
+* [pire.re and pire-env.re — BH-PIRE and EHT Project Policy](/irods-rules/pire.md) - Restricts the BH-PIRE resource to data objects in the BH-PIRE and EHT project collections; the root resource name comes from the pire-env template.

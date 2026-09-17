@@ -1,2 +1,8 @@
 # runbooks
 
+* [Control Node Setup](/runbooks/control-node-setup.md) - One-time preparation of an Ansible control node or development machine for the cyverse.ds collection — Docker, system packages, Python requirements, Galaxy dependencies, and rng-tools.
+* [Installing the Audit Plugin](/runbooks/installing-the-audit-plugin.md) - Manual procedure for auditing Data Store activity — OpenSearch in Docker, AMQP 1.0 on the RabbitMQ broker, a Logstash pipeline from RabbitMQ to OpenSearch, and the iRODS audit_amqp rule engine plugin on the catalog provider.
+* [Limiting Concurrent Connections per User](/runbooks/limiting-concurrency.md) - A worked HAProxy example that caps each iRODS user's total concurrent connections across direct iRODS and WebDAV access, by extracting the client identity from the iRODS startup packet and the HTTP Basic auth header into a shared stick table.
+* [Testing iRODS Rules](/runbooks/testing-irods-rules.md) - The Python unittest suite in playbooks/tests/rules/ that exercises the Data Store's iRODS rule files against a live server, its test_rules.py support library and mocks, and the separate template-expansion test playbook.
+* [Testing Playbooks and Plugins](/runbooks/testing-playbooks-and-plugins.md) - How the Docker-based harness in testing/ builds a small Data Store, runs a playbook or plugin test against it, checks idempotency, and tears it down — scripts, containers, inventories, tags, and known doc/code discrepancies.
+* [Testing Roles with Molecule](/runbooks/testing-roles-with-molecule.md) - The molecule scenarios under molecule/ that test the collection's roles — which role each exercises, its Docker platforms, shared irods_cfg fixtures, and version constraints.

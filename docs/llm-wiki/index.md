@@ -12,6 +12,12 @@ Start here and descend through the section indexes. Each concept page's
 repo; validate and re-index with `tools/okf` (see the `validating-the-wiki`
 skill).
 
+New to the collection? Start with
+[Data Store Overview](/components/data-store-overview.md) for how the inventory
+groups map to components and playbooks, then
+[Control Node Setup](/runbooks/control-node-setup.md) and
+[Testing Playbooks and Plugins](/runbooks/testing-playbooks-and-plugins.md).
+
 # Sections
 
 * [components/](/components/index.md) - Data Store subsystems: iRODS catalog providers and resource servers, the ICAT DBMS, AMQP, HAProxy, SFTP, and WebDAV.
