@@ -31,7 +31,10 @@ main()
   . "$cfg"
 
   trap 'rm -f "$BaseDir"/requirements.txt "$BaseDir"/requirements.yml' EXIT
-  cp -n "$BaseDir"/../../requirements.txt "$BaseDir"/../../requirements.yml "$BaseDir"/
+  local req
+  for req in requirements.txt requirements.yml; do
+    [[ -e "$BaseDir"/"$req" ]] || cp "$BaseDir"/../../"$req" "$BaseDir"/
+  done
 
   local buildArgs=(
 #    --no-cache
