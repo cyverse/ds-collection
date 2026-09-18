@@ -4,6 +4,7 @@ export ENV_NAME=dstesting
 
 export DOMAIN="$ENV_NAME"_default
 
+export DB_USER=irodsuser
 export DBMS_HOST="$ENV_NAME"-dbms_configured-1."$DOMAIN"
 
 export IRODS_CLERVER_PASSWORD=password

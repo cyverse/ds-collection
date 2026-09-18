@@ -4,12 +4,7 @@
 # deletes ansible-tester, all of the images composing env, and the base image
 # ansible-support.
 
-if [[ "$OSTYPE" == "darwin"* ]]
-then
-  ExecName=$(greadlink -f "$0")
-else
-  ExecName=$(readlink --canonicalize "$0")
-fi
+ExecName=$(readlink -f "$0")
 readonly ExecName
 
 

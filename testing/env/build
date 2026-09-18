@@ -14,8 +14,11 @@
 
 set -o errexit -o nounset -o pipefail
 
-EXEC_PATH="$(realpath --canonicalize-existing "$0")"
+EXEC_PATH="$(readlink -f "$0")"
 readonly EXEC_PATH
+
+#shellcheck source=testing/portability.inc
+. "$(dirname "$EXEC_PATH")"/../portability.inc
 
 
 main()
@@ -42,6 +45,7 @@ main()
     local buildArgs=(
 #      --no-cache
       --file="$baseDir"/base/Dockerfile."$os"
+      --platform=linux/amd64
       --tag=test-env-base:"$os"
     )
 
@@ -55,11 +59,7 @@ main()
 #    --no-cache
   )
 
-  if ! command -v docker-compose > /dev/null; then
-    docker compose "${composeArgs[@]}"
-  else
-    docker-compose "${composeArgs[@]}"
-  fi
+  ds_compose "${composeArgs[@]}"
 }
 
 

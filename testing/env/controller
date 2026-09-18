@@ -11,8 +11,11 @@
 
 set -o errexit -o nounset -o pipefail
 
-ExecName=$(readlink --canonicalize "$0")
+ExecName=$(readlink -f "$0")
 readonly ExecName
+
+#shellcheck source=testing/portability.inc
+. "$(dirname "$ExecName")"/../portability.inc
 
 
 main()
@@ -60,11 +63,7 @@ main()
 
   local composeArgs=(--file="$baseDir"/docker-compose.yml --project-name="$ENV_NAME" "${dcCmd[@]}")
 
-  if ! command -v docker-compose > /dev/null; then
-    docker compose "${composeArgs[@]}"
-  else
-    docker-compose "${composeArgs[@]}"
-  fi
+  ds_compose "${composeArgs[@]}"
 }
 
 
