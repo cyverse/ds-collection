@@ -5,18 +5,20 @@
 # For license information, see https://cyverse.org/license.
 
 _cyverse_transfer_tracking_addTransfer(*User, *Zone, *Dir, *Vol) {
-	foreach( *res in
-		select USER_ID where USER_NAME = '*User' and USER_ZONE = '*Zone' and USER_TYPE = 'rodsuser'
-	) {
-		*userArg = execCmdArg(*res.USER_ID);
-		*dirArg = execCmdArg(*Dir);
-		*volArg = execCmdArg(str(*Vol));
-		*args = "*userArg *dirArg *volArg";
-		*ec = errormsg(msiExecCmd("add-transfer", *args, "null", "null", "null", *out), *msg);
-		if (*ec != 0) {
-			msiGetStderrInExecCmdOut(*out, *err);
-			writeLine('serverLog', "add-transfer failed: *msg (*err)");
-			failmsg(*ec, *err);
+	if (*User != 'anonymous') {
+		foreach( *res in
+			select USER_ID where USER_NAME = '*User' and USER_ZONE = '*Zone' and USER_TYPE = 'rodsuser'
+		) {
+			*userArg = execCmdArg(*res.USER_ID);
+			*dirArg = execCmdArg(*Dir);
+			*volArg = execCmdArg(str(*Vol));
+			*args = "*userArg *dirArg *volArg";
+			*ec = errormsg(msiExecCmd("add-transfer", *args, "null", "null", "null", *out), *msg);
+			if (*ec != 0) {
+				msiGetStderrInExecCmdOut(*out, *err);
+				writeLine('serverLog', "add-transfer failed: *msg (*err)");
+				failmsg(*ec, *err);
+			}
 		}
 	}
 }
@@ -108,13 +110,13 @@ cyverse_transfer_tracking_api_data_obj_put_post(
 # data read is recorded.
 #
 # Parameters:
-#  Instance             (string) unknown
-#  Comm                 (`KeyValuePair_PI`) user connection and auth information
-#  DataObjReadInp       (`KeyValuePair_PI`) information about the read request
-#  DATA_OBJ_READ_B_BUF  (unknown) the contents that were read from the object
+#  Instance         (string) unknown
+#  Comm             (`KeyValuePair_PI`) user connection and auth information
+#  DataObjReadInp   (`KeyValuePair_PI`) information about the read request
+#  DataObjReadBBuf  (unknown) the contents that were read from the object
 #
 cyverse_transfer_tracking_api_data_obj_read_post(
-	*Instance, *Comm, *DataObjReadInp, *DATA_OBJ_READ_B_BUF
+	*Instance, *Comm, *DataObjReadInp, *DataObjReadBBuf
 ) {
 	_cyverse_transfer_tracking_addTransfer(
 		*Comm.user_user_name, *Comm.user_rods_zone, 'out', *DataObjReadInp.len );
@@ -134,41 +136,4 @@ cyverse_transfer_tracking_api_data_obj_write_post(
 ) {
 	_cyverse_transfer_tracking_addTransfer(
 		*Comm.user_user_name, *Comm.user_rods_zone, 'in', *DataObjWriteInp.len );
-}
-
-# When a data object replica is opened through the API using a REPLICA_OPEN
-# request, this records the size of the replica for use by
-# cyverse_transfer_tracking_api_replica_close_post.
-#
-# Parameters:
-#  Instance     (string) unused
-#  Comm         (`KeyValuePair_PI`) user connection and auth information
-#  DataObjInp   (`KeyValuePair_PI`) information about the data object
-#  JSON_OUTPUT  (unknown) unused
-#
-cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
-	temporaryStorage.cyverse_transfer_tracking_replica_dataObjPath = cyverse_getValue(
-		*DataObjInp, 'obj_path' );
-
-	temporaryStorage.cyverse_transfer_tracking_replica_openFlag = cyverse_getValue(
-		*DataObjInp, 'open_flag' );
-}
-
-# When a data object replica is closed through the API using a REPLICA_CLOSE
-# request, this updates the upload or download count appropriately.
-#
-# Parameters:
-#  Instance   (string) unused
-#  Comm       (`KeyValuePair_PI`) user connection and auth information
-#  JsonInput  (string) a JSON-serialized description of the replica change
-#
-cyverse_transfer_tracking_api_replica_close_post(*Instance, *Comm, *JsonInput) {
-	*path = cyverse_getValue(temporaryStorage, 'cyverse_transfer_tracking_replica_dataObjPath');
-	*openFlag = cyverse_getValue(temporaryStorage, 'cyverse_transfer_tracking_replica_openFlag');
-
-	_cyverse_transfer_tracking_addTransfer(
-		*Comm.user_user_name,
-		*Comm.user_rods_zone,
-		if *openFlag == cyverse_OPEN_FLAG_R then 'out' else 'in',
-		cyverse_getValue(cyverse_getDataInfo(*path), 'size') );
 }

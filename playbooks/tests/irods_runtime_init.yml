@@ -145,7 +145,7 @@
             | grep --quiet 'anonymous#testing:read_object'
       changed_when: false
 
-    - name: Test start quota usage computation
+    - name: Test start housekeeping rules
       ansible.builtin.shell:
         executable: /bin/bash
         cmd: |

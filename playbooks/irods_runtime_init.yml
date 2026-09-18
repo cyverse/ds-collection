@@ -186,30 +186,21 @@
         - name: Start quota usage computation
           ansible.builtin.shell:
             executable: /bin/bash
-            cmd: |
-              irule \
-                --rule-engine-plugin-instance=irods_rule_engine_plugin-irods_rule_language-instance \
-                cyverse_housekeeping_rescheduleQuotaUsageUpdate null ruleExecOut
+            cmd: irule cyverse_housekeeping_rescheduleQuotaUsageUpdate null ruleExecOut
           register: results
           changed_when: results.stdout == 'scheduled quota usage updates'
 
         - name: Start storage free space determination
           ansible.builtin.shell:
             executable: /bin/bash
-            cmd: |
-              irule \
-                --rule-engine-plugin-instance=irods_rule_engine_plugin-irods_rule_language-instance \
-                cyverse_housekeeping_rescheduleStorageFreeSpaceDetermination null ruleExecOut
+            cmd: irule cyverse_housekeeping_rescheduleStorageFreeSpaceDetermination null ruleExecOut
           register: results
           changed_when: results.stdout == 'scheduled storage determination'
 
         - name: Start trash removal
           ansible.builtin.shell:
             executable: /bin/bash
-            cmd: |
-              irule \
-                --rule-engine-plugin-instance=irods_rule_engine_plugin-irods_rule_language-instance \
-                cyverse_housekeeping_rescheduleTrashRemoval null ruleExecOut
+            cmd: irule cyverse_housekeeping_rescheduleTrashRemoval null ruleExecOut
           register: results
           changed_when: results.stdout == 'scheduled trash removal'
 

@@ -523,19 +523,22 @@ acPostProcForRmColl {
 # N.B. large files are not passed through rcBulkDataObjPut
 #
 pep_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
-	*status = errormsg(
-		cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf),
-		*msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
+	if (cyverse_IS_CATALOG_PROVIDER) {
+		*status = errormsg(
+			cyverse_logic_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf),
+			*msg );
+		if (*status < 0) { writeLine('serverLog', *msg); }
 
-	*status = errormsg(
-		cyverse_repl_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf), *msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
+		*status = errormsg(
+			cyverse_repl_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf),
+			*msg );
+		if (*status < 0) { writeLine('serverLog', *msg); }
 
-	*status = errormsg(
-		cyverse_transfer_tracking_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf),
-		*msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
+		*status = errormsg(
+			cyverse_transfer_tracking_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf),
+			*msg );
+		if (*status < 0) { writeLine('serverLog', *msg); }
+	}
 }
 
 
@@ -552,7 +555,7 @@ pep_api_bulk_data_obj_put_post(*Instance, *Comm, *BulkOpInp, *BulkOpInpBBuf) {
 #                         replica registration
 #  BULK_DATA_OBJ_REG_OUT  unknown
 #
-# N.B. This isn't used by iCommands or any official API as of iRODS 4.2.10, so
+# N.B. This isn't used by iCommands or any official API as of iRODS 4.3.1, so
 # let's not implement it.
 #
 pep_api_bulk_data_obj_reg_post(*Instance, *Comm, *BulkDataObjRegInp, *BULK_DATA_OBJ_REG_OUT) {
@@ -658,9 +661,12 @@ pep_api_data_obj_get_post(*Instance, *Comm, *DataObjInp, *PORTAL_OPR, *DATA_OBJ_
 #  DataObjInpBBuf  (unknown) may contain the contents of the file being uploaded
 #  PORTAL_OPR_OUT  unknown
 #
-pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
-	cyverse_encryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp);
-}
+# XXX: This PEP has a huge memory leak:
+#      https://github.com/irods/irods/issues/8106. Fixed in 4.3.4. There is no
+#      workaround.
+# pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
+#	cyverse_encryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp);
+# }
 
 # This is the post processing logic for when a data object is uploaded through
 # the API using a DATA_OBJ_PUT request.
@@ -675,7 +681,30 @@ pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL
 # *DataObjInp:
 #   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
 #
-pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR) {
+# XXX: This PEP has a huge memory leak:
+#      https://github.com/irods/irods/issues/8106. Fixed in 4.3.4.
+# pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR) {
+acPostProcForPut {
+	*Instance = '';
+
+	*Comm.user_rods_zone = $rodsZoneClient;
+	*Comm.user_user_name = $userNameClient;
+
+	*DataObjInpBBuf = '';
+
+	*DataObjInp.obj_path = $objPath;
+	*DataObjInp.data_size = str($dataSize);
+
+	msiSplitPath($objPath, *collPath, *dataName);
+
+	foreach( *rec in
+		SELECT DATA_RESC_HIER
+		WHERE COLL_NAME = *collPath AND DATA_NAME = *dataName AND DATA_RESC_NAME = $rescName
+	) {
+		*DataObjInp.resc_hier = *rec.DATA_RESC_HIER;
+	}
+
+# XXX: ^^^
 	*status = errormsg(
 		cyverse_logic_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
 		*msg );
@@ -775,7 +804,9 @@ pep_api_data_obj_unlink_post(*Instance, *Comm, *DataObjUnlinkInp) {
 #                    deleted
 #
 pep_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp) {
-	cyverse_trash_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp);
+	*status = errormsg(
+		cyverse_trash_api_data_obj_unlink_except(*Instance, *Comm, *DataObjUnlinkInp), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -826,7 +857,9 @@ pep_api_rm_coll_pre(*Instance, *Comm, *RmCollInp, *CollOprStat) {
 #  CollOprStat  unknown
 #
 pep_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat) {
-	cyverse_trash_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat);
+	*status = errormsg(
+		cyverse_trash_api_rm_coll_except(*Instance, *Comm, *RmCollInp, *CollOprStat), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -896,16 +929,21 @@ pep_api_data_obj_create_pre(*Instance, *Comm, *DataObjInp) {
 #              object
 #
 pep_api_data_obj_create_post(*Instance, *Comm, *DataObjInp) {
-	cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
-	cyverse_repl_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
-	cyverse_trash_api_data_obj_create_post(*Instance, *Comm, *DataObjInp);
+	*status = errormsg(cyverse_logic_api_data_obj_create_post(*Instance, *Comm, *DataObjInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(cyverse_repl_api_data_obj_create_post(*Instance, *Comm, *DataObjInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(cyverse_trash_api_data_obj_create_post(*Instance, *Comm, *DataObjInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
 # DATA_OBJ_CREATE_AND_STAT
 #
 # NB: This PEP is used together with DATA_OBJ_CLOSE
-# NB: This isn't used by iCommands or any official API as of iRODS 4.2.10
+# NB: This isn't used by iCommands or any official API as of iRODS 4.3.1
 
 # This is the pre processing logic for when an attempt is made to create a data
 # object and stat its replica through the API using a DATA_OBJ_CREATE_AND_STAT
@@ -950,15 +988,18 @@ pep_api_data_obj_open_pre(*Instance, *Comm, *DataObjInp) {
 #  DataObjInp  (`KeyValuePair_PI`) information related to the data object
 #
 pep_api_data_obj_open_post(*Instance, *Comm, *DataObjInp) {
-	cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp);
-	cyverse_repl_api_data_obj_open_post(*Instance, *Comm, *DataObjInp);
+	*status = errormsg(cyverse_logic_api_data_obj_open_post(*Instance, *Comm, *DataObjInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(cyverse_repl_api_data_obj_open_post(*Instance, *Comm, *DataObjInp), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
 # DATA_OBJ_OPEN_AND_STAT
 #
 # NB: This PEP is used together with DATA_OBJ_CLOSE and possibly DATA_OBJ_WRITE.
-# N.B. This isn't used by iCommands or any official API as of iRODS 4.2.8
+# N.B. This isn't used by iCommands or any official API as of iRODS 4.3.1
 
 # This is the pre processing logic for when an attempt is made to open a data
 # object through the API using a DATA_OBJ_OPEN_AND_STAT request.
@@ -984,14 +1025,16 @@ pep_api_data_obj_open_and_stat_pre(*Instance, *Comm, *DataObjInp, *OpenStat) {
 # This is the post processing logic for when a DATA_OBJ_READ request happened.
 #
 # Parameters:
-#  Instance             (string) unknown
-#  Comm                 (`KeyValuePair_PI`) user connection and auth information
-#  DataObjReadInp       (`KeyValuePair_PI`) information about the read request
-#  DATA_OBJ_READ_B_BUF  (unknown) the contents that were read from the object
+#  Instance         (string) unknown
+#  Comm             (`KeyValuePair_PI`) user connection and auth information
+#  DataObjReadInp   (`KeyValuePair_PI`) information about the read request
+#  DataObjReadBBuf  (unknown) the contents that were read from the object
 #
-pep_api_data_obj_read_post(*Instance, *Comm, *DataObjReadInp, *DATA_OBJ_READ_B_BUF) {
-	cyverse_transfer_tracking_api_data_obj_read_post(
-		*Instance, *Comm, *DataObjReadInp, *DATA_OBJ_READ_B_BUF );
+pep_api_data_obj_read_post(*Instance, *Comm, *DataObjReadInp, *DataObjReadBBuf) {
+	*status = errormsg(
+		cyverse_transfer_tracking_api_data_obj_read_post(*Instance, *Comm, *DataObjReadInp, *DataObjReadBBuf),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -1065,9 +1108,13 @@ pep_api_data_obj_close_post(*Instance, *Comm, *DataObjCloseInp) {
 #  JSON_OUTPUT  unknown
 #
 pep_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT) {
-	cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
-	cyverse_repl_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
-	cyverse_transfer_tracking_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT);
+	*status = errormsg(
+		cyverse_logic_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_repl_api_replica_open_post(*Instance, *Comm, *DataObjInp, *JSON_OUTPUT), *msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
 
@@ -1088,10 +1135,6 @@ pep_api_replica_close_post(*Instance, *Comm, *JsonInput) {
 	if (*status < 0) { writeLine('serverLog', *msg); }
 
 	*status = errormsg(cyverse_repl_api_replica_close_post(*Instance, *Comm, *JsonInput), *msg);
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(
-		cyverse_transfer_tracking_api_replica_close_post(*Instance, *Comm, *JsonInput), *msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 
@@ -1222,8 +1265,8 @@ pep_database_close_finally(*Instance, *Context, *OUT) {
 pep_database_mod_data_obj_meta_post(*Instance, *Context, *OUT, *DataObjInfo, *RegParam) {
 	*handled = false;
 	*logicalPath = if *DataObjInfo.logical_path != ''
-		then /*DataObjInfo.logical_path
-		else cyverse_getDataPath(int(*DataObjInfo.data_id));
+		then *DataObjInfo.logical_path
+		else str(cyverse_getDataPath(int(*DataObjInfo.data_id)));
 # XXX - Because of https://github.com/irods/irods/issues/5540,
 # _cyverse_core_dataObjCreated needs to be called here when not created through file
 # registration

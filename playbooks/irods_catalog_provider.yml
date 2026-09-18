@@ -82,7 +82,7 @@
               enabled=1
               gpgcheck=0
 
-        - name: CentOS | install PostgreSQL 12 clients are installed
+        - name: CentOS | install PostgreSQL 12 clients
           ansible.builtin.package:
             name:
               - postgresql12
