@@ -14,11 +14,11 @@
 
 set -o errexit -o nounset -o pipefail
 
-#shellcheck source=testing/portability.inc
-. "$(cd -- "$(dirname -- "$0")" && pwd -P)"/../portability.inc
-
-EXEC_PATH="$(ds_canonicalize "$0")"
+EXEC_PATH="$(readlink -f "$0")"
 readonly EXEC_PATH
+
+#shellcheck source=testing/portability.inc
+. "$(dirname "$EXEC_PATH")"/../portability.inc
 
 
 main()

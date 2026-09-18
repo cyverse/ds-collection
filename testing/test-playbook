@@ -36,15 +36,15 @@ EOF
 
 set -o errexit -o nounset -o pipefail
 
-#shellcheck source=testing/portability.inc
-source "$(cd -- "$(dirname -- "$0")" && pwd -P)"/portability.inc
-
-ds_require_bash 4
-
-ExecName=$(ds_canonicalize "$0")
+ExecName=$(readlink -f "$0")
 TestingDir=$(dirname "$ExecName")
 CollectionDir="$(dirname "$TestingDir")"
 readonly ExecName TestingDir CollectionDir
+
+#shellcheck source=testing/portability.inc
+source "$TestingDir"/portability.inc
+
+ds_require_bash 4
 
 readonly Cfg="$TestingDir"/config.inc
 readonly PlaybooksDir="$CollectionDir"/playbooks

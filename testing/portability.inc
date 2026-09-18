@@ -7,35 +7,6 @@
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
-# Resolves a path to an absolute one with all symlinks expanded, like
-# `readlink --canonicalize`, which BSD readlink doesn't support.
-ds_canonicalize() {
-  local target="$1"
-  local dir
-  local depth=0
-
-  while [ -L "$target" ]; do
-    if [ "$depth" -ge 32 ]; then
-      printf 'Too many levels of symbolic links in "%s".\n' "$1" >&2
-      return 1
-    fi
-
-    dir="$(cd -- "$(dirname -- "$target")" && pwd -P)"
-    target="$(readlink "$target")"
-
-    case "$target" in
-      /*) ;;
-      *) target="$dir"/"$target" ;;
-    esac
-
-    depth=$(( depth + 1 ))
-  done
-
-  dir="$(cd -- "$(dirname -- "$target")" && pwd -P)"
-  printf '%s/%s\n' "$dir" "$(basename -- "$target")"
-}
-
-
 # Parses a command line, using long options only where getopt supports them.
 # BSD getopt takes neither long options nor `--`, and it needs the unquoted
 # "$*" splitting that GNU getopt makes unnecessary.

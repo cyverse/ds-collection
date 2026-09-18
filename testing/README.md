@@ -10,8 +10,9 @@ The environment consists of a set of containers. The `amqp` container hosts the 
 
 The harness needs Docker with the Compose v2 plugin (`docker compose`), and bash 4 or later for the scripts that use associative arrays. The inventories name containers the way Compose v2 does, so the older `docker-compose` v1 binary resolves to host names that don't exist.
 
-On macOS the scripts source `portability.inc`, which papers over the differences between the GNU tools and the BSD ones, so no GNU coreutils install is needed. Two things still are:
+On macOS the scripts stick to options the BSD tools share with the GNU ones, and `portability.inc` papers over the differences that remain, so no GNU coreutils install is needed. What is needed:
 
+* macOS 12.3 or later, the first release whose `readlink` accepts `-f`.
 * bash 4 or later ahead of `/bin/bash` on `PATH`, since macOS ships bash 3.2.
 * An x86_64 Docker daemon. iRODS, PostgreSQL 12 for EL7, and the CentOS 7 repositories publish x86_64 packages only, which is why the compose file and the image builds ask for `linux/amd64`. On Apple Silicon, run a fully emulated x86_64 virtual machine — for example `colima start --arch x86_64`, which needs `qemu` and `lima-additional-guestagents` installed. Do not use Rosetta translation: iRODS cannot run under it, because every translated process's `/proc/<pid>/exe` points at the translator outside the container, which aborts `irodsctl`, and the server then accepts connections without servicing them.
 

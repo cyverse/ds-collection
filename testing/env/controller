@@ -11,11 +11,11 @@
 
 set -o errexit -o nounset -o pipefail
 
-#shellcheck source=testing/portability.inc
-. "$(cd -- "$(dirname -- "$0")" && pwd -P)"/../portability.inc
-
-ExecName=$(ds_canonicalize "$0")
+ExecName=$(readlink -f "$0")
 readonly ExecName
+
+#shellcheck source=testing/portability.inc
+. "$(dirname "$ExecName")"/../portability.inc
 
 
 main()

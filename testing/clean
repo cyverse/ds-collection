@@ -4,10 +4,7 @@
 # deletes ansible-tester, all of the images composing env, and the base image
 # ansible-support.
 
-#shellcheck source=testing/portability.inc
-. "$(cd -- "$(dirname -- "$0")" && pwd -P)"/portability.inc
-
-ExecName=$(ds_canonicalize "$0")
+ExecName=$(readlink -f "$0")
 readonly ExecName
 
 

@@ -7,10 +7,7 @@
 
 set -o errexit -o nounset -o pipefail
 
-#shellcheck source=testing/portability.inc
-. "$(cd -- "$(dirname -- "$0")" && pwd -P)"/../portability.inc
-
-EXEC_NAME="$(ds_canonicalize "$0")"
+EXEC_NAME="$(readlink -f "$0")"
 readonly EXEC_NAME
 
 declare BaseDir
