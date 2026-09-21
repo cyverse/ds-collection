@@ -16,7 +16,7 @@ On macOS the scripts stick to options the BSD tools share with the GNU ones, and
 * bash 4 or later ahead of `/bin/bash` on `PATH`, since macOS ships bash 3.2.
 * An x86_64 Docker daemon. iRODS, PostgreSQL 12 for EL7, and the CentOS 7 repositories publish x86_64 packages only, which is why the compose file and the image builds ask for `linux/amd64`. On Apple Silicon, run a fully emulated x86_64 virtual machine — for example `colima start --arch x86_64`, which needs `qemu` and `lima-additional-guestagents` installed. Do not use Rosetta translation: iRODS cannot run under it, because every translated process's `/proc/<pid>/exe` points at the translator outside the container, which aborts `irodsctl`, and the server then accepts connections without servicing them.
 
-`test-playbook` and `test-plugin` start the tester with `docker run --interactive --tty`, so they need a terminal. To run them from a script or a CI job, give them a pseudo-terminal, e.g. `script -q /dev/null testing/test-playbook -P <playbook>`.
+`test-playbook` and `test-plugin` start the tester with `docker run --interactive --tty`, so they need a terminal. To run them from a script or a CI job, give them a pseudo-terminal with `script`, whose syntax differs between platforms. On macOS, use `script -q /dev/null testing/test-playbook -P <playbook>`. On Linux, util-linux's `script` rejects that form, so use `script -qec "testing/test-playbook -P <playbook>" /dev/null`, where `-e` passes the command's exit status through.
 
 ## Building the Harness
 
