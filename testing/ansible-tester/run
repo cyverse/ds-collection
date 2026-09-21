@@ -42,7 +42,7 @@ main() {
 		playbook="$7"
 	fi
 
-	collection="$(realpath "$collection")"
+	collection="$(readlink -f "$collection")"
 
 	docker run --interactive --rm --tty \
 		--env IRODS_HOST="$IRODS_PROVIDER_CONF_HOST" \
