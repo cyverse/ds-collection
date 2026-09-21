@@ -5,7 +5,7 @@
 
 main()
 {
-  if [ -n "$(docker images --filter reference=ansible-tester | tail --lines +2)" ]
+  if [ -n "$(docker images --filter reference=ansible-tester | tail -n +2)" ]
   then
     docker rmi ansible-tester
   fi
