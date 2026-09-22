@@ -1,0 +1,217 @@
+#!/usr/bin/env bash
+#
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
+show_help() {
+	cat <<EOF
+
+$ExecName
+
+Usage:
+$ExecName [options] [scenario ...]
+
+test Data Store roles with molecule
+
+Options:
+ -h, --help  show help and exit
+
+Summary:
+This script runs the given molecule scenarios, or every scenario if none are
+given, and reports which passed. It tests a copy of the working tree, including
+uncommitted changes, placed at ansible_collections/cyverse/ds in a temporary
+directory. On first use, and whenever requirements.txt or requirements.yml
+changes, it installs the Python requirements and Galaxy collections into
+$VenvDir.
+EOF
+}
+
+
+set -o errexit -o nounset -o pipefail
+
+ExecName=$(readlink -f "$0")
+TestingDir=$(dirname "$ExecName")
+CollectionDir="$(dirname "$TestingDir")"
+readonly ExecName TestingDir CollectionDir
+
+#shellcheck source=testing/portability.inc
+source "$TestingDir"/portability.inc
+
+ds_require_bash 4
+
+readonly MoleculeDir="$CollectionDir"/molecule
+readonly VenvDir="$CollectionDir"/.venv-molecule
+readonly GalaxyDir="$VenvDir"/collections
+readonly InstallStamp="$VenvDir"/.installed
+
+
+main() {
+	local args
+	if ! args="$(ds_getopt h help "$ExecName" "$@")"
+	then
+		exit_with_help
+	fi
+
+	eval set -- "$args"
+
+	while true
+	do
+		case "$1" in
+			-h|--help)
+				show_help
+				return
+				;;
+			--)
+				shift 1
+				break
+				;;
+		esac
+	done
+
+	local scenarios=("$@")
+	if [[ "${#scenarios[@]}" -eq 0 ]]
+	then
+		readarray -t scenarios < <(list_scenarios)
+	fi
+
+	local scenario
+	for scenario in "${scenarios[@]}"
+	do
+		if ! [ -f "$MoleculeDir"/"$scenario"/molecule.yml ]
+		then
+			printf 'There is no molecule scenario named %s\n' "$scenario" >&2
+			exit 1
+		fi
+	done
+
+	prepare_venv
+	use_docker_context
+
+	local workDir
+	workDir="$(mktemp -d "${TMPDIR:-/tmp}"/ds-molecule.XXXXXX)"
+	#shellcheck disable=SC2064
+	trap "rm -rf $(printf %q "$workDir")" EXIT
+
+	# A playbook that calls a cyverse.ds module by its bare name only resolves
+	# it when the playbook's own path is inside ansible_collections/cyverse/ds.
+	local collection="$workDir"/ansible_collections/cyverse/ds
+	copy_collection "$collection"
+
+	export ANSIBLE_COLLECTIONS_PATH="$workDir":"$GalaxyDir"
+	export ANSIBLE_ROLES_PATH="$collection"/roles
+
+	# Molecule installs the collection under test and the scenarios' Galaxy roles
+	# into ANSIBLE_HOME whatever the paths above say, so keep them out of ~/.ansible.
+	export ANSIBLE_HOME="$workDir"/.ansible
+
+	local failed=()
+	for scenario in "${scenarios[@]}"
+	do
+		if ! (cd "$collection" && molecule test --scenario-name "$scenario")
+		then
+			failed+=("$scenario")
+		fi
+	done
+
+	print_summary "${#scenarios[@]}" ${failed[@]+"${failed[@]}"}
+	[[ "${#failed[@]}" -eq 0 ]]
+}
+
+
+copy_collection() {
+	local dest="$1"
+
+	mkdir -p "$dest"
+
+	# Tracked files deleted from the working tree are still listed, so skip them.
+	git -C "$CollectionDir" ls-files -z --cached --others --exclude-standard \
+		| while IFS= read -r -d '' file
+			do
+				if [ -e "$CollectionDir"/"$file" ]
+				then
+					printf '%s\0' "$file"
+				fi
+			done \
+		| tar -C "$CollectionDir" --null -T - -cf - \
+		| tar -C "$dest" -xf -
+}
+
+
+exit_with_help() {
+	show_help >&2
+	exit 1
+}
+
+
+list_scenarios() {
+	local config
+	for config in "$MoleculeDir"/*/molecule.yml
+	do
+		basename "$(dirname "$config")"
+	done
+}
+
+
+prepare_venv() {
+	if [ -f "$InstallStamp" ] \
+		&& ! [ "$CollectionDir"/requirements.txt -nt "$InstallStamp" ] \
+		&& ! [ "$CollectionDir"/requirements.yml -nt "$InstallStamp" ]
+	then
+		export PATH="$VenvDir"/bin:"$PATH"
+		return
+	fi
+
+	printf 'Installing the Python and Galaxy requirements into %s\n' "$VenvDir"
+
+	# ansible-core 2.16, the newest requirements.txt allows, supports controller
+	# Pythons 3.10 through 3.12.
+	if command -v uv > /dev/null
+	then
+		uv venv --quiet --allow-existing --python 3.12 "$VenvDir"
+		uv pip install --quiet --python "$VenvDir"/bin/python \
+			--requirements "$CollectionDir"/requirements.txt
+	else
+		python3 -m venv "$VenvDir"
+		"$VenvDir"/bin/pip install --quiet --requirement "$CollectionDir"/requirements.txt
+	fi
+
+	# Molecule runs whichever ansible PATH finds first, not the one it was
+	# installed beside.
+	export PATH="$VenvDir"/bin:"$PATH"
+
+	ANSIBLE_COLLECTIONS_PATH="$GalaxyDir" ansible-galaxy collection install --force \
+		--requirements-file "$CollectionDir"/requirements.yml \
+		--collections-path "$GalaxyDir"
+
+	touch "$InstallStamp"
+}
+
+
+print_summary() {
+	local total="$1"
+	shift
+	local failed=("$@")
+
+	printf '\n%d of %d scenarios passed\n' $((total - ${#failed[@]})) "$total"
+
+	local scenario
+	for scenario in ${failed[@]+"${failed[@]}"}
+	do
+		printf 'FAILED %s\n' "$scenario"
+	done
+}
+
+
+# Molecule reaches Docker through the Python SDK, which reads DOCKER_HOST but
+# not the Docker CLI's current context, so a daemon found through a context,
+# like colima's, is otherwise invisible to it.
+use_docker_context() {
+	if [[ -z "${DOCKER_HOST-}" ]]
+	then
+		DOCKER_HOST="$(docker context inspect --format '{{.Endpoints.docker.Host}}')"
+		export DOCKER_HOST
+	fi
+}
+
+
+main "$@"
