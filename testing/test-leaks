@@ -1,0 +1,109 @@
+#!/usr/bin/env bash
+#
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
+show_help() {
+	cat <<EOF
+
+$ExecName
+
+Usage:
+$ExecName [options] [-- ansible-playbook options]
+
+measure iRODS agent memory leaks caused by PEPs
+
+Options:
+ -h, --help           show help and exit
+ -o, --output <dir>   the directory to write leak_check_results.json to,
+                      default ./leak-check-results
+
+Summary:
+This script starts the testing environment, runs
+testing/leak-check/leak_check.yml against the configured catalog service
+provider, prints a summary comparing each PEP with a control run, and stops the
+environment. Options after -- go to ansible-playbook, for example
+'-- -e leak_check_threshold_mib=32'.
+EOF
+}
+
+
+set -o errexit -o nounset -o pipefail
+
+ExecName=$(readlink -f "$0")
+TestingDir=$(dirname "$ExecName")
+CollectionDir="$(dirname "$TestingDir")"
+readonly ExecName TestingDir CollectionDir
+
+#shellcheck source=testing/portability.inc
+source "$TestingDir"/portability.inc
+
+ds_require_bash 4
+
+readonly Cfg="$TestingDir"/config.inc
+readonly CollectionMount=/root/.ansible/collections/ansible_collections/cyverse/ds
+
+# shellcheck disable=SC1090
+source "$Cfg"
+
+
+main() {
+	local args
+	if ! args="$(ds_getopt ho: help,output: "$ExecName" "$@")"
+	then
+		exit_with_help
+	fi
+
+	eval set -- "$args"
+
+	local output=leak-check-results
+	while true
+	do
+		case "$1" in
+			-h|--help)
+				show_help
+				return
+				;;
+			-o|--output)
+				output="$2"
+				shift 2
+				;;
+			--)
+				shift 1
+				break
+				;;
+		esac
+	done
+
+	mkdir -p "$output"
+	output="$(readlink -f "$output")"
+
+	"$TestingDir"/env/controller "$Cfg" start
+	trap '"$TestingDir"/env/controller "$Cfg" stop' EXIT
+
+	# The tester runs as root, so hand the results back to the invoking user.
+	docker run --rm --interactive \
+		--entrypoint bash \
+		--env HOST_OWNER="$(id -u):$(id -g)" \
+		--network "$DOMAIN" \
+		--platform=linux/amd64 \
+		--volume "$CollectionDir":"$CollectionMount":ro \
+		--volume "$output":/results \
+		ansible-tester \
+		-c '
+			ansible-playbook -i /inventory/hosts-configured /wait-for-ready.yml > /dev/null \
+				&& ansible-playbook -i /inventory/hosts-configured '"$CollectionMount"'/testing/leak-check/leak_check.yml "$@"
+			rc=$?
+			chown -R "$HOST_OWNER" /results
+			exit $rc' \
+		leak-check "$@"
+}
+
+
+exit_with_help() {
+	show_help >&2
+	exit 1
+}
+
+
+main "$@"

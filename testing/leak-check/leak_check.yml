@@ -1,0 +1,110 @@
+---
+# Measures how much memory an iRODS agent gains when each PEP in
+# leak_check_peps is defined, compared with a control run where it isn't. A PEP
+# body doesn't need to do anything to leak, so the PEPs here are empty. See
+# testing/README.md for how to run it.
+
+- name: Measure agent memory growth caused by PEPs
+  hosts: irods_catalog
+  gather_facts: false
+  become: true
+  become_user: "{{ irods_service_account_name | d('irods') }}"
+  vars:
+    leak_check_results_dir: /results
+    leak_check_threshold_mib: 16
+    leak_check_sizes:
+      small:
+        count: 1000
+        bytes: 65536
+      large:
+        count: 100
+        bytes: 4194304
+    leak_check_peps:
+      - name: put_pre
+        workload: put
+        sizes: [small, large]
+        rule: pep_api_data_obj_put_pre(*INSTANCE_NAME, *COMM, *DATAOBJINP, *BUFFER, *PORTAL_OPR_OUT) { }
+      - name: put_post
+        workload: put
+        sizes: [small, large]
+        rule: pep_api_data_obj_put_post(*INSTANCE_NAME, *COMM, *DATAOBJINP, *BUFFER, *PORTAL_OPR_OUT) { }
+      # A bulk upload carries many small files in one request, so it only has a
+      # small size.
+      - name: bulk_put_post
+        workload: bulk_put
+        sizes: [small]
+        rule: pep_api_bulk_data_obj_put_post(*INSTANCE_NAME, *COMM, *BULKOPINP, *BUFFER) { }
+      - name: write_post
+        workload: write
+        sizes: [small, large]
+        rule: pep_api_data_obj_write_post(*INSTANCE_NAME, *COMM, *DATAOBJWRITEINP, *BUFFER) { }
+      - name: read_post
+        workload: read
+        sizes: [small, large]
+        rule: pep_api_data_obj_read_post(*INSTANCE_NAME, *COMM, *DATAOBJREADINP, *BUFFER) { }
+    _probe: /tmp/leak_probe.py
+    _config: /tmp/leak_check.json
+    _results: /tmp/leak_check_results.json
+  tasks:
+    - name: Copy the probe
+      ansible.builtin.copy:
+        src: files/leak_probe.py
+        dest: "{{ _probe }}"
+        mode: u=rwx,go=rx
+
+    - name: Write the probe configuration
+      ansible.builtin.copy:
+        dest: "{{ _config }}"
+        mode: u=rw,go=r
+        content: >-
+          {{
+            {
+              'resource': 'leakCheckResc',
+              'host': inventory_hostname,
+              'vault': '/var/lib/irods/leak_check_vault',
+              'collection': '/' ~ irods_zone_name ~ '/home/' ~ irods_clerver_user | d('rods') ~ '/leak_check',
+              'rule_base': 'leak_check',
+              'sample_interval': 0.2,
+              'sizes': leak_check_sizes,
+              'peps': leak_check_peps,
+            } | to_nice_json
+          }}
+
+    - name: Create the resource and register the rule base
+      ansible.builtin.command: python3 {{ _probe }} setup {{ _config }}
+      register: setup
+      changed_when: "'changed' in setup.stdout"
+      notify: Restart iRODS
+
+    - name: Load the rule base before measuring
+      ansible.builtin.meta: flush_handlers
+
+    - name: Run the cases
+      ansible.builtin.command: python3 {{ _probe }} run {{ _config }} {{ _results }}
+      changed_when: true
+
+    - name: Fetch the results
+      ansible.builtin.fetch:
+        src: "{{ _results }}"
+        dest: "{{ leak_check_results_dir }}/leak_check_results.json"
+        flat: true
+
+    - name: Summarize the results
+      delegate_to: localhost
+      become: false
+      ansible.builtin.command: >-
+        python3 {{ playbook_dir }}/files/leak_probe.py summarize
+          --threshold-mib {{ leak_check_threshold_mib }}
+          {{ leak_check_results_dir }}/leak_check_results.json
+      register: summary
+      changed_when: false
+
+    - name: Show the summary
+      ansible.builtin.debug:
+        msg: "{{ summary.stdout_lines }}"
+
+  handlers:
+    - name: Restart iRODS
+      cyverse.ds.irods_ctl:
+        state: restarted
+        test_log: true
