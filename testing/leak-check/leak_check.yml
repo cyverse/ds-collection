@@ -125,7 +125,11 @@
         msg: "{{ summary.stdout_lines }}"
 
   handlers:
+    # Restarts through irods_ctl fail intermittently, and a retry succeeds.
     - name: Restart iRODS
       cyverse.ds.irods_ctl:
         state: restarted
         test_log: true
+      register: restart
+      retries: 2
+      until: restart is succeeded
