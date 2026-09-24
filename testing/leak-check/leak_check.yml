@@ -4,8 +4,9 @@
 # and each PEP in leak_check_peps is compared with a control run where it isn't
 # defined. A PEP body doesn't need to do anything to leak, so the PEPs here are
 # empty. With data_store, the Data Store's rule bases must already be deployed,
-# and each workload in leak_check_workloads runs against them as they are. See
-# testing/README.md for how to run it.
+# and each workload in leak_check_workloads runs against them as they are. Any
+# command scripts in leak_check_command_scripts are installed for the cases'
+# rules to call with msiExecCmd. See testing/README.md for how to run it.
 
 - name: Measure agent memory growth caused by PEPs
   hosts: irods_catalog
@@ -13,6 +14,7 @@
   become: true
   become_user: "{{ irods_service_account_name | d('irods') }}"
   vars:
+    leak_check_command_scripts: {}
     leak_check_results_dir: /results
     leak_check_results_file: leak_check_results.json
     leak_check_rules: stock
@@ -65,6 +67,15 @@
       ansible.builtin.assert:
         that: leak_check_rules in ['stock', 'data_store']
         fail_msg: leak_check_rules must be stock or data_store, not {{ leak_check_rules }}
+
+    - name: Install the command scripts
+      ansible.builtin.copy:
+        dest: /var/lib/irods/msiExecCmd_bin/{{ item.key }}
+        content: "{{ item.value }}"
+        mode: u=rwx,g=rx,o=
+      loop: "{{ leak_check_command_scripts | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
 
     - name: Copy the probe
       ansible.builtin.copy:

@@ -80,6 +80,7 @@ Defining some PEPs makes the iRODS agent that serves a connection leak memory in
 testing/test-leaks                                     # CentOS 7, iRODS 4.3.1
 testing/test-leaks --alma9 4.3.5                       # AlmaLinux 9, iRODS 4.3.5
 testing/test-leaks --data-store-rules                  # with the Data Store's rule bases
+testing/test-leaks --cases testing/leak-check/exec_cmd_cases.yml
 testing/test-leaks -o /tmp/leaks -- -e leak_check_threshold_mib=32
 ```
 
@@ -99,6 +100,8 @@ Each workload runs at two sizes, `small` (1000 operations of 64 KiB) and `large`
 The summary reports, for each PEP and size, the agent's growth, the control's growth, and their difference per operation and per MiB moved. Transfer buffers make an agent's memory swing by tens of MiB between samples, so growth is measured on the floor instead: the rate at which the lowest sample rises, from the run's first quarter to its last, extrapolated over the whole run. `LEAK?` marks a difference over `leak_check_threshold_mib`, 16 MiB by default. The full sample series is in `<platform>-<version>.json` in the output directory, `./leak-check-results` by default. Only the stock rule bases are loaded, so the results show what iRODS itself does, not the Data Store's rules.
 
 `--data-store-rules` measures the Data Store's rules instead. Before the leak check, it deploys them with the same playbooks the rule tests use: `irods_cfg.yml`, then `irods_runtime_init.yml` and `dbms_icat.yml`. The playbook then runs each workload in `leak_check_workloads` once against those rules, with nothing added and no control run, so the summary's leak column is the agent's whole growth. Its results file ends in `-data-store.json`.
+
+`--cases <file>` runs the cases in a vars file instead of the defaults. It can set any of the playbook's `leak_check_*` variables, and `leak_check_command_scripts` maps command script names to contents that the playbook installs in `/var/lib/irods/msiExecCmd_bin` for the cases' rules to call. The results file's name ends with the cases file's name. `leak-check/exec_cmd_cases.yml` reproduces a leak in `msiExecCmd`: the iRODS Rule Language never frees the `ExecCmdOut` it returns, so each call whose command writes any output leaks at least the 16 KiB output buffer, and `msiFreeBuffer` doesn't free it.
 
 The probe counts only agents connected to the workload's client, found by matching their TCP connections in `/proc/net/tcp`. Other agents start during a run, notably the delay server's, which replicate each upload under the Data Store's rules, and the summary's `agents` column shows how many served the workload out of how many started.
 

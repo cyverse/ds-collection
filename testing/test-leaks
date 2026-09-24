@@ -17,6 +17,8 @@ Options:
  -a, --alma9 <version>  replace the CentOS 7 iRODS 4.3.1 catalog service
                         provider with an AlmaLinux 9 one running iRODS
                         <version>, building its image if needed
+ -c, --cases <file>     a vars file of cases to run in place of the default
+                        PEPs or workloads, e.g., leak-check/exec_cmd_cases.yml
  -d, --data-store-rules deploy the Data Store's rule bases and measure each
                         workload against them, instead of comparing empty PEPs
                         with control runs under the stock rule bases
@@ -29,8 +31,8 @@ This script starts the testing environment, runs
 testing/leak-check/leak_check.yml against the configured catalog service
 provider, prints a summary comparing each PEP with a control run, and stops the
 environment. The results go to <platform>-<version>.json in the output
-directory, e.g., alma9-4.3.5.json, or alma9-4.3.5-data-store.json with
---data-store-rules. Options after -- go to ansible-playbook, for
+directory, e.g., alma9-4.3.5.json, alma9-4.3.5-data-store.json with
+--data-store-rules, or alma9-4.3.5-exec_cmd_cases.json with --cases. Options after -- go to ansible-playbook, for
 example '-- -e leak_check_threshold_mib=32'.
 EOF
 }
@@ -57,13 +59,14 @@ source "$Cfg"
 
 main() {
 	local args
-	if ! args="$(ds_getopt a:dho: alma9:,data-store-rules,help,output: "$ExecName" "$@")"
+	if ! args="$(ds_getopt a:c:dho: alma9:,cases:,data-store-rules,help,output: "$ExecName" "$@")"
 	then
 		exit_with_help
 	fi
 
 	eval set -- "$args"
 
+	local cases=
 	local output=leak-check-results
 	local overrides=()
 	local platform=centos7-4.3.1
@@ -75,6 +78,10 @@ main() {
 				export IRODS_VERSION="$2"
 				overrides=("$TestingDir"/env/docker-compose.provider-alma9.yml)
 				platform=alma9-"$2"
+				shift 2
+				;;
+			-c|--cases)
+				cases="$2"
 				shift 2
 				;;
 			-d|--data-store-rules)
@@ -102,6 +109,19 @@ main() {
 		results="$platform"-data-store.json
 	fi
 
+	local casesMount=()
+	if [[ -n "$cases" ]]
+	then
+		if ! [[ -f "$cases" ]]
+		then
+			printf 'The cases file %s does not exist\n' "$cases" >&2
+			return 1
+		fi
+
+		results="${results%.json}-$(basename "${cases%.*}")".json
+		casesMount=(--volume "$(readlink -f "$cases")":/cases.yml:ro)
+	fi
+
 	mkdir -p "$output"
 	output="$(readlink -f "$output")"
 
@@ -112,6 +132,7 @@ main() {
 	# The tester runs as root, so hand the results back to the invoking user.
 	docker run --rm --interactive \
 		--entrypoint bash \
+		--env CASES="${cases:+/cases.yml}" \
 		--env HOST_OWNER="$(id -u):$(id -g)" \
 		--env RESULTS="$results" \
 		--env RULES="$rules" \
@@ -119,6 +140,7 @@ main() {
 		--platform=linux/amd64 \
 		--volume "$CollectionDir":"$CollectionMount":ro \
 		--volume "$output":/results \
+		${casesMount[@]+"${casesMount[@]}"} \
 		ansible-tester \
 		-c '
 			run() {
@@ -128,7 +150,8 @@ main() {
 				fi
 				ansible-playbook -i /inventory/hosts-configured \
 					'"$CollectionMount"'/testing/leak-check/leak_check.yml \
-					-e leak_check_results_file="$RESULTS" -e leak_check_rules="$RULES" "$@"
+					-e leak_check_results_file="$RESULTS" -e leak_check_rules="$RULES" \
+					${CASES:+-e @"$CASES"} "$@"
 			}
 			# The same setup the rule tests need; see "The iRODS rule tests".
 			deploy_data_store_rules() {

@@ -1,0 +1,61 @@
+---
+# Cases for testing/test-leaks --cases that reproduce the msiExecCmd leak. In the
+# iRODS Rule Language, the ExecCmdOut that msiExecCmd returns is never freed, so
+# every call whose command writes anything leaks the agent's output buffer, at
+# least the 16 KiB readToByteBuf starts with. A command that writes nothing
+# doesn't leak, and msiFreeBuffer doesn't free the buffer. Each case calls
+# msiExecCmd from acPostProcForPut, so the leak grows once per uploaded file.
+
+leak_check_threshold_mib: 4
+
+leak_check_command_scripts:
+  leak-check-no-output: |
+    #!/bin/sh
+    exit 0
+  leak-check-one-line: |
+    #!/bin/sh
+    echo 01234567-89ab-11f1-8000-0123456789ab
+  leak-check-16k: |
+    #!/bin/sh
+    head -c 16384 /dev/zero | tr '\000' a
+
+leak_check_peps:
+  - name: exec_no_output
+    workload: put
+    sizes: [small]
+    rule: |
+      acPostProcForPut {
+        msiExecCmd('leak-check-no-output', '', '', '', '', *out);
+      }
+  - name: exec_one_line
+    workload: put
+    sizes: [small]
+    rule: |
+      acPostProcForPut {
+        msiExecCmd('leak-check-one-line', '', '', '', '', *out);
+      }
+  - name: exec_one_line_x4
+    workload: put
+    sizes: [small]
+    rule: |
+      acPostProcForPut {
+        msiExecCmd('leak-check-one-line', '', '', '', '', *out1);
+        msiExecCmd('leak-check-one-line', '', '', '', '', *out2);
+        msiExecCmd('leak-check-one-line', '', '', '', '', *out3);
+        msiExecCmd('leak-check-one-line', '', '', '', '', *out4);
+      }
+  - name: exec_16k
+    workload: put
+    sizes: [small]
+    rule: |
+      acPostProcForPut {
+        msiExecCmd('leak-check-16k', '', '', '', '', *out);
+      }
+  - name: exec_one_line+msiFreeBuffer
+    workload: put
+    sizes: [small]
+    rule: |
+      acPostProcForPut {
+        msiExecCmd('leak-check-one-line', '', '', '', '', *out);
+        msiFreeBuffer(*out);
+      }
