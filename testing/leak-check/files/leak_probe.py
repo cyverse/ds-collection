@@ -202,7 +202,6 @@ def sample_agent(run, interval):
         "rss_first_kib": rss[0],
         "rss_peak_kib": max(rss),
         "rss_last_kib": rss[-1],
-        "growth_kib": rss[-1] - rss[0],
         "samples": samples,
     }
 
@@ -353,9 +352,26 @@ def run_command(*command):
     subprocess.run(command, check=True, stdout=subprocess.DEVNULL)
 
 
+def floor_growth_kib(samples):
+    """
+    Estimates how much memory the agent retained over the whole run. Transfer
+    buffers come and go, so the RSS at any one sample can sit well above what
+    the agent retains, but a leak raises the floor. The rate at which the floor
+    rises, from the lowest sample in the first quarter to the lowest in the last
+    quarter, is extrapolated over the run.
+    """
+    quarter = max(1, len(samples) // 4)
+    first_time, first_rss = min(samples[:quarter], key=lambda s: s[1])
+    last_time, last_rss = min(samples[-quarter:], key=lambda s: s[1])
+    if last_time <= first_time:
+        return last_rss - first_rss
+    run_time = samples[-1][0] - samples[0][0]
+    return round((last_rss - first_rss) * run_time / (last_time - first_time))
+
+
 def summarize_results(results, threshold_mib):
     controls = {
-        (r["workload"], r["size"]): r["result"]["growth_kib"]
+        (r["workload"], r["size"]): floor_growth_kib(r["result"]["samples"])
         for r in results
         if r["name"] == "control"
     }
@@ -377,7 +393,7 @@ def summarize_results(results, threshold_mib):
     for r in results:
         if r["name"] == "control":
             continue
-        growth = r["result"]["growth_kib"]
+        growth = floor_growth_kib(r["result"]["samples"])
         control = controls[(r["workload"], r["size"])]
         leak_kib = growth - control
         moved_mib = r["count"] * r["bytes_per_op"] / MIB
