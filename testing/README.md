@@ -81,4 +81,21 @@ tester 'cd /playbooks-under-test/tests/rules && python cyverse_logic.py'
 
 Use containers rather than `test-playbook`, which always stops the environment afterward and takes the setup with it. `tester` mounts the collection the way `ansible-tester/run` does and replaces the image's `/test-playbook` entrypoint with `bash`, so it needs no terminal. Run each module in its own container, as `python <module>.py`, since several module names contain hyphens and can't be run with `-m`. A module that stops partway can leave a mock rule base deployed, which is another reason to keep them apart. On an x86_64 host the setup takes about four minutes. Stop the environment with `testing/env/controller testing/config.inc stop`.
 
+## Molecule
+
+The roles are tested with the molecule scenarios in `molecule/`, which run on the host rather than in this environment. `test-molecule` runs them with the setup they need.
+
+```bash
+testing/test-molecule                              # every scenario
+testing/test-molecule haproxy irods_cfg_upgrade    # the named scenarios
+```
+
+It runs each scenario even when an earlier one fails, prints a summary, and exits nonzero if any failed. Along the way, it does the following.
+
+* It tests a copy of the working tree, uncommitted changes included, placed at `ansible_collections/cyverse/ds` in a temporary directory. `irods_cfg_upgrade` calls `json_patch` by its bare name, which Ansible resolves only when the playbook itself sits at such a path, so a symlink isn't enough.
+* It installs `requirements.txt` and the `requirements.yml` collections into `.venv-molecule` at the collection root, and reinstalls them when either file changes. With `uv` it uses Python 3.12, since ansible-core 2.16 supports controller Pythons 3.10 through 3.12; without it, it uses `python3`. Delete `.venv-molecule` to force a clean install.
+* It puts `.venv-molecule/bin` first on `PATH`, because molecule runs whichever `ansible` it finds there.
+* It sets `DOCKER_HOST` from the current Docker context when it isn't already set, because molecule reaches Docker through the Python SDK, which ignores contexts. This matters for daemons like colima's.
+* It points `ANSIBLE_HOME` into the temporary directory. Otherwise molecule installs the collection under test and the scenarios' Galaxy roles into `~/.ansible`, where they shadow any other `cyverse.ds`.
+
 <!-- TODO: document test-plugin -->
