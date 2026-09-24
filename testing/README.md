@@ -72,4 +72,28 @@ It runs each scenario even when an earlier one fails, prints a summary, and exit
 * It sets `DOCKER_HOST` from the current Docker context when it isn't already set, because molecule reaches Docker through the Python SDK, which ignores contexts. This matters for daemons like colima's.
 * It points `ANSIBLE_HOME` into the temporary directory. Otherwise molecule installs the collection under test and the scenarios' Galaxy roles into `~/.ansible`, where they shadow any other `cyverse.ds`.
 
+## PEP memory leaks
+
+Defining some PEPs makes the iRODS agent that serves a connection leak memory in proportion to the data it moves, whatever the PEP's body does (see irods/irods#8106). `test-leaks` measures this, so a baseline can be recorded and a fix checked against it.
+
+```bash
+testing/test-leaks                                     # results in ./leak-check-results
+testing/test-leaks -o /tmp/leaks -- -e leak_check_threshold_mib=32
+```
+
+It starts the environment, runs `leak-check/leak_check.yml` against the configured catalog service provider, prints a summary, and stops the environment. Options after `--` go to `ansible-playbook`.
+
+For each PEP in the playbook's `leak_check_peps`, the probe, `leak-check/files/leak_probe.py`, runs a workload over one connection twice: once as a control, with no PEP defined, and once with the PEP defined with an empty body. While the workload runs, it samples the resident memory of the agent serving it, from `/proc`. The difference in the agent's growth between the two runs is the leak.
+
+| Workload | Client | Requests |
+| --- | --- | --- |
+| `put` | `iput -r` | one `DATA_OBJ_PUT` per file |
+| `bulk_put` | `iput -b -r` | `BULK_DATA_OBJ_PUT`, many files per request |
+| `write` | python-irodsclient | one `DATA_OBJ_WRITE` per operation, to one data object |
+| `read` | python-irodsclient | one `DATA_OBJ_READ` per operation, from one data object |
+
+Each workload runs at two sizes, `small` (1000 operations of 64 KiB) and `large` (100 of 4 MiB), so a leak per byte can be told from a leak per request. The workloads target `leakCheckResc`, a resource the probe creates on the provider, because a resource elsewhere would redirect the work to another server's agent. The PEPs live in their own rule base, `leak_check`, which the probe adds ahead of the others and empties between cases; iRODS rereads it when the next agent starts, so only its first registration needs a restart.
+
+The summary reports, for each PEP and size, the agent's growth, the control's growth, and their difference per operation and per MiB moved. `LEAK?` marks a difference over `leak_check_threshold_mib`, 16 MiB by default. The full sample series is in `leak_check_results.json`. The measurement runs against whatever iRODS version the provider image installs, and only the stock rule bases are loaded, so it shows what iRODS itself does, not the Data Store's rules.
+
 <!-- TODO: document test-plugin -->
