@@ -11,6 +11,7 @@
   become_user: "{{ irods_service_account_name | d('irods') }}"
   vars:
     leak_check_results_dir: /results
+    leak_check_results_file: leak_check_results.json
     leak_check_threshold_mib: 16
     leak_check_sizes:
       small:
@@ -86,7 +87,7 @@
     - name: Fetch the results
       ansible.builtin.fetch:
         src: "{{ _results }}"
-        dest: "{{ leak_check_results_dir }}/leak_check_results.json"
+        dest: "{{ leak_check_results_dir }}/{{ leak_check_results_file }}"
         flat: true
 
     - name: Summarize the results
@@ -95,7 +96,7 @@
       ansible.builtin.command: >-
         python3 {{ playbook_dir }}/files/leak_probe.py summarize
           --threshold-mib {{ leak_check_threshold_mib }}
-          {{ leak_check_results_dir }}/leak_check_results.json
+          {{ leak_check_results_dir }}/{{ leak_check_results_file }}
       register: summary
       changed_when: false
 

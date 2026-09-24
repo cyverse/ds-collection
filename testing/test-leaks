@@ -14,16 +14,20 @@ $ExecName [options] [-- ansible-playbook options]
 measure iRODS agent memory leaks caused by PEPs
 
 Options:
- -h, --help           show help and exit
- -o, --output <dir>   the directory to write leak_check_results.json to,
-                      default ./leak-check-results
+ -a, --alma9 <version>  replace the CentOS 7 iRODS 4.3.1 catalog service
+                        provider with an AlmaLinux 9 one running iRODS
+                        <version>, building its image if needed
+ -h, --help             show help and exit
+ -o, --output <dir>     the directory to write the results to, default
+                        ./leak-check-results
 
 Summary:
 This script starts the testing environment, runs
 testing/leak-check/leak_check.yml against the configured catalog service
 provider, prints a summary comparing each PEP with a control run, and stops the
-environment. Options after -- go to ansible-playbook, for example
-'-- -e leak_check_threshold_mib=32'.
+environment. The results go to <platform>-<version>.json in the output
+directory, e.g., alma9-4.3.5.json. Options after -- go to ansible-playbook, for
+example '-- -e leak_check_threshold_mib=32'.
 EOF
 }
 
@@ -49,7 +53,7 @@ source "$Cfg"
 
 main() {
 	local args
-	if ! args="$(ds_getopt ho: help,output: "$ExecName" "$@")"
+	if ! args="$(ds_getopt a:ho: alma9:,help,output: "$ExecName" "$@")"
 	then
 		exit_with_help
 	fi
@@ -57,9 +61,17 @@ main() {
 	eval set -- "$args"
 
 	local output=leak-check-results
+	local overrides=()
+	local results=centos7-4.3.1.json
 	while true
 	do
 		case "$1" in
+			-a|--alma9)
+				export IRODS_VERSION="$2"
+				overrides=("$TestingDir"/env/docker-compose.provider-alma9.yml)
+				results=alma9-"$2".json
+				shift 2
+				;;
 			-h|--help)
 				show_help
 				return
@@ -78,13 +90,15 @@ main() {
 	mkdir -p "$output"
 	output="$(readlink -f "$output")"
 
-	"$TestingDir"/env/controller "$Cfg" start
-	trap '"$TestingDir"/env/controller "$Cfg" stop' EXIT
+	"$TestingDir"/env/controller "$Cfg" start ${overrides[@]+"${overrides[@]}"}
+	#shellcheck disable=SC2064
+	trap "$(printf '%q ' "$TestingDir"/env/controller "$Cfg" stop ${overrides[@]+"${overrides[@]}"})" EXIT
 
 	# The tester runs as root, so hand the results back to the invoking user.
 	docker run --rm --interactive \
 		--entrypoint bash \
 		--env HOST_OWNER="$(id -u):$(id -g)" \
+		--env RESULTS="$results" \
 		--network "$DOMAIN" \
 		--platform=linux/amd64 \
 		--volume "$CollectionDir":"$CollectionMount":ro \
@@ -92,7 +106,8 @@ main() {
 		ansible-tester \
 		-c '
 			ansible-playbook -i /inventory/hosts-configured /wait-for-ready.yml > /dev/null \
-				&& ansible-playbook -i /inventory/hosts-configured '"$CollectionMount"'/testing/leak-check/leak_check.yml "$@"
+				&& ansible-playbook -i /inventory/hosts-configured '"$CollectionMount"'/testing/leak-check/leak_check.yml \
+					-e leak_check_results_file="$RESULTS" "$@"
 			rc=$?
 			chown -R "$HOST_OWNER" /results
 			exit $rc' \

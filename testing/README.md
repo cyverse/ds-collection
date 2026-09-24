@@ -77,7 +77,8 @@ It runs each scenario even when an earlier one fails, prints a summary, and exit
 Defining some PEPs makes the iRODS agent that serves a connection leak memory in proportion to the data it moves, whatever the PEP's body does (see irods/irods#8106). `test-leaks` measures this, so a baseline can be recorded and a fix checked against it.
 
 ```bash
-testing/test-leaks                                     # results in ./leak-check-results
+testing/test-leaks                                     # CentOS 7, iRODS 4.3.1
+testing/test-leaks --alma9 4.3.5                       # AlmaLinux 9, iRODS 4.3.5
 testing/test-leaks -o /tmp/leaks -- -e leak_check_threshold_mib=32
 ```
 
@@ -94,6 +95,8 @@ For each PEP in the playbook's `leak_check_peps`, the probe, `leak-check/files/l
 
 Each workload runs at two sizes, `small` (1000 operations of 64 KiB) and `large` (100 of 4 MiB), so a leak per byte can be told from a leak per request. The workloads target `leakCheckResc`, a resource the probe creates on the provider, because a resource elsewhere would redirect the work to another server's agent. The PEPs live in their own rule base, `leak_check`, which the probe adds ahead of the others and empties between cases; iRODS rereads it when the next agent starts, so only its first registration needs a restart.
 
-The summary reports, for each PEP and size, the agent's growth, the control's growth, and their difference per operation and per MiB moved. `LEAK?` marks a difference over `leak_check_threshold_mib`, 16 MiB by default. The full sample series is in `leak_check_results.json`. The measurement runs against whatever iRODS version the provider image installs, and only the stock rule bases are loaded, so it shows what iRODS itself does, not the Data Store's rules.
+The summary reports, for each PEP and size, the agent's growth, the control's growth, and their difference per operation and per MiB moved. `LEAK?` marks a difference over `leak_check_threshold_mib`, 16 MiB by default. The full sample series is in `<platform>-<version>.json` in the output directory, `./leak-check-results` by default. Only the stock rule bases are loaded, so the results show what iRODS itself does, not the Data Store's rules.
+
+By default the provider is the environment's CentOS 7 one, which runs iRODS 4.3.1. iRODS publishes CentOS 7 packages only up to 4.3.2, so to compare versions, `--alma9 <version>` swaps in an AlmaLinux 9 provider running any 4.3 release. `env/docker-compose.provider-alma9.yml` makes the swap: it rebuilds the `provider_configured` service from `env/irods-provider/Dockerfile.configured-alma9`, with the version as a build argument, and keeps the service's name, so its host name, the inventories, and the catalog stay the same. Every 4.3 release uses catalog schema 11, so the existing DBMS image serves them all. Each version's image is built the first time it's needed; if your buildx builder uses the `docker-container` driver, set `BUILDX_BUILDER=default` so the build can find `test-env-base:alma9`. The same override works outside `test-leaks`: pass it to `env/controller` after the action, and export `IRODS_VERSION`.
 
 <!-- TODO: document test-plugin -->

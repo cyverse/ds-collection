@@ -1,0 +1,78 @@
+FROM test-env-base:alma9
+
+ARG DB_NAME=ICAT
+ARG DB_PASSWORD=testpassword
+ARG DB_USER=irods
+ARG DBMS_HOST=dbms_configured
+ARG DBMS_PORT=5432
+ARG DBMS_TYPE=postgres
+ARG IRODS_CONTROL_PLANE_KEY=TEMPORARY__32byte_ctrl_plane_key
+ARG IRODS_CONTROL_PLANE_PORT=1248
+ARG IRODS_DEFAULT_RESOURCE=demoResc
+ARG IRODS_FIRST_EPHEMERAL_PORT=20000
+ARG IRODS_HOST=csp
+ARG IRODS_LAST_EPHEMERAL_PORT=20199
+ARG IRODS_NEGOTIATION_KEY=TEMPORARY_32byte_negotiation_key
+ARG IRODS_SCHEMA_VALIDATION=https://schemas.irods.org/configuration
+ARG IRODS_SYSTEM_GROUP=irods
+ARG IRODS_SYSTEM_USER=irods
+ARG IRODS_VERSION=4.3.1
+ARG IRODS_ZONE_KEY=TEMPORARY_zone_key
+ARG IRODS_ZONE_NAME=tempZone
+ARG IRODS_ZONE_PASSWORD=rods
+ARG IRODS_ZONE_PORT=1247
+ARG IRODS_ZONE_USER=rods
+ARG ODBC_DRIVER=/usr/lib64/psqlodbcw.so
+ARG ODBC_SETUP=/usr/lib64/psqlodbca.so
+
+ADD https://packages.irods.org/renci-irods.yum.repo /etc/yum.repos.d/renci-irods.yum.repo
+
+COPY irods-provider/config/pre_config.re /etc/irods/
+
+RUN \
+	--mount=target=/tmp/config-irods,source=irods-provider/scripts/config-irods.sh \
+	--mount=target=/tmp/service.sh.template,source=irods-provider/scripts/service.sh.template \
+	--mount=target=/tmp/prep-svc-script,source=irods-provider/scripts/prep-svc-script.sh \
+<<EOF
+	set -o errexit
+
+### Install iRODS
+# The NetCDF plugins the CentOS 7 provider installs aren't built for EL9.
+	rpm --import https://packages.irods.org/irods-signing-key.asc
+	dnf --assumeyes install \
+		irods-database-plugin-postgres-"$IRODS_VERSION" \
+		irods-icommands-"$IRODS_VERSION" \
+		irods-runtime-"$IRODS_VERSION" \
+		irods-server-"$IRODS_VERSION" \
+		postgresql-odbc \
+		python3-pip \
+		rsyslog
+
+### Install libraries required by command scripts
+	pip3 install pika==1.1
+
+### Configure ODBC and iRODS
+	/tmp/config-irods
+
+### Create service script
+	/tmp/prep-svc-script
+	mkdir --parents /var/lock/subsys
+
+### Install testing support artifacts
+	pip3 --quiet install 'python-irodsclient<3.2'
+
+### Add fake s3 credentials
+	mkdir --parents /etc/irods/s3-credentials
+	touch /etc/irods/s3-credentials/cred-stale
+	chown --recursive irods /etc/irods/s3-credentials
+
+### Clean dnf cache
+	dnf clean all
+	rm --force --recursive /var/cache/dnf
+EOF
+
+COPY irods-provider/config/profile-irods.sh /etc/profile.d/irods.sh
+COPY irods-provider/config/rsyslog-irods.conf /etc/rsyslog.conf
+COPY irods-provider/config/logrotate-irods /etc/logrotate.d/irods
+
+CMD [ "/service.sh" ]
