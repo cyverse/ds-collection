@@ -17,6 +17,9 @@ Options:
  -a, --alma9 <version>  replace the CentOS 7 iRODS 4.3.1 catalog service
                         provider with an AlmaLinux 9 one running iRODS
                         <version>, building its image if needed
+ -d, --data-store-rules deploy the Data Store's rule bases and measure each
+                        workload against them, instead of comparing empty PEPs
+                        with control runs under the stock rule bases
  -h, --help             show help and exit
  -o, --output <dir>     the directory to write the results to, default
                         ./leak-check-results
@@ -26,7 +29,8 @@ This script starts the testing environment, runs
 testing/leak-check/leak_check.yml against the configured catalog service
 provider, prints a summary comparing each PEP with a control run, and stops the
 environment. The results go to <platform>-<version>.json in the output
-directory, e.g., alma9-4.3.5.json. Options after -- go to ansible-playbook, for
+directory, e.g., alma9-4.3.5.json, or alma9-4.3.5-data-store.json with
+--data-store-rules. Options after -- go to ansible-playbook, for
 example '-- -e leak_check_threshold_mib=32'.
 EOF
 }
@@ -53,7 +57,7 @@ source "$Cfg"
 
 main() {
 	local args
-	if ! args="$(ds_getopt a:ho: alma9:,help,output: "$ExecName" "$@")"
+	if ! args="$(ds_getopt a:dho: alma9:,data-store-rules,help,output: "$ExecName" "$@")"
 	then
 		exit_with_help
 	fi
@@ -62,15 +66,20 @@ main() {
 
 	local output=leak-check-results
 	local overrides=()
-	local results=centos7-4.3.1.json
+	local platform=centos7-4.3.1
+	local rules=stock
 	while true
 	do
 		case "$1" in
 			-a|--alma9)
 				export IRODS_VERSION="$2"
 				overrides=("$TestingDir"/env/docker-compose.provider-alma9.yml)
-				results=alma9-"$2".json
+				platform=alma9-"$2"
 				shift 2
+				;;
+			-d|--data-store-rules)
+				rules=data_store
+				shift 1
 				;;
 			-h|--help)
 				show_help
@@ -87,6 +96,12 @@ main() {
 		esac
 	done
 
+	local results="$platform".json
+	if [[ "$rules" == data_store ]]
+	then
+		results="$platform"-data-store.json
+	fi
+
 	mkdir -p "$output"
 	output="$(readlink -f "$output")"
 
@@ -99,15 +114,30 @@ main() {
 		--entrypoint bash \
 		--env HOST_OWNER="$(id -u):$(id -g)" \
 		--env RESULTS="$results" \
+		--env RULES="$rules" \
 		--network "$DOMAIN" \
 		--platform=linux/amd64 \
 		--volume "$CollectionDir":"$CollectionMount":ro \
 		--volume "$output":/results \
 		ansible-tester \
 		-c '
-			ansible-playbook -i /inventory/hosts-configured /wait-for-ready.yml > /dev/null \
-				&& ansible-playbook -i /inventory/hosts-configured '"$CollectionMount"'/testing/leak-check/leak_check.yml \
-					-e leak_check_results_file="$RESULTS" "$@"
+			run() {
+				ansible-playbook -i /inventory/hosts-configured /wait-for-ready.yml > /dev/null || return
+				if [ "$RULES" = data_store ]; then
+					deploy_data_store_rules || return
+				fi
+				ansible-playbook -i /inventory/hosts-configured \
+					'"$CollectionMount"'/testing/leak-check/leak_check.yml \
+					-e leak_check_results_file="$RESULTS" -e leak_check_rules="$RULES" "$@"
+			}
+			# The same setup the rule tests need; see "The iRODS rule tests".
+			deploy_data_store_rules() {
+				local playbooks='"$CollectionMount"'/playbooks
+				ansible-playbook -i /inventory/hosts-configured "$playbooks"/irods_cfg.yml \
+					&& ansible-playbook --skip-tags=no_testing -i /inventory/hosts-configured \
+						"$playbooks"/irods_runtime_init.yml "$playbooks"/dbms_icat.yml
+			}
+			run "$@"
 			rc=$?
 			chown -R "$HOST_OWNER" /results
 			exit $rc' \

@@ -122,7 +122,10 @@ def do_run(config, results_path):
 
 
 def build_cases(config):
-    """Puts a control case, with no PEP defined, ahead of each workload and size."""
+    """
+    Unless the config's controls is false, puts a control case, with no PEP
+    defined, ahead of each workload and size.
+    """
     cases = []
     controls = set()
     for pep in config["peps"]:
@@ -134,7 +137,10 @@ def build_cases(config):
                 "count": size["count"],
                 "bytes_per_op": size["bytes"],
             }
-            if (pep["workload"], size_name) not in controls:
+            if (
+                config.get("controls", True)
+                and (pep["workload"], size_name) not in controls
+            ):
                 controls.add((pep["workload"], size_name))
                 cases.append(dict(base, name="control", rule=""))
             cases.append(dict(base, name=pep["name"], rule=pep["rule"]))
@@ -145,19 +151,19 @@ def measure(config, case):
     workload = WORKLOADS[case["workload"]](config, case)
     workload.prepare()
     try:
-        return sample_agent(workload.run, config["sample_interval"])
+        return sample_agent(workload, config["sample_interval"])
     finally:
         workload.cleanup()
 
 
-def sample_agent(run, interval):
-    """Runs the workload in a thread, recording the memory of each new agent."""
+def sample_agent(workload, interval):
+    """Runs the workload in a thread, recording the memory of the agents serving it."""
     existing = server_pids()
     failure = []
 
     def target():
         try:
-            run()
+            workload.run()
         except Exception as e:  # pylint: disable=broad-except
             failure.append(e)
 
@@ -165,12 +171,21 @@ def sample_agent(run, interval):
     start = time.monotonic()
     worker.start()
 
+    # Other clients, like the delay server running replication rules, start
+    # agents too, so only agents connected to the workload's client count.
+    seen = set()
+    serving = set()
     series = {}
     cpu = {}
     while True:
         finished = not worker.is_alive()
         elapsed = round(time.monotonic() - start, 2)
-        for pid in server_pids() - existing:
+        new = server_pids() - existing
+        seen |= new
+        client = workload.client_pid()
+        if client is not None:
+            serving |= connected_to(client, new - serving)
+        for pid in serving:
             rss = rss_kib(pid)
             if rss is not None:
                 series.setdefault(pid, []).append([elapsed, rss])
@@ -184,19 +199,20 @@ def sample_agent(run, interval):
         raise failure[0]
     if not series:
         raise RuntimeError(
-            "No new agent appeared during the workload; it probably finished faster"
-            " than the sample interval or connected to a different server"
+            "No agent connected to the workload's client was seen; the workload"
+            " probably finished faster than the sample interval or was redirected"
+            " to a different server"
         )
 
-    # The workload's client can open more than one connection, and other
-    # clients, like the delay server, can start agents too. The agent that
-    # served the workload is the one that used the most CPU.
+    # A client can open more than one connection. The agent that served the
+    # workload is the one that used the most CPU.
     pid = max(series, key=lambda p: cpu.get(p, 0))
     samples = series[pid]
     rss = [s[1] for s in samples]
     return {
         "seconds": round(time.monotonic() - start, 2),
-        "agents_seen": len(series),
+        "agents_seen": len(seen),
+        "agents_serving": len(series),
         "agent_pid": pid,
         "agent_cpu_ticks": cpu.get(pid, 0),
         "rss_first_kib": rss[0],
@@ -204,6 +220,55 @@ def sample_agent(run, interval):
         "rss_last_kib": rss[-1],
         "samples": samples,
     }
+
+
+def connected_to(client, candidates):
+    """Returns the candidates holding the other end of a client's TCP connections."""
+    connections = tcp_connections()
+    # A client's other sockets, like Unix domain ones, aren't in the TCP tables.
+    peers = {
+        (connections[i][1], connections[i][0])
+        for i in socket_inodes(client)
+        if i in connections
+    }
+    return {
+        pid
+        for pid in candidates
+        if any(connections.get(i) in peers for i in socket_inodes(pid))
+    }
+
+
+def tcp_connections():
+    """Maps socket inodes to their local and remote addresses."""
+    connections = {}
+    for table in ("/proc/net/tcp", "/proc/net/tcp6"):
+        try:
+            with open(table) as f:
+                next(f)
+                for line in f:
+                    fields = line.split()
+                    connections[int(fields[9])] = (fields[1], fields[2])
+        except OSError:
+            pass
+    return connections
+
+
+def socket_inodes(pid):
+    """Returns the inodes of a process's open sockets, or none if it has exited."""
+    inodes = set()
+    fd_dir = "/proc/{}/fd".format(pid)
+    try:
+        fds = os.listdir(fd_dir)
+    except OSError:
+        return inodes
+    for fd in fds:
+        try:
+            target = os.readlink(os.path.join(fd_dir, fd))
+        except OSError:
+            continue
+        if target.startswith("socket:["):
+            inodes.add(int(target[len("socket:[") : -1]))
+    return inodes
 
 
 def server_pids():
@@ -257,6 +322,10 @@ class Workload:
     def run(self):
         raise NotImplementedError
 
+    def client_pid(self):
+        """Returns the process that connects to iRODS, or None if it hasn't started."""
+        return os.getpid()
+
     def cleanup(self):
         run_command("irm", "-rf", self.collection)
 
@@ -268,6 +337,7 @@ class PutWorkload(Workload):
 
     def prepare(self):
         super().prepare()
+        self.client = None
         self.scratch = tempfile.TemporaryDirectory()
         for i in range(self.case["count"]):
             with open(os.path.join(self.scratch.name, "f{}".format(i)), "wb") as f:
@@ -277,7 +347,13 @@ class PutWorkload(Workload):
         command = ["iput", "-r", "-R", self.config["resource"]]
         if self.bulk:
             command.append("-b")
-        run_command(*command, self.scratch.name, self.collection + "/files")
+        command += [self.scratch.name, self.collection + "/files"]
+        self.client = subprocess.Popen(command, stdout=subprocess.DEVNULL)
+        if self.client.wait() != 0:
+            raise subprocess.CalledProcessError(self.client.returncode, command)
+
+    def client_pid(self):
+        return self.client.pid if self.client else None
 
     def cleanup(self):
         self.scratch.cleanup()
@@ -386,7 +462,7 @@ def summarize_results(results, threshold_mib):
         "leak MiB",
         "leak B/op",
         "leak B/MiB",
-        "agents",
+        "agents serving/seen",
         "flag",
     )
     rows = [header]
@@ -394,8 +470,9 @@ def summarize_results(results, threshold_mib):
         if r["name"] == "control":
             continue
         growth = floor_growth_kib(r["result"]["samples"])
-        control = controls[(r["workload"], r["size"])]
-        leak_kib = growth - control
+        # Runs without controls count all growth as leak.
+        control = controls.get((r["workload"], r["size"]))
+        leak_kib = growth - (control or 0)
         moved_mib = r["count"] * r["bytes_per_op"] / MIB
         rows.append(
             (
@@ -405,11 +482,13 @@ def summarize_results(results, threshold_mib):
                 str(r["count"]),
                 "{:.0f}".format(moved_mib),
                 "{:.1f}".format(growth / 1024),
-                "{:.1f}".format(control / 1024),
+                "-" if control is None else "{:.1f}".format(control / 1024),
                 "{:.1f}".format(leak_kib / 1024),
                 "{:.0f}".format(leak_kib * 1024 / r["count"]),
                 "{:.0f}".format(leak_kib * 1024 / moved_mib),
-                str(r["result"]["agents_seen"]),
+                "{}/{}".format(
+                    r["result"].get("agents_serving", "?"), r["result"]["agents_seen"]
+                ),
                 "LEAK?" if leak_kib / 1024 > threshold_mib else "",
             )
         )

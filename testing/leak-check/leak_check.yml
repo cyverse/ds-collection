@@ -1,7 +1,10 @@
 ---
-# Measures how much memory an iRODS agent gains when each PEP in
-# leak_check_peps is defined, compared with a control run where it isn't. A PEP
-# body doesn't need to do anything to leak, so the PEPs here are empty. See
+# Measures how much memory an iRODS agent gains while serving each workload.
+# With leak_check_rules set to stock, the provider has only the stock rule bases,
+# and each PEP in leak_check_peps is compared with a control run where it isn't
+# defined. A PEP body doesn't need to do anything to leak, so the PEPs here are
+# empty. With data_store, the Data Store's rule bases must already be deployed,
+# and each workload in leak_check_workloads runs against them as they are. See
 # testing/README.md for how to run it.
 
 - name: Measure agent memory growth caused by PEPs
@@ -12,6 +15,7 @@
   vars:
     leak_check_results_dir: /results
     leak_check_results_file: leak_check_results.json
+    leak_check_rules: stock
     leak_check_threshold_mib: 16
     leak_check_sizes:
       small:
@@ -43,10 +47,25 @@
         workload: read
         sizes: [small, large]
         rule: pep_api_data_obj_read_post(*INSTANCE_NAME, *COMM, *DATAOBJREADINP, *BUFFER) { }
+    leak_check_workloads:
+      - workload: put
+        sizes: [small, large]
+      - workload: bulk_put
+        sizes: [small]
+      - workload: write
+        sizes: [small, large]
+      - workload: read
+        sizes: [small, large]
+    _data_store_cases: "{{ leak_check_workloads | map('combine', {'name': 'data_store', 'rule': ''}) }}"
     _probe: /tmp/leak_probe.py
     _config: /tmp/leak_check.json
     _results: /tmp/leak_check_results.json
   tasks:
+    - name: Check the rule set
+      ansible.builtin.assert:
+        that: leak_check_rules in ['stock', 'data_store']
+        fail_msg: leak_check_rules must be stock or data_store, not {{ leak_check_rules }}
+
     - name: Copy the probe
       ansible.builtin.copy:
         src: files/leak_probe.py
@@ -67,7 +86,8 @@
               'rule_base': 'leak_check',
               'sample_interval': 0.2,
               'sizes': leak_check_sizes,
-              'peps': leak_check_peps,
+              'peps': leak_check_peps if leak_check_rules == 'stock' else _data_store_cases,
+              'controls': leak_check_rules == 'stock',
             } | to_nice_json
           }}
 
