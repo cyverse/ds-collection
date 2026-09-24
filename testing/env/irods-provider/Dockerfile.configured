@@ -72,7 +72,7 @@ RUN \
 		rsyslog
 
 ### Install libraries required by command scripts
-	pip3 install pika==1.1
+	pip3 install 'pika>=1.2'
 
 ### Configure ODBC and iRODS
 	/tmp/config-irods
