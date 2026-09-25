@@ -31,7 +31,7 @@ main()
   while read -r repository rest
   do
     docker rmi "$repository"
-  done < <(docker images --filter reference="$ENV_NAME"-* | tail --lines +2)
+  done < <(docker images --filter reference="$ENV_NAME"-* | tail -n +2)
 
   local bases
   readarray -t bases < <(docker images --quiet --filter reference=test-env-base)

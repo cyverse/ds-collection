@@ -36,10 +36,15 @@ EOF
 
 set -o errexit -o nounset -o pipefail
 
-ExecName=$(readlink --canonicalize "$0")
+ExecName=$(readlink -f "$0")
 TestingDir=$(dirname "$ExecName")
 CollectionDir="$(dirname "$TestingDir")"
 readonly ExecName TestingDir CollectionDir
+
+#shellcheck source=testing/portability.sh
+source "$TestingDir"/portability.sh
+
+portability::require_bash 4
 
 readonly Cfg="$TestingDir"/config.inc
 readonly PlaybooksDir="$CollectionDir"/playbooks
@@ -179,19 +184,12 @@ exit_with_help() {
 
 parse_cmd_line() {
 	local opts
-	if [[ "$OSTYPE" == "darwin"* ]]
-	then
-		#shellcheck disable=SC2048,SC2086
-		opts="$(getopt hiI:P:pS: $*)"
-	else
-		opts="$(\
-			getopt \
-				--longoptions help,inspect,inventory:,playbook:,pretty,setup: \
-				--options hiI:P:pS: \
-				--name "$ExecName" \
-				-- \
-				"$@" )"
-	fi
+	opts="$(\
+		portability::getopt \
+			hiI:P:pS: \
+			help,inspect,inventory:,playbook:,pretty,setup: \
+			"$ExecName" \
+			"$@" )"
 
 	local ret="$?"
 

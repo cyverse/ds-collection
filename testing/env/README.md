@@ -15,6 +15,11 @@ export ENV_NAME=dstesting
 # The name of the docker network.
 export DOMAIN="$ENV_NAME"_default
 
+# The DBMS user iRODS connects to the ICAT with. The same value has to reach
+# both the DBMS and the catalog service provider images, or the provider
+# authenticates as a role the DBMS never created.
+export DB_USER=irodsuser
+
 # The host name of the PostgreSQL server
 export DBMS_HOST="$ENV_NAME"_dbms_configured_1."$DOMAIN"
 
