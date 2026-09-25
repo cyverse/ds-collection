@@ -38,48 +38,22 @@ Tests can be defined for a given playbook. They should be placed in a playbook w
 
 ## The iRODS rule tests
 
-The `unittest` modules in `playbooks/tests/rules` run against a live server, and nothing here invokes them. A freshly started environment lacks several things they depend on, and each gap fails a different set of tests:
-
-* The Data Store's rule bases, which the provider image doesn't install. `irods_cfg.yml` deploys them. Without them, every rule call fails with `NO_MICROSERVICE_FOUND_ERR`.
-* The `rodsadmin` group, which `irods_runtime_init.yml` creates. Without it, every user creation fails with `CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME`, because `cyverse_logic_acCreateCollByAdmin` can't grant the group access to the new home collection and then fails to give it a UUID.
-* The `r_transfer_totals` table, which `dbms_icat.yml` creates. `cyverse_transfer_tracking.py` empties it in every `tearDown`.
-* The AVRA, ESIIL, NCEMS, and PIRE resources and collections, which `irods_resource_server.yml` and the four `*_usage.yml` playbooks create. The `avra` and `pire` storage resources belong to the unconfigured consumer, so these playbooks run against the `hosts-unconfigured-consumer` inventory.
-* iRODS running in test mode, which writes the `/var/lib/irods/log/test_mode_output.log` that many tests read. Run without `--skip-tags=no_testing`, `irods_cfg.yml` restarts iRODS without `--test`. With the skip, its restart into test mode fails intermittently. The steps below therefore run it without the skip, then restart each server in test mode by hand.
-
-From the collection root, with the environment stopped:
+The `unittest` modules in `playbooks/tests/rules` test the rule logic against a live server. `test-rules` starts the environment, prepares it for them, runs them, prints a summary, and stops the environment. It exits nonzero if any module failed.
 
 ```bash
-. testing/config.inc
-testing/env/controller testing/config.inc start
-
-tester() {
-  docker run --rm -i --entrypoint bash \
-    --env IRODS_HOST="$IRODS_PROVIDER_CONF_HOST" \
-    --env IRODS_ZONE_NAME="$IRODS_ZONE_NAME" \
-    --env PGHOST="$DBMS_HOST" \
-    --network "$DOMAIN" \
-    --platform=linux/amd64 \
-    --volume "$PWD":/root/.ansible/collections/ansible_collections/cyverse/ds:ro \
-    --volume "$PWD"/playbooks:/playbooks-under-test:ro \
-    ansible-tester -c "$1"
-}
-
-tester 'ansible-playbook -i /inventory/hosts-configured /wait-for-ready.yml'
-tester 'ansible-playbook -i /inventory/hosts-configured /playbooks-under-test/irods_cfg.yml'
-for p in irods_runtime_init dbms_icat; do
-  tester "ansible-playbook --skip-tags=no_testing -i /inventory/hosts-configured /playbooks-under-test/$p.yml"
-done
-for p in irods_resource_server avra_usage esiil_usage ncems_usage pire_usage; do
-  tester "ansible-playbook --skip-tags=no_testing -i /inventory/hosts-unconfigured-consumer /playbooks-under-test/$p.yml"
-done
-for svc in provider_configured consumer_configured_centos consumer_configured_ubuntu consumer_unconfigured; do
-  docker exec "$ENV_NAME-$svc-1" su - irods -c '/var/lib/irods/irodsctl --test restart'
-done
-
-tester 'cd /playbooks-under-test/tests/rules && python cyverse_logic.py'
+testing/test-rules                   # every module
+testing/test-rules cyverse_logic     # the named modules
 ```
 
-Use containers rather than `test-playbook`, which always stops the environment afterward and takes the setup with it. `tester` mounts the collection the way `ansible-tester/run` does and replaces the image's `/test-playbook` entrypoint with `bash`, so it needs no terminal. Run each module in its own container, as `python <module>.py`, since several module names contain hyphens and can't be run with `-m`. A module that stops partway can leave a mock rule base deployed, which is another reason to keep them apart. On an x86_64 host the setup takes about four minutes. Stop the environment with `testing/env/controller testing/config.inc stop`.
+A freshly started environment lacks several things the tests depend on, so before running them `test-rules` does the following. Preparing the environment takes about four minutes on an x86_64 host.
+
+* It runs `irods_cfg.yml` to deploy the Data Store's rule bases, which the provider image doesn't install. Without them, every rule call fails with `NO_MICROSERVICE_FOUND_ERR`.
+* It runs `irods_runtime_init.yml` to create the `rodsadmin` group. Without it, every user creation fails with `CATALOG_ALREADY_HAS_ITEM_BY_THAT_NAME`.
+* It runs `dbms_icat.yml` to create the `r_transfer_totals` table, which `cyverse_transfer_tracking.py` empties in every `tearDown`.
+* It runs `irods_resource_server.yml` and the four `*_usage.yml` playbooks to create the AVRA, ESIIL, NCEMS, and PIRE resources and collections.
+* It restarts every iRODS server in test mode, which writes the `/var/lib/irods/log/test_mode_output.log` that many tests read.
+
+Each module runs in its own container, since a module that stops partway can leave a mock rule base deployed.
 
 ## Molecule
 

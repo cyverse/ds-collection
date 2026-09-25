@@ -1,0 +1,206 @@
+#!/usr/bin/env bash
+#
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
+help() {
+	cat <<EOF
+
+$EXEC_NAME
+
+Usage:
+$EXEC_NAME [options] [module ...]
+
+test the Data Store's iRODS rule logic
+
+Parameters:
+ module  the name of a test module in playbooks/tests/rules, with or without
+         its .py extension, e.g., cyverse_logic
+
+Options:
+ -h, --help  show help and exit
+
+Summary:
+This script starts the testing environment, prepares it for the rule tests,
+runs the given test modules, or every module if none are given, reports which
+passed, and stops the environment. Each module runs in its own ansible-tester
+container. Preparing the environment takes about four minutes on an x86_64
+host. It deploys the Data Store's rule bases, creates the rodsadmin group, the
+r_transfer_totals table, and the AVRA, ESIIL, NCEMS, and PIRE resources and
+collections, and restarts every iRODS server in test mode.
+EOF
+}
+
+
+set -o errexit -o nounset -o pipefail
+
+EXEC_NAME="$(readlink -f "$0")"
+TESTING_DIR="$(dirname "$EXEC_NAME")"
+COLLECTION_DIR="$(dirname "$TESTING_DIR")"
+readonly EXEC_NAME TESTING_DIR COLLECTION_DIR
+
+#shellcheck source=testing/portability.sh
+source "$TESTING_DIR"/portability.sh
+#shellcheck source=testing/results.sh
+source "$TESTING_DIR"/results.sh
+
+portability::require_bash 4
+
+readonly CFG="$TESTING_DIR"/config.inc
+readonly RULES_DIR="$COLLECTION_DIR"/playbooks/tests/rules
+readonly IRODS_SERVICES=(
+	provider_configured consumer_configured_centos consumer_configured_ubuntu
+	consumer_unconfigured )
+
+# shellcheck disable=SC1090
+source "$CFG"
+
+
+main() {
+	local args
+	if ! args="$(portability::getopt h help "$EXEC_NAME" "$@")"; then
+		exit_with_help
+	fi
+
+	eval set -- "$args"
+
+	while true; do
+		case "$1" in
+			-h|--help)
+				help
+				return
+				;;
+			--)
+				shift 1
+				break
+				;;
+		esac
+	done
+
+	local modules=("${@%.py}")
+	if (( ${#modules[@]} == 0 )); then
+		readarray -t modules < <(list_modules)
+	fi
+
+	local module
+	for module in "${modules[@]}"; do
+		if [[ "$module" == test_rules ]] || ! [[ -f "$RULES_DIR"/"$module".py ]]; then
+			printf 'There is no rule test module named %s\n' "$module" >&2
+			exit 1
+		fi
+	done
+
+	"$TESTING_DIR"/env/controller "$CFG" start
+	trap stop_env EXIT
+
+	prepare_env
+
+	# A module that stops partway can leave a mock rule base deployed, so give
+	# each one a fresh container.
+	local failed=()
+	for module in "${modules[@]}"; do
+		printf '\nRunning %s\n' "$module"
+
+		if ! run_in_tester "cd /playbooks-under-test/tests/rules && python $module.py"; then
+			failed+=("$module")
+		fi
+	done
+
+	results::print_summary modules "${#modules[@]}" ${failed[@]+"${failed[@]}"}
+
+	if (( ${#failed[@]} > 0 )); then
+		return 1
+	fi
+}
+
+
+exit_with_help() {
+	help >&2
+	exit 1
+}
+
+
+# Writes the names of the test modules, without their .py extensions, to
+# stdout. test_rules.py is the library the modules share, not a module.
+list_modules() {
+	local file
+	for file in "$RULES_DIR"/*.py; do
+		file="$(basename "$file" .py)"
+
+		if [[ "$file" != test_rules ]]; then
+			printf '%s\n' "$file"
+		fi
+	done
+}
+
+
+# Runs the playbooks that create what the rule tests depend on, then restarts
+# iRODS in test mode so that it writes the test_mode_output.log the tests read.
+prepare_env() {
+	run_playbook hosts-configured /wait-for-ready.yml
+
+	# With --skip-tags=no_testing, irods_cfg's restart into test mode fails
+	# intermittently. Without it, iRODS restarts normally, so the servers are
+	# restarted in test mode by hand below.
+	run_playbook hosts-configured /playbooks-under-test/irods_cfg.yml
+
+	local playbook
+	for playbook in irods_runtime_init dbms_icat; do
+		run_playbook hosts-configured \
+			--skip-tags=no_testing /playbooks-under-test/"$playbook".yml
+	done
+
+	# The avra and pire storage resources belong to the unconfigured consumer.
+	for playbook in irods_resource_server avra_usage esiil_usage ncems_usage pire_usage; do
+		run_playbook hosts-unconfigured-consumer \
+			--skip-tags=no_testing /playbooks-under-test/"$playbook".yml
+	done
+
+	local service
+	for service in "${IRODS_SERVICES[@]}"; do
+		printf 'Restarting iRODS on %s in test mode\n' "$service"
+		docker exec "$ENV_NAME"-"$service"-1 \
+			su - irods -c '/var/lib/irods/irodsctl --test restart'
+	done
+}
+
+
+# Runs a playbook in an ansible-tester container.
+# Input:
+#  $1     the inventory hosts file in the container's /inventory
+#  $2...  the ansible-playbook options followed by the playbook's path in the
+#         container
+run_playbook() {
+	local hosts="$1"
+	shift
+
+	run_in_tester "ansible-playbook -i /inventory/$hosts $*"
+}
+
+
+# Runs a bash command in an ansible-tester container, mounting the collection
+# the way ansible-tester/run does. It replaces the image's /test-playbook
+# entrypoint, so it needs no terminal.
+# Input:
+#  $1  the command
+run_in_tester() {
+	local cmd="$1"
+
+	docker run --rm --entrypoint bash \
+		--env IRODS_HOST="$IRODS_PROVIDER_CONF_HOST" \
+		--env IRODS_ZONE_NAME="$IRODS_ZONE_NAME" \
+		--env PGHOST="$DBMS_HOST" \
+		--network "$DOMAIN" \
+		--platform=linux/amd64 \
+		--volume "$COLLECTION_DIR":/root/.ansible/collections/ansible_collections/cyverse/ds:ro \
+		--volume "$COLLECTION_DIR"/playbooks:/playbooks-under-test:ro \
+		ansible-tester -c "$cmd"
+}
+
+
+stop_env() {
+	"$TESTING_DIR"/env/controller "$CFG" stop
+}
+
+
+main "$@"
