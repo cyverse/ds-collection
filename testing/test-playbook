@@ -41,10 +41,10 @@ TestingDir=$(dirname "$ExecName")
 CollectionDir="$(dirname "$TestingDir")"
 readonly ExecName TestingDir CollectionDir
 
-#shellcheck source=testing/portability.inc
-source "$TestingDir"/portability.inc
+#shellcheck source=testing/portability.sh
+source "$TestingDir"/portability.sh
 
-ds_require_bash 4
+portability::require_bash 4
 
 readonly Cfg="$TestingDir"/config.inc
 readonly PlaybooksDir="$CollectionDir"/playbooks
@@ -185,7 +185,7 @@ exit_with_help() {
 parse_cmd_line() {
 	local opts
 	opts="$(\
-		ds_getopt \
+		portability::getopt \
 			hiI:P:pS: \
 			help,inspect,inventory:,playbook:,pretty,setup: \
 			"$ExecName" \

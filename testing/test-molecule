@@ -34,10 +34,10 @@ TestingDir=$(dirname "$ExecName")
 CollectionDir="$(dirname "$TestingDir")"
 readonly ExecName TestingDir CollectionDir
 
-#shellcheck source=testing/portability.inc
-source "$TestingDir"/portability.inc
+#shellcheck source=testing/portability.sh
+source "$TestingDir"/portability.sh
 
-ds_require_bash 4
+portability::require_bash 4
 
 readonly MoleculeDir="$CollectionDir"/molecule
 readonly VenvDir="$CollectionDir"/.venv-molecule
@@ -47,7 +47,7 @@ readonly InstallStamp="$VenvDir"/.installed
 
 main() {
 	local args
-	if ! args="$(ds_getopt h help "$ExecName" "$@")"
+	if ! args="$(portability::getopt h help "$ExecName" "$@")"
 	then
 		exit_with_help
 	fi

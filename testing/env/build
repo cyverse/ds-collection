@@ -17,8 +17,8 @@ set -o errexit -o nounset -o pipefail
 EXEC_PATH="$(readlink -f "$0")"
 readonly EXEC_PATH
 
-#shellcheck source=testing/portability.inc
-. "$(dirname "$EXEC_PATH")"/../portability.inc
+#shellcheck source=testing/portability.sh
+. "$(dirname "$EXEC_PATH")"/../portability.sh
 
 
 main()
@@ -59,7 +59,7 @@ main()
 #    --no-cache
   )
 
-  ds_compose "${composeArgs[@]}"
+  portability::compose "${composeArgs[@]}"
 }
 
 

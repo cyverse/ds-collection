@@ -10,7 +10,7 @@ The environment consists of a set of containers. The `amqp` container hosts the 
 
 The harness needs Docker with the Compose v2 plugin (`docker compose`), and bash 4 or later for the scripts that use associative arrays. The inventories name containers the way Compose v2 does, so the older `docker-compose` v1 binary resolves to host names that don't exist.
 
-On macOS the scripts stick to options the BSD tools share with the GNU ones, and `portability.inc` papers over the differences that remain, so no GNU coreutils install is needed. What is needed:
+On macOS the scripts stick to options the BSD tools share with the GNU ones, and `portability.sh` papers over the differences that remain, so no GNU coreutils install is needed. What is needed:
 
 * macOS 12.3 or later, the first release whose `readlink` accepts `-f`.
 * bash 4 or later ahead of `/bin/bash` on `PATH`, since macOS ships bash 3.2.
