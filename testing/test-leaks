@@ -120,9 +120,10 @@ main() {
 	mkdir -p "$output"
 	output="$(readlink -f "$output")"
 
-	"$TESTING_DIR"/env/controller "$CFG" start ${overrides[@]+"${overrides[@]}"}
+	# Set before starting, so a start that fails partway doesn't leave containers behind.
 	#shellcheck disable=SC2064
 	trap "$(printf '%q ' "$TESTING_DIR"/env/controller "$CFG" stop ${overrides[@]+"${overrides[@]}"})" EXIT
+	"$TESTING_DIR"/env/controller "$CFG" start ${overrides[@]+"${overrides[@]}"}
 
 	# The tester runs as root, so hand the results back to the invoking user.
 	docker run --rm --interactive \
