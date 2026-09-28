@@ -125,15 +125,20 @@
     - name: Load the rule base before measuring
       ansible.builtin.meta: flush_handlers
 
-    - name: Run the cases
-      ansible.builtin.command: python3 {{ _probe }} run {{ _config }} {{ _results }}
-      changed_when: true
-
-    - name: Fetch the results
-      ansible.builtin.fetch:
-        src: "{{ _results }}"
-        dest: "{{ leak_check_results_dir }}/{{ leak_check_results_file }}"
-        flat: true
+    # The probe saves the cases that finished even when one fails, so fetch them
+    # before test-leaks tears down the provider.
+    - name: Run the cases and fetch the results
+      block:
+        - name: Run the cases
+          ansible.builtin.command: python3 {{ _probe }} run {{ _config }} {{ _results }}
+          changed_when: true
+      always:
+        - name: Fetch the results
+          ansible.builtin.fetch:
+            src: "{{ _results }}"
+            dest: "{{ leak_check_results_dir }}/{{ leak_check_results_file }}"
+            flat: true
+            fail_on_missing: false
 
     - name: Summarize the results
       delegate_to: localhost
