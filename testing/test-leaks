@@ -113,7 +113,9 @@ main() {
 			return 1
 		fi
 
-		results="${results%.json}-$(basename "${cases%.*}")".json
+		local casesName
+		casesName="$(basename "$cases")"
+		results="${results%.json}-${casesName%.*}".json
 		casesMount=(--volume "$(readlink -f "$cases")":/cases.yml:ro)
 	fi
 
