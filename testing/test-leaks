@@ -18,7 +18,8 @@ Options:
                         provider with an AlmaLinux 9 one running iRODS
                         <version>, building its image if needed
  -c, --cases <file>     a vars file of cases to run in place of the default
-                        PEPs or workloads, e.g., leak-check/exec_cmd_cases.yml
+                        PEPs, e.g., leak-check/exec_cmd_cases.yml; not with
+                        --data-store-rules
  -d, --data-store-rules deploy the Data Store's rule bases and measure each
                         workload against them, instead of comparing empty PEPs
                         with control runs under the stock rule bases
@@ -100,6 +101,13 @@ main() {
 				;;
 		esac
 	done
+
+	# Under the Data Store's rules, the playbook runs leak_check_workloads and
+	# ignores any PEPs a cases file defines.
+	if [[ "$rules" == data_store && -n "$cases" ]]; then
+		printf '%s\n' '--cases can'"'"'t be combined with --data-store-rules' >&2
+		return 1
+	fi
 
 	local results="$platform".json
 	if [[ "$rules" == data_store ]]; then
