@@ -158,7 +158,9 @@ main() {
 			}
 			run "$@"
 			rc=$?
-			chown -R "$HOST_OWNER" /results
+			if [[ -e /results/"$RESULTS" ]]; then
+				chown "$HOST_OWNER" /results/"$RESULTS"
+			fi
 			exit $rc' \
 		leak-check "$@"
 }
