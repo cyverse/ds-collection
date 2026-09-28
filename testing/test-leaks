@@ -29,7 +29,7 @@ Options:
 Summary:
 This script starts the testing environment, runs
 testing/leak-check/leak_check.yml against the configured catalog service
-provider, prints a summary comparing each PEP with a control run, and stops the
+provider, prints a summary of each case's memory growth, and stops the
 environment. The results go to <platform>-<version>.json in the output
 directory, e.g., alma9-4.3.5.json, alma9-4.3.5-data-store.json with
 --data-store-rules, or alma9-4.3.5-exec_cmd_cases.json with --cases. Options

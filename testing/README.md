@@ -74,7 +74,7 @@ It runs each scenario even when an earlier one fails, prints a summary, and exit
 
 ## PEP memory leaks
 
-Defining some PEPs makes the iRODS agent that serves a connection leak memory in proportion to the data it moves, whatever the PEP's body does (see irods/irods#8106). `test-leaks` measures this, so a baseline can be recorded and a fix checked against it.
+Defining some PEPs makes the iRODS agent serving a connection leak memory in proportion to the data it moves, whatever the PEP's body does (see irods/irods#8106). `test-leaks` measures this so a baseline can be recorded and a fix checked against it.
 
 ```bash
 testing/test-leaks                                     # CentOS 7, iRODS 4.3.1
@@ -84,27 +84,21 @@ testing/test-leaks --cases testing/leak-check/exec_cmd_cases.yml
 testing/test-leaks -o /tmp/leaks -- -e leak_check_threshold_mib=32
 ```
 
-It starts the environment, runs `leak-check/leak_check.yml` against the configured catalog service provider, prints a summary, and stops the environment. Options after `--` go to `ansible-playbook`.
+It starts the environment, runs `leak-check/leak_check.yml` against the catalog service provider, prints a summary, and stops the environment. Options after `--` go to `ansible-playbook`. The default run takes about five minutes.
 
-For each PEP in the playbook's `leak_check_peps`, the probe, `leak-check/files/leak_probe.py`, runs a workload over one connection twice: once as a control, with no PEP defined, and once with the PEP defined with an empty body. While the workload runs, it samples the resident memory of the agent serving it, from `/proc`. The difference in the agent's growth between the two runs is the leak.
+The probe, `leak-check/files/leak_probe.py`, runs each workload and size once as a control, with no PEP defined, and once for each PEP in `leak_check_peps`, defined with an empty body. It samples the resident memory of the agent serving the workload, and the difference between a PEP's growth and its control's is the leak. The workloads target `leakCheckResc`, a resource on the provider, since a resource elsewhere would move the work to another server's agent.
 
-| Workload | Client | Requests |
-| --- | --- | --- |
-| `put` | `iput -r` | one `DATA_OBJ_PUT` per file |
-| `bulk_put` | `iput -b -r` | `BULK_DATA_OBJ_PUT`, many files per request |
-| `write` | python-irodsclient | one `DATA_OBJ_WRITE` per operation, to one data object |
-| `read` | python-irodsclient | one `DATA_OBJ_READ` per operation, from one data object |
+| Workload | Client | Requests | Sizes |
+| --- | --- | --- | --- |
+| `put` | `iput -r` | one `DATA_OBJ_PUT` per file | small, large |
+| `bulk_put` | `iput -b -r` | `BULK_DATA_OBJ_PUT`, many files per request | small |
+| `write` | python-irodsclient | one `DATA_OBJ_WRITE` per operation, to one data object | small, large |
+| `read` | python-irodsclient | one `DATA_OBJ_READ` per operation, from one data object | small, large |
 
-Each workload runs at two sizes, `small` (1000 operations of 64 KiB) and `large` (100 of 4 MiB), so a leak per byte can be told from a leak per request. The workloads target `leakCheckResc`, a resource the probe creates on the provider, because a resource elsewhere would redirect the work to another server's agent. The PEPs live in their own rule base, `leak_check`, which the probe adds ahead of the others and empties between cases; iRODS rereads it when the next agent starts, so only its first registration needs a restart.
+`small` is 1000 operations of 64 KiB and `large` is 100 of 4 MiB, so a leak per byte can be told from a leak per request. Transfer buffers swing an agent's memory by tens of MiB, so growth is measured on the floor: the rise of the lowest sample from the run's first quarter to its last, extrapolated over the run. `LEAK?` marks a leak over `leak_check_threshold_mib`, 16 MiB by default. The `agents` column counts the agents that served the workload out of all that started during it. The results, with every sample, go to `<platform>-<version>.json` in `./leak-check-results`, or the directory given with `-o`.
 
-The summary reports, for each PEP and size, the agent's growth, the control's growth, and their difference per operation and per MiB moved. Transfer buffers make an agent's memory swing by tens of MiB between samples, so growth is measured on the floor instead: the rate at which the lowest sample rises, from the run's first quarter to its last, extrapolated over the whole run. `LEAK?` marks a difference over `leak_check_threshold_mib`, 16 MiB by default. The full sample series is in `<platform>-<version>.json` in the output directory, `./leak-check-results` by default. Only the stock rule bases are loaded, so the results show what iRODS itself does, not the Data Store's rules.
-
-`--data-store-rules` measures the Data Store's rules instead. Before the leak check, it deploys them with the same playbooks the rule tests use: `irods_cfg.yml`, then `irods_runtime_init.yml` and `dbms_icat.yml`. The playbook then runs each workload in `leak_check_workloads` once against those rules, with nothing added and no control run, so the summary's leak column is the agent's whole growth. Its results file ends in `-data-store.json`.
-
-`--cases <file>` runs the cases in a vars file instead of the defaults. It can set any of the playbook's `leak_check_*` variables, and `leak_check_command_scripts` maps command script names to contents that the playbook installs in `/var/lib/irods/msiExecCmd_bin` for the cases' rules to call. The results file's name ends with the cases file's name. `leak-check/exec_cmd_cases.yml` reproduces a leak in `msiExecCmd`: the iRODS Rule Language never frees the `ExecCmdOut` it returns, so each call whose command writes any output leaks at least the 16 KiB output buffer, and `msiFreeBuffer` doesn't free it.
-
-The probe counts only agents connected to the workload's client, found by matching their TCP connections in `/proc/net/tcp`. Other agents start during a run, notably the delay server's, which replicate each upload under the Data Store's rules, and the summary's `agents` column shows how many served the workload out of how many started.
-
-By default the provider is the environment's CentOS 7 one, which runs iRODS 4.3.1. iRODS publishes CentOS 7 packages only up to 4.3.2, so to compare versions, `--alma9 <version>` swaps in an AlmaLinux 9 provider running any 4.3 release. `env/docker-compose.provider-alma9.yml` makes the swap: it rebuilds the `provider_configured` service from `env/irods-provider/Dockerfile.configured-alma9`, with the version as a build argument, and keeps the service's name, so its host name, the inventories, and the catalog stay the same. Every 4.3 release uses catalog schema 11, so the existing DBMS image serves them all. Each version's image is built the first time it's needed; if your buildx builder uses the `docker-container` driver, set `BUILDX_BUILDER=default` so the build can find `test-env-base:alma9`. The same override works outside `test-leaks`: pass it to `env/controller` after the action, and export `IRODS_VERSION`.
+* `--data-store-rules` deploys the Data Store's rules with `irods_cfg.yml`, `irods_runtime_init.yml`, and `dbms_icat.yml`, then runs each workload in `leak_check_workloads` once against them, with no PEP added and no control, so the leak is the agent's whole growth. The results file ends in `-data-store.json`.
+* `--cases <file>` runs the cases in a vars file, which can set any of the playbook's `leak_check_*` variables, including `leak_check_command_scripts` for scripts the cases' rules call with `msiExecCmd`. The results file ends in the cases file's name. `leak-check/exec_cmd_cases.yml` reproduces a leak in `msiExecCmd`, described at the top of that file.
+* `--alma9 <version>` swaps in an AlmaLinux 9 provider running any iRODS 4.3 release, since iRODS publishes CentOS 7 packages only up to 4.3.2. It applies `env/docker-compose.provider-alma9.yml` (see `env/README.md`) and builds the version's image the first time it's needed. If your buildx builder uses the `docker-container` driver, set `BUILDX_BUILDER=default` so the build can find `test-env-base:alma9`.
 
 <!-- TODO: document test-plugin -->
