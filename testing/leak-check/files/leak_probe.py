@@ -21,10 +21,6 @@ import tempfile
 import threading
 import time
 
-from irods.exception import ResourceDoesNotExist
-from irods.keywords import DEST_RESC_NAME_KW, RESC_NAME_KW
-from irods.session import iRODSSession
-
 ENV_FILE = os.path.expanduser("~/.irods/irods_environment.json")
 SERVER_CONFIG = "/etc/irods/server_config.json"
 RULE_LANGUAGE_INSTANCE = "irods_rule_engine_plugin-irods_rule_language-instance"
@@ -67,9 +63,19 @@ def load_json(path):
         return json.load(f)
 
 
+def open_session():
+    # Imported here so that summarize, which runs on the controller, doesn't
+    # need python-irodsclient.
+    from irods.session import iRODSSession
+
+    return iRODSSession(irods_env_file=ENV_FILE)
+
+
 def do_setup(config):
     """Prints "changed" when iRODS needs a restart to load the rule base."""
-    with iRODSSession(irods_env_file=ENV_FILE) as session:
+    from irods.exception import ResourceDoesNotExist
+
+    with open_session() as session:
         try:
             session.resources.get(config["resource"])
         except ResourceDoesNotExist:
@@ -371,9 +377,11 @@ class WriteWorkload(Workload):
 
     def prepare(self):
         super().prepare()
-        self.session = iRODSSession(irods_env_file=ENV_FILE)
+        self.session = open_session()
 
     def run(self):
+        from irods.keywords import DEST_RESC_NAME_KW
+
         options = {DEST_RESC_NAME_KW: self.config["resource"]}
         with self.session.data_objects.open(
             self.collection + "/obj", "w", **options
@@ -391,19 +399,23 @@ class ReadWorkload(Workload):
     """Makes one DATA_OBJ_READ request per operation from a single data object."""
 
     def prepare(self):
+        from irods.keywords import DEST_RESC_NAME_KW
+
         super().prepare()
         # The object is written through its own connection, so its agent has
         # exited before the measured one starts.
-        with iRODSSession(irods_env_file=ENV_FILE) as session:
+        with open_session() as session:
             options = {DEST_RESC_NAME_KW: self.config["resource"]}
             with session.data_objects.open(
                 self.collection + "/obj", "w", **options
             ) as obj:
                 for _ in range(self.case["count"]):
                     obj.write(self.chunk)
-        self.session = iRODSSession(irods_env_file=ENV_FILE)
+        self.session = open_session()
 
     def run(self):
+        from irods.keywords import RESC_NAME_KW
+
         options = {RESC_NAME_KW: self.config["resource"]}
         with self.session.data_objects.open(
             self.collection + "/obj", "r", **options
