@@ -88,12 +88,12 @@ It starts the environment, runs `leak-check/leak_check.yml` against the catalog 
 
 The probe, `leak-check/files/leak_probe.py`, runs each workload and size once as a control, with no PEP defined, and once for each PEP in `leak_check_peps`, defined with an empty body. It samples the resident memory of the agent serving the workload, and the difference between a PEP's growth and its control's is the leak. The workloads target `leakCheckResc`, a resource on the provider, since a resource elsewhere would move the work to another server's agent.
 
-| Workload | Client | Requests | Sizes |
-| --- | --- | --- | --- |
-| `put` | `iput -r` | one `DATA_OBJ_PUT` per file | small, large |
-| `bulk_put` | `iput -b -r` | `BULK_DATA_OBJ_PUT`, many files per request | small |
-| `write` | python-irodsclient | one `DATA_OBJ_WRITE` per operation, to one data object | small, large |
-| `read` | python-irodsclient | one `DATA_OBJ_READ` per operation, from one data object | small, large |
+| Workload   | Client             | Requests                                                | Sizes
+| ---------- | ------------------ | ------------------------------------------------------- | ------------
+| `put`      | `iput -r`          | one `DATA_OBJ_PUT` per file                             | small, large
+| `bulk_put` | `iput -b -r`       | `BULK_DATA_OBJ_PUT`, many files per request             | small
+| `write`    | python-irodsclient | one `DATA_OBJ_WRITE` per operation, to one data object  | small, large
+| `read`     | python-irodsclient | one `DATA_OBJ_READ` per operation, from one data object | small, large
 
 `small` is 1000 operations of 64 KiB and `large` is 100 of 4 MiB, so a leak per byte can be told from a leak per request. Transfer buffers swing an agent's memory by tens of MiB, so growth is measured on the floor: the rise of the lowest sample from the run's first quarter to its last, extrapolated over the run. `LEAK?` marks a leak over `leak_check_threshold_mib`, 16 MiB by default. The `agents` column counts the agents that served the workload out of all that started during it. The results, with every sample, go to `<platform>-<version>.json` in `./leak-check-results`, or the directory given with `-o`.
 
