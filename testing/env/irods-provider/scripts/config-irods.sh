@@ -37,6 +37,11 @@
 #                             communication.
 # IRODS_ZONE_USER             The main rodsadmin user.
 #
+# These optional ones default to the PostgreSQL 12 ODBC driver from PGDG.
+#
+# ODBC_DRIVER                 The path to the PostgreSQL ODBC driver library.
+# ODBC_SETUP                  The path to the PostgreSQL ODBC setup library.
+#
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
@@ -227,8 +232,8 @@ update_odbc_def() {
 	odbcinst -i -d -r -v <<EOF
 [PostgreSQL]
 Description = PostgreSQL 12 ODBC Driver
-Driver = /usr/pgsql-12/lib/psqlodbc.so
-Setup = /usr/pgsql-12/lib/psqlodbcw.so
+Driver = ${ODBC_DRIVER:-/usr/pgsql-12/lib/psqlodbc.so}
+Setup = ${ODBC_SETUP:-/usr/pgsql-12/lib/psqlodbcw.so}
 EOF
 }
 

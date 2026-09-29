@@ -72,4 +72,33 @@ It runs each scenario even when an earlier one fails, prints a summary, and exit
 * It sets `DOCKER_HOST` from the current Docker context when it isn't already set, because molecule reaches Docker through the Python SDK, which ignores contexts. This matters for daemons like colima's.
 * It points `ANSIBLE_HOME` into the temporary directory. Otherwise molecule installs the collection under test and the scenarios' Galaxy roles into `~/.ansible`, where they shadow any other `cyverse.ds`.
 
+## PEP memory leaks
+
+Defining some PEPs makes the iRODS agent serving a connection leak memory in proportion to the data it moves, whatever the PEP's body does (see irods/irods#8106). `test-leaks` measures this so a baseline can be recorded and a fix checked against it.
+
+```bash
+testing/test-leaks                                     # CentOS 7, iRODS 4.3.1
+testing/test-leaks --alma9 4.3.5                       # AlmaLinux 9, iRODS 4.3.5
+testing/test-leaks --data-store-rules                  # with the Data Store's rule bases
+testing/test-leaks --cases testing/leak-check/exec_cmd_cases.yml
+testing/test-leaks -o /tmp/leaks -- -e leak_check_threshold_mib=32
+```
+
+It starts the environment, runs `leak-check/leak_check.yml` against the catalog service provider, prints a summary, and stops the environment. Options after `--` go to `ansible-playbook`. The default run takes about five minutes.
+
+The probe, `leak-check/files/leak_probe.py`, runs each workload and size once as a control, with no PEP defined, and once for each PEP in `leak_check_peps`, defined with an empty body. It samples the resident memory of the agent serving the workload, and the difference between a PEP's growth and its control's is the leak. The workloads target `leakCheckResc`, a resource on the provider, since a resource elsewhere would move the work to another server's agent.
+
+| Workload   | Client             | Requests                                                | Sizes
+| ---------- | ------------------ | ------------------------------------------------------- | ------------
+| `put`      | `iput -r`          | one `DATA_OBJ_PUT` per file                             | small, large
+| `bulk_put` | `iput -b -r`       | `BULK_DATA_OBJ_PUT`, many files per request             | small
+| `write`    | python-irodsclient | one `DATA_OBJ_WRITE` per operation, to one data object  | small, large
+| `read`     | python-irodsclient | one `DATA_OBJ_READ` per operation, from one data object | small, large
+
+`small` is 1000 operations of 64 KiB and `large` is 100 of 4 MiB, so a leak per byte can be told from a leak per request. Transfer buffers swing an agent's memory by tens of MiB, so growth is measured on the floor: the rise of the lowest sample from the run's first quarter to its last, extrapolated over the run. `LEAK?` marks a leak over `leak_check_threshold_mib`, 16 MiB by default. The `agents` column counts the agents that served the workload out of all that started during it. The results, with every sample, go to `<platform>-<version>.json` in `./leak-check-results`, or the directory given with `-o`.
+
+* `--data-store-rules` deploys the Data Store's rules with `irods_cfg.yml`, `irods_runtime_init.yml`, and `dbms_icat.yml`, then runs each workload in `leak_check_workloads` once against them, with no PEP added and no control, so the leak is the agent's whole growth. The environment has no AMQP broker, so `amqp-topic-send` is replaced with a script that succeeds without output, the way a real publish does; otherwise every failed publish would add `msiExecCmd`'s leak. The results file ends in `-data-store.json`.
+* `--cases <file>` runs the cases in a vars file under the stock rule bases; it can't be combined with `--data-store-rules`. The file can set any of the playbook's `leak_check_*` variables, including `leak_check_command_scripts` for scripts the cases' rules call with `msiExecCmd`. The results file ends in the cases file's name. `leak-check/exec_cmd_cases.yml` reproduces a leak in `msiExecCmd`, described at the top of that file.
+* `--alma9 <version>` swaps in an AlmaLinux 9 provider running any iRODS 4.3 release, since iRODS publishes CentOS 7 packages only up to 4.3.2. It applies `env/docker-compose.provider-alma9.yml` (see `env/README.md`) and builds the version's image the first time it's needed. If your buildx builder uses the `docker-container` driver, set `BUILDX_BUILDER=default` so the build can find `test-env-base:alma9`.
+
 <!-- TODO: document test-plugin -->

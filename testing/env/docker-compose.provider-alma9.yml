@@ -1,0 +1,13 @@
+---
+# Replaces the configured catalog service provider with an AlmaLinux 9 one
+# running iRODS IRODS_VERSION (default 4.3.1). It keeps the service name, so the
+# provider's host name, and everything that refers to it, stay the same. Pass
+# this file to env/controller after docker-compose.yml.
+
+services:
+  provider_configured:
+    build:
+      dockerfile: irods-provider/Dockerfile.configured-alma9
+      args:
+        IRODS_VERSION: "${IRODS_VERSION:-4.3.1}"
+    image: "${ENV_NAME}-provider_configured-alma9:${IRODS_VERSION:-4.3.1}"

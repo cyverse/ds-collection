@@ -1,4 +1,4 @@
-FROM test-env-base:centos7
+FROM test-env-base:alma9
 
 ARG DB_NAME=ICAT
 ARG DB_PASSWORD=testpassword
@@ -16,19 +16,14 @@ ARG IRODS_NEGOTIATION_KEY=TEMPORARY_32byte_negotiation_key
 ARG IRODS_SCHEMA_VALIDATION=https://schemas.irods.org/configuration
 ARG IRODS_SYSTEM_GROUP=irods
 ARG IRODS_SYSTEM_USER=irods
+ARG IRODS_VERSION=4.3.1
 ARG IRODS_ZONE_KEY=TEMPORARY_zone_key
 ARG IRODS_ZONE_NAME=tempZone
 ARG IRODS_ZONE_PASSWORD=rods
 ARG IRODS_ZONE_PORT=1247
 ARG IRODS_ZONE_USER=rods
-
-COPY <<EOF /etc/yum.repos.d/pgdg-12.repo
-[pgdg12-archive]
-name=PostgreSQL 12 RPMs for RHEL/Rocky Linux/AlmaLinux/CentOS 7
-baseurl=https://yum-archive.postgresql.org/12/redhat/rhel-7-x86_64
-enabled=1
-gpgcheck=0
-EOF
+ARG ODBC_DRIVER=/usr/lib64/psqlodbcw.so
+ARG ODBC_SETUP=/usr/lib64/psqlodbca.so
 
 ADD https://packages.irods.org/renci-irods.yum.repo /etc/yum.repos.d/renci-irods.yum.repo
 
@@ -41,34 +36,16 @@ RUN \
 <<EOF
 	set -o errexit
 
-### Install PostgreSQL ODBC connector
-	yum --assumeyes install postgresql12-odbc
-
 ### Install iRODS
+# The NetCDF plugins the CentOS 7 provider installs aren't built for EL9.
 	rpm --import https://packages.irods.org/irods-signing-key.asc
-	yum --assumeyes versionlock add \
-		irods-database-plugin-postgres-4.3.1 \
-		irods-icommands-4.3.1 \
-		irods-netcdf-client_modules-4.3.1.0 \
-		irods-netcdf-icommands-4.3.1.0 \
-		irods-netcdf-server_modules-4.3.1.0 \
-		irods-runtime-4.3.1 \
-		irods-server-4.3.1
-# XXX - python3-pyodbc required by irods-server but not available as system package in CentOS 7
-	yum --assumeyes install gcc gcc-c++ unixODBC-devel
-	pip3 install pyodbc
-	yum --assumeyes erase gcc gcc-c++ unixODBC-devel
-# XXX - ^^^
-# XXX - irods-icommands required by irods-server but not installed by dependency resolution in
-#       CentOS 7, 4.3.1
-	yum --assumeyes install irods-icommands
-# XXX - ^^^
-	yum --assumeyes install \
-		irods-database-plugin-postgres \
-		irods-netcdf-client_modules \
-		irods-netcdf-icommands \
-		irods-netcdf-server_modules \
-		irods-server \
+	dnf --assumeyes install \
+		irods-database-plugin-postgres-"$IRODS_VERSION" \
+		irods-icommands-"$IRODS_VERSION" \
+		irods-runtime-"$IRODS_VERSION" \
+		irods-server-"$IRODS_VERSION" \
+		postgresql-odbc \
+		python3-pip \
 		rsyslog
 
 ### Install libraries required by command scripts
@@ -79,6 +56,7 @@ RUN \
 
 ### Create service script
 	/tmp/prep-svc-script
+	mkdir --parents /var/lock/subsys
 
 ### Install testing support artifacts
 	pip3 --quiet install 'python-irodsclient<3.2'
@@ -88,9 +66,9 @@ RUN \
 	touch /etc/irods/s3-credentials/cred-stale
 	chown --recursive irods /etc/irods/s3-credentials
 
-### Clean yum cache
-	yum clean all
-	rm --force --recursive /var/cache/yum
+### Clean dnf cache
+	dnf clean all
+	rm --force --recursive /var/cache/dnf
 EOF
 
 COPY irods-provider/config/profile-irods.sh /etc/profile.d/irods.sh
