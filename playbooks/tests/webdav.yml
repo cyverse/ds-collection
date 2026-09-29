@@ -273,9 +273,15 @@
         - mod_proxy_html
         - mod_qos
         - mod_ssl
-        - yum-plugin-versionlock
+        - python3-dnf-plugin-versionlock
       loop_control:
         loop_var: pkg
+
+    - name: Test davrods and its irods-runtime upgraded
+      ansible.builtin.command: rpm --query --queryformat '%{VERSION}\n' davrods irods-runtime
+      register: resp
+      changed_when: false
+      failed_when: resp.stdout_lines != ['4.3.4_1.5.3', '4.3.4']
 
     - name: Test install iRODS package repository signing key
       ansible.builtin.shell:
@@ -302,8 +308,12 @@
         executable: /bin/bash
         cmd: |
           set -o pipefail
-          if ! yum versionlock list | grep --quiet 'irods-runtime'; then
-            printf 'irods-runtime not locked\n' >&2
+          if ! yum versionlock list | grep --quiet '^irods-runtime-0:4\.3\.4-'; then
+            printf 'irods-runtime not locked to 4.3.4\n' >&2
+            exit 1
+          fi
+          if yum versionlock list | grep --quiet '^irods-runtime-0:4\.3\.3-'; then
+            printf 'outdated irods-runtime lock not removed\n' >&2
             exit 1
           fi
       changed_when: false
@@ -373,7 +383,7 @@
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: varnish
-        version: "6.5.1"
+        version: "6.6.2"
 
     - name: Test create varnish shared memory mount point
       ansible.builtin.stat:
@@ -397,7 +407,7 @@
       register: resp
       failed_when: >-
         not resp.stat.isdir or
-        resp.stat.pw_name != 'varnishlog' or
+        resp.stat.pw_name != 'varnish' or
         resp.stat.gr_name != 'varnish' or
         resp.stat.mode != '0755'
 

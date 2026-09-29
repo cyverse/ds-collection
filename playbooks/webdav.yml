@@ -2,6 +2,10 @@
 - name: Install and configure apache
   hosts: webdav
   become: true
+  vars:
+    davrods_release: 4.3.4_1.5.3
+    # davrods requires the irods-runtime of the release it was built against
+    davrods_irods_version: "{{ davrods_release | split('_') | first }}"
   roles:
     - role: geerlingguy.apache
       vars:
@@ -238,8 +242,8 @@
 
     - name: Install prerequisites for selinux_permissive
       when: ansible_selinux.status == 'enabled'
-      ansible.builtin.yum:
-        name: policycoreutils-python
+      ansible.builtin.dnf:
+        name: policycoreutils-python-utils
         state: present
 
     - name: Place TLS certificate chain file
@@ -294,9 +298,9 @@
           notify:
             - Restart httpd
 
-    - name: Install yum versionlock
+    - name: Install dnf versionlock
       ansible.builtin.package:
-        name: yum-plugin-versionlock
+        name: python3-dnf-plugin-versionlock
         state: present
 
     - name: Install iRODS package repository signing key
@@ -352,10 +356,15 @@
         executable: /bin/bash
         cmd: |
           set -o errexit -o pipefail
-          readarray -t irods_locks < <(yum versionlock list | sed --quiet '/^0:irods-/p')
+          lock_pattern='^(irods-.+)-0:([0-9]+\.[0-9]+\.[0-9]+)[.-]'
+          readarray -t irods_locks < <(yum versionlock list | sed --quiet '/^irods-/p')
           for lock in "${irods_locks[@]}"; do
-            if ! [[ "$lock" =~ irods-runtime-4\.3\.0 ]]; then
-              pkg="$(sed 's/0:\(irods-.*\)-[0-9\.]\+-.*/\1/' <<< "$lock")"
+            if ! [[ "$lock" =~ $lock_pattern ]]; then
+              continue
+            fi
+            pkg="${BASH_REMATCH[1]}"
+            ver="${BASH_REMATCH[2]}"
+            if [[ "$pkg" != irods-runtime || "$ver" != '{{ davrods_irods_version }}' ]]; then
               yum versionlock delete "$pkg" > /dev/null
               echo changed
             fi
@@ -364,8 +373,12 @@
       changed_when: resp.stdout is regex('^changed')
 
     - name: Install davrods
-      ansible.builtin.yum:
-        name: https://github.com/UtrechtUniversity/davrods/releases/download/4.3.0_1.5.0/davrods-4.3.0_1.5.0-1.rpm
+      ansible.builtin.dnf:
+        name: >-
+          https://github.com/UtrechtUniversity/davrods/releases/download/{{ davrods_release }}/davrods-{{
+            davrods_release }}-1.rpm
+        # The davrods release RPMs aren't signed.
+        disable_gpg_check: true
         state: present
 
     - name: Lock irods-runtime
@@ -376,7 +389,7 @@
 #         state: present
       ansible.builtin.command: yum versionlock add irods-runtime
       register: resp
-      changed_when: 'resp.stdout is regex("versionlock added: 1")'
+      changed_when: resp.stdout is regex('Adding versionlock on')
 # XXX - ^^^
 
     - name: Configure iRODS environment
@@ -479,9 +492,9 @@
             state: absent
           loop: "{{ cached_files.files }}"
 
-    - name: Install varnish-cache package (v6.5.1)
-      ansible.builtin.yum:
-        name: https://packagecloud.io/varnishcache/varnish65/packages/el/7/varnish-6.5.1-0.0.el7.x86_64.rpm/download.rpm
+    - name: Install varnish-cache package
+      ansible.builtin.dnf:
+        name: varnish
         state: present
 
     - name: Configure selinux for varnish
@@ -523,7 +536,7 @@
         path: "/var/log/varnish"
         recurse: true
         state: directory
-        owner: varnishlog
+        owner: varnish
         group: varnish
         mode: 0755
 
@@ -628,6 +641,11 @@
           when: service_resp.stat.exists
           tags:
             - no_testing
+
+        - name: Purgeman | install build tools
+          ansible.builtin.dnf:
+            name: make
+            state: present
 
         - name: Purgeman | create build dir for package
           ansible.builtin.file:
