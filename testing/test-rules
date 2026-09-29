@@ -48,9 +48,7 @@ portability::require_bash 4
 
 readonly CFG="$TESTING_DIR"/config.inc
 readonly RULES_DIR="$COLLECTION_DIR"/playbooks/tests/rules
-readonly IRODS_SERVICES=(
-	provider_configured consumer_configured_centos consumer_configured_ubuntu
-	consumer_unconfigured )
+readonly IRODS_SERVICES=(provider_configured consumer_configured_centos consumer_unconfigured)
 
 # shellcheck disable=SC1090
 source "$CFG"

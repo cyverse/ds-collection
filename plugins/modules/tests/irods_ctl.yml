@@ -275,7 +275,7 @@
 
 
 - name: Test irods_ctl stop
-  hosts: dstesting-consumer_configured_ubuntu-1.dstesting_default
+  hosts: dstesting-consumer_configured_centos-1.dstesting_default
   become: true
   become_user: irods
   tasks:

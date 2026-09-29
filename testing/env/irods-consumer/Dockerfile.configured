@@ -1,4 +1,4 @@
-FROM test-env-base:centos7
+FROM test-env-base:alma9
 
 ARG IRODS_CATALOG_PROVIDER=csp
 ARG IRODS_CONTROL_PLANE_KEY=TEMPORARY__32byte_ctrl_plane_key
@@ -12,6 +12,7 @@ ARG IRODS_NEGOTIATION_KEY=TEMPORARY_32byte_negotiation_key
 ARG IRODS_SCHEMA_VALIDATION=https://schemas.irods.org/configuration
 ARG IRODS_SYSTEM_GROUP=irods
 ARG IRODS_SYSTEM_USER=irods
+ARG IRODS_VERSION=4.3.1
 ARG IRODS_ZONE_KEY=TEMPORARY_zone_key
 ARG IRODS_ZONE_NAME=tempZone
 ARG IRODS_ZONE_PASSWORD=rods
@@ -29,30 +30,40 @@ RUN \
 
 ### Install iRODS
 	rpm --import https://packages.irods.org/irods-signing-key.asc
-	yum --assumeyes versionlock add \
-		irods-icommands-4.3.1 \
-		irods-netcdf-client_modules-4.3.1.0 \
-		irods-netcdf-icommands-4.3.1.0 \
-		irods-netcdf-server_modules-4.3.1.0 \
-		irods-runtime-4.3.1 \
-		irods-server-4.3.1
-# XXX - irods-icommands required by irods-server but not installed by dependency resolution in
-#       CentOS 7, for iRODS 4.3.1.
-	yum --assumeyes install irods-icommands
-# XXX - ^^^
-	yum --assumeyes install \
-		irods-netcdf-client_modules \
-		irods-netcdf-icommands \
-		irods-netcdf-server_modules \
-		irods-server \
+# XXX - irods-server needs irods-icommands but doesn't declare it as a dependency
+	dnf --assumeyes install \
+		irods-icommands-"$IRODS_VERSION" \
+		irods-runtime-"$IRODS_VERSION" \
+		irods-server-"$IRODS_VERSION" \
 		rsyslog
-	python3 -m pip install 'python-irodsclient<3.2'  # 3.2 does not work on CentOS 7
+# XXX - ^^^
+	yum versionlock add \
+		irods-icommands-"$IRODS_VERSION" \
+		irods-runtime-"$IRODS_VERSION" \
+		irods-server-"$IRODS_VERSION"
+
+# The EL9 repository has NetCDF modules for iRODS 4.3.1 only.
+	if dnf --assumeyes --quiet list --available irods-netcdf-server_modules-"$IRODS_VERSION".0 \
+		> /dev/null 2>&1
+	then
+		dnf --assumeyes install \
+			irods-netcdf-client_modules-"$IRODS_VERSION".0 \
+			irods-netcdf-icommands-"$IRODS_VERSION".0 \
+			irods-netcdf-server_modules-"$IRODS_VERSION".0
+		yum versionlock add \
+			irods-netcdf-client_modules-"$IRODS_VERSION".0 \
+			irods-netcdf-icommands-"$IRODS_VERSION".0 \
+			irods-netcdf-server_modules-"$IRODS_VERSION".0
+	fi
+
+	python3 -m pip install 'python-irodsclient<3.2'
 
 ### Configure iRODS
 	/tmp/config-irods
 
 ### Create service script
 	/tmp/prep-svc-script
+	mkdir --parents /var/lock/subsys
 
 ### Populate .ssh/authorized_keys
 	printf '%s %s %s\n' \
@@ -61,9 +72,9 @@ RUN \
 			disallowed \
 		> /root/.ssh/authorized_keys
 
-### Clean yum cache
-	yum clean all
-	rm --force --recursive /var/cache/yum
+### Clean dnf cache
+	dnf clean all
+	rm --force --recursive /var/cache/dnf
 EOF
 
 COPY irods-consumer/config/profile-irods.sh /etc/profile.d/irods.sh
