@@ -484,7 +484,10 @@ class IrodsTestCase(TestCase):
         if self._irods:
             self._irods.cleanup()
             self._irods = None
-        self.ssh.exec_command("touch /etc/irods/core.re")
+        _, stdout, _ = self.ssh.exec_command("touch /etc/irods/core.re")
+        # Wait, or the next agent can start before the touch and keep the cached rules.
+        if stdout.channel.recv_exit_status() != 0:
+            raise RuntimeError("Failed to reload the rules")
 
     def update_rulebase(self, rulebases: List[Tuple[str, str]]) -> None:
         """
