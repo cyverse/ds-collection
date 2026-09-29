@@ -6,10 +6,10 @@
     group_name: >-
       {{ 'irods_provider' if inventory_hostname in groups['irods_catalog'] else 'irods' }}
   tasks:
-    - name: Test CentOS provisioning
-      when: ansible_distribution == 'CentOS'
+    - name: Test RedHat family provisioning
+      when: ansible_os_family == 'RedHat'
       block:
-        - name: CentOS | test install iRODS package repository signing key
+        - name: RedHat | test install iRODS package repository signing key
           ansible.builtin.shell:
             executable: /bin/bash
             cmd: |
@@ -17,13 +17,13 @@
               rpm --query --queryformat='%{SUMMARY}\n' gpg-pubkey | grep --quiet 'iRODS Consortium'
           changed_when: false
 
-        - name: CentOS | test install iRODS repository
+        - name: RedHat | test install iRODS repository
           ansible.builtin.stat:
             path: /etc/yum.repos.d/renci-irods.yum.repo
           register: resp
           failed_when: not resp.stat.exists
 
-        - name: CentOS | test lock irods package to required version
+        - name: RedHat | test lock irods package to required version
           ansible.builtin.shell:
             executable: /bin/bash
             cmd: |
@@ -51,9 +51,10 @@
             - irods-runtime
             - irods-server
 
-        - name: CentOS | verify correct packages installed
+        - name: RedHat | verify correct packages installed
           ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
           loop:
+            - irods-icommands
             - unixODBC
             - uuidd
           loop_control:

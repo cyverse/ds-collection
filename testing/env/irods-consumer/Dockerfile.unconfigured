@@ -1,4 +1,4 @@
-FROM test-env-base:ubuntu1804
+FROM test-env-base:alma9
 
 ARG IRODS_CATALOG_PROVIDER=csp
 ARG IRODS_SYSTEM_GROUP=irods
@@ -11,6 +11,9 @@ RUN \
 	--mount=target=/tmp/service.sh.template,source=irods-provider/scripts/service.sh.template \
 	--mount=target=/tmp/prep-svc-script,source=irods-provider/scripts/prep-svc-script.sh \
 	/tmp/prep-svc-script
+
+# The service script tracks iRODS with a lock file, and EL9 lacks this directory.
+RUN mkdir --parents /var/lock/subsys
 
 COPY irods-consumer/config/profile-irods.sh /etc/profile.d/irods.sh
 
