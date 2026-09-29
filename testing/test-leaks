@@ -14,9 +14,10 @@ $EXEC_NAME [options] [-- ansible-playbook options]
 measure iRODS agent memory leaks caused by PEPs
 
 Options:
- -a, --alma9 <version>  replace the CentOS 7 iRODS 4.3.1 catalog service
-                        provider with an AlmaLinux 9 one running iRODS
-                        <version>, building its image if needed
+ -v, --irods-version <version>
+                        run the configured catalog service provider on iRODS
+                        <version> instead of 4.3.1, building its image if
+                        needed
  -c, --cases <file>     a vars file of cases to run in place of the default
                         PEPs, e.g., leak-check/exec_cmd_cases.yml; not with
                         --data-store-rules
@@ -31,9 +32,9 @@ Summary:
 This script starts the testing environment, runs
 testing/leak-check/leak_check.yml against the configured catalog service
 provider, prints a summary of each case's memory growth, and stops the
-environment. The results go to <platform>-<version>.json in the output
-directory, e.g., alma9-4.3.5.json, alma9-4.3.5-data-store.json with
---data-store-rules, or alma9-4.3.5-exec_cmd_cases.json with --cases. Options
+environment. The results go to alma9-<version>.json in the output
+directory, e.g., alma9-4.3.1.json, alma9-4.3.1-data-store.json with
+--data-store-rules, or alma9-4.3.1-exec_cmd_cases.json with --cases. Options
 after -- go to ansible-playbook, for example '-- -e leak_check_threshold_mib=32'.
 EOF
 }
@@ -60,7 +61,7 @@ source "$CFG"
 
 main() {
 	local args
-	if ! args="$(portability::getopt a:c:dho: alma9:,cases:,data-store-rules,help,output: "$EXEC_NAME" "$@")"; then
+	if ! args="$(portability::getopt c:dho:v: cases:,data-store-rules,help,irods-version:,output: "$EXEC_NAME" "$@")"; then
 		exit_with_help
 	fi
 
@@ -68,17 +69,10 @@ main() {
 
 	local cases=
 	local output=leak-check-results
-	local overrides=()
-	local platform=centos7-4.3.1
+	local platform=alma9-"${IRODS_VERSION:-4.3.1}"
 	local rules=stock
 	while true; do
 		case "$1" in
-			-a|--alma9)
-				export IRODS_VERSION="$2"
-				overrides=("$TESTING_DIR"/env/docker-compose.provider-alma9.yml)
-				platform=alma9-"$2"
-				shift 2
-				;;
 			-c|--cases)
 				cases="$2"
 				shift 2
@@ -93,6 +87,11 @@ main() {
 				;;
 			-o|--output)
 				output="$2"
+				shift 2
+				;;
+			-v|--irods-version)
+				export IRODS_VERSION="$2"
+				platform=alma9-"$2"
 				shift 2
 				;;
 			--)
@@ -132,8 +131,8 @@ main() {
 
 	# Set before starting, so a start that fails partway doesn't leave containers behind.
 	#shellcheck disable=SC2064
-	trap "$(printf '%q ' "$TESTING_DIR"/env/controller "$CFG" stop ${overrides[@]+"${overrides[@]}"})" EXIT
-	"$TESTING_DIR"/env/controller "$CFG" start ${overrides[@]+"${overrides[@]}"}
+	trap "$(printf '%q ' "$TESTING_DIR"/env/controller "$CFG" stop)" EXIT
+	"$TESTING_DIR"/env/controller "$CFG" start
 
 	# The tester runs as root, so hand the results back to the invoking user.
 	docker run --rm --interactive \
