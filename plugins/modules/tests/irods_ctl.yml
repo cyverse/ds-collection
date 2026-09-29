@@ -274,19 +274,37 @@
       changed_when: false
 
 
+# The start play above tests the same server, so this play restarts it afterward to leave the
+# idempotency check the running server the start play expects.
 - name: Test irods_ctl stop
   hosts: dstesting-consumer_configured_centos-1.dstesting_default
   become: true
   become_user: irods
   tasks:
-    - name: Stop service
-      cyverse.ds.irods_ctl:
-        state: stopped
+    - name: Verify stop stops a running service
+      tags: non_idempotent
+      block:
+        - name: Stop service
+          cyverse.ds.irods_ctl:
+            state: stopped
+          register: resp
+          failed_when: resp is not changed
 
-    - name: Verify service is stopped
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: |
-          set -o pipefail
-          /var/lib/irods/irodsctl status | grep --quiet 'No iRODS servers running'
-      changed_when: false
+        - name: Verify service is stopped
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o pipefail
+              /var/lib/irods/irodsctl status | grep --quiet 'No iRODS servers running'
+          changed_when: false
+
+        - name: Stop stopped service
+          cyverse.ds.irods_ctl:
+            state: stopped
+          register: resp
+          failed_when: resp is failed or resp is changed
+
+        - name: Start service again with test log
+          cyverse.ds.irods_ctl:
+            state: started
+            test_log: true
