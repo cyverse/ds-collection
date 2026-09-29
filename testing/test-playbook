@@ -43,15 +43,14 @@ readonly ExecName TestingDir CollectionDir
 
 #shellcheck source=testing/portability.sh
 source "$TestingDir"/portability.sh
+#shellcheck source=testing/irods_crash.sh
+source "$TestingDir"/irods_crash.sh
 
 portability::require_bash 4
 
 readonly Cfg="$TestingDir"/config.inc
 readonly PlaybooksDir="$CollectionDir"/playbooks
 readonly DefaultHosts=hosts-all
-
-# Printed by both the irods_ctl module and setup_irods.py when the server can't start
-readonly IrodsStartFailure='iRODS server failed to \(re\)\?start'
 
 
 # shellcheck disable=SC1090
@@ -75,6 +74,13 @@ main() {
 	if [[ -n "${opts[help]}" ]]
 	then
 		show_help
+		return
+	fi
+
+	# The inspection shell needs the terminal, so an inspected run isn't captured or retried.
+	if [[ -z "${opts[inspect]}" ]] && ! irods_crash::is_attempt
+	then
+		irods_crash::run_retrying "$ExecName" "$@"
 		return
 	fi
 
@@ -157,56 +163,21 @@ resolve_opts() {
 }
 
 
-# iRODS 4.3.1 sometimes segfaults while starting (irods/irods#7747, fixed in
-# 4.3.3), so a run that fails this way is retried once in a fresh environment.
 do_run() {
 	local doInspect="$1"
-
-	local output
-	output="$(mktemp)"
-	# shellcheck disable=SC2064
-	trap "rm --force '$output'" EXIT
-
-	if run_in_env "$output" "$@"
-	then
-		return 0
-	fi
-
-	if [[ -n "$doInspect" ]] || ! grep --quiet --regexp "$IrodsStartFailure" "$output"
-	then
-		return 1
-	fi
-
-	cat <<'EOF' >&2
-An iRODS server failed to start. This is usually the iRODS 4.3.1 startup
-segfault (irods/irods#7747), which "journalctl -k | grep irodsServer" on the
-host confirms. Retrying once in a fresh environment.
-EOF
-	run_in_env "$output" "$@"
-}
-
-
-run_in_env() {
-	local output="$1"
-	local doInspect="$2"
-	local pretty="$3"
-	local hosts="$4"
-	local setup="$5"
-	local playbook="$6"
+	local pretty="$2"
+	local hosts="$3"
+	local setup="$4"
+	local playbook="$5"
 
 	"$TestingDir"/env/controller "$Cfg" start
 
-	local tester=(
-		"$TestingDir"/ansible-tester/run
-		"$doInspect" "$pretty" '' "$hosts" "$CollectionDir" "$setup" "$playbook" )
-
 	local rc
-	if [[ -n "$doInspect" ]]
+	if ! \
+		"$TestingDir"/ansible-tester/run \
+			"$doInspect" "$pretty" '' "$hosts" "$CollectionDir" "$setup" "$playbook"
 	then
-		# The inspection shell needs the terminal, so its output isn't captured.
-		"${tester[@]}" || rc=1
-	else
-		"${tester[@]}" | tee "$output" || rc=1
+		rc=1
 	fi
 
 	"$TestingDir"/env/controller "$Cfg" stop
