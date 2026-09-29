@@ -36,6 +36,10 @@ There are two convenience scripts for building the docker images for the environ
 
 Tests can be defined for a given playbook. They should be placed in a playbook with the same name inside the `playbooks/tests` folder.
 
+iRODS 4.3.1 occasionally segfaults while starting ([irods/irods#7747](https://github.com/irods/irods/issues/7747), fixed in 4.3.3). Both the EL7 and EL9 builds crash this way, in `libirods_plugin_dependencies.so`. When it happens, the playbook fails with `iRODS server failed to start` or `iRODS server failed to restart`, usually in a restart handler or in `setup_irods.py`, and the servers that depend on the crashed one then fail to start as well. The host's kernel log records every crash, so `journalctl -k | grep irodsServer` shows whether a failure was this bug.
+
+So that these crashes don't fail a test, `test-playbook` retries once. When a run fails and its output contains either message, it tears down the environment, brings up a fresh one, and runs everything again. A server that fails to start for any other reason fails the retry too, so the retry doesn't hide real problems. There is no retry with `--inspect`, because the inspection shell needs the terminal and its output isn't captured.
+
 ## The iRODS rule tests
 
 The `unittest` modules in `playbooks/tests/rules` test the rule logic against a live server. `test-rules` starts the environment, prepares it for them, runs them, prints a summary, and stops the environment. It exits nonzero if any module failed.
