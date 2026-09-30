@@ -11,7 +11,7 @@
 # For license information, see https://cyverse.org/license.
 
 # Printed by irodsctl, setup_irods.py and the irods_ctl module when the server can't start
-readonly IRODS_CRASH_MESSAGE='iRODS server failed to \(re\)\?start'
+readonly IRODS_CRASH_MESSAGE='iRODS server failed to (re)?start'
 
 
 # Succeeds when the current process is an attempt started by
@@ -50,7 +50,7 @@ irods_crash::run_retrying() {
 		rc=$?
 	fi
 
-	if (( rc != 0 )) && grep --quiet --regexp "$IRODS_CRASH_MESSAGE" "$output"; then
+	if (( rc != 0 )) && grep --extended-regexp --quiet --regexp "$IRODS_CRASH_MESSAGE" "$output"; then
 		cat <<'EOF' >&2
 An iRODS server failed to start. This is usually the iRODS 4.3.1 startup
 segfault (irods/irods#7747), which "journalctl -k | grep irodsServer" on the
