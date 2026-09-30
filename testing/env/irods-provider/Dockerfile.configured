@@ -37,6 +37,7 @@ COPY irods-provider/config/pre_config.re /etc/irods/
 
 RUN \
 	--mount=target=/tmp/config-irods,source=irods-provider/scripts/config-irods.sh \
+	--mount=target=/tmp/install-irods,source=irods-common/install-irods \
 	--mount=target=/tmp/service.sh.template,source=irods-provider/scripts/service.sh.template \
 	--mount=target=/tmp/prep-svc-script,source=irods-provider/scripts/prep-svc-script.sh \
 <<EOF
@@ -46,34 +47,9 @@ RUN \
 	dnf --assumeyes install postgresql12-odbc
 
 ### Install iRODS
-	rpm --import https://packages.irods.org/irods-signing-key.asc
-# XXX - irods-server needs irods-icommands but doesn't declare it as a dependency
-	dnf --assumeyes install \
-		irods-database-plugin-postgres-"$IRODS_VERSION" \
-		irods-icommands-"$IRODS_VERSION" \
-		irods-runtime-"$IRODS_VERSION" \
-		irods-server-"$IRODS_VERSION" \
-		rsyslog
-# XXX - ^^^
-	yum versionlock add \
-		irods-database-plugin-postgres-"$IRODS_VERSION" \
-		irods-icommands-"$IRODS_VERSION" \
-		irods-runtime-"$IRODS_VERSION" \
-		irods-server-"$IRODS_VERSION"
-
-# The EL9 repository has NetCDF modules for iRODS 4.3.1 only.
-	if dnf --assumeyes --quiet list --available irods-netcdf-server_modules-"$IRODS_VERSION".0 \
-		> /dev/null 2>&1
-	then
-		dnf --assumeyes install \
-			irods-netcdf-client_modules-"$IRODS_VERSION".0 \
-			irods-netcdf-icommands-"$IRODS_VERSION".0 \
-			irods-netcdf-server_modules-"$IRODS_VERSION".0
-		yum versionlock add \
-			irods-netcdf-client_modules-"$IRODS_VERSION".0 \
-			irods-netcdf-icommands-"$IRODS_VERSION".0 \
-			irods-netcdf-server_modules-"$IRODS_VERSION".0
-	fi
+# irods-server needs irods-icommands but doesn't declare it as a dependency
+	/tmp/install-irods "$IRODS_VERSION" database-plugin-postgres icommands runtime server
+	dnf --assumeyes install rsyslog
 
 ### Install libraries required by command scripts
 	pip3 install 'pika>=1.2'
