@@ -87,6 +87,9 @@ install_alma_packages() {
 		python3-virtualenv \
 		sudo
 
+	# The iRODS images' service scripts track iRODS with a lock file here, and EL9 lacks the directory.
+	mkdir --parents /var/lock/subsys
+
 	dnf clean all
 	rm --force --recursive /var/cache/dnf
 }

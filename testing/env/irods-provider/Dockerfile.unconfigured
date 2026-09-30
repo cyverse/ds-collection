@@ -12,9 +12,6 @@ RUN \
 	--mount=target=/tmp/prep-svc-script,source=irods-consumer/scripts/prep-svc-script.sh \
 	/tmp/prep-svc-script
 
-# The service script tracks iRODS with a lock file, and EL9 lacks this directory.
-RUN mkdir --parents /var/lock/subsys
-
 COPY irods-provider/config/profile-irods.sh /etc/profile.d/irods.sh
 
 CMD [ "/service.sh" ]

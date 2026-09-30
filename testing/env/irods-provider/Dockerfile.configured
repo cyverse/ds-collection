@@ -83,7 +83,6 @@ RUN \
 
 ### Create service script
 	/tmp/prep-svc-script
-	mkdir --parents /var/lock/subsys
 
 ### Install testing support artifacts
 	pip3 --quiet install 'python-irodsclient<3.2'
