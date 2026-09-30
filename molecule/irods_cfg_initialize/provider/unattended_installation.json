@@ -74,7 +74,7 @@
 				"postgres": {
 					"db_host": "localhost",
 					"db_name": "ICAT",
-					"db_odbc_driver": "PostgreSQL Unicode",
+					"db_odbc_driver": "PostgreSQL",
 					"db_password": "testpassword",
 					"db_port": 5432,
 					"db_username": "irods"

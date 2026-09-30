@@ -6,7 +6,7 @@ platforms:
     image: provider
     dockerfile: provider/Dockerfile
     pre_build_image: false
-    command: /lib/systemd/systemd
+    command: /usr/sbin/init
     hostname: provider.molecule
     privileged: true
     tty: true
@@ -18,7 +18,9 @@ platforms:
     network_mode: molecule
     purge_network: true
   - name: consumer
-    image: ubuntu:bionic
+    image: alma9-irods
+    pre_build_image: false
+    dockerfile: ../_irods_cfg_shared/alma9.dockerfile
     hostname: consumer.molecule
     docker_networks:
       - name: molecule
@@ -27,7 +29,9 @@ platforms:
     network_mode: molecule
     purge_network: true
   - name: provider-uncfg
-    image: ubuntu:bionic
+    image: alma9-irods
+    pre_build_image: false
+    dockerfile: ../_irods_cfg_shared/alma9.dockerfile
     hostname: provider-uncfg
 provisioner:
   name: ansible
@@ -35,6 +39,7 @@ provisioner:
     hosts:
       all:
         vars:
+          ansible_python_interpreter: /usr/bin/python3
           irods_cfg_default_resource_name: ingestRes
           irods_cfg_validate: true
       irods_resource:
@@ -51,8 +56,9 @@ provisioner:
         hosts:
           provider-uncfg:
             irods_cfg_database:
-              db_odbc_driver: PostgreSQL Unicode
+              db_host: 127.0.0.1
+              db_odbc_driver: PostgreSQL
               db_password: testpassword
               db_username: irods
             irods_cfg_host: localhost
-            pg_hba_path: /etc/postgresql/10/main/pg_hba.conf
+            pg_hba_path: /var/lib/pgsql/data/pg_hba.conf
