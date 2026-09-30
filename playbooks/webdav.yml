@@ -551,10 +551,11 @@
         - Restart varnish
         - Restart varnishncsa
 
+    # In /etc so that package updates don't replace it
     - name: Setup varnish-cache service
       ansible.builtin.template:
-        src: "templates/webdav/usr/lib/systemd/system/{{ item }}.j2"
-        dest: "/usr/lib/systemd/system/{{ item }}"
+        src: "templates/webdav/etc/systemd/system/{{ item }}.j2"
+        dest: "/etc/systemd/system/{{ item }}"
         mode: a+r
       loop:
         - varnish.service
@@ -585,7 +586,7 @@
     - name: Ensure varnish runs when apache run
       ansible.builtin.file:
         path: /etc/systemd/system/httpd.service.requires/varnish.service
-        src: /usr/lib/systemd/system/varnish.service
+        src: /etc/systemd/system/varnish.service
         state: link
 
     - name: Create varnish systemd service dependencies directory

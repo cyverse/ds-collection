@@ -11,7 +11,7 @@
     default_vcl: "{{ lookup('template', '../templates/webdav/etc/varnish/default.vcl.j2') }}"
     purgeman_conf: "{{ lookup('template', '../templates/webdav/etc/purgeman/purgeman.conf.j2') }}"
     varnish_service: >-
-      {{ lookup('template', '../templates/webdav/usr/lib/systemd/system/varnish.service.j2') }}
+      {{ lookup('template', '../templates/webdav/etc/systemd/system/varnish.service.j2') }}
   tasks:
     - name: Verify head.html expands correctly
       ansible.builtin.assert:
@@ -413,10 +413,10 @@
 
     - name: Test varnish cfg files deployed
       ansible.builtin.stat:
-        path: /etc/varnish/default.vcl
+        path: "{{ item }}"
       loop:
         - /etc/varnish/default.vcl
-        - /usr/lib/systemd/system/varnish.service
+        - /etc/systemd/system/varnish.service
       register: resp
       failed_when: >-
         not resp.stat.exists or not resp.stat.rusr or not resp.stat.rgrp or not resp.stat.roth
@@ -438,7 +438,7 @@
       ansible.builtin.stat:
         path: /etc/systemd/system/httpd.service.requires/varnish.service
       register: resp
-      failed_when: resp.stat.lnk_source != '/usr/lib/systemd/system/varnish.service'
+      failed_when: resp.stat.lnk_source != '/etc/systemd/system/varnish.service'
 
     - name: Test create varnish systemd service dependencies directory
       ansible.builtin.stat:
