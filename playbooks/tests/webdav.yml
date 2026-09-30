@@ -279,11 +279,18 @@
       loop_control:
         loop_var: pkg
 
+    - name: Determine which packages are installed
+      ansible.builtin.package_facts:
+
     - name: Test davrods and its irods-runtime upgraded
-      ansible.builtin.command: rpm --query --queryformat '%{VERSION}\n' davrods irods-runtime
-      register: resp
-      changed_when: false
-      failed_when: resp.stdout_lines != [_webdav_davrods_release, _webdav_davrods_irods_version]
+      ansible.builtin.assert:
+        that:
+          - >-
+            ansible_facts.packages['davrods'] | map(attribute='version') | list
+            == [_webdav_davrods_release]
+          - >-
+            ansible_facts.packages['irods-runtime'] | map(attribute='version') | list
+            == [_webdav_davrods_irods_version]
 
     - name: Test install iRODS package repository signing key
       ansible.builtin.shell:
