@@ -2,10 +2,6 @@
 - name: Install and configure apache
   hosts: webdav
   become: true
-  vars:
-    davrods_release: 4.3.4_1.5.3
-    # davrods requires the irods-runtime of the release it was built against
-    davrods_irods_version: "{{ davrods_release | split('_') | first }}"
   roles:
     - role: geerlingguy.apache
       vars:
@@ -364,7 +360,7 @@
             fi
             pkg="${BASH_REMATCH[1]}"
             ver="${BASH_REMATCH[2]}"
-            if [[ "$pkg" != irods-runtime || "$ver" != '{{ davrods_irods_version }}' ]]; then
+            if [[ "$pkg" != irods-runtime || "$ver" != '{{ _webdav_davrods_irods_version }}' ]]; then
               yum versionlock delete "$pkg" > /dev/null
               echo changed
             fi
@@ -375,8 +371,8 @@
     - name: Install davrods
       ansible.builtin.dnf:
         name: >-
-          https://github.com/UtrechtUniversity/davrods/releases/download/{{ davrods_release }}/davrods-{{
-            davrods_release }}-1.rpm
+          https://github.com/UtrechtUniversity/davrods/releases/download/{{ _webdav_davrods_release }}/davrods-{{
+            _webdav_davrods_release }}-1.rpm
         # The davrods release RPMs aren't signed.
         disable_gpg_check: true
         state: present

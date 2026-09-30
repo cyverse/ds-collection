@@ -149,6 +149,8 @@
 - name: Test WebDAV server deposition
   hosts: webdav
   become: true
+  vars_files:
+    - ../group_vars/all/webdav.yml
   tasks:
     - name: Test TLS file directory creation
       ansible.builtin.stat:
@@ -281,7 +283,7 @@
       ansible.builtin.command: rpm --query --queryformat '%{VERSION}\n' davrods irods-runtime
       register: resp
       changed_when: false
-      failed_when: resp.stdout_lines != ['4.3.4_1.5.3', '4.3.4']
+      failed_when: resp.stdout_lines != [_webdav_davrods_release, _webdav_davrods_irods_version]
 
     - name: Test install iRODS package repository signing key
       ansible.builtin.shell:
@@ -308,8 +310,10 @@
         executable: /bin/bash
         cmd: |
           set -o pipefail
-          if ! yum versionlock list | grep --quiet '^irods-runtime-0:4\.3\.4-'; then
-            printf 'irods-runtime not locked to 4.3.4\n' >&2
+          if ! yum versionlock list \
+            | grep --quiet '^irods-runtime-0:{{ _webdav_davrods_irods_version | regex_escape }}-'
+          then
+            printf 'irods-runtime not locked to {{ _webdav_davrods_irods_version }}\n' >&2
             exit 1
           fi
           if yum versionlock list | grep --quiet '^irods-runtime-0:4\.3\.3-'; then
