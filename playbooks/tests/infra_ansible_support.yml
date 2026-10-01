@@ -34,6 +34,27 @@
       loop_control:
         loop_var: pkg
 
+    - name: Test install packages on EL9
+      when: ansible_os_family == 'RedHat' and ansible_distribution_major_version == '9'
+      ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
+      with_items:
+        - epel-release
+        - iproute
+        - python3-dnf-plugin-versionlock
+        - python3-dns
+        - python3-libselinux
+        - python3-requests
+        - python3-virtualenv
+      loop_control:
+        loop_var: pkg
+
+    - name: Test CRB repository enabled on EL9
+      when: ansible_os_family == 'RedHat' and ansible_distribution_major_version == '9'
+      ansible.builtin.command: dnf repolist --enabled crb
+      register: resp
+      changed_when: false
+      failed_when: resp.stdout is not regex('^crb ', multiline=true)
+
     - name: Test install packages on Ubuntu
       when: ansible_distribution == 'Ubuntu'
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml

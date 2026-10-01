@@ -41,6 +41,8 @@ readonly EXEC_NAME TESTING_DIR COLLECTION_DIR
 
 #shellcheck source=testing/portability.sh
 source "$TESTING_DIR"/portability.sh
+#shellcheck source=testing/irods_crash.sh
+source "$TESTING_DIR"/irods_crash.sh
 #shellcheck source=testing/results.sh
 source "$TESTING_DIR"/results.sh
 
@@ -48,9 +50,7 @@ portability::require_bash 4
 
 readonly CFG="$TESTING_DIR"/config.inc
 readonly RULES_DIR="$COLLECTION_DIR"/playbooks/tests/rules
-readonly IRODS_SERVICES=(
-	provider_configured consumer_configured_centos consumer_configured_ubuntu
-	consumer_unconfigured )
+readonly IRODS_SERVICES=(provider_configured consumer_configured_centos consumer_unconfigured)
 
 # shellcheck disable=SC1090
 source "$CFG"
@@ -89,6 +89,11 @@ main() {
 			exit 1
 		fi
 	done
+
+	if ! irods_crash::is_attempt; then
+		irods_crash::run_retrying "$EXEC_NAME" "$@"
+		return
+	fi
 
 	"$TESTING_DIR"/env/controller "$CFG" start
 	trap stop_env EXIT

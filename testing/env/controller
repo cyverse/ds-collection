@@ -6,9 +6,8 @@
 # PARAMETERS:
 #  INC_FILE       The absolute path to a file including the build time
 #                 environment variables. See README.md for details.
-#  OVERRIDE_FILE  A compose file to apply over docker-compose.yml, e.g.,
-#                 docker-compose.provider-alma9.yml. Pass the same ones to stop
-#                 as to start.
+#  OVERRIDE_FILE  A compose file to apply over docker-compose.yml. Pass the
+#                 same ones to stop as to start.
 #
 # Starts or stops all of the containers.
 

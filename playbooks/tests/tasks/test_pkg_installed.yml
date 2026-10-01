@@ -18,4 +18,4 @@
   ansible.builtin.assert:
     that:
       - ansible_facts.packages[pkg][0].version is version(ver, '==')
-  when: ver | default(false) | bool
+  when: ver is defined

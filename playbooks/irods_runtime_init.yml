@@ -251,6 +251,7 @@
   become: true
   become_user: postgres
   run_once: true
+  gather_facts: false
   tasks:
     - name: Change type
       ansible.builtin.shell:

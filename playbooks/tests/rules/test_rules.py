@@ -484,7 +484,15 @@ class IrodsTestCase(TestCase):
         if self._irods:
             self._irods.cleanup()
             self._irods = None
-        self.ssh.exec_command("touch /etc/irods/core.re")
+        _, stdout, stderr = self.ssh.exec_command("touch /etc/irods/core.re")
+        # Wait, or the next agent can start before the touch and keep the cached rules.
+        status = stdout.channel.recv_exit_status()
+        if status != 0:
+            raise RuntimeError(
+                f"Failed to reload the rules: touch /etc/irods/core.re exited with {status}"
+                f" ({stderr.read().decode().strip()}). This usually means the SSH user can't"
+                " write to /etc/irods on the catalog service provider."
+            )
 
     def update_rulebase(self, rulebases: List[Tuple[str, str]]) -> None:
         """

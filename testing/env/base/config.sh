@@ -33,11 +33,8 @@ main() {
 		alma)
 			install_alma_packages "$version"
 			;;
-		centos)
-			install_centos_packages "$version"
-			;;
 		ubuntu)
-			install_ubuntu_packages "$version"
+			install_ubuntu_packages
 			;;
 		*)
 			printf 'The OS %s is not supported\n' "$os" >&2
@@ -59,11 +56,6 @@ main() {
 		ssh-keygen -q -f /etc/ssh/ssh_host_rsa_key -N '' -t rsa
 	fi
 
-	if [[ "$os" == centos ]]; then
-		ssh-keygen -q -f /etc/ssh/ssh_host_ecdsa_key -N '' -t ecdsa
-		ssh-keygen -q -f /etc/ssh/ssh_host_ed25519_key -N '' -t ed25519
-	fi
-
 	update_pam_sshd_config
 	update_sshd_config
 	mkdir --parents /var/run/sshd
@@ -76,45 +68,33 @@ main() {
 install_alma_packages() {
 	dnf --assumeyes install epel-release
 	dnf config-manager --set-enabled crb
-	dnf --assumeyes install dmidecode openssh-clients openssh-server passwd python3-virtualenv sudo
+
+	dnf --assumeyes install \
+		ca-certificates \
+		dmidecode \
+		iproute \
+		jq \
+		openssh-clients \
+		openssh-server \
+		passwd \
+		procps-ng \
+		python3 \
+		python3-dns \
+		python3-dnf-plugin-versionlock \
+		python3-libselinux \
+		python3-pip \
+		python3-requests \
+		python3-virtualenv \
+		sudo
+
+	# The iRODS images' service scripts track iRODS with a lock file here, and EL9 lacks the directory.
+	mkdir --parents /var/lock/subsys
+
 	dnf clean all
 	rm --force --recursive /var/cache/dnf
 }
 
-# Install the required CentOS packages.
-install_centos_packages() {
-	local version="$1"
-
-	update_centos_repo
-	rpm --import file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-"$version"
-
-	yum --assumeyes install epel-release
-	rpm --import file:///etc/pki/rpm-gpg/RPM-GPG-KEY-EPEL-7
-
-	yum --assumeyes install \
-		ca-certificates \
-		dmidecode \
-		iproute \
-		iptables-services \
-		jq \
-		libselinux-python \
-		openssh-clients \
-		openssh-server \
-		python3 \
-		python3-dns \
-		python3-pip \
-		python3-requests \
-		python3-virtualenv \
-		sudo \
-		yum-plugin-versionlock
-
-	yum clean all
-	rm --force --recursive /var/cache/yum
-}
-
 install_ubuntu_packages() {
-	local version="$1"
-
 	apt-get update
 	apt-get install --yes apt-utils 2> /dev/null
 
@@ -125,6 +105,7 @@ install_ubuntu_packages() {
 		jq \
 		openssh-client \
 		openssh-server \
+		python-is-python3 \
 		python3 \
 		python3-apt \
 		python3-dns \
@@ -134,34 +115,8 @@ install_ubuntu_packages() {
 		python3-virtualenv \
 		sudo
 
-	if [[ "$version" != '18.04' ]]; then
-		apt install --yes python-is-python3
-	fi
-
 	apt-get clean autoclean
 	rm --force --recursive /var/lib/apt/lists/*
-}
-
-update_centos_repo() {
-	cat <<'EOF' > /etc/yum.repos.d/CentOS-Base.repo
-[base]
-name=CentOS-$releasever - Base
-baseurl=https://archive.kernel.org/centos-vault/7.9.2009/os/$basearch/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-
-[updates]
-name=CentOS-$releasever - Updates
-baseurl=https://archive.kernel.org/centos-vault/7.9.2009/updates/$basearch/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-
-[extras]
-name=CentOS-$releasever - Extras
-baseurl=https://archive.kernel.org/centos-vault/7.9.2009/extras/$basearch/
-gpgcheck=1
-gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-7
-EOF
 }
 
 update_pam_sshd_config() {

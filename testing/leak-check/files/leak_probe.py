@@ -9,7 +9,7 @@ and without a given PEP defined, so that PEP memory leaks can be detected.
 
 It has to run on the server whose agents it measures, as the iRODS service
 account, since it reads the agents' memory usage from /proc and rewrites a rule
-base file in /etc/irods. It is written for the Python 3.6 on CentOS 7.
+base file in /etc/irods. It is written for the Python 3.9 on AlmaLinux 9.
 """
 
 import argparse

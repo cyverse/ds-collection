@@ -1,6 +1,6 @@
 ---
 - name: Test deploy S3 credentials
-  hosts: dstesting-consumer_configured_ubuntu-1.dstesting_default
+  hosts: dstesting-consumer_configured_centos-1.dstesting_default
   become: true
   tasks:
     - name: Test create S3 credentials folder

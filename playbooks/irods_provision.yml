@@ -3,20 +3,20 @@
   hosts: irods:!irods_resource_container:!unmanaged_systems
   become: true
   tasks:
-    - name: Provision CentOS
-      when: ansible_distribution == 'CentOS'
+    - name: Provision RedHat family
+      when: ansible_os_family == 'RedHat'
       block:
-        - name: CentOS | install iRODS package repository signing key
+        - name: RedHat | install iRODS package repository signing key
           ansible.builtin.rpm_key:
             key: https://packages.irods.org/irods-signing-key.asc
 
-        - name: CentOS | install iRODS repository
+        - name: RedHat | install iRODS repository
           ansible.builtin.get_url:
             url: https://packages.irods.org/renci-irods.yum.repo
             dest: /etc/yum.repos.d/renci-irods.yum.repo
             mode: u+r
 
-        - name: CentOS | force import of GPG key
+        - name: RedHat | force import of GPG key
           ansible.builtin.shell:
             executable: /bin/bash
             cmd: |
@@ -29,16 +29,22 @@
           register: response
           changed_when: response.stdout == 'changed'
 
-        - name: CentOS | remove outdated irods package lock version
+        - name: RedHat | remove outdated irods package lock version
           ansible.builtin.shell:
             executable: /bin/bash
             cmd: |
               set -o errexit -o pipefail
-              readarray -t irods_locks < <(yum versionlock list | sed --quiet '/^0:irods-/p')
+              # yum lists locks as 0:NAME-VERSION-..., dnf as NAME-0:VERSION-...
+              lock_pattern='^(0:)?(irods-.+)-(0:)?([0-9]+\.[0-9]+\.[0-9]+)[.-]'
+              readarray -t irods_locks < <(
+                yum versionlock list | sed --quiet --regexp-extended '/^(0:)?irods-/p' )
               for lock in "${irods_locks[@]}"; do
-                ver="$(sed 's/^0:irods-.*-\([0-9]\+\.[0-9]\+\.[0-9]\+\).*/\1/' <<< "$lock")"
+                if ! [[ "$lock" =~ $lock_pattern ]]; then
+                  continue
+                fi
+                pkg="${BASH_REMATCH[2]}"
+                ver="${BASH_REMATCH[4]}"
                 if [[ "$ver" != '{{ _irods_version }}' ]]; then
-                  pkg="$(sed 's/0:\(irods-.*\)-[0-9\.]\+-.*/\1/' <<< "$lock")"
                   if ! yum versionlock delete "$pkg" > /dev/null; then
                     printf 'Failed to remove lock for %s\n' "$pkg" >&2
                   fi
@@ -48,7 +54,7 @@
           register: resp
           changed_when: resp.stdout is regex('^changed')
 
-        - name: CentOS | lock irods packages to required version
+        - name: RedHat | lock irods packages to required version
 # XXX - yum_versionlock version 10.6.0 will not lock packages that are not installed unlike the
 # `yum versionlock` command
 #           community.general.yum_versionlock:
@@ -63,7 +69,9 @@
 #             state: present
           ansible.builtin.command: yum versionlock add {{ item }}
           register: resp
-          changed_when: 'resp.stdout is not regex("versionlock added: 0")'
+          # yum reports "versionlock added: N"; dnf reports "Adding versionlock on: PKG"
+          changed_when: >-
+            resp.stdout is regex('versionlock added: [1-9]|Adding versionlock on')
           loop:
             - irods-*-{{ _irods_version }}
    # XXX - yum versionlock on some CentOS 7 systems doesn't find irods-*-4.3.1.*
@@ -74,12 +82,15 @@
           tags: skip_ansible_lint
 # XXX - ^^^
 
-        - name: CentOS | install iRODS server
+        # The RPM irods-server needs irods-icommands but doesn't declare it as a dependency.
+        - name: RedHat | install iRODS server
           ansible.builtin.yum:
-            name: irods-server-{{ _irods_version }}
+            name:
+              - irods-icommands-{{ _irods_version }}
+              - irods-server-{{ _irods_version }}
             state: present
 
-        - name: CentOS | install OS specific required packages
+        - name: RedHat | install OS specific required packages
           ansible.builtin.package:
             name: uuidd
             state: present
@@ -144,6 +155,7 @@
       ansible.builtin.service:
         name: irods
         enabled: true
+      tags: no_testing
 
     - name: Create service group
       ansible.builtin.group:
