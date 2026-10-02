@@ -27,7 +27,14 @@ RUN <<'EOF'
 	apt-get upgrade --yes
 
 # Install iRODS
-	apt-get install --yes irods-icommands=4.3.1 irods-runtime=4.3.1 irods-server=4.3.1
+	apt-get install --yes \
+		irods-icommands=4.3.1 \
+		irods-runtime=4.3.1 \
+		irods-server=4.3.1 \
+		irods-netcdf-client_modules \
+		irods-netcdf-icommands \
+		irods-netcdf-server_modules \
+		irods-resource-plugin-s3=4.3.1.0-0~jammy
 
 	groupadd --non-unique --system --gid="$IRODS_HOST_UID" irods
 

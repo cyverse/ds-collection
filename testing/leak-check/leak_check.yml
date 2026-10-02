@@ -1,0 +1,165 @@
+---
+# Measures how much memory an iRODS agent gains while serving each workload.
+# With leak_check_rules set to stock, the provider has only the stock rule bases,
+# and each PEP in leak_check_peps is compared with a control run where it isn't
+# defined. A PEP body doesn't need to do anything to leak, so the PEPs here are
+# empty. With data_store, the Data Store's rule bases must already be deployed,
+# and each workload in leak_check_workloads runs against them as they are, except
+# that amqp-topic-send is replaced with a script that succeeds silently. Any
+# command scripts in leak_check_command_scripts are installed for the cases'
+# rules to call with msiExecCmd. See testing/README.md for how to run it.
+
+- name: Measure agent memory growth caused by PEPs
+  hosts: irods_catalog
+  gather_facts: false
+  become: true
+  become_user: "{{ irods_service_account_name | d('irods') }}"
+  vars:
+    leak_check_command_scripts: {}
+    leak_check_results_dir: /results
+    leak_check_results_file: leak_check_results.json
+    leak_check_rules: stock
+    leak_check_threshold_mib: 16
+    leak_check_sizes:
+      small:
+        count: 1000
+        bytes: 65536
+      large:
+        count: 100
+        bytes: 4194304
+    leak_check_peps:
+      - name: put_pre
+        workload: put
+        sizes: [small, large]
+        rule: pep_api_data_obj_put_pre(*INSTANCE_NAME, *COMM, *DATAOBJINP, *BUFFER, *PORTAL_OPR_OUT) { }
+      - name: put_post
+        workload: put
+        sizes: [small, large]
+        rule: pep_api_data_obj_put_post(*INSTANCE_NAME, *COMM, *DATAOBJINP, *BUFFER, *PORTAL_OPR_OUT) { }
+      # A bulk upload carries many small files in one request, so it only has a
+      # small size.
+      - name: bulk_put_post
+        workload: bulk_put
+        sizes: [small]
+        rule: pep_api_bulk_data_obj_put_post(*INSTANCE_NAME, *COMM, *BULKOPINP, *BUFFER) { }
+      - name: write_post
+        workload: write
+        sizes: [small, large]
+        rule: pep_api_data_obj_write_post(*INSTANCE_NAME, *COMM, *DATAOBJWRITEINP, *BUFFER) { }
+      - name: read_post
+        workload: read
+        sizes: [small, large]
+        rule: pep_api_data_obj_read_post(*INSTANCE_NAME, *COMM, *DATAOBJREADINP, *BUFFER) { }
+    leak_check_workloads:
+      - workload: put
+        sizes: [small, large]
+      - workload: bulk_put
+        sizes: [small]
+      - workload: write
+        sizes: [small, large]
+      - workload: read
+        sizes: [small, large]
+    _data_store_cases: "{{ leak_check_workloads | map('combine', {'name': 'data_store', 'rule': ''}) }}"
+    # The testing environment has no AMQP broker, and each failed publish's error
+    # output would add msiExecCmd's leak. A real publish writes nothing.
+    _data_store_command_scripts:
+      amqp-topic-send: |
+        #!/bin/sh
+        exit 0
+    _command_scripts: >-
+      {{ (_data_store_command_scripts if leak_check_rules == 'data_store' else {})
+        | combine(leak_check_command_scripts) }}
+    _probe: /tmp/leak_probe.py
+    _config: /tmp/leak_check.json
+    _results: /tmp/leak_check_results.json
+  tasks:
+    - name: Check the rule set
+      ansible.builtin.assert:
+        that: leak_check_rules in ['stock', 'data_store']
+        fail_msg: leak_check_rules must be stock or data_store, not {{ leak_check_rules }}
+
+    # irods_cfg.yml leaves msiExecCmd_bin writable only by root.
+    - name: Install the command scripts
+      become_user: root
+      ansible.builtin.copy:
+        dest: /var/lib/irods/msiExecCmd_bin/{{ item.key }}
+        content: "{{ item.value }}"
+        owner: root
+        group: "{{ irods_service_group_name | d(irods_service_account_name) | d('irods') }}"
+        mode: u=rwx,g=rx,o=
+      loop: "{{ _command_scripts | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
+
+    - name: Copy the probe
+      ansible.builtin.copy:
+        src: files/leak_probe.py
+        dest: "{{ _probe }}"
+        mode: u=rwx,go=rx
+
+    - name: Write the probe configuration
+      ansible.builtin.copy:
+        dest: "{{ _config }}"
+        mode: u=rw,go=r
+        content: >-
+          {{
+            {
+              'resource': 'leakCheckResc',
+              'host': inventory_hostname,
+              'vault': '/var/lib/irods/leak_check_vault',
+              'collection': '/' ~ irods_zone_name ~ '/home/' ~ irods_clerver_user | d('rods') ~ '/leak_check',
+              'rule_base': 'leak_check',
+              'sample_interval': 0.2,
+              'sizes': leak_check_sizes,
+              'peps': leak_check_peps if leak_check_rules == 'stock' else _data_store_cases,
+              'controls': leak_check_rules == 'stock',
+            } | to_nice_json
+          }}
+
+    - name: Create the resource and register the rule base
+      ansible.builtin.command: python3 {{ _probe }} setup {{ _config }}
+      register: setup
+      changed_when: "'changed' in setup.stdout"
+      notify: Restart iRODS
+
+    - name: Load the rule base before measuring
+      ansible.builtin.meta: flush_handlers
+
+    # The probe saves the cases that finished even when one fails, so fetch them
+    # before test-leaks tears down the provider.
+    - name: Run the cases and fetch the results
+      block:
+        - name: Run the cases
+          ansible.builtin.command: python3 {{ _probe }} run {{ _config }} {{ _results }}
+          changed_when: true
+      always:
+        - name: Fetch the results
+          ansible.builtin.fetch:
+            src: "{{ _results }}"
+            dest: "{{ leak_check_results_dir }}/{{ leak_check_results_file }}"
+            flat: true
+            fail_on_missing: false
+
+    - name: Summarize the results
+      delegate_to: localhost
+      become: false
+      ansible.builtin.command: >-
+        python3 {{ playbook_dir }}/files/leak_probe.py summarize
+          --threshold-mib {{ leak_check_threshold_mib }}
+          {{ leak_check_results_dir }}/{{ leak_check_results_file }}
+      register: summary
+      changed_when: false
+
+    - name: Show the summary
+      ansible.builtin.debug:
+        msg: "{{ summary.stdout_lines }}"
+
+  handlers:
+    # Restarts through irods_ctl fail intermittently, and a retry succeeds.
+    - name: Restart iRODS
+      cyverse.ds.irods_ctl:
+        state: restarted
+        test_log: true
+      register: restart
+      retries: 2
+      until: restart is succeeded

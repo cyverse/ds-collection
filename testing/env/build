@@ -14,8 +14,11 @@
 
 set -o errexit -o nounset -o pipefail
 
-EXEC_PATH="$(realpath --canonicalize-existing "$0")"
+EXEC_PATH="$(readlink -f "$0")"
 readonly EXEC_PATH
+
+#shellcheck source=testing/portability.sh
+. "$(dirname "$EXEC_PATH")"/../portability.sh
 
 
 main()
@@ -38,10 +41,11 @@ main()
   . "$cfg"
 
   local os
-  for os in alma10 alma9 centos7 ubuntu1804 ubuntu2004 ubuntu2204 ubuntu2404; do
+  for os in alma10 alma9 ubuntu2004 ubuntu2204 ubuntu2404; do
     local buildArgs=(
 #      --no-cache
       --file="$baseDir"/base/Dockerfile."$os"
+      --platform=linux/amd64
       --tag=test-env-base:"$os"
     )
 
@@ -55,11 +59,21 @@ main()
 #    --no-cache
   )
 
-  if ! command -v docker-compose > /dev/null; then
-    docker compose "${composeArgs[@]}"
-  else
-    docker-compose "${composeArgs[@]}"
-  fi
+  portability::compose "${composeArgs[@]}"
+
+  # compose only builds missing images, so refresh the versions other runs built
+  local tags
+  readarray -t tags \
+    < <(docker images --format '{{.Tag}}' --filter reference="$ENV_NAME"-provider_configured)
+
+  local tag
+  for tag in "${tags[@]}"; do
+    # Images from before the version tags are tagged latest.
+    if [[ "$tag" =~ ^[0-9]+(\.[0-9]+)+$ && "$tag" != "${IRODS_VERSION:-4.3.1}" ]]; then
+      IRODS_VERSION="$tag" portability::compose "${composeArgs[@]}" \
+        provider_configured consumer_configured_centos
+    fi
+  done
 }
 
 

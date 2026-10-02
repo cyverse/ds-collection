@@ -1,8 +1,8 @@
-FROM test-env-base:centos7
+FROM test-env-base:alma9
 
 RUN <<EOF
 	set -o errexit
-	yum install --assumeyes openssl
-	yum clean all
-	rm --force --recursive /var/cache/yum
+	dnf --assumeyes install openssl
+	dnf clean all
+	rm --force --recursive /var/cache/dnf
 EOF

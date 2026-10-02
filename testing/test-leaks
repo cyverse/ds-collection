@@ -1,0 +1,194 @@
+#!/usr/bin/env bash
+#
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
+help() {
+	cat <<EOF
+
+$EXEC_NAME
+
+Usage:
+$EXEC_NAME [options] [-- ansible-playbook options]
+
+measure iRODS agent memory leaks caused by PEPs
+
+Options:
+ -v, --irods-version <version>
+                        run the configured catalog service provider on iRODS
+                        <version> instead of 4.3.1, building its image if
+                        needed
+ -c, --cases <file>     a vars file of cases to run in place of the default
+                        PEPs, e.g., leak-check/exec_cmd_cases.yml; not with
+                        --data-store-rules
+ -d, --data-store-rules deploy the Data Store's rule bases and measure each
+                        workload against them, instead of comparing empty PEPs
+                        with control runs under the stock rule bases
+ -h, --help             show help and exit
+ -o, --output <dir>     the directory to write the results to, default
+                        ./leak-check-results
+
+Summary:
+This script starts the testing environment, runs
+testing/leak-check/leak_check.yml against the configured catalog service
+provider, prints a summary of each case's memory growth, and stops the
+environment. The results go to alma9-<version>.json in the output
+directory, e.g., alma9-4.3.1.json, alma9-4.3.1-data-store.json with
+--data-store-rules, or alma9-4.3.1-exec_cmd_cases.json with --cases. Options
+after -- go to ansible-playbook, for example '-- -e leak_check_threshold_mib=32'.
+EOF
+}
+
+
+set -o errexit -o nounset -o pipefail
+
+EXEC_NAME="$(readlink -f "$0")"
+TESTING_DIR="$(dirname "$EXEC_NAME")"
+COLLECTION_DIR="$(dirname "$TESTING_DIR")"
+readonly EXEC_NAME TESTING_DIR COLLECTION_DIR
+
+#shellcheck source=testing/irods_crash.sh
+source "$TESTING_DIR"/irods_crash.sh
+#shellcheck source=testing/portability.sh
+source "$TESTING_DIR"/portability.sh
+
+portability::require_bash 4
+
+readonly CFG="$TESTING_DIR"/config.inc
+readonly COLLECTION_MOUNT=/root/.ansible/collections/ansible_collections/cyverse/ds
+
+# shellcheck disable=SC1090
+source "$CFG"
+
+
+main() {
+	local origArgs=("$@")
+
+	local args
+	if ! args="$(portability::getopt c:dho:v: cases:,data-store-rules,help,irods-version:,output: "$EXEC_NAME" "$@")"; then
+		exit_with_help
+	fi
+
+	eval set -- "$args"
+
+	local cases=
+	local output=leak-check-results
+	local platform=alma9-"${IRODS_VERSION:-4.3.1}"
+	local rules=stock
+	while true; do
+		case "$1" in
+			-c|--cases)
+				cases="$2"
+				shift 2
+				;;
+			-d|--data-store-rules)
+				rules=data_store
+				shift 1
+				;;
+			-h|--help)
+				help
+				return
+				;;
+			-o|--output)
+				output="$2"
+				shift 2
+				;;
+			-v|--irods-version)
+				export IRODS_VERSION="$2"
+				platform=alma9-"$2"
+				shift 2
+				;;
+			--)
+				shift 1
+				break
+				;;
+		esac
+	done
+
+	# Under the Data Store's rules, the playbook runs leak_check_workloads and
+	# ignores any PEPs a cases file defines.
+	if [[ "$rules" == data_store && -n "$cases" ]]; then
+		printf '%s\n' '--cases can'"'"'t be combined with --data-store-rules' >&2
+		return 1
+	fi
+
+	local results="$platform".json
+	if [[ "$rules" == data_store ]]; then
+		results="$platform"-data-store.json
+	fi
+
+	local casesMount=()
+	if [[ -n "$cases" ]]; then
+		if ! [[ -f "$cases" ]]; then
+			printf 'The cases file %s does not exist\n' "$cases" >&2
+			return 1
+		fi
+
+		local casesName
+		casesName="$(basename "$cases")"
+		results="${results%.json}-${casesName%.*}".json
+		casesMount=(--volume "$(readlink -f "$cases")":/cases.yml:ro)
+	fi
+
+	if ! irods_crash::is_attempt; then
+		irods_crash::run_retrying "$EXEC_NAME" ${origArgs[@]+"${origArgs[@]}"}
+		return
+	fi
+
+	mkdir -p "$output"
+	output="$(readlink -f "$output")"
+
+	# Set before starting, so a start that fails partway doesn't leave containers behind.
+	#shellcheck disable=SC2064
+	trap "$(printf '%q ' "$TESTING_DIR"/env/controller "$CFG" stop)" EXIT
+	"$TESTING_DIR"/env/controller "$CFG" start
+
+	# The tester runs as root, so hand the results back to the invoking user.
+	docker run --rm --interactive \
+		--entrypoint bash \
+		--env CASES="${cases:+/cases.yml}" \
+		--env COLLECTION_MOUNT="$COLLECTION_MOUNT" \
+		--env HOST_OWNER="$(id -u):$(id -g)" \
+		--env RESULTS="$results" \
+		--env RULES="$rules" \
+		--network "$DOMAIN" \
+		--platform=linux/amd64 \
+		--volume "$COLLECTION_DIR":"$COLLECTION_MOUNT":ro \
+		--volume "$output":/results \
+		${casesMount[@]+"${casesMount[@]}"} \
+		ansible-tester \
+		-c '
+			run() {
+				ansible-playbook -i /inventory/hosts-configured /wait-for-ready.yml > /dev/null || return
+				if [[ "$RULES" == data_store ]]; then
+					deploy_data_store_rules || return
+				fi
+				ansible-playbook -i /inventory/hosts-configured \
+					"$COLLECTION_MOUNT"/testing/leak-check/leak_check.yml \
+					-e leak_check_results_file="$RESULTS" -e leak_check_rules="$RULES" \
+					${CASES:+-e @"$CASES"} "$@"
+			}
+			# The same setup the rule tests need; see "The iRODS rule tests".
+			deploy_data_store_rules() {
+				local playbooks="$COLLECTION_MOUNT"/playbooks
+				ansible-playbook -i /inventory/hosts-configured "$playbooks"/irods_cfg.yml \
+					&& ansible-playbook --skip-tags=no_testing -i /inventory/hosts-configured \
+						"$playbooks"/irods_runtime_init.yml "$playbooks"/dbms_icat.yml
+			}
+			run "$@"
+			rc=$?
+			if [[ -e /results/"$RESULTS" ]]; then
+				chown "$HOST_OWNER" /results/"$RESULTS"
+			fi
+			exit $rc' \
+		leak-check "$@"
+}
+
+
+exit_with_help() {
+	help >&2
+	exit 1
+}
+
+
+main "$@"

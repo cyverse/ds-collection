@@ -1,18 +1,23 @@
 #!/usr/bin/env bash
 #
 # Usage:
-#  controller INC_FILE (start|stop)
+#  controller INC_FILE (start|stop) [OVERRIDE_FILE ...]
 #
 # PARAMETERS:
-#  INC_FILE  The absolute path to a file including the build time environment
-#            variables. See README.md for details.
+#  INC_FILE       The absolute path to a file including the build time
+#                 environment variables. See README.md for details.
+#  OVERRIDE_FILE  A compose file to apply over docker-compose.yml. Pass the
+#                 same ones to stop as to start.
 #
 # Starts or stops all of the containers.
 
 set -o errexit -o nounset -o pipefail
 
-ExecName=$(readlink --canonicalize "$0")
+ExecName=$(readlink -f "$0")
 readonly ExecName
+
+#shellcheck source=testing/portability.sh
+. "$(dirname "$ExecName")"/../portability.sh
 
 
 main()
@@ -35,6 +40,7 @@ main()
   fi
 
   local action="$2"
+  shift 2
 
   if ! [[ "$cfg" =~ ^/ ]]
   then
@@ -58,13 +64,17 @@ main()
       ;;
   esac
 
-  local composeArgs=(--file="$baseDir"/docker-compose.yml --project-name="$ENV_NAME" "${dcCmd[@]}")
+  local composeArgs=(--file="$baseDir"/docker-compose.yml)
 
-  if ! command -v docker-compose > /dev/null; then
-    docker compose "${composeArgs[@]}"
-  else
-    docker-compose "${composeArgs[@]}"
-  fi
+  local override
+  for override in "$@"
+  do
+    composeArgs+=(--file="$override")
+  done
+
+  composeArgs+=(--project-name="$ENV_NAME" "${dcCmd[@]}")
+
+  portability::compose "${composeArgs[@]}"
 }
 
 
