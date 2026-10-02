@@ -1,14 +1,27 @@
 ---
+# REQUIREMENTS:
+#  inventory: hosts-all
+
 - name: Test default template expansions
   hosts: localhost
   gather_facts: false
+  vars_files:
+    - ../group_vars/all/irods.yml
+  vars:
+    core: "{{ lookup('template', '../templates/irods/docker-rs/run/etc/irods/core.re.j2') }}"
   tasks:
+    - debug:
+        msg: "{{ core }}"
     - name: Test core.re expansion
+      ansible.builtin.assert:
+        that:
+          - core is search('# Ansible managed')
+          - core is search('acSetRescSchemeForCreate { msiSetDefaultResc("demoResc"' | regex_escape)
+
+    - name: Test core.re expansion, continued
       ansible.builtin.debug:
         msg: 'TODO: implement for {{ item }}'
       loop:
-        - Ansible managed
-        - acSetRescSchemeForCreate
         - acSetRescSchemeForRepl
 
     - name: Test .env expansion
