@@ -20,6 +20,8 @@ services:
       dockerfile: webdav/Dockerfile.configured
     platform: linux/amd64
     privileged: true
+    security_opt:
+      - apparmor=docker-default
     tty: true
 
   webdav_unconfigured:
@@ -28,6 +30,8 @@ services:
       dockerfile: webdav/Dockerfile.unconfigured
     platform: linux/amd64
     privileged: true
+    security_opt:
+      - apparmor=docker-default
     tty: true
 
   dbms_configured:
