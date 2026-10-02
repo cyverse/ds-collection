@@ -152,6 +152,8 @@ services:
     image: test-env-base:alma9
     platform: linux/amd64
     privileged: true
+    security_opt:
+      - apparmor=docker-default
     tty: true
 
   consumer_containerized_ubuntu:
