@@ -2,11 +2,18 @@
 driver:
   name: docker
 platforms:
-  - name: ubuntu.localdomain
-    image: ubuntu:bionic
-    hostname: ubuntu.localdomain
+  - name: alma9.localdomain
+    image: alma9-irods
+    pre_build_image: false
+    dockerfile: ../_irods_cfg_shared/alma9.dockerfile
+    hostname: alma9.localdomain
 provisioner:
   name: ansible
   config_options:
     defaults:
       remote_tmp: /tmp
+  inventory:
+    hosts:
+      all:
+        vars:
+          ansible_python_interpreter: /usr/bin/python3

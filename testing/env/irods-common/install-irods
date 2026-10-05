@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+#
+# Usage:
+#  install-irods VERSION PACKAGE...
+#
+# Parameters:
+#  VERSION  the iRODS release to install, e.g., 4.3.1
+#  PACKAGE  an iRODS package name without its irods- prefix, e.g., server
+#
+# Installs the given iRODS packages at VERSION and locks them to it. It adds
+# the NetCDF modules when the EL9 repository has them for VERSION, which it
+# does for 4.3.1 only, so every iRODS server in the environment gets the same
+# plugins. The iRODS yum repository must already be configured.
+#
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
+set -o errexit -o nounset -o pipefail
+
+
+main() {
+	if (( $# < 2 )); then
+		printf 'Usage: install-irods VERSION PACKAGE...\n' >&2
+		return 1
+	fi
+
+	local version="$1"
+	shift
+
+	rpm --import https://packages.irods.org/irods-signing-key.asc
+
+	local packages=()
+	local package
+	for package in "$@"; do
+		packages+=(irods-"$package"-"$version")
+	done
+
+	local netcdfProbe=irods-netcdf-server_modules-"$version".0
+	if dnf --assumeyes --quiet list --available "$netcdfProbe" > /dev/null 2>&1; then
+		for package in client_modules icommands server_modules; do
+			packages+=(irods-netcdf-"$package"-"$version".0)
+		done
+	fi
+
+	dnf --assumeyes install "${packages[@]}"
+	yum versionlock add "${packages[@]}"
+}
+
+
+main "$@"

@@ -2,6 +2,7 @@
 services:
   amqp:
     image: test-env-base:ubuntu2204
+    platform: linux/amd64
     privileged: true
     tty: true
 
@@ -9,6 +10,7 @@ services:
     build:
       context: .
       dockerfile: sftp/Dockerfile
+    platform: linux/amd64
     privileged: true
     tty: true
 
@@ -16,14 +18,20 @@ services:
     build:
       context: .
       dockerfile: webdav/Dockerfile.configured
+    platform: linux/amd64
     privileged: true
+    security_opt:
+      - apparmor=docker-default
     tty: true
 
   webdav_unconfigured:
     build:
       context: .
       dockerfile: webdav/Dockerfile.unconfigured
+    platform: linux/amd64
     privileged: true
+    security_opt:
+      - apparmor=docker-default
     tty: true
 
   dbms_configured:
@@ -31,10 +39,12 @@ services:
       context: .
       dockerfile: postgresql/Dockerfile.configured
       args:
+        DB_USER: "$DB_USER"
         IRODS_DELAY_SERVER: "$IRODS_PROVIDER_CONF_HOST"
-        IRODS_RESOURCES: "$IRODS_RES_CONF_CENTOS_NAME:$IRODS_CONSUMER_CONF_CENTOS_HOST:$IRODS_VAULT $IRODS_RES_CONF_UBUNTU_NAME:$IRODS_CONSUMER_CONF_UBUNTU_HOST:$IRODS_VAULT"
+        IRODS_RESOURCES: "$IRODS_RES_CONF_CENTOS_NAME:$IRODS_CONSUMER_CONF_CENTOS_HOST:$IRODS_VAULT $IRODS_RES_CONF_INGEST_NAME:$IRODS_CONSUMER_CONF_CENTOS_HOST:$IRODS_INGEST_VAULT"
         IRODS_ZONE_NAME: "$IRODS_ZONE_NAME"
         IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
+    platform: linux/amd64
     privileged: true
     tty: true
 
@@ -42,6 +52,7 @@ services:
     build:
       context: .
       dockerfile: postgresql/Dockerfile.unconfigured
+    platform: linux/amd64
     privileged: true
     tty: true
 
@@ -50,19 +61,28 @@ services:
       context: .
       dockerfile: irods-provider/Dockerfile.configured
       args:
+        DB_USER: "$DB_USER"
         DBMS_HOST: "$DBMS_HOST"
         IRODS_DEFAULT_RESOURCE: "$IRODS_DEFAULT_RESOURCE"
         IRODS_HOST: "$IRODS_PROVIDER_CONF_HOST"
         IRODS_LAST_EPHEMERAL_PORT: $IRODS_LAST_EPHEMERAL_PORT
         IRODS_SCHEMA_VALIDATION: "$IRODS_SCHEMA_VALIDATION"
         IRODS_SYSTEM_GROUP: "$IRODS_PROVIDER_SYSTEM_GROUP"
+        IRODS_VERSION: "${IRODS_VERSION:-4.3.1}"
         IRODS_ZONE_NAME: "$IRODS_ZONE_NAME"
         IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
+    # Tagged by version so building another iRODS release doesn't replace the default image
+    image: "${ENV_NAME}-provider_configured:${IRODS_VERSION:-4.3.1}"
     hostname: "$IRODS_PROVIDER_CONF_HOST"
+    platform: linux/amd64
     privileged: true
     security_opt:
       - apparmor=docker-default
     tty: true
+    # A server that segfaults on startup (irods/irods#7747) leaves its shared
+    # memory behind, and at Docker's 64 MB default the next server can't prepare
+    # its rule engine cache, so its rules fail to read their variables.
+    shm_size: 128mb
     depends_on:
       - dbms_configured
 
@@ -74,15 +94,17 @@ services:
         DBMS_HOST: "$DBMS_HOST"
         IRODS_SYSTEM_GROUP: "$IRODS_PROVIDER_SYSTEM_GROUP"
     hostname: "$IRODS_PROVIDER_UNCONF_HOST"
+    platform: linux/amd64
     privileged: true
     security_opt:
       - apparmor=docker-default
     tty: true
+    shm_size: 128mb
 
   consumer_configured_centos:
     build:
       context: .
-      dockerfile: irods-consumer/Dockerfile.configured-centos
+      dockerfile: irods-consumer/Dockerfile.configured
       args:
         IRODS_CATALOG_PROVIDER: "$IRODS_PROVIDER_CONF_HOST"
         IRODS_DEFAULT_RESOURCE: "$IRODS_RES_CONF_CENTOS_NAME"
@@ -90,34 +112,17 @@ services:
         IRODS_HOST: "$IRODS_CONSUMER_CONF_CENTOS_HOST"
         IRODS_LAST_EPHEMERAL_PORT: $IRODS_LAST_EPHEMERAL_PORT
         IRODS_SCHEMA_VALIDATION: "$IRODS_SCHEMA_VALIDATION"
+        IRODS_VERSION: "${IRODS_VERSION:-4.3.1}"
         IRODS_ZONE_NAME: "$IRODS_ZONE_NAME"
         IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
+    image: "${ENV_NAME}-consumer_configured_centos:${IRODS_VERSION:-4.3.1}"
     hostname: "$IRODS_CONSUMER_CONF_CENTOS_HOST"
+    platform: linux/amd64
     privileged: true
     tty: true
     security_opt:
       - apparmor=docker-default
-    depends_on:
-      - provider_configured
-
-  consumer_configured_ubuntu:
-    build:
-      context: .
-      dockerfile: irods-consumer/Dockerfile.configured-ubuntu
-      args:
-        IRODS_CATALOG_PROVIDER: "$IRODS_PROVIDER_CONF_HOST"
-        IRODS_DEFAULT_RESOURCE: "$IRODS_RES_CONF_UBUNTU_NAME"
-        IRODS_DEFAULT_VAULT: "$IRODS_VAULT"
-        IRODS_HOST: "$IRODS_CONSUMER_CONF_UBUNTU_HOST"
-        IRODS_LAST_EPHEMERAL_PORT: $IRODS_LAST_EPHEMERAL_PORT
-        IRODS_SCHEMA_VALIDATION: "$IRODS_SCHEMA_VALIDATION"
-        IRODS_ZONE_NAME: "$IRODS_ZONE_NAME"
-        IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
-    hostname: "$IRODS_CONSUMER_CONF_UBUNTU_HOST"
-    privileged: true
-    security_opt:
-      - apparmor=docker-default
-    tty: true
+    shm_size: 128mb
     depends_on:
       - provider_configured
 
@@ -128,6 +133,7 @@ services:
       args:
         IRODS_CATALOG_PROVIDER: "$IRODS_PROVIDER_CONF_HOST"
     hostname: "${ENV_NAME}-consumer_unconfigured-1.${DOMAIN}"
+    platform: linux/amd64
     privileged: true
     security_opt:
       - apparmor=docker-default
@@ -136,6 +142,15 @@ services:
 
   consumer_containerized_alma:
     image: test-env-base:alma10
+    platform: linux/amd64
+    privileged: true
+    security_opt:
+      - apparmor=docker-default
+    tty: true
+
+  consumer_containerized_alma9:
+    image: test-env-base:alma9
+    platform: linux/amd64
     privileged: true
     security_opt:
       - apparmor=docker-default
@@ -143,8 +158,10 @@ services:
 
   consumer_containerized_ubuntu:
     image: test-env-base:ubuntu2404
+    platform: linux/amd64
     privileged: true
     tty: true
 
   cbuoy:
     image: test-env-base:alma9
+    platform: linux/amd64

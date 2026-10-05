@@ -28,10 +28,13 @@ main()
   #shellcheck disable=1090
   . "$cfg"
 
-  while read -r repository rest
-  do
-    docker rmi "$repository"
-  done < <(docker images --filter reference="$ENV_NAME"-* | tail --lines +2)
+  local images
+  readarray -t images \
+    < <(docker images --format '{{.Repository}}:{{.Tag}}' --filter reference="$ENV_NAME"-*)
+
+  if [[ -n "${images-}" ]]; then
+    docker rmi "${images[@]}"
+  fi
 
   local bases
   readarray -t bases < <(docker images --quiet --filter reference=test-env-base)

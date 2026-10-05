@@ -11,7 +11,7 @@
     default_vcl: "{{ lookup('template', '../templates/webdav/etc/varnish/default.vcl.j2') }}"
     purgeman_conf: "{{ lookup('template', '../templates/webdav/etc/purgeman/purgeman.conf.j2') }}"
     varnish_service: >-
-      {{ lookup('template', '../templates/webdav/usr/lib/systemd/system/varnish.service.j2') }}
+      {{ lookup('template', '../templates/webdav/etc/systemd/system/varnish.service.j2') }}
   tasks:
     - name: Verify head.html expands correctly
       ansible.builtin.assert:
@@ -149,6 +149,8 @@
 - name: Test WebDAV server deposition
   hosts: webdav
   become: true
+  vars_files:
+    - ../group_vars/all/webdav.yml
   tasks:
     - name: Test TLS file directory creation
       ansible.builtin.stat:
@@ -273,9 +275,22 @@
         - mod_proxy_html
         - mod_qos
         - mod_ssl
-        - yum-plugin-versionlock
+        - python3-dnf-plugin-versionlock
       loop_control:
         loop_var: pkg
+
+    - name: Determine which packages are installed
+      ansible.builtin.package_facts:
+
+    - name: Test davrods and its irods-runtime upgraded
+      ansible.builtin.assert:
+        that:
+          - >-
+            ansible_facts.packages['davrods'] | map(attribute='version') | list
+            == [_webdav_davrods_release]
+          - >-
+            ansible_facts.packages['irods-runtime'] | map(attribute='version') | list
+            == [_webdav_davrods_irods_version]
 
     - name: Test install iRODS package repository signing key
       ansible.builtin.shell:
@@ -302,8 +317,14 @@
         executable: /bin/bash
         cmd: |
           set -o pipefail
-          if ! yum versionlock list | grep --quiet 'irods-runtime'; then
-            printf 'irods-runtime not locked\n' >&2
+          if ! yum versionlock list \
+            | grep --quiet '^irods-runtime-0:{{ _webdav_davrods_irods_version | regex_escape }}-'
+          then
+            printf 'irods-runtime not locked to {{ _webdav_davrods_irods_version }}\n' >&2
+            exit 1
+          fi
+          if yum versionlock list | grep --quiet '^irods-runtime-0:4\.3\.3-'; then
+            printf 'outdated irods-runtime lock not removed\n' >&2
             exit 1
           fi
       changed_when: false
@@ -373,7 +394,7 @@
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: varnish
-        version: "6.5.1"
+        version: "6.6.2"
 
     - name: Test create varnish shared memory mount point
       ansible.builtin.stat:
@@ -397,16 +418,16 @@
       register: resp
       failed_when: >-
         not resp.stat.isdir or
-        resp.stat.pw_name != 'varnishlog' or
+        resp.stat.pw_name != 'varnish' or
         resp.stat.gr_name != 'varnish' or
         resp.stat.mode != '0755'
 
     - name: Test varnish cfg files deployed
       ansible.builtin.stat:
-        path: /etc/varnish/default.vcl
+        path: "{{ item }}"
       loop:
         - /etc/varnish/default.vcl
-        - /usr/lib/systemd/system/varnish.service
+        - /etc/systemd/system/varnish.service
       register: resp
       failed_when: >-
         not resp.stat.exists or not resp.stat.rusr or not resp.stat.rgrp or not resp.stat.roth
@@ -428,7 +449,7 @@
       ansible.builtin.stat:
         path: /etc/systemd/system/httpd.service.requires/varnish.service
       register: resp
-      failed_when: resp.stat.lnk_source != '/usr/lib/systemd/system/varnish.service'
+      failed_when: resp.stat.lnk_source != '/etc/systemd/system/varnish.service'
 
     - name: Test create varnish systemd service dependencies directory
       ansible.builtin.stat:

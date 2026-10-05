@@ -47,11 +47,12 @@
         name: pika>=1.2
         state: present
 
-    - name: Provision CentOS
-      when: ansible_distribution == 'CentOS'
+    - name: Provision RedHat family
+      when: ansible_os_family == 'RedHat'
       block:
 # XXX - python3-pyodbc required by irods-server but not available as system package in CentOS 7
-        - name: CentOS | Install pyodbc prerequisites
+        - name: RedHat | Install pyodbc prerequisites
+          when: ansible_distribution_major_version == '7'
           ansible.builtin.package:
             name:
               - gcc
@@ -60,36 +61,39 @@
               - unixODBC-devel
             state: present
 
-        - name: CentOS | Install pyodbc
+        - name: RedHat | Install pyodbc
+          when: ansible_distribution_major_version == '7'
           ansible.builtin.pip:
             name: pyodbc
             state: present
 # XXX - ^^^
 
-        - name: CentOS | install mail client
+        - name: RedHat | install mail client
           ansible.builtin.package:
-            name: mailx
+            name: "{{ 'mailx' if ansible_distribution_major_version == '7' else 's-nail' }}"
             state: present
 
-        - name: CentOS | install PostgreSQL 12 repository
+        - name: RedHat | install PostgreSQL 12 repository
           ansible.builtin.copy:
             dest: /etc/yum.repos.d/pgdg-12.repo
             mode: a+r
             content: |
               [pgdg12-archive]
-              name=PostgreSQL 12 RPMs for RHEL/Rocky Linux/AlmaLinux/CentOS 7
-              baseurl=https://yum-archive.postgresql.org/12/redhat/rhel-7-x86_64
+              name=PostgreSQL 12 RPMs for RHEL/Rocky Linux/AlmaLinux/CentOS {{ el_version }}
+              baseurl=https://yum-archive.postgresql.org/12/redhat/rhel-{{ el_version }}-x86_64
               enabled=1
               gpgcheck=0
+          vars:
+            el_version: "{{ ansible_distribution_major_version }}"
 
-        - name: CentOS | install PostgreSQL 12 clients
+        - name: RedHat | install PostgreSQL 12 clients
           ansible.builtin.package:
             name:
               - postgresql12
               - postgresql12-odbc
             state: present
 
-        - name: CentOS | add postgres 12 clients to path
+        - name: RedHat | add postgres 12 clients to path
           ansible.builtin.copy:
             src: "{{ item }}"
             dest: /etc/profile.d
@@ -97,7 +101,7 @@
           with_fileglob:
             - "files/irods/etc/profile.d/*"
 
-        - name: CentOS | define PostgreSQL 12 ODBC Driver
+        - name: RedHat | define PostgreSQL 12 ODBC Driver
           ansible.builtin.shell:
             executable: /bin/bash
             stdin: "{{ lookup('file', 'files/irods/postgresql-odbc-tmpl.ini') }}"
@@ -120,7 +124,7 @@
           register: result
           changed_when: result.stdout == 'changed'
 
-        - name: CentOS | Lock irods-database-plugin-postgres to required version
+        - name: RedHat | Lock irods-database-plugin-postgres to required version
           community.general.yum_versionlock:
             name: irods-database-plugin-postgres-{{ _irods_version }}
             state: present

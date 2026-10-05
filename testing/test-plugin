@@ -26,7 +26,7 @@ Example:
     ./test_plugin --inspect ../irods/library irods_group
 """
 
-from os import path
+from os import environ, path
 from pathlib import Path
 import sys
 from subprocess import Popen
@@ -48,6 +48,7 @@ _TEST_CMD_FORM = """
             --env IRODS_ZONE_NAME="$IRODS_ZONE_NAME" \
             --env PGHOST="$DBMS_HOST" \
             --network "$DOMAIN" \
+            --platform=linux/amd64 \
             --volume "{1}":/root/.ansible/collections/ansible_collections/cyverse/ds:ro \
             --volume "{2}":/playbooks-under-test:ro \
             ansible-tester "{3}" "{4}" "{5}" "{6}" '' "{7}")
@@ -57,18 +58,41 @@ _TESTING_DIR = path.dirname(path.abspath(sys.argv[0]))
 _COLLECTION_DIR = path.dirname(_TESTING_DIR)
 _PLUGINS_DIR = path.join(path.dirname(_TESTING_DIR), "plugins")
 _CFG = path.join(_TESTING_DIR, "config.inc")
+_IRODS_CRASH_LIB = path.join(_TESTING_DIR, "irods_crash.sh")
 
 
 def _main():
-    test = _PluginTest(_parse_args())
+    args = _parse_args()
+
+    # The inspection shell needs the terminal, so an inspected run isn't captured or retried.
+    if not args.inspect and "IRODS_CRASH_ATTEMPT" not in environ:
+        return _run_retrying()
+
+    test = _PluginTest(args)
 
     if not _verify_existence(test.plugin_file, test.test_file):
-        return
+        return 1
 
+    status = 1
     if _controller("start") == 0:
-        _run_tester(test)
+        status = _run_tester(test)
 
     _controller("stop")
+    return status
+
+
+def _run_retrying():
+    """
+    Runs this script again through irods_crash.sh, which retries a run that failed because iRODS
+    crashed while starting.
+    """
+    cmd = (
+        'set -o errexit -o nounset -o pipefail; '
+        f'source "{_IRODS_CRASH_LIB}"; '
+        'irods_crash::run_retrying "$@"')
+
+    with Popen(["bash", "-c", cmd, "bash", path.abspath(sys.argv[0]), *sys.argv[1:]]) as proc:
+        return proc.wait()
 
 
 def _parse_args():
@@ -169,4 +193,4 @@ def _run_tester(test):
 
 
 if __name__ == "__main__":
-    _main()
+    sys.exit(_main())

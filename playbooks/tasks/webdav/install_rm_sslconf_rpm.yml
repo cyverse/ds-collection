@@ -50,8 +50,10 @@
     mode: u+rw
 
 - name: install RPM package on managed node
-  yum:
+  dnf:
     name: /tmp/mod_ssl-rm_ssl_conf-1.0-1.noarch.rpm
+    # Built above, so it isn't signed
+    disable_gpg_check: true
     state: present
 
 - name: managed node clean up

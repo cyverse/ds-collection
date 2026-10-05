@@ -6,7 +6,7 @@ his is a collection of playbooks for maintaining CyVerse's Data Store.
 
 ## Prerequisites
 
-Only Ubuntu 22.04 is supported at this time.
+Ubuntu 22.04 is the supported platform for an Ansible control node, and the setup below assumes it. The testing harness also runs on macOS; see `testing/README.md` for what it needs there.
 
 The following actions need to be performed once for the admin host.
 

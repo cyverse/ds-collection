@@ -2,6 +2,14 @@
 - name: Verify
   hosts: all
   tasks:
+    - name: Verify iRODS upgraded to 4.3.5
+      ansible.builtin.command: >-
+        rpm --query --queryformat '%{VERSION}\n'
+          irods-database-plugin-postgres irods-icommands irods-runtime irods-server
+      register: response
+      changed_when: false
+      failed_when: response.stdout_lines | unique != ['4.3.5']
+
     - name: Validate deposition of server_config.json
       ansible.builtin.include_tasks: ../_irods_cfg_shared/tasks/validate_deposition.yml
       vars:
