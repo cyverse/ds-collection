@@ -291,3 +291,28 @@ pep_api_sub_struct_file_put_pre(*Instance, *Comm, *Subfile, *OUT_BUF) {
 	writeLine('serverLog', *msg);
 	failmsg(-169000, 'putting a subfile is not allowed');
 }
+
+# The `userAdmin` API is vulnerable to custom payloads which can create a new
+# rodsadmin account. This prevents custom groupadmin payload via USER_ADMIN_AN
+# 714.
+#
+# This can be removed after upgrading to 5.1.0.
+#
+# Parameters:
+#  Inst   (unknown) unused
+#  Ctx    (`KeyValuePair_PI`) contains information about the API?
+#  OUT    (unknown) unused
+#  UInfo  (`KeyValuePair_PI`) contains information about the user being created
+#
+# Error Codes:
+#  -169000 (SYS_NOT_ALLOWED)
+#
+pep_database_reg_user_re_pre(*Inst, *Ctx, *OUT, *UInfo) {
+	if ( "714" == *Ctx.api_index && "rodsadmin" == *UInfo.user_type) {
+		*msg = 'pep_database_reg_user_re_pre: api_index[' ++ *Ctx.api_index ++ '] user_type['
+			++ *UInfo.user_type ++ '] DENIED (AN 714)';
+
+		writeLine('serverLog', *msg);
+		failmsg(-169000, 'groupadmin creating rodsadmin is not allowed');
+	}
+}

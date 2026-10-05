@@ -24,7 +24,7 @@ from irods.exception import (
     iRODSException, SYS_NOT_ALLOWED)
 from irods.message import (
     GenQueryResponse, GenQueryResponseColumn, IntegerProperty, iRODSMessage, LongProperty, Message,
-    RodsHostAddress, StringProperty, StringStringMap, SubmessageProperty)
+    RodsHostAddress, StringProperty, StringStringMap, SubmessageProperty, UserAdminRequest)
 from irods.models import Group, RuleExec
 from irods.path import iRODSPath
 from irods.session import iRODSSession
@@ -955,6 +955,38 @@ class TestPepApiSubStructFilePut(_TarTest):
             if msg in line:
                 return
         self.fail("Didn't log correct message")
+
+
+class TestPepDatabaseRegUserRe(_CveTest):
+    """Tests of pep_database_reg_user_re_pre"""
+
+    def setUp(self):
+        super().setUp()
+        self._target_name = "pep_db_reg_user_re_target"
+        self.ensure_user_absent(self._target_name)
+
+    def tearDown(self):
+        self.ensure_user_absent(self._target_name)
+        super().tearDown()
+
+    def _mkgroup(self, user_type):
+        request = iRODSMessage(
+            "RODS_API_REQ",  # type: ignore[arg-type]
+            msg=UserAdminRequest("mkgroup", self._target_name, user_type),
+            int_info=api_number.api_number["USER_ADMIN_AN"])
+        with self.irods.pool.get_connection() as conn:  # type: ignore
+            conn.send(request)
+            conn.recv()
+
+    def test_create_rodsadmin(self):
+        """Verify that the crafted USER_ADMIN_AN request cannot create a rodsadmin"""
+        with self.assertRaises(SYS_NOT_ALLOWED):
+            self._mkgroup("rodsadmin")
+
+    def test_create_rodsgroup(self):
+        """Verify that the crafted USER_ADMIN_AN request can create a rodsgroup"""
+        self._mkgroup("rodsgroup")
+        self.irods.groups.get(self._target_name)
 
 
 if __name__ == "__main__":
