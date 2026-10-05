@@ -2,15 +2,14 @@ FROM test-env-base:alma8
 
 ADD https://packages.irods.org/renci-irods.yum.repo /etc/yum.repos.d/renci-irods.yum.repo
 
-# A newer davrods than webdav.yml installs, with its irods-runtime locked, so the playbook's
-# stale-lock removal and downgrade get tested
+# An existing WebDAV host: the davrods release webdav.yml installs, with its irods-runtime locked
 RUN <<'EOF'
 	set -o errexit
 	rpm --import https://packages.irods.org/irods-signing-key.asc
 	yum --assumeyes updateinfo
 	dnf --assumeyes install \
-		https://github.com/UtrechtUniversity/davrods/releases/download/4.3.4_1.5.3/davrods-4.3.4_1.5.3-1.rpm
-	yum versionlock add irods-runtime-4.3.4
+		https://github.com/UtrechtUniversity/davrods/releases/download/4.3.0_1.5.0/davrods-4.3.0_1.5.0-1.rpm
+	yum versionlock add irods-runtime-4.3.0
 	dnf clean all
 	rm --force --recursive /var/cache/dnf
 EOF

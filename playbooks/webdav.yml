@@ -384,8 +384,6 @@
             _webdav_davrods_release }}-1.rpm
         # The davrods release RPMs aren't signed.
         disable_gpg_check: true
-        # A host may have a newer davrods than the pinned release.
-        allow_downgrade: true
         state: present
 
     - name: Lock irods-runtime
