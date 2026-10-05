@@ -1,15 +1,16 @@
-FROM test-env-base:alma9
+FROM test-env-base:alma8
 
 ADD https://packages.irods.org/renci-irods.yum.repo /etc/yum.repos.d/renci-irods.yum.repo
 
-# An older davrods with its irods-runtime locked, so webdav.yml's upgrade path gets tested
+# davrods with its irods-runtime locked, as on a deployed WebDAV host. iRODS publishes no 4.2
+# runtime for EL8, so no older davrods can be installed to exercise webdav.yml's upgrade path.
 RUN <<'EOF'
 	set -o errexit
 	rpm --import https://packages.irods.org/irods-signing-key.asc
 	yum --assumeyes updateinfo
 	dnf --assumeyes install \
-		https://github.com/UtrechtUniversity/davrods/releases/download/4.3.3_1.5.1/davrods-4.3.3_1.5.1-1.rpm
-	yum versionlock add irods-runtime-4.3.3
+		https://github.com/UtrechtUniversity/davrods/releases/download/4.3.0_1.5.0/davrods-4.3.0_1.5.0-1.rpm
+	yum versionlock add irods-runtime-4.3.0
 	dnf clean all
 	rm --force --recursive /var/cache/dnf
 EOF

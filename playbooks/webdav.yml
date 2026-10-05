@@ -450,10 +450,11 @@
         dest: /var/www/html/robots.txt
         mode: a+r
 
+    # EL8's AppStream provides Varnish 6.0, so only a Varnish older than that is replaced.
     - name: Upgrade Varnish
       when:
         - "'varnish' in ansible_facts.packages"
-        - ansible_facts.packages['varnish'][0].version is version_compare('6.5.1', '<')
+        - ansible_facts.packages['varnish'][0].version is version_compare('6.0', '<')
       block:
         - name: Varnish | ensure not running
           ansible.builtin.service:

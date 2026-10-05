@@ -1,4 +1,4 @@
-FROM test-env-base:alma9
+FROM test-env-base:alma8
 
 RUN <<EOF
 	set -o errexit

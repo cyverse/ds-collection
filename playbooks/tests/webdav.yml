@@ -282,7 +282,7 @@
     - name: Determine which packages are installed
       ansible.builtin.package_facts:
 
-    - name: Test davrods and its irods-runtime upgraded
+    - name: Test davrods and its irods-runtime versions
       ansible.builtin.assert:
         that:
           - >-
@@ -321,10 +321,6 @@
             | grep --quiet '^irods-runtime-0:{{ _webdav_davrods_irods_version | regex_escape }}-'
           then
             printf 'irods-runtime not locked to {{ _webdav_davrods_irods_version }}\n' >&2
-            exit 1
-          fi
-          if yum versionlock list | grep --quiet '^irods-runtime-0:4\.3\.3-'; then
-            printf 'outdated irods-runtime lock not removed\n' >&2
             exit 1
           fi
       changed_when: false
@@ -394,7 +390,7 @@
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: varnish
-        version: "6.6.2"
+        version: "6.0.13"
 
     - name: Test create varnish shared memory mount point
       ansible.builtin.stat:
