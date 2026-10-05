@@ -7,7 +7,7 @@
 #  INC_FILE  The absolute path to a file including the build time environment
 #            variables. See README.md for details.
 #
-# Builds the five docker images with the provided configuration values.
+# Builds the base and compose docker images with the provided configuration values.
 #
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
