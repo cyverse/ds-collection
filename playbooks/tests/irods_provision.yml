@@ -28,8 +28,8 @@
             executable: /bin/bash
             cmd: |
               set -o pipefail
-              if ! yum versionlock list | grep --quiet '{{ item }}'; then
-                printf '{{ item }} not locked\n' >&2
+              if ! yum versionlock list | grep --quiet '^{{ item }}-0:4\.3\.1[.-]'; then
+                printf '{{ item }} not locked to 4.3.1\n' >&2
                 exit 1
               elif info="$(yum --quiet list installed '{{ item }}' | tail --lines=+2)"; then
                 readarray -t versions <<< "$info"
@@ -50,6 +50,25 @@
             - irods-resource-plugin-s3
             - irods-runtime
             - irods-server
+
+        # irods_provision.yml removes a stale lock only if its line matches this copy of its pattern.
+        - name: RedHat | test irods package locks match the stale lock pattern
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o pipefail
+              readarray -t locks < <(yum versionlock list | sed --quiet '/^irods-/p')
+              if [[ -z "${locks[0]-}" ]]; then
+                printf 'no irods package locks\n' >&2
+                exit 1
+              fi
+              for lock in "${locks[@]}"; do
+                if ! [[ "$lock" =~ ^(irods-.+)-0:([0-9]+\.[0-9]+\.[0-9]+)[.-] ]]; then
+                  printf 'lock %s does not match\n' "$lock" >&2
+                  exit 1
+                fi
+              done
+          changed_when: false
 
         - name: RedHat | verify correct packages installed
           ansible.builtin.include_tasks: tasks/test_pkg_installed.yml

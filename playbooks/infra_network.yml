@@ -36,20 +36,9 @@
   become: true
   gather_facts: false
   tasks:
-    - name: Install prerequisites for community.general.nmcli on CentOS
-      when: ansible_distribution == 'CentOS'
+    - name: Install prerequisites for community.general.nmcli
       ansible.builtin.package:
-        name: NetworkManager-tui
-
-    - name: Install prerequisites for community.general.nmcli on Ubuntu
-      when: ansible_distribution == 'Ubuntu'
-      ansible.builtin.package:
-        name: network-manager
-
-    - name: Install prerequisites for community.general.nmcli on Fedora >= 29
-      when: ansible_distribution != 'CentOS' and ansible_distribution != 'Ubuntu'
-      ansible.builtin.package:
-        name: NetworkManager
+        name: "{{ 'network-manager' if ansible_distribution == 'Ubuntu' else 'NetworkManager' }}"
 
     - name: Configure MTU for interface
       community.general.nmcli:
@@ -73,24 +62,11 @@
       register: resp
       changed_when: resp.stdout == 'changed'
 
-    - name: Ensure correct transmission queue length on reboot for Ubuntu 20.04 or later
-      when: >-
-        ansible_distribution == 'Ubuntu' and ansible_distribution_version is version('20.04', '>=')
+    - name: Ensure correct transmission queue length on reboot
       ansible.builtin.template:
         src: templates/infra/etc/udev/rules.d/txqueuelen.rules.j2
         dest: /etc/udev/rules.d/50-txqueuelen.rules
         mode: u+r
-
-    - name: Ensure correct transmission queue length on reboot for Ubuntu < 20.04 or other linux
-      when:
-        - ansible_distribution != 'Ubuntu'
-        - ansible_distribution == 'Ubuntu' and ansible_distribution_version is version('20.04', '<')
-      ansible.builtin.lineinfile:
-        dest: >-
-          {{ '/etc/network/interfaces' if ansible_distribution == 'Ubuntu' else '/etc/rc.local' }}
-        regexp: /usr/sbin/ip link set {{ ansible_default_ipv4.alias }} txqueuelen
-        line: >-
-          /usr/sbin/ip link set {{ ansible_default_ipv4.alias }} txqueuelen {{ _infra_txqueuelen }}
 
 
 - name: Tune TCP

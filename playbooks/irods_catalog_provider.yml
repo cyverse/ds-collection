@@ -50,27 +50,9 @@
     - name: Provision RedHat family
       when: ansible_os_family == 'RedHat'
       block:
-# XXX - python3-pyodbc required by irods-server but not available as system package in CentOS 7
-        - name: RedHat | Install pyodbc prerequisites
-          when: ansible_distribution_major_version == '7'
-          ansible.builtin.package:
-            name:
-              - gcc
-              - gcc-c++
-              - python3-devel
-              - unixODBC-devel
-            state: present
-
-        - name: RedHat | Install pyodbc
-          when: ansible_distribution_major_version == '7'
-          ansible.builtin.pip:
-            name: pyodbc
-            state: present
-# XXX - ^^^
-
         - name: RedHat | install mail client
           ansible.builtin.package:
-            name: "{{ 'mailx' if ansible_distribution_major_version == '7' else 's-nail' }}"
+            name: s-nail
             state: present
 
         - name: RedHat | install PostgreSQL 12 repository
@@ -79,7 +61,7 @@
             mode: a+r
             content: |
               [pgdg12-archive]
-              name=PostgreSQL 12 RPMs for RHEL/Rocky Linux/AlmaLinux/CentOS {{ el_version }}
+              name=PostgreSQL 12 RPMs for RHEL/Rocky Linux/AlmaLinux {{ el_version }}
               baseurl=https://yum-archive.postgresql.org/12/redhat/rhel-{{ el_version }}-x86_64
               enabled=1
               gpgcheck=0
