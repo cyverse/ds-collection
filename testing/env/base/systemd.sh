@@ -26,8 +26,12 @@ main() {
 	systemctl enable "$sshUnit"
 
 	local maskedUnits=(
+		# logind and gettys would claim the host's virtual consoles, which the containers can see.
+		autovt@.service
 		console-getty.service
 		getty.target
+		getty@.service
+		systemd-logind.service
 
 		# These would change host-wide kernel settings, modules, crash records, CPU frequency
 		# governors, or the clock. Some also skip containers, but masking them doesn't rely on that.
