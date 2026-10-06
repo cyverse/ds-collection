@@ -56,16 +56,24 @@ services:
         IRODS_RESOURCES: "$IRODS_RES_CONF_CENTOS_NAME:$IRODS_CONSUMER_CONF_CENTOS_HOST:$IRODS_VAULT $IRODS_RES_CONF_INGEST_NAME:$IRODS_CONSUMER_CONF_CENTOS_HOST:$IRODS_INGEST_VAULT"
         IRODS_ZONE_NAME: "$IRODS_ZONE_NAME"
         IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
+    cgroup: private
     platform: linux/amd64
     privileged: true
+    tmpfs:
+      - /run
+      - /run/lock
     tty: true
 
   dbms_unconfigured:
     build:
       context: .
       dockerfile: postgresql/Dockerfile.unconfigured
+    cgroup: private
     platform: linux/amd64
     privileged: true
+    tmpfs:
+      - /run
+      - /run/lock
     tty: true
 
   provider_configured:

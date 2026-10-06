@@ -1,4 +1,4 @@
-FROM test-env-base:ubuntu2004
+FROM test-env-base:ubuntu2004-systemd
 
 ARG DB_NAME=ICAT
 ARG DB_PASSWORD=testpassword
@@ -33,7 +33,3 @@ RUN \
 	/tmp/config
 
 USER root
-
-COPY postgresql/service.sh /
-
-CMD [ "/service.sh" ]

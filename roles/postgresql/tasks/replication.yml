@@ -9,16 +9,17 @@
   when: postgresql_downstream_nodes|length > 0
   become: true
   become_user: postgres
-  tags: no_testing
 
+# Every run with postgresql_destroy_default_db_on_init rebuilds the secondary from the primary.
 - name: Replication | start
   when: postgresql_upstream_node and postgresql_destroy_default_db_on_init
+  tags:
+    - non_idempotent
   block:
     - name: Stop database on secondaries
       ansible.builtin.service:
         name: postgresql@12-main.service
         state: stopped
-      tags: no_testing
 
     - name: Ensure pgdata path is empty
       ansible.builtin.file:
@@ -56,4 +57,3 @@
       ansible.builtin.service:
         name: postgresql@12-main.service
         state: started
-      tags: no_testing
