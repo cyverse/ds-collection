@@ -10,8 +10,12 @@ services:
     build:
       context: .
       dockerfile: sftp/Dockerfile
+    cgroup: private
     platform: linux/amd64
     privileged: true
+    tmpfs:
+      - /run
+      - /run/lock
     tty: true
 
   webdav_configured:

@@ -505,6 +505,11 @@
       failed_when: resp.stat.lnk_source != '/usr/lib/systemd/system/purgeman.service'
 
     - name: Test the WebDAV services are running after their restart handlers
-      ansible.builtin.include_tasks: tasks/webdav/test_services.yml
+      ansible.builtin.include_tasks: tasks/test_services.yml
       vars:
+        services:
+          - httpd
+          - purgeman
+          - varnish
+          - varnishncsa
         active: true

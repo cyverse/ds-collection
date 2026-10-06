@@ -1,10 +1,11 @@
 ---
-# Tests the state of the WebDAV services
+# Tests the state of systemd services
 #
-# active   whether the services should be running
-# enabled  (optional) whether the services should start on boot
+# services  the names of the services
+# active    whether the services should be running
+# enabled   (optional) whether the services should start on boot
 
-- name: Check WebDAV service state
+- name: Check service state
   ansible.builtin.shell:
     executable: /bin/bash
     cmd: |
@@ -14,8 +15,4 @@
       [[ "$(systemctl is-enabled '{{ item }}')" == {{ 'enabled' if enabled else 'disabled' }} ]]
       {% endif %}
   changed_when: false
-  loop:
-    - httpd
-    - purgeman
-    - varnish
-    - varnishncsa
+  loop: "{{ services }}"

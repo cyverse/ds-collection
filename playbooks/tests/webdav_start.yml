@@ -6,7 +6,12 @@
   become: true
   tasks:
     - name: Test the WebDAV services are running and enabled
-      ansible.builtin.include_tasks: tasks/webdav/test_services.yml
+      ansible.builtin.include_tasks: tasks/test_services.yml
       vars:
+        services:
+          - httpd
+          - purgeman
+          - varnish
+          - varnishncsa
         active: true
         enabled: true
