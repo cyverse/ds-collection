@@ -29,7 +29,9 @@ main() {
 		console-getty.service
 		getty.target
 
-		# These would change host-wide kernel settings, modules, crash records, or the clock.
+		# These would change host-wide kernel settings, modules, crash records, CPU frequency
+		# governors, or the clock. Some also skip containers, but masking them doesn't rely on that.
+		ondemand.service
 		systemd-binfmt.service
 		systemd-modules-load.service
 		systemd-pstore.service
