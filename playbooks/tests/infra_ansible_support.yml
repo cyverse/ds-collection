@@ -14,7 +14,8 @@
         - acl
         - dmidecode
         - jq
-        - python3
+        # On EL8, python36 is the package that provides python3.
+        - "{{ 'python36' if ansible_os_family == 'RedHat' and ansible_distribution_major_version == '8' else 'python3' }}"
         - python3-pip
       loop_control:
         loop_var: pkg
@@ -34,8 +35,8 @@
       loop_control:
         loop_var: pkg
 
-    - name: Test install packages on EL9
-      when: ansible_os_family == 'RedHat' and ansible_distribution_major_version == '9'
+    - name: Test install packages on EL8 and EL9
+      when: ansible_os_family == 'RedHat' and ansible_distribution_major_version in ['8', '9']
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       with_items:
         - epel-release
@@ -48,12 +49,14 @@
       loop_control:
         loop_var: pkg
 
-    - name: Test CRB repository enabled on EL9
-      when: ansible_os_family == 'RedHat' and ansible_distribution_major_version == '9'
-      ansible.builtin.command: dnf repolist --enabled crb
+    - name: Test CRB repository enabled on EL8 and EL9
+      when: ansible_os_family == 'RedHat' and ansible_distribution_major_version in ['8', '9']
+      vars:
+        repo: "{{ 'powertools' if ansible_distribution_major_version == '8' else 'crb' }}"
+      ansible.builtin.command: dnf repolist --enabled {{ repo }}
       register: resp
       changed_when: false
-      failed_when: resp.stdout is not regex('^crb ', multiline=true)
+      failed_when: resp.stdout is not regex('^' ~ repo ~ ' ', multiline=true)
 
     - name: Test install packages on Ubuntu
       when: ansible_distribution == 'Ubuntu'

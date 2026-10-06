@@ -7,7 +7,7 @@
 #  INC_FILE  The absolute path to a file including the build time environment
 #            variables. See README.md for details.
 #
-# Builds the five docker images with the provided configuration values.
+# Builds the base and compose docker images with the provided configuration values.
 #
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
@@ -41,7 +41,7 @@ main()
   . "$cfg"
 
   local os
-  for os in alma10 alma9 ubuntu2004 ubuntu2204 ubuntu2404; do
+  for os in alma10 alma9 alma8 ubuntu2004 ubuntu2204 ubuntu2404; do
     local buildArgs=(
 #      --no-cache
       --file="$baseDir"/base/Dockerfile."$os"

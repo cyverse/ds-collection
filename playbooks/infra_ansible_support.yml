@@ -57,11 +57,11 @@
         name: epel-release
         state: present
 
-    # EPEL 9 packages depend on packages from CRB.
-    - name: Enable CRB repository on EL9 machines
-      when: ansible_os_family == 'RedHat' and ansible_distribution_major_version == '9'
+    # EPEL 8 and 9 packages depend on packages from CRB, which EL8 calls PowerTools.
+    - name: Enable CRB repository on EL8 and EL9 machines
+      when: ansible_os_family == 'RedHat' and ansible_distribution_major_version in ['8', '9']
       community.general.dnf_config_manager:
-        name: crb
+        name: "{{ 'powertools' if ansible_distribution_major_version == '8' else 'crb' }}"
         state: enabled
 
     - name: Install packages
@@ -95,8 +95,8 @@
           - python-virtualenv
         state: present
 
-    - name: Install packages on EL9 machines
-      when: ansible_os_family == 'RedHat' and ansible_distribution_major_version == '9'
+    - name: Install packages on EL8 and EL9 machines
+      when: ansible_os_family == 'RedHat' and ansible_distribution_major_version in ['8', '9']
       ansible.builtin.package:
         name:
           - iproute
