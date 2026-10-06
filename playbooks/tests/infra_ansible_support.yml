@@ -3,11 +3,6 @@
   hosts: all:!unmanaged_systems:!localhost
   become: true
   tasks:
-    - name: Test Update CentOS base repo
-      when: ansible_distribution == 'CentOS'
-      ansible.builtin.command: grep --quiet '7.9.2009' /etc/yum.repos.d/CentOS-Base.repo
-      changed_when: false
-
     - name: Test install packages
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       with_items:
@@ -17,21 +12,6 @@
         # On EL8, python36 is the package that provides python3.
         - "{{ 'python36' if ansible_os_family == 'RedHat' and ansible_distribution_major_version == '8' else 'python3' }}"
         - python3-pip
-      loop_control:
-        loop_var: pkg
-
-    - name: Test install packages on CentOS
-      when: ansible_distribution == 'CentOS'
-      ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
-      with_items:
-        - epel-release
-        - iproute
-        - libselinux-python
-        - python-dns
-        - python-requests
-        - python-virtualenv
-        - python2-pip
-        - yum-plugin-versionlock
       loop_control:
         loop_var: pkg
 
@@ -69,13 +49,6 @@
         - python3-virtualenv
       loop_control:
         loop_var: pkg
-
-    - name: Verify pip upgraded on CentOS 7
-      when: ansible_distribution == 'CentOS'
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: '[[ "$(pip --version)" =~ pip\ 20 ]]'
-      changed_when: false
 
     - name: Test install packages on Ubuntu 22.04
       when: >-

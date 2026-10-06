@@ -15,5 +15,5 @@
     - name: Test disallowed keys not installed
       ansible.builtin.shell:
         executable: /bin/bash
-        cmd: grep --invert --quiet disallowed "$HOME"/.ssh/authorized_keys
+        cmd: '! grep --quiet disallowed "$HOME"/.ssh/authorized_keys'
       changed_when: false

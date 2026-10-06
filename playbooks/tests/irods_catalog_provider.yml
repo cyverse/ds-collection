@@ -43,36 +43,10 @@
           loop:
             - postgresql12
             - postgresql12-odbc
-          loop_control:
-            loop_var: pkg
-
-        - name: RedHat | verify correct EL7 packages installed
-          when: ansible_distribution_major_version == '7'
-          ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
-          loop:
-            - gcc
-            - gcc-c++
-            - mailx
-            - python3-devel
-            - unixODBC-devel
-          loop_control:
-            loop_var: pkg
-
-        - name: RedHat | verify correct EL9 packages installed
-          when: ansible_distribution_major_version == '9'
-          ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
-          loop:
             - python3-pyodbc
             - s-nail
           loop_control:
             loop_var: pkg
-
-        - name: RedHat | verify pyodbc installed on EL7
-          when: ansible_distribution_major_version == '7'
-          community.general.pip_package_info:
-            clients: pip3
-          register: pip_info
-          failed_when: "'pyodbc' not in pip_info.packages['pip3']"
 
         - name: RedHat | verify postgresql clients are on the the path
           ansible.builtin.stat:

@@ -337,6 +337,19 @@
       register: resp
       failed_when: not resp.stat.exists
 
+    - name: Test install static WebDAV HTML pages
+      ansible.builtin.stat:
+        path: /var/www/html/{{ item }}
+      loop:
+        - dav/index.html
+        - dav/{{ _webdav_irods_zone }}/index.html
+        - dav/{{ _webdav_irods_zone }}/commons/index.html
+        - dav-anon/index.html
+        - dav-anon/{{ _webdav_irods_zone }}/index.html
+        - dav-anon/{{ _webdav_irods_zone }}/commons/index.html
+      register: resp
+      failed_when: not resp.stat.exists
+
     - name: Test apache modules
       ansible.builtin.stat:
         path: /etc/httpd/conf.modules.d/{{ item }}
