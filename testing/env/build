@@ -41,7 +41,7 @@ main()
   . "$cfg"
 
   local os
-  for os in alma10 alma9 alma8 alma8-systemd ubuntu2004 ubuntu2204 ubuntu2404; do
+  for os in alma10 alma9 alma8 alma8-systemd ubuntu2004 ubuntu2204 ubuntu2204-systemd ubuntu2404; do
     local buildArgs=(
 #      --no-cache
       --file="$baseDir"/base/Dockerfile."$os"

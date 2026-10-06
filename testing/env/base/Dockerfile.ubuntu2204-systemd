@@ -1,11 +1,11 @@
-FROM test-env-base:alma8
+FROM test-env-base:ubuntu2204
 
 # Docker doesn't set this, and without it systemd treats the privileged container as a whole
 # machine: shutting down turns off the host's swap and detaches its loop and DM devices.
 ENV container=docker
 
-RUN --mount=target=/tmp/systemd,source=base/systemd.sh /tmp/systemd sshd
+RUN --mount=target=/tmp/systemd,source=base/systemd.sh /tmp/systemd ssh
 
 STOPSIGNAL SIGRTMIN+3
 
-ENTRYPOINT [ "/usr/sbin/init" ]
+ENTRYPOINT [ "/sbin/init" ]
