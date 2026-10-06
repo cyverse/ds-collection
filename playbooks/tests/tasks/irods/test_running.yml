@@ -1,5 +1,5 @@
 ---
-- name: Test iRODS running | verify that all servers are up
+- name: Test iRODS running | verify that the server is up
   ansible.builtin.shell:
     executable: /bin/bash
     cmd: |
@@ -7,5 +7,5 @@
       if ! status="$(/var/lib/irods/irodsctl status)"; then
         exit 1
       fi
-      echo "$status" | grep --invert --quiet 'No servers running'
+      grep --after-context=1 '^irodsServer :' <<< "$status" | grep --quiet 'Process [0-9]'
   changed_when: false

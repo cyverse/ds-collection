@@ -4,7 +4,7 @@
 
 - name: create {{ svc }}/ subdirectories
   file:
-    path: /var/www/html/{{ svc }}/{{ _irods_zone_name }}/commons
+    path: /var/www/html/{{ svc }}/{{ _webdav_irods_zone }}/commons
     recurse: true
     state: directory
 
@@ -18,6 +18,6 @@
     - src: svc-index.html.j2
       dest: index.html
     - src: zone-index.html.j2
-      dest: "{{ _irods_zone_name }}/index.html"
+      dest: "{{ _webdav_irods_zone }}/index.html"
     - src: commons/index.html.j2
-      dest: "{{ _irods_zone_name }}/commons/index.html"
+      dest: "{{ _webdav_irods_zone }}/commons/index.html"
