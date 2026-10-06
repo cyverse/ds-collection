@@ -470,11 +470,12 @@
         domain: varnishd_t
         permissive: true
 
+    # Mounting a tmpfs here shows its 1777 mode, so the directory uses it too.
     - name: Create varnish shared memory mount point
       ansible.builtin.file:
         path: /var/lib/varnish
         state: directory
-        mode: 0777
+        mode: 01777
 
     # Varnish creates in-memory log up to 4GB.
     - name: Mount varnish shared memory
@@ -492,7 +493,6 @@
     - name: Create a cache dir
       ansible.builtin.file:
         path: "{{ _webdav_cache_dir }}"
-        recurse: true
         state: directory
         owner: varnish
         group: varnish
@@ -501,7 +501,6 @@
     - name: Create a log dir
       ansible.builtin.file:
         path: "/var/log/varnish"
-        recurse: true
         state: directory
         owner: varnish
         group: varnish

@@ -408,7 +408,7 @@
       ansible.builtin.stat:
         path: /var/lib/varnish
       register: resp
-      failed_when: not resp.stat.isdir or resp.stat.mode != '0777'
+      failed_when: not resp.stat.isdir or resp.stat.mode != '1777'
 
     - name: Test create directory for cache
       ansible.builtin.stat:
