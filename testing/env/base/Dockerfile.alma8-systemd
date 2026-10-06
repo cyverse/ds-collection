@@ -1,0 +1,23 @@
+FROM test-env-base:alma8
+
+# Docker doesn't set this, and without it systemd treats the privileged container as a whole
+# machine: shutting down turns off the host's swap and detaches its loop and DM devices.
+ENV container=docker
+
+# Boots systemd so playbooks can manage services, with sshd as a unit instead of from /entrypoint.
+# The masked units would change host-wide kernel settings, modules and mounts.
+RUN <<'EOF'
+	set -o errexit
+	systemctl enable sshd.service
+	systemctl mask \
+		proc-sys-fs-binfmt_misc.automount \
+		sys-kernel-config.mount \
+		sys-kernel-debug.mount \
+		systemd-binfmt.service \
+		systemd-modules-load.service \
+		systemd-sysctl.service
+EOF
+
+STOPSIGNAL SIGRTMIN+3
+
+ENTRYPOINT [ "/usr/sbin/init" ]

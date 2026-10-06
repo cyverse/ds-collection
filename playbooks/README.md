@@ -14,7 +14,7 @@ These folder contains all of the playbooks used to deploy and configure a CyVers
 
 ## Tags
 
-* `no_testing` for tasks that shouldn't be run within the containerized testing environment
+* `no_testing` for tasks that shouldn't be run within the containerized testing environment, such as service management on hosts other than the WebDAV ones, which are the only test containers running systemd
 * `non_idempotent` for tasks that aren't idempotent
 
 ## Variables

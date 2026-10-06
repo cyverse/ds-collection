@@ -1,0 +1,17 @@
+---
+- name: Test the WebDAV services are running and enabled
+  hosts: webdav
+  become: true
+  tasks:
+    - name: Test {{ item }} is running and enabled
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          [[ "$(systemctl is-active '{{ item }}')" == active ]] \
+            && [[ "$(systemctl is-enabled '{{ item }}')" == enabled ]]
+      changed_when: false
+      loop:
+        - httpd
+        - purgeman
+        - varnish
+        - varnishncsa

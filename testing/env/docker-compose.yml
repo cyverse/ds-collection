@@ -18,20 +18,28 @@ services:
     build:
       context: .
       dockerfile: webdav/Dockerfile.configured
+    cgroup: private
     platform: linux/amd64
     privileged: true
     security_opt:
       - apparmor=docker-default
+    tmpfs:
+      - /run
+      - /run/lock
     tty: true
 
   webdav_unconfigured:
     build:
       context: .
       dockerfile: webdav/Dockerfile.unconfigured
+    cgroup: private
     platform: linux/amd64
     privileged: true
     security_opt:
       - apparmor=docker-default
+    tmpfs:
+      - /run
+      - /run/lock
     tty: true
 
   dbms_configured:
