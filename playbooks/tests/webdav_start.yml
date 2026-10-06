@@ -1,17 +1,12 @@
 ---
+# Run with -S webdav,webdav_stop. webdav.yml's handlers leave the services running, so without
+# webdav_stop the running check can't fail.
 - name: Test the WebDAV services are running and enabled
   hosts: webdav
   become: true
   tasks:
-    - name: Test {{ item }} is running and enabled
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: |
-          [[ "$(systemctl is-active '{{ item }}')" == active ]] \
-            && [[ "$(systemctl is-enabled '{{ item }}')" == enabled ]]
-      changed_when: false
-      loop:
-        - httpd
-        - purgeman
-        - varnish
-        - varnishncsa
+    - name: Test the WebDAV services are running and enabled
+      ansible.builtin.include_tasks: tasks/webdav/test_services.yml
+      vars:
+        active: true
+        enabled: true

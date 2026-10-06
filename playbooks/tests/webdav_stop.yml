@@ -3,15 +3,8 @@
   hosts: webdav
   become: true
   tasks:
-    - name: Test {{ item }} is stopped and disabled
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: |
-          [[ "$(systemctl is-active '{{ item }}')" == inactive ]] \
-            && [[ "$(systemctl is-enabled '{{ item }}')" == disabled ]]
-      changed_when: false
-      loop:
-        - httpd
-        - purgeman
-        - varnish
-        - varnishncsa
+    - name: Test the WebDAV services are stopped and disabled
+      ansible.builtin.include_tasks: tasks/webdav/test_services.yml
+      vars:
+        active: false
+        enabled: false

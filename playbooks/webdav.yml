@@ -239,12 +239,6 @@
           WebDAV hosts must run EL8. davrods {{ _webdav_davrods_release }} needs irods-runtime
           {{ _webdav_davrods_irods_version }}, which iRODS doesn't publish for EL9 or later.
 
-    - name: Enable notifications when not testing
-      ansible.builtin.set_fact:
-        notifications_enabled: true
-      tags:
-        - no_testing
-
     - name: Install prerequisites for selinux_permissive
       when: ansible_selinux.status == 'enabled'
       ansible.builtin.dnf:
@@ -487,8 +481,6 @@
         state: mounted
       notify:
         - Restart varnish
-      tags:
-        - no_testing
 
     - name: Create a cache dir
       ansible.builtin.file:
@@ -598,16 +590,12 @@
           ansible.builtin.stat:
             path: /usr/lib/systemd/system/purgeman.service
           register: service_resp
-          tags:
-            - no_testing
 
         - name: Purgeman | stop service if running
           ansible.builtin.service:
             name: purgeman
             state: stopped
           when: service_resp.stat.exists
-          tags:
-            - no_testing
 
         - name: Purgeman | install build tools
           ansible.builtin.dnf:
@@ -664,30 +652,29 @@
 
   handlers:
     - name: Reload systemd
-      when: notifications_enabled | d(false)
       ansible.builtin.systemd:
         daemon_reload: true
 
     - name: Restart httpd
-      when: _webdav_restart_allowed and notifications_enabled | d(false)
+      when: _webdav_restart_allowed
       ansible.builtin.service:
         name: httpd
         state: restarted
 
     - name: Restart varnish
-      when: _webdav_restart_allowed and notifications_enabled | d(false)
+      when: _webdav_restart_allowed
       ansible.builtin.service:
         name: varnish
         state: restarted
 
     - name: Restart varnishncsa
-      when: _webdav_restart_allowed and notifications_enabled | d(false)
+      when: _webdav_restart_allowed
       ansible.builtin.service:
         name: varnishncsa
         state: restarted
 
     - name: Restart purgeman
-      when: _webdav_restart_allowed and notifications_enabled | d(false)
+      when: _webdav_restart_allowed
       ansible.builtin.service:
         name: purgeman
         state: restarted
