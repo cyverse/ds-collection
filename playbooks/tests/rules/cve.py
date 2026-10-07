@@ -418,7 +418,7 @@ class PepApiDataObjPutPreTestP(_CveTest):
         self.update_rulebase([('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')])
         super().tearDown()
 
-    @unittest.("pep_api_data_obj_put_pre has memory leak. Fixed in 4.3.4")
+    @unittest.skip("pep_api_data_obj_put_pre has memory leak. Fixed in 4.3.4")
     def test_no_upload(self):
         """Verify that no upload happened"""
         if self.irods.data_objects.exists(self.test_data):
