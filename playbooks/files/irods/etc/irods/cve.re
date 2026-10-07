@@ -71,8 +71,12 @@ msiTarFileExtract(*LogicalPath, *TargetColl, *DestResc, *STATUS) {
 #  -169000 (SYS_NOT_ALLOWED)
 #
 pep_api_auth_response_pre(*Instance, *Comm, *Resp) {
-	*startupProxyUser = *Comm.proxy_user_name ++ '#' ++ *Comm.proxy_rods_zone;
+	*startupProxyUser = *Comm.proxy_user_name;
 	*authUser = *Resp.username;
+
+	if (*authUser like '*#*') {
+		*startupProxyUser = *startupProxyUser ++ '#' ++ *Comm.proxy_rods_zone;
+	}
 
 	if (*startupProxyUser != *authUser) {
 		*msg = 'pep_api_auth_response_pre: startup_proxy[*startupProxyUser] does not match'
