@@ -76,6 +76,8 @@ It runs each scenario even when an earlier one fails, prints a summary, and exit
 * It sets `DOCKER_HOST` from the current Docker context when it isn't already set, because molecule reaches Docker through the Python SDK, which ignores contexts. This matters for daemons like colima's.
 * It points `ANSIBLE_HOME` into the temporary directory. Otherwise molecule installs the collection under test and the scenarios' Galaxy roles into `~/.ansible`, where they shadow any other `cyverse.ds`.
 
+The `postgresql`, `haproxy`, `rabbitmq`, `firewalld`, and `irods_cfg_initialize` scenarios boot systemd in privileged containers. Their Dockerfiles embed `testing/env/base/systemd.sh`, like the testing environment's systemd images, so editing that script changes them too. The `postgresql` scenario skips `no_testing` tasks, because the role's huge pages and swappiness tasks would change the host's kernel settings.
+
 ## PEP memory leaks
 
 Defining some PEPs makes the iRODS agent serving a connection leak memory in proportion to the data it moves, whatever the PEP's body does (see irods/irods#8106). `test-leaks` measures this so a baseline can be recorded and a fix checked against it.

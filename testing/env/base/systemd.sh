@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 #
 # Usage:
-#  systemd.sh SSH-UNIT
+#  systemd.sh [SSH-UNIT]
 #
 # Parameter:
 #  SSH-UNIT  the unit that runs sshd, sshd on AlmaLinux and ssh on Ubuntu
 #
-# This script prepares an image to boot systemd. It enables the unit that runs sshd and masks the
-# units that shouldn't run in a test container. The containers are privileged, so many of these
-# would act on the host.
+# This script prepares an image to boot systemd. It enables the unit that runs sshd, if given, and
+# masks the units that shouldn't run in a test container. The testing environment's and the
+# molecule scenarios' systemd containers are privileged, so many of these would act on the host.
 #
 # © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
@@ -16,14 +16,10 @@
 set -o errexit -o nounset -o pipefail
 
 main() {
-	if (( $# < 1 )); then
-		printf 'The unit that runs sshd is required as the first argument\n' >&2
-		return 1
+	if (( $# > 0 )); then
+		local sshUnit="$1"
+		systemctl enable "$sshUnit"
 	fi
-
-	local sshUnit="$1"
-
-	systemctl enable "$sshUnit"
 
 	local maskedUnits=(
 		# logind and gettys would claim the host's virtual consoles, which the containers can see.
@@ -49,6 +45,13 @@ main() {
 		sys-kernel-config.mount
 		sys-kernel-debug.mount
 		sys-kernel-tracing.mount
+
+		# These would trigger and change the host's devices.
+		systemd-udev-settle.service
+		systemd-udev-trigger.service
+		systemd-udevd-control.socket
+		systemd-udevd-kernel.socket
+		systemd-udevd.service
 
 		# These would scrub or trim the host's file systems.
 		e2scrub_all.timer
