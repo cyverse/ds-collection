@@ -66,8 +66,16 @@ main() {
 
 # Install the required AlmaLinux packages.
 install_alma_packages() {
+	local version="$1"
+
 	dnf --assumeyes install epel-release
-	dnf config-manager --set-enabled crb
+
+	# EL8 calls the repository EPEL packages depend on PowerTools rather than CRB.
+	if (( version == 8 )); then
+		dnf config-manager --set-enabled powertools
+	else
+		dnf config-manager --set-enabled crb
+	fi
 
 	dnf --assumeyes install \
 		ca-certificates \

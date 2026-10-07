@@ -1,14 +1,25 @@
 ---
+- name: Test infra_network template expansion
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/infra.yml
+  vars:
+    ansible_default_ipv4:
+      alias: eth0
+    rule: "{{ lookup('template', '../templates/infra/etc/udev/rules.d/txqueuelen.rules.j2') }}"
+  tasks:
+    - name: Verify txqueuelen.rules expands correctly
+      ansible.builtin.assert:
+        that:
+          - rule is search('Ansible managed')
+          - rule is search('KERNEL=="eth0"')
+          - rule is search(('ATTR{tx_queue_len}="' ~ _infra_txqueuelen ~ '"') | regex_escape)
+
+
 - name: Test infra_network
   hosts: all
   tasks:
-    - name: Test template expansion of txqueuelen.rules.yaml
-      ansible.builtin.debug:
-        msg: 'TODO: implement for {{ item }}'
-      loop:
-        - ansible_managed
-        - rule
-
     - name: Test plays
       ansible.builtin.debug:
         msg: 'TODO: implement'

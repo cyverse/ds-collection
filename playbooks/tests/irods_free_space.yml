@@ -20,3 +20,27 @@
         - ncemsRes
         - pire
         - replRes
+
+
+- name: Test update resource free space for a missing resource
+  hosts: dstesting-provider_configured-1.dstesting_default
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/irods.yml
+  tasks:
+    - name: Verify a missing resource is reported
+      block:
+        - name: Update the free space of a missing resource
+          ansible.builtin.include_tasks: ../tasks/irods/set_resc_free_space.yml
+          vars:
+            resource_name: noSuchResc
+            vault_path: /tmp
+
+        - name: Fail because the missing resource wasn't reported
+          ansible.builtin.fail:
+            msg: set_resc_free_space.yml accepted a missing resource
+      rescue:
+        - name: Verify the missing resource message
+          ansible.builtin.assert:
+            that:
+              - estimate.stderr is search('Resource noSuchResc does not exist')

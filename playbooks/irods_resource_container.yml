@@ -103,9 +103,17 @@
       tags: no_testing
 
   post_tasks:
+    - name: Require the service group to be named after the service account
+      ansible.builtin.assert:
+        that:
+          - _irods_service_group_name == _irods_service_account_name
+        fail_msg: >-
+          The resource server image gives its irods group the host account's UID as its GID, so the
+          service group must be the account's own group, {{ _irods_service_account_name }}.
+
     - name: Create iRODS user
       ansible.builtin.user:
-        name: irods
+        name: "{{ _irods_service_account_name }}"
         comment: iRODS Administrator
         system: true
         home: /var/lib/irods
@@ -119,8 +127,8 @@
       ansible.builtin.file:
         path: "{{ item }}"
         state: directory
-        owner: irods
-        group: irods
+        owner: "{{ _irods_service_account_name }}"
+        group: "{{ _irods_service_group_name }}"
         mode: u+rwx
       loop:
         - /irods_vault
@@ -132,16 +140,16 @@
       ansible.builtin.copy:
         src: files/irods/docker-rs/irodsctl
         dest: /var/lib/irods/irodsctl
-        owner: irods
-        group: irods
+        owner: "{{ _irods_service_account_name }}"
+        group: "{{ _irods_service_group_name }}"
         mode: u+rx
 
     - name: Copy required iRODS runtime config files
       ansible.builtin.copy:
         src: files/irods/docker-rs/run/etc/irods/{{ item }}
         dest: /etc/irods
-        owner: irods
-        group: irods
+        owner: "{{ _irods_service_account_name }}"
+        group: "{{ _irods_service_group_name }}"
         mode: u+r
       loop:
         - core.dvm
@@ -151,8 +159,8 @@
       ansible.builtin.template:
         src: templates/irods/docker-rs/run/etc/irods/core.re.j2
         dest: /etc/irods/core.re
-        owner: irods
-        group: irods
+        owner: "{{ _irods_service_account_name }}"
+        group: "{{ _irods_service_group_name }}"
         mode: u+r
 
     - name: Generate iRODS config files
@@ -207,16 +215,16 @@
       ansible.builtin.file:
         path: /var/lib/irods/build
         state: directory
-        owner: irods
-        group: irods
+        owner: "{{ _irods_service_account_name }}"
+        group: "{{ _irods_service_group_name }}"
         mode: u+rx
 
     - name: Copy resource server image source
       ansible.builtin.copy:
         src: files/irods/docker-rs/build/{{ item }}
         dest: /var/lib/irods/build
-        owner: irods
-        group: irods
+        owner: "{{ _irods_service_account_name }}"
+        group: "{{ _irods_service_group_name }}"
         mode: u+r
       notify: Rebuild docker container
       loop:
@@ -226,18 +234,18 @@
     - name: Get service account info
       ansible.builtin.getent:
         database: passwd
-        key: irods
+        key: "{{ _irods_service_account_name }}"
 
     - name: Set irods user uid
       ansible.builtin.set_fact:
-        _irods_host_uid: "{{ getent_passwd['irods'][1] }}"
+        _irods_host_uid: "{{ getent_passwd[_irods_service_account_name][1] }}"
 
     - name: Generate .env file
       ansible.builtin.template:
         src: templates/irods/docker-rs/env.j2
         dest: /var/lib/irods/.env
-        owner: irods
-        group: irods
+        owner: "{{ _irods_service_account_name }}"
+        group: "{{ _irods_service_group_name }}"
         mode: u+r
       notify: Rebuild docker container
 
@@ -245,8 +253,8 @@
       ansible.builtin.copy:
         src: files/irods/docker-rs/docker-compose.yml
         dest: /var/lib/irods/docker-compose.yml
-        owner: irods
-        group: irods
+        owner: "{{ _irods_service_account_name }}"
+        group: "{{ _irods_service_group_name }}"
         mode: u+r
       notify: Rebuild docker container
 
@@ -290,7 +298,7 @@
 
     - name: Restart irods
       when: _enable_notifications | d(false)
-      become_user: irods
+      become_user: "{{ _irods_service_account_name }}"
       ansible.builtin.command: /var/lib/irods/irodsctl restart
 
     - name: Restart rsyslog

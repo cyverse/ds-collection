@@ -34,16 +34,16 @@
             executable: /bin/bash
             cmd: |
               set -o errexit -o pipefail
-              # yum lists locks as 0:NAME-VERSION-..., dnf as NAME-0:VERSION-...
-              lock_pattern='^(0:)?(irods-.+)-(0:)?([0-9]+\.[0-9]+\.[0-9]+)[.-]'
-              readarray -t irods_locks < <(
-                yum versionlock list | sed --quiet --regexp-extended '/^(0:)?irods-/p' )
+              # dnf lists locks as NAME-0:VERSION-RELEASE.*. tests/irods_provision.yml checks real
+              # lock lines against a copy of this pattern, so keep the two in step.
+              lock_pattern='^(irods-.+)-0:([0-9]+\.[0-9]+\.[0-9]+)[.-]'
+              readarray -t irods_locks < <(yum versionlock list | sed --quiet '/^irods-/p')
               for lock in "${irods_locks[@]}"; do
                 if ! [[ "$lock" =~ $lock_pattern ]]; then
                   continue
                 fi
-                pkg="${BASH_REMATCH[2]}"
-                ver="${BASH_REMATCH[4]}"
+                pkg="${BASH_REMATCH[1]}"
+                ver="${BASH_REMATCH[2]}"
                 if [[ "$ver" != '{{ _irods_version }}' ]]; then
                   if ! yum versionlock delete "$pkg" > /dev/null; then
                     printf 'Failed to remove lock for %s\n' "$pkg" >&2
@@ -69,22 +69,17 @@
 #             state: present
           ansible.builtin.command: yum versionlock add {{ item }}
           register: resp
-          # yum reports "versionlock added: N"; dnf reports "Adding versionlock on: PKG"
-          changed_when: >-
-            resp.stdout is regex('versionlock added: [1-9]|Adding versionlock on')
+          changed_when: resp.stdout is regex('Adding versionlock on')
           loop:
             - irods-*-{{ _irods_version }}
-   # XXX - yum versionlock on some CentOS 7 systems doesn't find irods-*-4.3.1.*
-   #          - irods-*-{{ _irods_version }}.*
             - irods-netcdf-*-{{ _irods_version }}.*
             - irods-resource-*-{{ _irods_version }}.*
-   # XXX - ^^^
           tags: skip_ansible_lint
 # XXX - ^^^
 
         # The RPM irods-server needs irods-icommands but doesn't declare it as a dependency.
         - name: RedHat | install iRODS server
-          ansible.builtin.yum:
+          ansible.builtin.dnf:
             name:
               - irods-icommands-{{ _irods_version }}
               - irods-server-{{ _irods_version }}
@@ -130,7 +125,7 @@
 
         - name: Ubuntu | install iRODS server
           ansible.builtin.apt:
-            name: irods-server #={{ _irods_version }}-0~bionic
+            name: irods-server
             state: present
 
         - name: Ubuntu | install OS specific required packages

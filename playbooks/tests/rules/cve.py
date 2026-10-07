@@ -167,6 +167,96 @@ class MsitarfileextractTest(_TarTest):
         self.fail("Didn't log correct message")
 
 
+class PepApiAuthResponsePreTest(_CveTest):
+    """Tests of pep_api_auth_response_pre"""
+
+    @classmethod
+    def setUpClass(cls):
+        test_rules.clear_rods_log()
+
+    def _call(self, startup_user: str, startup_zone: str, auth_user: str) -> IrodsVal:
+        rule = self.mk_rule(f"""
+            *Comm.proxy_user_name = '{startup_user}';
+            *Comm.proxy_rods_zone = '{startup_zone}';
+            *Resp.username = '{auth_user}';
+            *ec = errorcode(pep_api_auth_response_pre('', *Comm, *Resp));
+            writeLine('stdout', '*ec');
+        """)
+        return self.exec_rule(rule, IrodsType.INTEGER)
+
+    def test_allowed(self):
+        """Verify that a matching user is accepted."""
+        self.assertEqual(
+            self._call(self.irods.username, self.irods.zone, self.irods.username),
+            IrodsVal.integer(0),
+        )
+
+    def test_blocked(self):
+        """Verify that a mismatched auth user is rejected."""
+        self.assertEqual(
+            self._call(self.irods.username, self.irods.zone, 'not_' + self.irods.username),
+            IrodsVal.integer(-169000),
+        )
+
+    def test_log_msg(self):
+        """Verify that the PEP writes the expected log message."""
+        self._call(self.irods.username, self.irods.zone, 'not_' + self.irods.username)
+        msg = (
+            f'pep_api_auth_response_pre: startup_proxy[{self.irods.username}#{self.irods.zone}] '
+            f'does not match auth_user[not_{self.irods.username}] - DENIED (AN 704)'
+        )
+        for line in self.tail_rods_log():
+            if msg in line:
+                return
+        self.fail("Didn't log correct message")
+
+
+class PepApiAuthenticatePreTest(_CveTest):
+    """Tests of pep_api_authenticate_pre"""
+
+    @classmethod
+    def setUpClass(cls):
+        test_rules.clear_rods_log()
+
+    def _call(self, startup_user: str, startup_zone: str, auth_user: str, auth_zone: str):
+        json_body = '{"user_name":"' + auth_user + '","zone_name":"' + auth_zone + '"}'
+        rule = self.mk_rule(f"""
+            *Comm.proxy_user_name = '{startup_user}';
+            *Comm.proxy_rods_zone = '{startup_zone}';
+            *Req.buf = '{json_body}';
+            *ec = errorcode(pep_api_authenticate_pre('', *Comm, *Req, *Resp));
+            writeLine('stdout', '*ec');
+        """)
+        return self.exec_rule(rule, IrodsType.INTEGER)
+
+    def test_allowed(self):
+        """Verify that a matching startup proxy and auth identity are accepted."""
+        self.assertEqual(
+            self._call(self.irods.username, self.irods.zone, self.irods.username, self.irods.zone),
+            IrodsVal.integer(0),
+        )
+
+    def test_blocked(self):
+        """Verify that mismatched startup user or zone is rejected."""
+        self.assertEqual(
+            self._call(self.irods.username, self.irods.zone, 'not_' + self.irods.username, self.irods.zone),
+            IrodsVal.integer(-169000),
+        )
+
+    def test_log_msg(self):
+        """Verify that the PEP writes the expected log message."""
+        self._call(self.irods.username, self.irods.zone, 'not_' + self.irods.username, self.irods.zone)
+        msg = (
+            f'pep_api_authenticate_pre: startup_proxy[{self.irods.username}#{self.irods.zone}] '
+            f'does not match auth_user[not_{self.irods.username}#{self.irods.zone}] - DENIED '
+            '(AN 110000)'
+        )
+        for line in self.tail_rods_log():
+            if msg in line:
+                return
+        self.fail("Didn't log correct message")
+
+
 class PepApiBulkDataObjReg(IrodsTestCase):
     """Tests of pep_api_bulk_data_obj_reg_pre"""
 
@@ -328,7 +418,7 @@ class PepApiDataObjPutPreTestP(_CveTest):
         self.update_rulebase([('cyverse_core.re', '../../files/irods/etc/irods/cyverse_core.re')])
         super().tearDown()
 
-    @unittest.skip("pep_api_data_obj_put_pre has memory leak. Fixed in 4.3.4")
+    @unittest.("pep_api_data_obj_put_pre has memory leak. Fixed in 4.3.4")
     def test_no_upload(self):
         """Verify that no upload happened"""
         if self.irods.data_objects.exists(self.test_data):
