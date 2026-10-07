@@ -1,4 +1,7 @@
 ---
+# Differs from webdav_irods_zone so the tests catch WebDAV tasks using the wrong zone
+irods_zone_name: notTheWebdavZone
+
 webdav_amqp_host: "{{ groups['amqp'][0] }}"
 
 webdav_cache_dir: /cache_vol

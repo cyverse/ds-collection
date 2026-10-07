@@ -14,7 +14,8 @@ _webdav_cache_max_ttl: "{{ webdav_cache_max_ttl | d(86400) }}"
 _webdav_cache_size: "{{ webdav_cache_size | d(1000) }}"
 _webdav_cache_ttl_fraction: "{{ webdav_cache_ttl_fraction | d(0.1) }}"
 _webdav_canonical_hostname: "{{ webdav_canonical_hostname | d('localhost') }}"
-_webdav_davrods_release: 4.3.4_1.5.3
+# This release doesn't install on EL9, so WebDAV hosts run EL8.
+_webdav_davrods_release: 4.3.0_1.5.0
 # davrods requires the irods-runtime of the release it was built against
 _webdav_davrods_irods_version: "{{ _webdav_davrods_release | split('_') | first }}"
 _webdav_irods_access_limit: "{{ webdav_irods_access_limit | d(None) }}"

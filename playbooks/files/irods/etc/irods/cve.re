@@ -56,6 +56,68 @@ msiTarFileExtract(*LogicalPath, *TargetColl, *DestResc, *STATUS) {
 	failmsg(-169000, 'msiTarFileExtract is not allowed');
 }
 
+# The legacy `auth_response` API is vulnerable to custom payloads which can
+# masquerade the authenticating user as a different account. This prevents
+# mismatched startup user vs authenticating user via AUTH_RESPONSE_AN 704.
+#
+# This can be removed after upgrading to 5.1.0.
+#
+# Parameters:
+#  Instance  (string) unused
+#  Comm      (`KeyValuePair_PI`) information related to the session
+#  Resp      (`KeyValuePair_PI`) Information related to the response?
+#
+# Error Codes:
+#  -169000 (SYS_NOT_ALLOWED)
+#
+pep_api_auth_response_pre(*Instance, *Comm, *Resp) {
+	*startupProxyUser = *Comm.proxy_user_name;
+	*startupProxyZone = *Comm.proxy_rods_zone;
+	*authUser = *Resp.username;
+
+	if (*startupProxyUser != *authUser) {
+		*msg = 'pep_api_auth_response_pre: startup_proxy[*startupProxyUser#*startupProxyZone] does'
+			++ ' not match auth_user[*authUser] - DENIED (AN 704)';
+
+		writeLine('serverLog', *msg);
+		failmsg(-169000, 'startup_proxy must match authenticating user');
+	}
+}
+
+# The `authentication` API is vulnerable to custom payloads which can masquerade
+# the authenticating user as a different account. This prevents mismatched
+# startup user vs authenticating user via AUTHENTICATION_APN 110000.
+#
+# This can be removed after upgrading to 5.1.0.
+#
+# Parameters:
+#  Instance  (string) unused
+#  Comm      (`KeyValuePair_PI`) information related to the session
+#  Req       (`KeyValuePair_PI`) information related to the auth request?
+#  Resp      (`KeyValuePair_PI`) information related to the auth response?
+#
+# Error Codes:
+#  -169000 (SYS_NOT_ALLOWED)
+#
+pep_api_authenticate_pre(*Instance, *Comm, *Req, *Resp) {
+	*startupProxyUser = *Comm.proxy_user_name;
+	*startupProxyZone = *Comm.proxy_rods_zone;
+	*reqBuf = *Req.buf;
+	msiStrlen(*reqBuf, *bufLen);
+	msi_json_parse(*reqBuf, int(*bufLen), *handle);
+	msi_json_value(*handle, "/user_name", *authUser);
+	msi_json_value(*handle, "/zone_name", *authZone);
+	msi_json_free(*handle);
+
+	if (*startupProxyUser != *authUser || *startupProxyZone != *authZone) {
+		*msg = 'pep_api_authenticate_pre: startup_proxy[*startupProxyUser#*startupProxyZone] does not'
+			++ ' match auth_user[*authUser#*authZone] - DENIED (AN 110000)';
+
+		writeLine('serverLog', *msg);
+		failmsg(-169000, 'startup_proxy must match authenticating user');
+	}
+}
+
 # The `rcBulkDataObjReg` API is vulnerable to raw packstruct payloads that can
 # register files anywhere already on the iRODS Server. The implementation blocks
 # this API call.

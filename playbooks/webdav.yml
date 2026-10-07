@@ -230,6 +230,15 @@
         - no_testing
 
   pre_tasks:
+    - name: Require an EL8 host
+      ansible.builtin.assert:
+        that:
+          - ansible_os_family == 'RedHat'
+          - ansible_distribution_major_version == '8'
+        fail_msg: >-
+          WebDAV hosts must run EL8. davrods {{ _webdav_davrods_release }} needs irods-runtime
+          {{ _webdav_davrods_irods_version }}, which iRODS doesn't publish for EL9 or later.
+
     - name: Enable notifications when not testing
       ansible.builtin.set_fact:
         notifications_enabled: true
@@ -449,44 +458,6 @@
         src: files/webdav/var/www/html/robots.txt
         dest: /var/www/html/robots.txt
         mode: a+r
-
-    - name: Upgrade Varnish
-      when:
-        - "'varnish' in ansible_facts.packages"
-        - ansible_facts.packages['varnish'][0].version is version_compare('6.5.1', '<')
-      block:
-        - name: Varnish | ensure not running
-          ansible.builtin.service:
-            name: varnish
-            state: stopped
-
-        - name: Varnish | uninstall pre-installed varnish-cache package
-          ansible.builtin.package:
-            name: varnish
-            state: absent
-
-        - name: Varnish | delete stale varnish-cache service file
-          ansible.builtin.file:
-            path: /etc/systemd/system/varnish.service
-            state: absent
-          notify: Reload systemd
-
-        # without this, varnishncsa may crash
-        - name: Varnish | delete stale varnish-cache log files
-          ansible.builtin.file:
-            path: /var/log/varnish/
-            state: absent
-
-        - name: Varnish | find files in varnish cache dir
-          ansible.builtin.find:
-            paths: "{{ _webdav_cache_dir }}"
-          register: cached_files
-
-        - name: Varnish | delete varnish cache files
-          ansible.builtin.file:
-            path: "{{ item.path }}"
-            state: absent
-          loop: "{{ cached_files.files }}"
 
     - name: Install varnish-cache package
       ansible.builtin.dnf:
