@@ -72,12 +72,15 @@ msiTarFileExtract(*LogicalPath, *TargetColl, *DestResc, *STATUS) {
 #
 pep_api_auth_response_pre(*Instance, *Comm, *Resp) {
 	*startupProxyUser = *Comm.proxy_user_name;
-	*startupProxyZone = *Comm.proxy_rods_zone;
 	*authUser = *Resp.username;
 
+	if (*authUser like '*#*') {
+		*startupProxyUser = *startupProxyUser ++ '#' ++ *Comm.proxy_rods_zone;
+	}
+
 	if (*startupProxyUser != *authUser) {
-		*msg = 'pep_api_auth_response_pre: startup_proxy[*startupProxyUser#*startupProxyZone] does'
-			++ ' not match auth_user[*authUser] - DENIED (AN 704)';
+		*msg = 'pep_api_auth_response_pre: startup_proxy[*startupProxyUser] does not match'
+			++ ' auth_user[*authUser] - DENIED (AN 704)';
 
 		writeLine('serverLog', *msg);
 		failmsg(-169000, 'startup_proxy must match authenticating user');

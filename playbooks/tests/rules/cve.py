@@ -174,11 +174,11 @@ class PepApiAuthResponsePreTest(_CveTest):
     def setUpClass(cls):
         test_rules.clear_rods_log()
 
-    def _call(self, startup_user: str, startup_zone: str, auth_user: str) -> IrodsVal:
+    def _call(self, startup_user: str, startup_zone: str, auth_user: str, auth_zone) -> IrodsVal:
         rule = self.mk_rule(f"""
             *Comm.proxy_user_name = '{startup_user}';
             *Comm.proxy_rods_zone = '{startup_zone}';
-            *Resp.username = '{auth_user}';
+            *Resp.username = '{auth_user}#{auth_zone}';
             *ec = errorcode(pep_api_auth_response_pre('', *Comm, *Resp));
             writeLine('stdout', '*ec');
         """)
@@ -187,28 +187,21 @@ class PepApiAuthResponsePreTest(_CveTest):
     def test_allowed(self):
         """Verify that a matching user is accepted."""
         self.assertEqual(
-            self._call(self.irods.username, self.irods.zone, self.irods.username),
+            self._call(self.irods.username, self.irods.zone, self.irods.username, self.irods.zone),
             IrodsVal.integer(0),
         )
 
-    def test_blocked(self):
+    def test_blocked_user(self):
         """Verify that a mismatched auth user is rejected."""
-        self.assertEqual(
-            self._call(self.irods.username, self.irods.zone, 'not_' + self.irods.username),
-            IrodsVal.integer(-169000),
-        )
+        ec = self._call(
+            self.irods.username, self.irods.zone, 'not_' + self.irods.username, self.irods.zone)
+        self.assertEqual(ec, IrodsVal.integer(-169000))
 
-    def test_log_msg(self):
-        """Verify that the PEP writes the expected log message."""
-        self._call(self.irods.username, self.irods.zone, 'not_' + self.irods.username)
-        msg = (
-            f'pep_api_auth_response_pre: startup_proxy[{self.irods.username}#{self.irods.zone}] '
-            f'does not match auth_user[not_{self.irods.username}] - DENIED (AN 704)'
-        )
-        for line in self.tail_rods_log():
-            if msg in line:
-                return
-        self.fail("Didn't log correct message")
+    def test_blocked_zone(self):
+        """Verify that a mismatched auth user zone is rejected."""
+        ec = self._call(
+            self.irods.username, self.irods.zone, self.irods.username, 'not_' + self.irods.zone)
+        self.assertEqual(ec, IrodsVal.integer(-169000))
 
 
 class PepApiAuthenticatePreTest(_CveTest):
@@ -238,14 +231,14 @@ class PepApiAuthenticatePreTest(_CveTest):
 
     def test_blocked(self):
         """Verify that mismatched startup user or zone is rejected."""
-        self.assertEqual(
-            self._call(self.irods.username, self.irods.zone, 'not_' + self.irods.username, self.irods.zone),
-            IrodsVal.integer(-169000),
-        )
+        ec = self._call(
+            self.irods.username, self.irods.zone, 'not_' + self.irods.username, self.irods.zone)
+        self.assertEqual(ec, IrodsVal.integer(-169000))
 
     def test_log_msg(self):
         """Verify that the PEP writes the expected log message."""
-        self._call(self.irods.username, self.irods.zone, 'not_' + self.irods.username, self.irods.zone)
+        self._call(
+            self.irods.username, self.irods.zone, 'not_' + self.irods.username, self.irods.zone)
         msg = (
             f'pep_api_authenticate_pre: startup_proxy[{self.irods.username}#{self.irods.zone}] '
             f'does not match auth_user[not_{self.irods.username}#{self.irods.zone}] - DENIED '
