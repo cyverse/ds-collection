@@ -241,12 +241,15 @@
         or not (resp.stat.rusr and resp.stat.xusr)
 
     - name: Test required iRODS runtime config files copied
-      ansible.builtin.include_tasks: tasks/test_file_copied.yml
-      vars:
+      ansible.builtin.copy:
         src: "{{ playbook_dir }}/../files/irods/docker-rs/run/etc/irods/{{ item }}"
         dest: /etc/irods/{{ item }}
         owner: irods
         group: irods
+        mode: u+r
+      check_mode: true
+      register: resp
+      failed_when: resp is changed or resp is failed
       loop:
         - core.dvm
         - core.fnm
@@ -274,19 +277,15 @@
         core: "{{ core_encoded.content | b64decode }}"
 
     - name: Test add command scripts
-      ansible.builtin.include_tasks: tasks/test_file_copied.yml
-      vars:
+      ansible.builtin.copy:
         src: "{{ item }}"
         dest: /var/lib/irods/msiExecCmd_bin/{{ item | basename }}
         owner: irods
         group: irods
-      with_fileglob: ../files/irods/var/lib/irods/msiExecCmd_bin/*
-
-    - name: Test command scripts are executable
-      ansible.builtin.stat:
-        path: /var/lib/irods/msiExecCmd_bin/{{ item | basename }}
+        mode: u+rx
+      check_mode: true
       register: resp
-      failed_when: not (resp.stat.exists and resp.stat.rusr and resp.stat.xusr)
+      failed_when: resp is changed or resp is failed
       with_fileglob: ../files/irods/var/lib/irods/msiExecCmd_bin/*
 
     - name: Test stage dynamic rule bases
@@ -299,12 +298,15 @@
       with_fileglob: ../templates/irods/etc/irods/*
 
     - name: Test stage static rule bases
-      ansible.builtin.include_tasks: tasks/test_file_copied.yml
-      vars:
+      ansible.builtin.copy:
         src: "{{ item }}"
         dest: /etc/irods/{{ item | basename }}
         owner: irods
         group: irods
+        mode: u+r
+      check_mode: true
+      register: resp
+      failed_when: resp is changed or resp is failed
       with_fileglob: ../files/irods/etc/irods/*
 
     - name: Verify service_account.config deposition
@@ -413,12 +415,15 @@
         or not (resp.stat.rusr and resp.stat.xusr)
 
     - name: Test copy resource server image source
-      ansible.builtin.include_tasks: tasks/test_file_copied.yml
-      vars:
+      ansible.builtin.copy:
         src: "{{ playbook_dir }}/../files/irods/docker-rs/build/{{ item }}"
         dest: /var/lib/irods/build/{{ item }}
         owner: irods
         group: irods
+        mode: u+r
+      check_mode: true
+      register: resp
+      failed_when: resp is changed or resp is failed
       loop:
         - Dockerfile
         - entrypoint.sh
@@ -451,12 +456,15 @@
           - dotenv is search('^IRODS_ZONE_PORT=1247$', multiline=true)
 
     - name: Test copy docker-compose.yml
-      ansible.builtin.include_tasks: tasks/test_file_copied.yml
-      vars:
+      ansible.builtin.copy:
         src: "{{ playbook_dir }}/../files/irods/docker-rs/docker-compose.yml"
         dest: /var/lib/irods/docker-compose.yml
         owner: irods
         group: irods
+        mode: u+r
+      check_mode: true
+      register: resp
+      failed_when: resp is changed or resp is failed
 
     - name: Retrieve encoded rsyslog configuration
       ansible.builtin.slurp:
