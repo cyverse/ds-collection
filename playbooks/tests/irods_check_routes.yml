@@ -7,11 +7,15 @@
   become: true
   become_user: irods
   tasks:
+    # The async wrapper polls its finished receiver every 5 seconds, so it can briefly outlive it.
     - name: Verify no port check receiver is left running
       ansible.builtin.command: pgrep --full port_check_receiver
       register: resp
       changed_when: false
       failed_when: resp.rc != 1
+      until: resp.rc == 1
+      retries: 2
+      delay: 5
 
     - name: Verify iRODS servers are running
       ansible.builtin.import_tasks: tasks/irods/test_running.yml

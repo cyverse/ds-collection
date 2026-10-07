@@ -1,9 +1,10 @@
 ---
-# Tests that a file was copied unchanged from the controller
+# Tests that a file was copied unchanged from the controller and is readable by its owner
 #
 # src    the absolute path to the source file on the controller
 # dest   the path to the copy on the managed host
 # owner  (optional) the user that should own the copy
+# group  (optional) the group that should own the copy
 
 - name: Get the checksum of {{ src }}
   delegate_to: localhost
@@ -20,4 +21,6 @@
   failed_when: >-
     not dest_stat.stat.exists
     or dest_stat.stat.checksum != src_stat.stat.checksum
+    or not dest_stat.stat.rusr
     or (owner is defined and dest_stat.stat.pw_name != owner)
+    or (group is defined and dest_stat.stat.gr_name != group)

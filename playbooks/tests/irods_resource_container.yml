@@ -24,7 +24,10 @@
       ansible.builtin.assert:
         that:
           - env is search('Ansible managed')
-          - env is search('^IRODS_CATALOG_PROVIDER=' ~ groups['irods_catalog'][0] ~ '$', multiline=true)
+          - >-
+            env is search(
+              '^IRODS_CATALOG_PROVIDER=' ~ (groups['irods_catalog'][0] | regex_escape) ~ '$',
+              multiline=true )
           - env is search('^IRODS_HOST_UID=999$', multiline=true)
           - env is search('^IRODS_SERVER_PORT_RANGE_START=20000$', multiline=true)
           - env is search('^IRODS_SERVER_PORT_RANGE_END=20199$', multiline=true)
@@ -243,6 +246,7 @@
         src: "{{ playbook_dir }}/../files/irods/docker-rs/run/etc/irods/{{ item }}"
         dest: /etc/irods/{{ item }}
         owner: irods
+        group: irods
       loop:
         - core.dvm
         - core.fnm
@@ -275,23 +279,15 @@
         src: "{{ item }}"
         dest: /var/lib/irods/msiExecCmd_bin/{{ item | basename }}
         owner: irods
+        group: irods
       with_fileglob: ../files/irods/var/lib/irods/msiExecCmd_bin/*
 
     - name: Test command scripts are executable
       ansible.builtin.stat:
-        path: /var/lib/irods/msiExecCmd_bin/{{ item }}
+        path: /var/lib/irods/msiExecCmd_bin/{{ item | basename }}
       register: resp
       failed_when: not (resp.stat.exists and resp.stat.rusr and resp.stat.xusr)
-      loop:
-        - add-transfer
-        - amqp-topic-send
-        - delete-scheduled-rule
-        - generate-uuid
-        - ichksum-exec
-        - imeta-exec
-        - iquest-exec
-        - irepl-exec
-        - send-mail
+      with_fileglob: ../files/irods/var/lib/irods/msiExecCmd_bin/*
 
     - name: Test stage dynamic rule bases
       ansible.builtin.slurp:
@@ -300,7 +296,7 @@
       failed_when: >-
         resp is failed
         or (resp.content | b64decode | trim) != (lookup('template', item) | trim)
-      with_fileglob: ../templates/irods/etc/irods/*.j2
+      with_fileglob: ../templates/irods/etc/irods/*
 
     - name: Test stage static rule bases
       ansible.builtin.include_tasks: tasks/test_file_copied.yml
@@ -308,6 +304,7 @@
         src: "{{ item }}"
         dest: /etc/irods/{{ item | basename }}
         owner: irods
+        group: irods
       with_fileglob: ../files/irods/etc/irods/*
 
     - name: Verify service_account.config deposition
@@ -394,7 +391,7 @@
 
     - name: Verify irods_environment.json
       vars:
-        irods_env: "{{ env_encoded.content | b64decode }}"
+        irods_env: "{{ env_encoded.content | b64decode | from_json }}"
       ansible.builtin.assert:
         that:
           - irods_env.irods_authentication_file == '/var/lib/irods/.irods/.irodsA'
@@ -421,6 +418,7 @@
         src: "{{ playbook_dir }}/../files/irods/docker-rs/build/{{ item }}"
         dest: /var/lib/irods/build/{{ item }}
         owner: irods
+        group: irods
       loop:
         - Dockerfile
         - entrypoint.sh
@@ -442,7 +440,7 @@
         that:
           - >-
             dotenv is search(
-              '^IRODS_CATALOG_PROVIDER=dstesting-provider_configured-1.dstesting_default$',
+              '^IRODS_CATALOG_PROVIDER=' ~ (groups['irods_catalog'][0] | regex_escape) ~ '$',
               multiline=true )
           - dotenv is search('^IRODS_HOST_UID=' ~ getent_passwd.irods[1] ~ '$', multiline=true)
           - dotenv is search('^IRODS_SERVER_PORT_RANGE_START=20000$', multiline=true)
@@ -458,6 +456,7 @@
         src: "{{ playbook_dir }}/../files/irods/docker-rs/docker-compose.yml"
         dest: /var/lib/irods/docker-compose.yml
         owner: irods
+        group: irods
 
     - name: Retrieve encoded rsyslog configuration
       ansible.builtin.slurp:
@@ -474,15 +473,5 @@
               '^:programname,startswith,"docker-cyverse-irods" /var/log/irods/irods.log;irods_format\n& stop$',
               multiline=true )
 
-    - name: Retrieve encoded logrotate configuration
-      ansible.builtin.slurp:
-        src: /etc/logrotate.d/irods
-      register: logrotate_encoded
-
     - name: Test log rotation config placement for iRODS
-      vars:
-        logrotate: "{{ logrotate_encoded.content | b64decode }}"
-      ansible.builtin.assert:
-        that:
-          - logrotate is search('^/var/log/irods/irods.log {$', multiline=true)
-          - logrotate is search('^\s+rotate 26$', multiline=true)
+      ansible.builtin.import_tasks: tasks/irods/test_logrotate.yml

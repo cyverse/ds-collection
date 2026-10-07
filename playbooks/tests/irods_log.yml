@@ -28,15 +28,5 @@
         - irodsDelayServer
         - irodsAgent
 
-    - name: Retrieve encoded logrotate configuration
-      ansible.builtin.slurp:
-        src: /etc/logrotate.d/irods
-      register: logrotate_encoded
-
     - name: Test configure log rotations for iRODS
-      vars:
-        logrotate: "{{ logrotate_encoded.content | b64decode }}"
-      ansible.builtin.assert:
-        that:
-          - logrotate is search('^/var/log/irods/irods.log {$', multiline=true)
-          - logrotate is search('^\s+rotate 26$', multiline=true)
+      ansible.builtin.import_tasks: tasks/irods/test_logrotate.yml
