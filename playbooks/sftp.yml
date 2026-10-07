@@ -133,7 +133,7 @@
       changed_when: false
 
     - name: Install SFTPGo iRODS Auth plugin
-      when: not sftpgo_auth_irods_resp.stat.exists or sftpgo_auth_irods_version.stdout != 'v0.2.0'
+      when: not sftpgo_auth_irods_resp.stat.exists or sftpgo_auth_irods_version.stdout != 'v0.2.1'
       block:
         - name: Create download dir for sftpgo-auth-irods package
           ansible.builtin.file:
@@ -143,7 +143,7 @@
 
         - name: Download sftpgo-auth-irods package from github and uncompress
           ansible.builtin.unarchive:
-            src: https://github.com/cyverse/sftpgo-auth-irods/releases/download/v0.2.0/sftpgo-auth-irods-v0.2.0-linux-amd64.tar.gz
+            src: https://github.com/cyverse/sftpgo-auth-irods/releases/download/v0.2.1/sftpgo-auth-irods-v0.2.1-linux-amd64.tar.gz
             dest: /tmp/sftpgo_auth_irods_setup
             remote_src: true
           notify: Install sftpgo-auth-irods
@@ -366,8 +366,12 @@
           TMP=$(mktemp)
           jq --arg base_url "http://localhost:{{ _sftp_admin_ui_port }}" \
              --arg api_key "{{ _sftpgo_apikey.stdout }}" \
-            '.command.commands[0].env +=
-              ["SFTPGO_API_BASE_URL=" + $base_url, "SFTPGO_API_KEY=" + $api_key]' \
+            '.command.commands[0].env =
+              ((.command.commands[0].env
+                | map(select(
+                    (startswith("SFTPGO_API_BASE_URL=") or startswith("SFTPGO_API_KEY=")) | not
+                  )))
+               + ["SFTPGO_API_BASE_URL=" + $base_url, "SFTPGO_API_KEY=" + $api_key])' \
             "$CFG" > "$TMP" && mv "$TMP" "$CFG"
           chmod 664 "$CFG"
           chown sftpgo "$CFG"

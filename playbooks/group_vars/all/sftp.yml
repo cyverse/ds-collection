@@ -7,18 +7,30 @@ _sftp_admin_tls_key: "{{ sftp_admin_tls_key | d(None) }}"
 _sftp_admin_tls_key_file: "{{ sftp_admin_tls_key_file | d('') }}"
 _sftp_admin_ui_port:  "{{ sftp_admin_ui_port | d(18023) }}"
 
+# Seconds SFTPGo may reuse a successful authentication before calling
+# sftpgo-auth-irods again. A revoked password or public key keeps working for up
+# to this long, so keep it short.
+_sftp_auth_cache_time: "{{ sftp_auth_cache_time | d(300) }}"
+
 _sftp_irods_admin_password: "{{ sftp_irods_admin_password | mandatory }}"
 _sftp_irods_admin_username: "{{ sftp_irods_admin_username | d('rods') }}"
 _sftp_irods_auth_scheme: "{{ sftp_irods_auth_scheme | d('native') }}"
+# 'CS_NEG_REFUSE', 'CS_NEG_REQUIRE', or 'CS_NEG_DONT_CARE'
+_sftp_irods_cs_negotiation_policy: "{{ sftp_irods_cs_negotiation_policy | d('CS_NEG_DONT_CARE') }}"
 _sftp_irods_host: "{{ sftp_irods_host | d('localhost') }}"
 _sftp_irods_port: "{{ sftp_irods_port | d(1247) }}"
 _sftp_irods_proxy_username: "{{ sftp_irods_proxy_username | d('sftp') }}"
 _sftp_irods_proxy_password: "{{ sftp_irods_proxy_password | mandatory }}"
+# Required when sftp_irods_auth_scheme is 'pam' or 'pam_for_users'
+_sftp_irods_require_cs_negotiation: "{{ sftp_irods_require_cs_negotiation | d(false) }}"
 _sftp_irods_ssl_algorithm: "{{ sftp_irods_ssl_algorithm | d('') }}"
 _sftp_irods_ssl_ca_cert_path: "{{ sftp_irods_ssl_ca_cert_path | d('') }}"
 _sftp_irods_ssl_hash_rounds: "{{ sftp_irods_ssl_hash_rounds | d(0) }}"
 _sftp_irods_ssl_key_size: "{{ sftp_irods_ssl_key_size | d(0) }}"
 _sftp_irods_ssl_salt_size: "{{ sftp_irods_ssl_salt_size | d(0) }}"
+# 'none', 'cert', or 'hostname'. Only 'hostname' verifies the iRODS server
+# certificate; go-irodsclient treats 'cert' the same as 'none'.
+_sftp_irods_ssl_verify_server: "{{ sftp_irods_ssl_verify_server | d('none') }}"
 _sftp_irods_zone: "{{ sftp_irods_zone | d('tempZone') }}"
 
 _sftp_port: "{{ sftp_port | d(2022) }}"
