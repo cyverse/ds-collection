@@ -1,0 +1,17 @@
+---
+# REQUIREMENTS:
+#  inventory: hosts-configured
+
+- name: Test the servers are left as they were found
+  hosts: irods
+  become: true
+  become_user: irods
+  tasks:
+    - name: Verify no port check receiver is left running
+      ansible.builtin.command: pgrep --full port_check_receiver
+      register: resp
+      changed_when: false
+      failed_when: resp.rc != 1
+
+    - name: Verify iRODS servers are running
+      ansible.builtin.import_tasks: tasks/irods/test_running.yml

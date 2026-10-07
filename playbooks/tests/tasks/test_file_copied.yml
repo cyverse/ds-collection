@@ -1,0 +1,23 @@
+---
+# Tests that a file was copied unchanged from the controller
+#
+# src    the absolute path to the source file on the controller
+# dest   the path to the copy on the managed host
+# owner  (optional) the user that should own the copy
+
+- name: Get the checksum of {{ src }}
+  delegate_to: localhost
+  become: false
+  ansible.builtin.stat:
+    path: "{{ src }}"
+  register: src_stat
+  failed_when: not src_stat.stat.exists
+
+- name: Test the copy matches its source for {{ dest }}
+  ansible.builtin.stat:
+    path: "{{ dest }}"
+  register: dest_stat
+  failed_when: >-
+    not dest_stat.stat.exists
+    or dest_stat.stat.checksum != src_stat.stat.checksum
+    or (owner is defined and dest_stat.stat.pw_name != owner)

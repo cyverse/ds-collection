@@ -8,40 +8,85 @@
   vars_files:
     - ../group_vars/all/irods.yml
   vars:
+    _irods_host_uid: 999
     core: "{{ lookup('template', '../templates/irods/docker-rs/run/etc/irods/core.re.j2') }}"
+    env: "{{ lookup('template', '../templates/irods/docker-rs/env.j2') }}"
+    logrotate: "{{ lookup('template', '../templates/irods/etc/logrotate.d/irods.j2') }}"
   tasks:
-    - debug:
-        msg: "{{ core }}"
     - name: Test core.re expansion
       ansible.builtin.assert:
         that:
           - core is search('# Ansible managed')
           - core is search('acSetRescSchemeForCreate { msiSetDefaultResc("demoResc"' | regex_escape)
-
-    - name: Test core.re expansion, continued
-      ansible.builtin.debug:
-        msg: 'TODO: implement for {{ item }}'
-      loop:
-        - acSetRescSchemeForRepl
+          - core is search('acSetRescSchemeForRepl { msiSetDefaultResc("demoResc"' | regex_escape)
 
     - name: Test .env expansion
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      ansible.builtin.assert:
+        that:
+          - env is search('Ansible managed')
+          - env is search('^IRODS_CATALOG_PROVIDER=' ~ groups['irods_catalog'][0] ~ '$', multiline=true)
+          - env is search('^IRODS_HOST_UID=999$', multiline=true)
+          - env is search('^IRODS_SERVER_PORT_RANGE_START=20000$', multiline=true)
+          - env is search('^IRODS_SERVER_PORT_RANGE_END=20199$', multiline=true)
+          - env is search('^IRODS_USER_PASSWORD=rods$', multiline=true)
+          - env is search('^IRODS_ZONE_PORT=1247$', multiline=true)
 
     - name: Test logrotate.d/irods expansion
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      ansible.builtin.assert:
+        that:
+          - logrotate is search('Ansible managed')
+          - logrotate is search('^/var/log/irods/irods.log {$', multiline=true)
+          - logrotate is search('^\s+rotate 26$', multiline=true)
 
 - name: Test custom template expansions
   hosts: localhost
   gather_facts: false
+  vars_files:
+    - ../group_vars/all/irods.yml
+  vars:
+    irods_clerver_password: custom_password
+    irods_default_repl_resource: customReplRes
+    irods_default_resource: customRes
+    irods_default_vault: /custom/vault
+    irods_log_retention: 4
+    irods_server_port_range_end: 30099
+    irods_server_port_range_start: 30000
+    irods_zone_name: customZone
+    _irods_host_uid: 1234
+    core: "{{ lookup('template', '../templates/irods/docker-rs/run/etc/irods/core.re.j2') }}"
+    env: "{{ lookup('template', '../templates/irods/docker-rs/env.j2') }}"
+    logrotate: "{{ lookup('template', '../templates/irods/etc/logrotate.d/irods.j2') }}"
   tasks:
-    - name: Test expansions
-      ansible.builtin.debug:
-        msg: "TODO: implement"
+    - name: Test core.re expansion
+      ansible.builtin.assert:
+        that:
+          - core is search('acSetRescSchemeForCreate { msiSetDefaultResc("customRes"' | regex_escape)
+          - core is search('acSetRescSchemeForRepl { msiSetDefaultResc("customReplRes"' | regex_escape)
+
+    - name: Test .env expansion
+      ansible.builtin.assert:
+        that:
+          - env is search('^IRODS_HOST_UID=1234$', multiline=true)
+          - env is search('^IRODS_SERVER_PORT_RANGE_START=30000$', multiline=true)
+          - env is search('^IRODS_SERVER_PORT_RANGE_END=30099$', multiline=true)
+          - env is search('^IRODS_USER_PASSWORD=custom_password$', multiline=true)
+          - env is search('^IRODS_VAULT_PATH=/custom/vault$', multiline=true)
+          - env is search('^IRODS_ZONE_NAME=customZone$', multiline=true)
+
+    - name: Test logrotate.d/irods expansion
+      ansible.builtin.assert:
+        that:
+          - logrotate is search('^\s+rotate 4$', multiline=true)
 
 - name: Test prepare docker repository
   hosts: irods_resource_container
+  # The rule base templates need these to be rendered for comparison
+  vars_files:
+    - ../group_vars/all/avra.yml
+    - ../group_vars/all/esiil.yml
+    - ../group_vars/all/irods.yml
+    - ../group_vars/all/ncems.yml
+    - ../group_vars/all/pire.yml
   tasks:
     - name: Test set up docker repository on AlmaLinux
       when: ansible_distribution == 'AlmaLinux'
@@ -192,27 +237,51 @@
         or not (resp.stat.pw_name == 'irods' and resp.stat.gr_name == 'irods')
         or not (resp.stat.rusr and resp.stat.xusr)
 
-    - name: Test required iRODS runtime config files in place
+    - name: Test required iRODS runtime config files copied
+      ansible.builtin.include_tasks: tasks/test_file_copied.yml
+      vars:
+        src: "{{ playbook_dir }}/../files/irods/docker-rs/run/etc/irods/{{ item }}"
+        dest: /etc/irods/{{ item }}
+        owner: irods
+      loop:
+        - core.dvm
+        - core.fnm
+
+    - name: Test generate core.re
       ansible.builtin.stat:
-        path: /etc/irods/{{ item }}
+        path: /etc/irods/core.re
       register: resp
       failed_when: >-
         not resp.stat.exists
         or not (resp.stat.pw_name == 'irods' and resp.stat.gr_name == 'irods')
         or not resp.stat.rusr
-      loop:
-        - core.dvm
-        - core.fnm
-        - core.re
+
+    - name: Retrieve encoded core.re
+      ansible.builtin.slurp:
+        src: /etc/irods/core.re
+      register: core_encoded
+
+    - name: Test core.re contents
+      ansible.builtin.assert:
+        that:
+          - core is search('acSetRescSchemeForCreate { msiSetDefaultResc("ingestRes"' | regex_escape)
+          - core is search('acSetRescSchemeForRepl { msiSetDefaultResc("replRes"' | regex_escape)
+      vars:
+        core: "{{ core_encoded.content | b64decode }}"
 
     - name: Test add command scripts
+      ansible.builtin.include_tasks: tasks/test_file_copied.yml
+      vars:
+        src: "{{ item }}"
+        dest: /var/lib/irods/msiExecCmd_bin/{{ item | basename }}
+        owner: irods
+      with_fileglob: ../files/irods/var/lib/irods/msiExecCmd_bin/*
+
+    - name: Test command scripts are executable
       ansible.builtin.stat:
         path: /var/lib/irods/msiExecCmd_bin/{{ item }}
       register: resp
-      failed_when: >
-        not resp.stat.exists
-        or not resp.stat.pw_name == 'irods'
-        or not (resp.stat.rusr and resp.stat.xusr)
+      failed_when: not (resp.stat.exists and resp.stat.rusr and resp.stat.xusr)
       loop:
         - add-transfer
         - amqp-topic-send
@@ -224,21 +293,22 @@
         - irepl-exec
         - send-mail
 
-    - name: Test add command scripts 2
-      ansible.builtin.debug:
-        msg: "TODO: implement for {{ item }}"
-      loop:
-        - ichksum-exec
-        - iquest-exec
-        - irepl-exec
-
     - name: Test stage dynamic rule bases
-      ansible.builtin.debug:
-        msg: TODO implement
+      ansible.builtin.slurp:
+        src: /etc/irods/{{ item | basename | regex_replace('\.j2$') }}
+      register: resp
+      failed_when: >-
+        resp is failed
+        or (resp.content | b64decode | trim) != (lookup('template', item) | trim)
+      with_fileglob: ../templates/irods/etc/irods/*.j2
 
-    - name: Test stage ansible.builtin.static rule bases
-      ansible.builtin.debug:
-        msg: TODO implement
+    - name: Test stage static rule bases
+      ansible.builtin.include_tasks: tasks/test_file_copied.yml
+      vars:
+        src: "{{ item }}"
+        dest: /etc/irods/{{ item | basename }}
+        owner: irods
+      with_fileglob: ../files/irods/etc/irods/*
 
     - name: Verify service_account.config deposition
       ansible.builtin.stat:
@@ -259,12 +329,7 @@
       ansible.builtin.assert:
         that:
           - service_account is search('\nIRODS_SERVICE_ACCOUNT_NAME=irods\n')
-
-    - name: Verify service_account.config contents
-      ansible.builtin.debug:
-        msg: "TODO: verify {{ item }}"
-      loop:
-        - IRODS_SERVICE_GROUP_NAME
+          - service_account is search('\nIRODS_SERVICE_GROUP_NAME=irods\n')
 
     - name: Verify deposition of server_config.json
       ansible.builtin.stat:
@@ -282,6 +347,8 @@
         server_config: "{{ sc_encoded.content | b64decode }}"
 
     - name: Verify server_config.json
+      vars:
+        rule_lang: "{{ server_config.plugin_configuration.rule_engines[0] }}"
       ansible.builtin.assert:
         that:
           - server_config.advanced_settings.default_number_of_transfer_threads == 4
@@ -298,90 +365,124 @@
           - server_config.default_dir_mode == '0750'
           - server_config.default_file_mode == '0600'
           - server_config.default_hash_scheme == 'MD5'
+          - server_config.host_resolution.host_entries == []
           - server_config.negotiation_key == 'TEMPORARY_32byte_negotiation_key'
           - server_config.plugin_configuration.rule_engines | length == 2
-          - server_config.plugin_configuration.rule_engines[0].plugin_name == 'irods_rule_engine_plugin-irods_rule_language'
-          - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set | length == 4
-          - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[0] == 'cve'
-          - server_config.plugin_configuration.rule_engines[0].plugin_specific_configuration.re_rulebase_set[1] == 'cyverse_core'
+          - rule_lang.plugin_name == 'irods_rule_engine_plugin-irods_rule_language'
+          - >-
+            rule_lang.plugin_specific_configuration.re_rulebase_set
+            == ['cve', 'cyverse_core', 'cyverse_housekeeping', 'core']
+          - >-
+            rule_lang.plugin_specific_configuration.regexes_for_supported_peps
+            == ['ac[^ ]*', 'msi[^ ]*', '[^ ]*pep_[^ ]*_(pre|post|except|finally)']
+          - rule_lang.shared_memory_instance == 'irods_rule_language_rule_engine'
+          - >-
+            server_config.plugin_configuration.rule_engines[1].plugin_name
+            == 'irods_rule_engine_plugin-cpp_default_policy'
+          - server_config.schema_validation_base_uri == 'off'
+          - server_config.server_control_plane_key == 'TEMPORARY__32byte_ctrl_plane_key'
+          - server_config.server_port_range_end == 20009
+          - server_config.server_port_range_start == 20000
+          - server_config.zone_key == 'TEMPORARY_zone_key'
+          - server_config.zone_name == 'testing'
+          - server_config.zone_user == 'rods'
 
-    - name: Verify server_config.host_resolution
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Verify server_config.plugin_configuration.rule_engines rule language plugin_specific_configuration.re_rulebase_set
-      ansible.builtin.debug:
-        msg: 'TODO: implement for {{ item }}'
-      loop:
-        - cyverse_housekeeping
-        - core
-
-    - name: Verify server_config.plugin_configuration.rule_engines rule language plugin_specific_configuration
-      ansible.builtin.debug:
-        msg: 'TODO: implement for {{ item }}'
-      loop:
-        - regexes_for_supported_peps
-
-    - name: Verify server_config.plugin_configuration.rule_engines rule language shared_memory_instance
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Verify server_config.plugin_configuration.rule_engines CPP default policy
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Verify server_config.schema_validation_base_uri
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Verify server_config.server_control_plane_key
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Verify server_config.server_port_range_end
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Verify server_config.server_port_range_start
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Verify server_config.zone_key
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Verify server_config.zone_name
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
-
-    - name: Verify server_config.zone_user
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+    - name: Retrieve encoded irods_environment.json
+      ansible.builtin.slurp:
+        src: /var/lib/irods/.irods/irods_environment.json
+      register: env_encoded
 
     - name: Verify irods_environment.json
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      vars:
+        irods_env: "{{ env_encoded.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - irods_env.irods_authentication_file == '/var/lib/irods/.irods/.irodsA'
+          - irods_env.irods_default_resource == 'ingestRes'
+          - irods_env.irods_host == inventory_hostname
+          - irods_env.irods_port == 1247
+          - irods_env.irods_server_control_plane_key == 'TEMPORARY__32byte_ctrl_plane_key'
+          - irods_env.irods_user_name == 'rods'
+          - irods_env.irods_zone_name == 'testing'
 
     - name: Test add build dir
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      ansible.builtin.stat:
+        path: /var/lib/irods/build
+      register: resp
+      failed_when: >-
+        not resp.stat.exists
+        or not resp.stat.isdir
+        or not (resp.stat.pw_name == 'irods' and resp.stat.gr_name == 'irods')
+        or not (resp.stat.rusr and resp.stat.xusr)
 
     - name: Test copy resource server image source
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      ansible.builtin.include_tasks: tasks/test_file_copied.yml
+      vars:
+        src: "{{ playbook_dir }}/../files/irods/docker-rs/build/{{ item }}"
+        dest: /var/lib/irods/build/{{ item }}
+        owner: irods
+      loop:
+        - Dockerfile
+        - entrypoint.sh
+
+    - name: Get the service account's UID
+      ansible.builtin.getent:
+        database: passwd
+        key: irods
+
+    - name: Retrieve encoded .env
+      ansible.builtin.slurp:
+        src: /var/lib/irods/.env
+      register: dotenv_encoded
 
     - name: Test placement of .env file
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      vars:
+        dotenv: "{{ dotenv_encoded.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - >-
+            dotenv is search(
+              '^IRODS_CATALOG_PROVIDER=dstesting-provider_configured-1.dstesting_default$',
+              multiline=true )
+          - dotenv is search('^IRODS_HOST_UID=' ~ getent_passwd.irods[1] ~ '$', multiline=true)
+          - dotenv is search('^IRODS_SERVER_PORT_RANGE_START=20000$', multiline=true)
+          - dotenv is search('^IRODS_SERVER_PORT_RANGE_END=20009$', multiline=true)
+          - dotenv is search('^IRODS_USER_PASSWORD=password$', multiline=true)
+          - dotenv is search('^IRODS_VAULT_PATH=/irods_vault/container$', multiline=true)
+          - dotenv is search('^IRODS_ZONE_NAME=testing$', multiline=true)
+          - dotenv is search('^IRODS_ZONE_PORT=1247$', multiline=true)
 
     - name: Test copy docker-compose.yml
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      ansible.builtin.include_tasks: tasks/test_file_copied.yml
+      vars:
+        src: "{{ playbook_dir }}/../files/irods/docker-rs/docker-compose.yml"
+        dest: /var/lib/irods/docker-compose.yml
+        owner: irods
+
+    - name: Retrieve encoded rsyslog configuration
+      ansible.builtin.slurp:
+        src: /etc/rsyslog.d/00-irods.conf
+      register: rsyslog_encoded
 
     - name: Test configured rsyslog for iRODS
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      vars:
+        rsyslog: "{{ rsyslog_encoded.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - >-
+            rsyslog is search(
+              '^:programname,startswith,"docker-cyverse-irods" /var/log/irods/irods.log;irods_format\n& stop$',
+              multiline=true )
+
+    - name: Retrieve encoded logrotate configuration
+      ansible.builtin.slurp:
+        src: /etc/logrotate.d/irods
+      register: logrotate_encoded
 
     - name: Test log rotation config placement for iRODS
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
+      vars:
+        logrotate: "{{ logrotate_encoded.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - logrotate is search('^/var/log/irods/irods.log {$', multiline=true)
+          - logrotate is search('^\s+rotate 26$', multiline=true)

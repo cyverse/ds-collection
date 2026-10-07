@@ -130,9 +130,9 @@
       ansible.builtin.async_status:
         jid: "{{ receiver.ansible_job_id }}"
       register: job_result
-      until: job_result.finished
+      until: job_result.finished | bool
       retries: 1
-      failed_when: not job_result.finished
+      failed_when: not job_result.finished | bool
 
     - name: Check receiver failure
       when: job_result.msg is defined

@@ -3,18 +3,40 @@
   hosts: irods
   become: true
   tasks:
-    - name: Test ensure Ubuntu package repo is update to date
-      ansible.builtin.debug:
-        msg: "TODO: implement"
-
     - name: Test install rsyslog
-      ansible.builtin.debug:
-        msg: "TODO: implement"
+      ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
+      vars:
+        pkg: rsyslog
+
+    - name: Retrieve encoded rsyslog configuration
+      ansible.builtin.slurp:
+        src: /etc/rsyslog.d/00-irods.conf
+      register: rsyslog_encoded
 
     - name: Test configure for iRODS
-      ansible.builtin.debug:
-        msg: "TODO: implement"
+      vars:
+        rsyslog: "{{ rsyslog_encoded.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - rsyslog is search('^\$template irods_format,"%msg%\\\\n"$', multiline=true)
+          - >-
+            rsyslog is search(
+              '^:programname,startswith,"' ~ item ~ '" /var/log/irods/irods.log;irods_format\n& stop$',
+              multiline=true )
+      loop:
+        - irodsServer
+        - irodsDelayServer
+        - irodsAgent
+
+    - name: Retrieve encoded logrotate configuration
+      ansible.builtin.slurp:
+        src: /etc/logrotate.d/irods
+      register: logrotate_encoded
 
     - name: Test configure log rotations for iRODS
-      ansible.builtin.debug:
-        msg: "TODO: implement"
+      vars:
+        logrotate: "{{ logrotate_encoded.content | b64decode }}"
+      ansible.builtin.assert:
+        that:
+          - logrotate is search('^/var/log/irods/irods.log {$', multiline=true)
+          - logrotate is search('^\s+rotate 26$', multiline=true)
