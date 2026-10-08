@@ -2,6 +2,8 @@
 - name: Test provision for iRODS
   hosts: irods:!unmanaged_systems
   become: true
+  vars_files:
+    - ../group_vars/all/irods.yml
   vars:
     group_name: >-
       {{ 'irods_provider' if inventory_hostname in groups['irods_catalog'] else 'irods' }}
@@ -28,14 +30,16 @@
             executable: /bin/bash
             cmd: |
               set -o pipefail
-              if ! yum versionlock list | grep --quiet '^{{ item }}-0:4\.3\.1[.-]'; then
-                printf '{{ item }} not locked to 4.3.1\n' >&2
+              if ! yum versionlock list \
+                | grep --quiet '^{{ item }}-0:{{ _irods_version | regex_escape }}[.-]'
+              then
+                printf '{{ item }} not locked to {{ _irods_version }}\n' >&2
                 exit 1
               elif info="$(yum --quiet list installed '{{ item }}' | tail --lines=+2)"; then
                 readarray -t versions <<< "$info"
                 for version in "${versions[@]}"; do
                   read _ verNum _ <<< "$version"
-                  if ! [[ "$verNum" =~ 4\.3\.1 ]]; then
+                  if ! [[ "$verNum" =~ {{ _irods_version | regex_escape }} ]]; then
                     printf 'found version %s\n' "$verNum" >&2
                     exit 1
                   fi
@@ -106,7 +110,8 @@
             cmd: |
               set -o pipefail
               apt-cache policy \
-                | grep --quiet --regexp='{{ item }} -> 4\.3\.1\([.-].*\)\? with priority 1001'
+                | grep --quiet \
+                  --regexp='{{ item }} -> {{ _irods_version | regex_escape }}\([.-].*\)\? with priority 1001'
           changed_when: false
           loop:
             - irods-resource-plugin-s3
@@ -125,13 +130,14 @@
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: irods-server
-        ver: 4.3.1
+        ver: "{{ _irods_version }}"
 
     - name: Verify iRODS S3 resource plugin installed
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: irods-resource-plugin-s3
-        ver: 4.3.1.0
+        # Plugin releases add a fourth number to the iRODS release they're built for.
+        ver_prefix: "{{ _irods_version }}"
 
     - name: Test create service group
       ansible.builtin.command:

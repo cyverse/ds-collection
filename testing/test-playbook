@@ -24,12 +24,21 @@ Options:
                               files, vaults, and logs
  -p, --pretty                 more information will be output and newlines will
                               be expanded in that output.
+ -v, --irods-version <version>
+                              run the configured iRODS servers on iRODS
+                              <version> instead of 4.3.1, building their images
+                              if needed, and pass it to the playbooks as
+                              irods_version
 
 Summary:
 This script runs a playbook with in the testing environment. If no inventory
 hosts file is provided, it will use 'hosts-all'. If no playbook is provided, no
 playbook will be run. When combined with -i, this allows the environment to be
 started in interactive mode.
+
+Environment Variables:
+ IRODS_VERSION  the iRODS release to run, as with --irods-version, which takes
+                precedence
 EOF
 }
 
@@ -64,7 +73,8 @@ main() {
 		[inventory]="$DefaultHosts"
 		[playbook]=''
 		[pretty]=''
-		[setup]='' )
+		[setup]=''
+		[version]='' )
 
 	if ! resolve_opts opts "$@"
 	then
@@ -75,6 +85,17 @@ main() {
 	then
 		show_help
 		return
+	fi
+
+	if [[ -n "${opts[version]}" ]]
+	then
+		export IRODS_VERSION="${opts[version]}"
+	fi
+
+	if [[ -n "${IRODS_VERSION-}" && ! "$IRODS_VERSION" =~ ^[0-9]+(\.[0-9]+)+$ ]]
+	then
+		printf 'The iRODS version %s is not a release number like 4.3.4\n' "$IRODS_VERSION" >&2
+		exit_with_help
 	fi
 
 	# The inspection shell needs the terminal, so an inspected run isn't captured or retried.
@@ -134,7 +155,7 @@ resolve_opts() {
 				eval "$optsVar"[help]=help
 				shift 1
 				;;
-			-I|--inventory-hosts)
+			-I|--inventory)
 				eval "$optsVar""[inventory]='$2'"
 				shift 2
 				;;
@@ -152,6 +173,10 @@ resolve_opts() {
 				;;
 			-S|--setup)
 				eval "$optsVar""[setup]='$2'"
+				shift 2
+				;;
+			-v|--irods-version)
+				printf -v "$optsVar"'[version]' '%s' "$2"
 				shift 2
 				;;
 			--)
@@ -195,8 +220,8 @@ parse_cmd_line() {
 	local opts
 	opts="$(\
 		portability::getopt \
-			hiI:P:pS: \
-			help,inspect,inventory:,playbook:,pretty,setup: \
+			hiI:P:pS:v: \
+			help,inspect,inventory:,irods-version:,playbook:,pretty,setup: \
 			"$ExecName" \
 			"$@" )"
 

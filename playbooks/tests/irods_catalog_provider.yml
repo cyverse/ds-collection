@@ -7,6 +7,8 @@
   hosts: irods_catalog
   become: true
   become_flags: '-i'
+  vars_files:
+    - ../group_vars/all/irods.yml
   tasks:
     - name: Verify irods limits file is in place
       ansible.builtin.stat:
@@ -80,7 +82,7 @@
                 readarray -t versions <<< "$info"
                 for version in "${versions[@]}"; do
                   read _ verNum _ <<< "$version"
-                  if ! [[ "$verNum" =~ 4\.3\.1 ]]; then
+                  if ! [[ "$verNum" =~ {{ _irods_version | regex_escape }} ]]; then
                     printf 'found version %s\n' "$verNum" >&2
                     exit 1
                   fi
@@ -117,14 +119,14 @@
             executable: /bin/bash
             cmd: |
               set -o pipefail
-              apt-cache policy | grep --quiet 'irods-database-plugin-postgres -> 4.3.1'
+              apt-cache policy | grep --quiet 'irods-database-plugin-postgres -> {{ _irods_version }}'
           changed_when: false
 
     - name: Verify PostgreSQL plugin installed
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: irods-database-plugin-postgres
-        version: 4.3.1
+        ver: "{{ _irods_version }}"
 
     - name: Verify iRODS ownership
       ansible.builtin.include_tasks: tasks/irods/test_irods_ownership.yml

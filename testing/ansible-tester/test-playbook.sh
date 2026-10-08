@@ -15,6 +15,10 @@
 #  VERBOSE   if this is set to any value, ansible will be passed the verbose
 #            flag -vvv
 #
+# Environment Variables:
+#  IRODS_VERSION  (OPTIONAL) the iRODS release the environment runs, passed to
+#                 the playbooks as irods_version
+#
 # This program executes and ansible playbook on the test environment.
 #
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
@@ -30,6 +34,8 @@ readonly RED='\033[0;31m'
 readonly GREEN='\033[0;32m'
 readonly NORMAL='\033[0m'
 
+declare -a VersionArgs=()
+
 main() {
 	local inspect="$1"
 	local pretty="$2"
@@ -39,6 +45,10 @@ main() {
 	local playbook="$6"
 
 	local inventory=/inventory/"$hosts"
+
+	if [[ -n "${IRODS_VERSION-}" ]]; then
+		VersionArgs=(--extra-vars=irods_version="$IRODS_VERSION")
+	fi
 
 	if [[ -n "$pretty" ]]; then
 		export ANSIBLE_STDOUT_CALLBACK=minimal
@@ -100,7 +110,7 @@ do_test() {
 	local modPath="$3"
 	local playbook="$4"
 
-	local args=(--inventory-file="$inventory" --module-path="$modPath")
+	local args=(--inventory-file="$inventory" --module-path="$modPath" "${VersionArgs[@]}")
 
 	local pbPath="$PLAYBOOK_DIR"/"$playbook"
 
@@ -151,6 +161,7 @@ run_idempotency() {
 			--inventory-file="$inventory" \
 			--module-path="$modPath" \
 			--skip-tags='no_testing, non_idempotent' \
+			"${VersionArgs[@]}" \
 			"$PLAYBOOK_DIR"/"$playbook" \
 		2>&1
 }
@@ -161,7 +172,7 @@ setup_env() {
 	local modPath="$3"
 	local setup="$4"
 
-	local args=(--inventory-file="$inventory" --skip-tags=no_testing)
+	local args=(--inventory-file="$inventory" --skip-tags=no_testing "${VersionArgs[@]}")
 
 	if [[ -n "$verbose" ]]; then
 		args+=(-vvv)

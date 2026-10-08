@@ -26,7 +26,7 @@
     - name: Bring up resource
       delegate_to: localhost
       become: false
-      irods_resource_up:
+      cyverse.ds.irods_resource_up:
         resource: "{{ test_resc }}"
         host: "{{ inventory_hostname }}"
         port: 1247
@@ -47,7 +47,7 @@
       changed_when: false
 
     - name: Test with non-existent resource
-      irods_resource_up:
+      cyverse.ds.irods_resource_up:
         resource: "{{ missing_resc }}"
         host: "{{ ansible_hostname }}"
         port: 1247

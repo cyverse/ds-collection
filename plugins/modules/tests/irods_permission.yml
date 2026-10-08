@@ -41,6 +41,11 @@
         - remote_user#other_zone
       tags: non_idempotent
 
+    - name: Create test group
+      ansible.builtin.command: iadmin mkgroup rodsadmin
+      changed_when: true
+      tags: non_idempotent
+
     - name: Create collections
       ansible.builtin.shell:
         executable: /bin/bash
@@ -105,7 +110,7 @@
 
   tasks:
     - name: Remove forbidden permission on data
-      irods_permission:
+      cyverse.ds.irods_permission:
         zone: "{{ zone }}"
         subject: forbidden
         permission: "null"
@@ -126,7 +131,7 @@
     - name: Grant remote_user read permission on data
       delegate_to: localhost
       become: false
-      irods_permission:
+      cyverse.ds.irods_permission:
         zone: "{{ zone }}"
         subject: remote_user
         subject_zone: other_zone
@@ -143,11 +148,11 @@
         executable: /bin/bash
         cmd: ils -A '{{ data }}'
       register: result
-      failed_when: result.stdout is not regex('remote_user#other_zone:read object')
+      failed_when: result.stdout is not regex('remote_user#other_zone:read_object')
       changed_when: false
 
     - name: Grant writer write permission on data
-      irods_permission:
+      cyverse.ds.irods_permission:
         zone: "{{ zone }}"
         subject: writer
         permission: write
@@ -161,11 +166,11 @@
         executable: /bin/bash
         cmd: ils -A '{{ data }}'
       register: result
-      failed_when: result.stdout is not regex('writer#' ~ zone ~ ':modify object')
+      failed_when: result.stdout is not regex('writer#' ~ zone ~ ':modify_object')
       changed_when: false
 
     - name: Grant owner ownership permission on data
-      irods_permission:
+      cyverse.ds.irods_permission:
         zone: "{{ zone }}"
         subject: owner
         permission: own
@@ -182,7 +187,7 @@
       changed_when: false
 
     - name: Remove forbidden permission on coll_no_recursion (non-recursive)
-      irods_permission:
+      cyverse.ds.irods_permission:
         zone: "{{ zone }}"
         subject: forbidden
         permission: "null"
@@ -212,7 +217,7 @@
         executable: /bin/bash
         cmd: ils -A '{{ sub_data_no_recursion }}'
       register: result
-      failed_when: result.stdout is not regex('forbidden#' ~ zone ~ ':read object')
+      failed_when: result.stdout is not regex('forbidden#' ~ zone ~ ':read_object')
       changed_when: false
 
     - name: Verify forbidden read permission on sub_coll_no_recursion
@@ -226,11 +231,11 @@
             "select COLL_ACCESS_NAME \
               where COLL_NAME = '{{ sub_coll_no_recursion }}' and COLL_ACCESS_USER_ID = '$userId'"
       register: result
-      failed_when: result.stdout != 'read object'
+      failed_when: result.stdout != 'read_object'
       changed_when: false
 
     - name: Grant reader read permission on coll_no_recursion (non-recursive)
-      irods_permission:
+      cyverse.ds.irods_permission:
         zone: "{{ zone }}"
         subject: reader
         permission: read
@@ -249,7 +254,7 @@
             "select COLL_ACCESS_NAME
               where COLL_NAME = '{{ coll_no_recursion }}' and COLL_ACCESS_USER_ID = '$userId'"
       register: result
-      failed_when: result.stdout != 'read object'
+      failed_when: result.stdout != 'read_object'
       changed_when: false
 
     - name: Verify no reader permission on sub_data_no_recursion
@@ -280,7 +285,7 @@
       changed_when: false
 
     - name: Remove forbidden permission on coll_inclusive (recursive)
-      irods_permission:
+      cyverse.ds.irods_permission:
         zone: "{{ zone }}"
         subject: forbidden
         permission: "null"
@@ -326,7 +331,7 @@
     # # NOTE - Has been tested. Takes a long time to run.
 
     - name: Grant reader read permission on coll_inclusive (recursive)
-      irods_permission:
+      cyverse.ds.irods_permission:
         zone: "{{ zone }}"
         subject: reader
         permission: read
@@ -346,7 +351,7 @@
             "select COLL_ACCESS_NAME
               where COLL_NAME = '{{ item }}' and COLL_ACCESS_USER_ID = '$userId'"
       register: result
-      failed_when: result.stdout != 'read object'
+      failed_when: result.stdout != 'read_object'
       changed_when: false
       with_items:
         - "{{ coll_inclusive }}"
@@ -364,7 +369,7 @@
         - "{{ sub_sub_data_inclusive }}"
 
     - name: Grant rodsadmin and rods own permission on coll_inclusive_empty
-      irods_permission:
+      cyverse.ds.irods_permission:
         subject: "{{ item }}"
         permission: own
         object: "{{ coll_inclusive_empty }}"
@@ -376,7 +381,7 @@
         - rodsadmin
 
     - name: Grant owner own permission on coll_inclusive_empty
-      irods_permission:
+      cyverse.ds.irods_permission:
         subject: owner
         permission: own
         object: "{{ coll_inclusive_empty }}"
@@ -390,7 +395,7 @@
       delegate_to: localhost
 
     - name: Remove forbidden permission from coll_exclusive
-      irods_permission:
+      cyverse.ds.irods_permission:
         zone: "{{ zone }}"
         subject: forbidden
         permission: "null"
@@ -410,7 +415,7 @@
             "select COLL_ACCESS_NAME
               where COLL_NAME = '{{ coll_exclusive }}' and COLL_ACCESS_USER_ID = '$userId'"
       register: result
-      failed_when: result.stdout != 'read object'
+      failed_when: result.stdout != 'read_object'
       changed_when: false
 
     - name: Verify no forbidden permission on coll_exclusive members
@@ -427,7 +432,7 @@
         - "{{ sub_coll_exclusive }}"
 
     - name: Grant reader read permission on coll_exclusive (recursive)
-      irods_permission:
+      cyverse.ds.irods_permission:
         zone: "{{ zone }}"
         subject: reader
         permission: read
@@ -472,5 +477,5 @@
             "select COLL_ACCESS_NAME
               where COLL_NAME = '{{ sub_coll_exclusive }}' and COLL_ACCESS_USER_ID = '$userId'"
       register: result
-      failed_when: result.stdout != 'read object'
+      failed_when: result.stdout != 'read_object'
       changed_when: false
