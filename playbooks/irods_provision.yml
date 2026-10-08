@@ -3,6 +3,14 @@
   hosts: irods:!irods_resource_container:!unmanaged_systems
   become: true
   tasks:
+    # The modules require their own iRODS release, so they would block an upgrade.
+    - name: Remove the NetCDF modules
+      when: not _irods_netcdf_supported
+      ansible.builtin.package:
+        name: "{{ _irods_netcdf_packages }}"
+        state: absent
+      notify: Restart iRODS if needed
+
     - name: Provision RedHat family
       when: ansible_os_family == 'RedHat'
       block:
@@ -70,6 +78,7 @@
           ansible.builtin.command: yum versionlock add {{ item }}
           register: resp
           changed_when: resp.stdout is regex('Adding versionlock on')
+          when: _irods_netcdf_supported or 'netcdf' not in item
           loop:
             - irods-*-{{ _irods_version }}
             - irods-netcdf-*-{{ _irods_version }}.*
@@ -140,11 +149,8 @@
         name: "{{ item }}"
         state: present
       notify: Restart iRODS if needed
-      loop:
-        - irods-netcdf-client_modules
-        - irods-netcdf-icommands
-        - irods-netcdf-server_modules
-        - irods-resource-plugin-s3
+      loop: >-
+        {{ (_irods_netcdf_packages if _irods_netcdf_supported else []) + ['irods-resource-plugin-s3'] }}
 
     - name: Ensure iRODS attempts to start on boot
       ansible.builtin.service:

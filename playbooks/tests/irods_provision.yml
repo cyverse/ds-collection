@@ -46,6 +46,7 @@
                 done
               fi
           changed_when: false
+          when: _irods_netcdf_supported or item not in _irods_netcdf_packages
           loop:
             - irods-icommands
             - irods-netcdf-client_modules
@@ -125,6 +126,17 @@
             - uuid-runtime
           loop_control:
             loop_var: pkg
+
+    - name: Determine which packages are installed
+      when: not _irods_netcdf_supported
+      ansible.builtin.package_facts:
+
+    - name: Verify the NetCDF modules are absent
+      when: not _irods_netcdf_supported
+      ansible.builtin.assert:
+        that:
+          - item not in ansible_facts.packages
+      loop: "{{ _irods_netcdf_packages }}"
 
     - name: Verify iRODS server installed
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml

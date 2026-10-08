@@ -62,5 +62,11 @@ _irods_zone_name: "{{ irods_zone_name | d('tempZone') }}"
 
 _irods_client_server_policy: CS_NEG_REFUSE
 _irods_default_hash_scheme: MD5
+_irods_netcdf_packages:
+  - irods-netcdf-client_modules
+  - irods-netcdf-icommands
+  - irods-netcdf-server_modules
+# iRODS dropped the NetCDF modules in 4.3.2.
+_irods_netcdf_supported: "{{ _irods_version is version('4.3.2', '<') }}"
 _irods_server_control_plane_port: 1248
 _irods_zone_port: 1247
