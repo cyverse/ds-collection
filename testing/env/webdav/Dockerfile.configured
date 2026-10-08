@@ -1,4 +1,4 @@
-FROM test-env-base:alma8
+FROM test-env-base:alma8-systemd
 
 ADD https://packages.irods.org/renci-irods.yum.repo /etc/yum.repos.d/renci-irods.yum.repo
 

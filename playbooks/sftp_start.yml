@@ -2,8 +2,6 @@
 - name: Start the SFTP services
   hosts: sftp
   become: true
-  tags:
-    - no_testing
   tasks:
     - name: Start sftpgo
       ansible.builtin.service:

@@ -150,9 +150,57 @@
       ansible.builtin.debug:
         msg: TODO implement
 
-    - name: Test replication.yml
-      ansible.builtin.debug:
-        msg: TODO implement
+    - name: Test postgres is running
+      ansible.builtin.include_tasks: tasks/test_services.yml
+      vars:
+        services:
+          - postgresql@12-main
+        active: true
+
+    # max_connections only changes on a restart, and the image's default is 100.
+    - name: Test postgres restarted with cyverse.conf
+      become: true
+      become_user: postgres
+      ansible.builtin.command: psql --tuples-only --no-align --command='SHOW max_connections'
+      register: resp
+      changed_when: false
+      failed_when: resp.stdout != dbms_max_connections | string
+
+
+- name: Test replication.yml
+  hosts: dbms_replicas
+  become: true
+  become_user: postgres
+  tasks:
+    - name: Test the replica is a standby
+      ansible.builtin.command: psql --tuples-only --no-align --command='SELECT pg_is_in_recovery()'
+      register: resp
+      changed_when: false
+      failed_when: resp.stdout != 't'
+
+    # The WAL receiver starts a moment after the replica accepts connections.
+    - name: Test the replica streams from the primary
+      ansible.builtin.command: >-
+        psql --tuples-only --no-align --command='SELECT status FROM pg_stat_wal_receiver'
+      register: resp
+      changed_when: false
+      until: resp.stdout == 'streaming'
+      retries: 10
+      delay: 1
+
+    - name: Get the replica's system identifier
+      ansible.builtin.command: >-
+        psql --tuples-only --no-align --command='SELECT system_identifier FROM pg_control_system()'
+      register: replica_id
+      changed_when: false
+
+    - name: Test the replica was built from the first primary
+      delegate_to: "{{ groups['dbms_primary'][0] }}"
+      ansible.builtin.command: >-
+        psql --tuples-only --no-align --command='SELECT system_identifier FROM pg_control_system()'
+      register: resp
+      changed_when: false
+      failed_when: resp.stdout != replica_id.stdout
 
 
 - name: Test Set up primary DBMS

@@ -4,7 +4,7 @@ This folder contains the test harness for the DS playbooks. It consists of a sim
 
 ## The Environment
 
-The environment consists of a set of containers. The `amqp` container hosts the RabbitMQ broker that in turn hosts the `irods` exchange, where the Data Store publishes messages to. The `dbms_configured` container hosts the PostgreSQL server that in turn hosts the ICAT DB. The iRODS servers all run on AlmaLinux 9. The `webdav_configured` and `webdav_unconfigured` containers run AlmaLinux 8, because davrods 4.3.0_1.5.0, the release the WebDAV hosts use, doesn't install on AlmaLinux 9. The `provider_configured` container hosts a configured iRODS catalog service provider. The `provider_unconfigured` container hosts an unconfigured service provider. The `consumer_configured_centos` container hosts a configured catalog service consumer acting as a resource server for `replRes` and `ingestRes`; it keeps its old name, though it no longer runs CentOS. Finally, the `consumer_unconfigured` container hosts an unconfigured service consumer.
+The environment consists of a set of containers. The `amqp` container hosts the RabbitMQ broker that in turn hosts the `irods` exchange, where the Data Store publishes messages to. The `dbms_configured` container hosts the PostgreSQL server that in turn hosts the ICAT DB. The iRODS servers all run on AlmaLinux 9. The `webdav_configured` and `webdav_unconfigured` containers run AlmaLinux 8, because davrods 4.3.0_1.5.0, the release the WebDAV hosts use, doesn't install on AlmaLinux 9. They, the `sftp` container, and the `dbms_configured` and `dbms_unconfigured` containers boot systemd, so playbooks can start, stop and enable their services; the other containers run only sshd and the services their images start. The `provider_configured` container hosts a configured iRODS catalog service provider. The `provider_unconfigured` container hosts an unconfigured service provider. The `consumer_configured_centos` container hosts a configured catalog service consumer acting as a resource server for `replRes` and `ingestRes`; it keeps its old name, though it no longer runs CentOS. Finally, the `consumer_unconfigured` container hosts an unconfigured service consumer.
 
 ## Requirements
 
@@ -20,7 +20,7 @@ On macOS the scripts stick to options the BSD tools share with the GNU ones, and
 
 ## Building the Harness
 
-There are two convenience scripts for building the docker images for the environment. `build` builds all the required images, and `clean` deletes them.
+There are two convenience scripts for building the docker images for the environment. `build` builds all the required images, and `clean` deletes them. Some images build from base images that `build` creates locally, so if your buildx builder uses the `docker-container` driver, run it as `BUILDX_BUILDER=default testing/build`.
 
 ## Testing
 
@@ -75,6 +75,8 @@ It runs each scenario even when an earlier one fails, prints a summary, and exit
 * It puts `.venv-molecule/bin` first on `PATH`, because molecule runs whichever `ansible` it finds there.
 * It sets `DOCKER_HOST` from the current Docker context when it isn't already set, because molecule reaches Docker through the Python SDK, which ignores contexts. This matters for daemons like colima's.
 * It points `ANSIBLE_HOME` into the temporary directory. Otherwise molecule installs the collection under test and the scenarios' Galaxy roles into `~/.ansible`, where they shadow any other `cyverse.ds`.
+
+The `postgresql`, `haproxy`, `rabbitmq`, `firewalld`, and `irods_cfg_initialize` scenarios boot systemd in privileged containers. Their Dockerfiles embed `testing/env/base/systemd.sh`, like the testing environment's systemd images, so editing that script changes them too. The `postgresql` scenario skips `no_testing` tasks, because the role's huge pages and swappiness tasks would change the host's kernel settings.
 
 ## PEP memory leaks
 

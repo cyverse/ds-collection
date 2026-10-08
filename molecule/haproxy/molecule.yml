@@ -12,6 +12,7 @@ platforms:
     dockerfile: Dockerfile
     privileged: true
     command: /lib/systemd/systemd
+    cgroupns_mode: private
 provisioner:
   name: ansible
   inventory:
