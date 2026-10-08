@@ -49,7 +49,10 @@ The `unittest` modules in `playbooks/tests/rules` test the rule logic against a 
 ```bash
 testing/test-rules                   # every module
 testing/test-rules cyverse_logic     # the named modules
+testing/test-rules -v 4.3.4          # every module, on iRODS 4.3.4
 ```
+
+As with `test-playbook`, `--irods-version`, or `IRODS_VERSION`, runs the configured iRODS servers on another release and passes it to the setup playbooks as `irods_version`. Without it, `irods_resource_server.yml` would provision the servers for the default release.
 
 A freshly started environment lacks several things the tests depend on, so before running them `test-rules` does the following. Preparing the environment takes about four minutes on an x86_64 host.
 
