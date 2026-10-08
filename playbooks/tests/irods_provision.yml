@@ -46,14 +46,11 @@
                 done
               fi
           changed_when: false
-          loop:
-            - irods-icommands
-            - irods-netcdf-client_modules
-            - irods-netcdf-icommands
-            - irods-netcdf-server_modules
-            - irods-resource-plugin-s3
-            - irods-runtime
-            - irods-server
+          loop: >-
+            {{
+              ['irods-icommands']
+                + (_irods_netcdf_packages if _irods_netcdf_supported else [])
+                + ['irods-resource-plugin-s3', 'irods-runtime', 'irods-server'] }}
 
         # irods_provision.yml removes a stale lock only if its line matches this copy of its pattern.
         - name: RedHat | test irods package locks match the stale lock pattern
@@ -82,6 +79,20 @@
             - uuidd
           loop_control:
             loop_var: pkg
+
+        - name: RedHat | verify chkconfig installed
+          when: _irods_chkconfig_required
+          ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
+          vars:
+            pkg: chkconfig
+
+        - name: RedHat | verify /etc/init.d is chkconfig's link
+          when: _irods_chkconfig_required
+          ansible.builtin.stat:
+            path: /etc/init.d
+          register: resp
+          failed_when: >-
+            not resp.stat.exists or not resp.stat.islnk or resp.stat.lnk_target != 'rc.d/init.d'
 
     - name: Test Ubuntu provisioning
       when: ansible_distribution == 'Ubuntu'
@@ -125,6 +136,17 @@
             - uuid-runtime
           loop_control:
             loop_var: pkg
+
+    - name: Determine which packages are installed
+      when: not _irods_netcdf_supported
+      ansible.builtin.package_facts:
+
+    - name: Verify the NetCDF modules are absent
+      when: not _irods_netcdf_supported
+      ansible.builtin.assert:
+        that:
+          - item not in ansible_facts.packages
+      loop: "{{ _irods_netcdf_packages }}"
 
     - name: Verify iRODS server installed
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
