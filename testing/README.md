@@ -36,6 +36,8 @@ There are two convenience scripts for building the docker images for the environ
 
 Tests can be defined for a given playbook. They should be placed in a playbook with the same name inside the `playbooks/tests` folder.
 
+`test-playbook --irods-version <version>`, or the `IRODS_VERSION` environment variable, runs the configured iRODS servers on another iRODS release, such as 4.3.4, and passes it to the setup playbooks, the playbook under test, and its tests as `irods_version`. Tests that check an iRODS version should compare against `_irods_version` from `playbooks/group_vars/all/irods.yml`, not a literal release.
+
 iRODS 4.3.1 occasionally segfaults while starting ([irods/irods#7747](https://github.com/irods/irods/issues/7747), fixed in 4.3.3). Both the EL7 and EL9 builds crash this way, in `libirods_plugin_dependencies.so`. When it happens, the playbook fails with `iRODS server failed to start` or `iRODS server failed to restart`, usually in a restart handler or in `setup_irods.py`. Sometimes the server crashes just after a restart reports success, and the next task that talks to it fails with `Could not connect to specified host and port: <host>:1247`. The servers that depend on the crashed one then fail to start as well. The host's kernel log records every crash, so `journalctl -k | grep irodsServer` shows whether a failure was this bug.
 
 So that these crashes don't fail a test, `test-playbook`, `test-plugin`, `test-rules`, and `test-leaks` retry once, using `irods_crash.sh`. When a run fails and its output contains any of these messages, the script tears down the environment, brings up a fresh one, and runs everything again. A server that fails to start for any other reason fails the retry too, so the retry doesn't hide real problems. `test-playbook` and `test-plugin` don't retry with `--inspect`, because the inspection shell needs the terminal and its output isn't captured.
@@ -47,7 +49,10 @@ The `unittest` modules in `playbooks/tests/rules` test the rule logic against a 
 ```bash
 testing/test-rules                   # every module
 testing/test-rules cyverse_logic     # the named modules
+testing/test-rules -v 4.3.4          # every module, on iRODS 4.3.4
 ```
+
+As with `test-playbook`, `--irods-version`, or `IRODS_VERSION`, runs the configured iRODS servers on another release and passes it to the setup playbooks as `irods_version`. Without it, `irods_resource_server.yml` would provision the servers for the default release.
 
 A freshly started environment lacks several things the tests depend on, so before running them `test-rules` does the following. Preparing the environment takes about four minutes on an x86_64 host.
 

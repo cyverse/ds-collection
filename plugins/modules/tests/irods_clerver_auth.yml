@@ -5,7 +5,7 @@
   become_user: irods
   tasks:
     - name: Set password
-      irods_clerver_auth:
+      cyverse.ds.irods_clerver_auth:
         password: password
       register: resp
       failed_when: resp is changed

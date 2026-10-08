@@ -25,7 +25,7 @@
 
   tasks:
     - name: Create a collection
-      irods_collection:
+      cyverse.ds.irods_collection:
         path: "{{ create_coll }}"
         state: present
         host: "{{ groups['irods_catalog'][0] }}"
@@ -41,7 +41,7 @@
       changed_when: false
 
     - name: Remove a collection
-      irods_collection:
+      cyverse.ds.irods_collection:
         path: "{{ rm_coll }}"
         state: absent
         host: "{{ groups['irods_catalog'][0] }}"
@@ -57,7 +57,7 @@
       changed_when: false
 
     - name: Create a collection, without creating parents
-      irods_collection:
+      cyverse.ds.irods_collection:
         path: "{{ child_coll1 }}"
         parents: false
         state: present
@@ -76,7 +76,7 @@
       changed_when: false
 
     - name: Create a collection, create parents collection as well
-      irods_collection:
+      cyverse.ds.irods_collection:
         path: "{{ child_coll2 }}"
         parents: true
         state: present
