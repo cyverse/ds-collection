@@ -3,14 +3,6 @@
   hosts: irods:!irods_resource_container:!unmanaged_systems
   become: true
   tasks:
-    # The modules require their own iRODS release, so they would block an upgrade.
-    - name: Remove the NetCDF modules
-      when: not _irods_netcdf_supported
-      ansible.builtin.package:
-        name: "{{ _irods_netcdf_packages }}"
-        state: absent
-      notify: Restart iRODS if needed
-
     - name: Provision RedHat family
       when: ansible_os_family == 'RedHat'
       block:
@@ -68,6 +60,7 @@
 #           community.general.yum_versionlock:
 #             name:
 #               - irods-icommands-{{ _irods_version }}
+#               # only while _irods_netcdf_supported
 #               - irods-netcdf-client_modules-{{ _irods_version }}.*
 #               - irods-netcdf-icommands-{{ _irods_version }}.*
 #               - irods-netcdf-server_modules-{{ _irods_version }}.*
@@ -78,11 +71,11 @@
           ansible.builtin.command: yum versionlock add {{ item }}
           register: resp
           changed_when: resp.stdout is regex('Adding versionlock on')
-          when: _irods_netcdf_supported or 'netcdf' not in item
-          loop:
-            - irods-*-{{ _irods_version }}
-            - irods-netcdf-*-{{ _irods_version }}.*
-            - irods-resource-*-{{ _irods_version }}.*
+          loop: >-
+            {{
+              ['irods-*-' ~ _irods_version]
+                + (['irods-netcdf-*-' ~ _irods_version ~ '.*'] if _irods_netcdf_supported else [])
+                + ['irods-resource-*-' ~ _irods_version ~ '.*'] }}
           tags: skip_ansible_lint
 # XXX - ^^^
 
@@ -105,7 +98,11 @@
                   shopt -s dotglob nullglob
                   mkdir --parents /etc/rc.d/init.d
                   for script in /etc/init.d/*; do
-                    mv --no-clobber "$script" /etc/rc.d/init.d/
+                    if [[ -e /etc/rc.d/init.d/"$(basename "$script")" ]]; then
+                      printf '%s is also in /etc/rc.d/init.d; resolve it by hand\n' "$script" >&2
+                      exit 1
+                    fi
+                    mv "$script" /etc/rc.d/init.d/
                   done
                   rmdir /etc/init.d
                   ln --symbolic rc.d/init.d /etc/init.d
@@ -115,6 +112,14 @@
               ansible.builtin.package:
                 name: chkconfig
                 state: present
+
+        # The modules require their own iRODS release, so they would block the upgrade.
+        - name: RedHat | remove the NetCDF modules
+          when: not _irods_netcdf_supported
+          ansible.builtin.dnf:
+            name: "{{ _irods_netcdf_packages }}"
+            state: absent
+          notify: Restart iRODS if needed
 
         # The RPM irods-server needs irods-icommands but doesn't declare it as a dependency.
         - name: RedHat | install iRODS server
@@ -162,9 +167,18 @@
               Pin: version {{ _irods_version }}-*
               Pin-Priority: 1001
 
+        # The modules require their own iRODS release, so they would block the upgrade.
+        - name: Ubuntu | remove the NetCDF modules
+          when: not _irods_netcdf_supported
+          ansible.builtin.apt:
+            name: "{{ _irods_netcdf_packages }}"
+            state: absent
+          notify: Restart iRODS if needed
+
+        # With the version, an installed irods-server is upgraded to it.
         - name: Ubuntu | install iRODS server
           ansible.builtin.apt:
-            name: irods-server
+            name: irods-server={{ _irods_version }}-*
             state: present
 
         - name: Ubuntu | install OS specific required packages
