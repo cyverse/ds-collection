@@ -398,24 +398,30 @@ class TestSyncreplicasFailure(IrodsTestCase):
     def __init__(self, methodName: str) -> None:
         super().__init__(methodName)
         self._objPath = None
-        self._execPath = Path('var', 'lib', 'irods', 'msiExecCmd_bin', 'irepl-exec')
+        self._execPath = Path('/var/lib/irods/msiExecCmd_bin/irepl-exec')
         self._rc = None
 
     def setUp(self):
         super().setUp()
         self._objPath = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
-        self.scp.put(Path(__file__).parent / 'mocks' / 'irepl-exec', Path('/') / self._execPath)
-        obj = self.irods.data_objects.create(self._objPath)
-        rule = self.mk_rule(
-            f"writeLine('stdout', errorcode(cyverse_repl_syncReplicas({obj.id})))")  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
-        self._rc = self.exec_rule(rule, IrodsType.INTEGER)
+        self.scp.put(Path(__file__).parent / 'mocks' / 'irepl-exec', self._execPath)
+        # unittest skips tearDown when setUp fails, which would leave the mock in place.
+        try:
+            obj = self.irods.data_objects.create(self._objPath)
+            rule = self.mk_rule(
+                f"writeLine('stdout', errorcode(cyverse_repl_syncReplicas({obj.id})))")  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+            self._rc = self.exec_rule(rule, IrodsType.INTEGER)
+        except Exception:
+            self.tearDown()
+            raise
 
     def tearDown(self):
         if self._objPath:
             self.ensure_obj_absent(self._objPath)
         self.scp.put(
-            Path(__file__).parent / '..' / '..' / 'files' / 'irods' / self._execPath,
-            Path('/') / self._execPath)
+            Path(__file__).parent / '..' / '..' / 'files' / 'irods'
+            / self._execPath.relative_to('/'),
+            self._execPath)
         super().tearDown()
 
     def test_fail_status(self):
