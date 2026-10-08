@@ -60,6 +60,8 @@ _irods_zone_name: "{{ irods_zone_name | d('tempZone') }}"
 
 # The following are internal constants
 
+# The RPM irods-server requires chkconfig from 4.3.2 on.
+_irods_chkconfig_required: "{{ _irods_version is version('4.3.2', '>=') }}"
 _irods_client_server_policy: CS_NEG_REFUSE
 _irods_default_hash_scheme: MD5
 _irods_netcdf_packages:

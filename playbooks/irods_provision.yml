@@ -86,6 +86,36 @@
           tags: skip_ansible_lint
 # XXX - ^^^
 
+        - name: RedHat | install chkconfig
+          when: _irods_chkconfig_required
+          block:
+            - name: RedHat | check the init script directory
+              ansible.builtin.stat:
+                path: /etc/init.d
+              register: init_d
+
+            # Without chkconfig, an older irods-server creates /etc/init.d as a directory, but the
+            # chkconfig package installs it as a symbolic link to rc.d/init.d, so it can't install.
+            - name: RedHat | move init scripts to where chkconfig expects them
+              when: init_d.stat.exists and init_d.stat.isdir and not init_d.stat.islnk
+              ansible.builtin.shell:
+                executable: /bin/bash
+                cmd: |
+                  set -o errexit
+                  shopt -s dotglob nullglob
+                  mkdir --parents /etc/rc.d/init.d
+                  for script in /etc/init.d/*; do
+                    mv --no-clobber "$script" /etc/rc.d/init.d/
+                  done
+                  rmdir /etc/init.d
+                  ln --symbolic rc.d/init.d /etc/init.d
+              changed_when: true
+
+            - name: RedHat | install chkconfig package
+              ansible.builtin.package:
+                name: chkconfig
+                state: present
+
         # The RPM irods-server needs irods-icommands but doesn't declare it as a dependency.
         - name: RedHat | install iRODS server
           ansible.builtin.dnf:

@@ -84,6 +84,19 @@
           loop_control:
             loop_var: pkg
 
+        - name: RedHat | verify chkconfig installed
+          when: _irods_chkconfig_required
+          ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
+          vars:
+            pkg: chkconfig
+
+        - name: RedHat | verify /etc/init.d is chkconfig's link
+          when: _irods_chkconfig_required
+          ansible.builtin.stat:
+            path: /etc/init.d
+          register: resp
+          failed_when: not resp.stat.islnk or resp.stat.lnk_target != 'rc.d/init.d'
+
     - name: Test Ubuntu provisioning
       when: ansible_distribution == 'Ubuntu'
       block:
