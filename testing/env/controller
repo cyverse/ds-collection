@@ -22,6 +22,9 @@ readonly ExecName
 
 main()
 {
+  # Starting builds any image that's missing, such as another iRODS release's.
+  portability::use_docker_builder
+
   local baseDir
   baseDir=$(dirname "$ExecName")
 

@@ -58,6 +58,21 @@ portability::compose() {
 }
 
 
+# Makes docker builds use the Docker driver of the current context unless
+# BUILDX_BUILDER already names a builder. The compose images build FROM the
+# test-env-base images, which a builder using the docker-container driver can't
+# see in Docker's image store. buildx names each context's Docker driver builder
+# after the context.
+# Exports:
+#  BUILDX_BUILDER  set to the name of the current context if unset
+portability::use_docker_builder() {
+	if [[ -z "${BUILDX_BUILDER-}" ]]; then
+		BUILDX_BUILDER="$(docker context inspect --format '{{.Name}}')"
+		export BUILDX_BUILDER
+	fi
+}
+
+
 # Fails when the shell is too old for the associative arrays and readarray the
 # scripts use. macOS ships bash 3.2 as /bin/bash, so a newer one needs to come
 # first in PATH.
