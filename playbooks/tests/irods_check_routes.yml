@@ -1,11 +1,7 @@
 ---
-# REQUIREMENTS:
-#  inventory: hosts-configured
-
 - name: Test the servers are left as they were found
   hosts: irods
   become: true
-  become_user: irods
   tasks:
     # The async wrapper polls its finished receiver every 5 seconds, so it can briefly outlive it.
     - name: Verify no port check receiver is left running
@@ -17,5 +13,13 @@
       retries: 2
       delay: 5
 
-    - name: Verify iRODS servers are running
+    # The playbook can run before iRODS is installed, so only a configured server must be running.
+    - name: Check for an iRODS server configuration
+      ansible.builtin.stat:
+        path: /etc/irods/server_config.json
+      register: server_config
+
+    - name: Verify configured iRODS servers are running
+      when: server_config.stat.exists
+      become_user: irods
       ansible.builtin.import_tasks: tasks/irods/test_running.yml
