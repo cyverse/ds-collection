@@ -55,6 +55,8 @@ readonly EXEC_NAME TESTING_DIR COLLECTION_DIR
 
 #shellcheck source=testing/portability.sh
 source "$TESTING_DIR"/portability.sh
+#shellcheck source=testing/irods_version.sh
+source "$TESTING_DIR"/irods_version.sh
 #shellcheck source=testing/results.sh
 source "$TESTING_DIR"/results.sh
 
@@ -135,10 +137,18 @@ main() {
 		esac
 	done
 
-	if [[ -n "${IRODS_VERSION-}" && ! "$IRODS_VERSION" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
-		printf 'The iRODS version %s is not a release number like 4.3.4\n' "$IRODS_VERSION" >&2
+	if ! irods_version::check; then
 		exit_with_help
 	fi
+
+	local playbook
+	for playbook in "${!PLAYBOOK_INVENTORIES[@]}" "${!PLAYBOOK_SETUPS[@]}"; do
+		if ! [[ -f "$COLLECTION_DIR"/playbooks/"$playbook".yml ]]; then
+			printf "The tables in %s name the playbook %s, which doesn't exist\n" \
+				"$EXEC_NAME" "$playbook" >&2
+			exit 1
+		fi
+	done
 
 	local known
 	readarray -t known < <(list_tests)
@@ -161,7 +171,7 @@ main() {
 		fi
 	done
 
-	mkdir --parents "$output"
+	mkdir -p "$output"
 
 	local failed=()
 	for test in "${tests[@]}"; do

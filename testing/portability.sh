@@ -63,12 +63,15 @@ portability::compose() {
 # test-env-base images, which a builder using the docker-container driver can't
 # see in Docker's image store. buildx names each context's Docker driver builder
 # after the context.
+# If Docker has no contexts, the selected builder is left in place.
 # Exports:
 #  BUILDX_BUILDER  set to the name of the current context if unset
 portability::use_docker_builder() {
 	if [[ -z "${BUILDX_BUILDER-}" ]]; then
-		BUILDX_BUILDER="$(docker context inspect --format '{{.Name}}')"
-		export BUILDX_BUILDER
+		local context
+		if context="$(docker context inspect --format '{{.Name}}' 2> /dev/null)"; then
+			export BUILDX_BUILDER="$context"
+		fi
 	fi
 }
 

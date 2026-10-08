@@ -10,10 +10,16 @@ set -o errexit -o nounset -o pipefail
 EXEC_NAME="$(readlink -f "$0")"
 readonly EXEC_NAME
 
+#shellcheck source=testing/portability.sh
+. "$(dirname "$EXEC_NAME")"/../portability.sh
+
 declare BaseDir
 
 main()
 {
+  # Without the Docker driver, buildx leaves the image in its own cache.
+  portability::use_docker_builder
+
   BaseDir="$(dirname "$EXEC_NAME")"
 
   local cfg="$1"

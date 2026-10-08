@@ -20,9 +20,9 @@ The test scripts give the tester container a terminal only when they have one, s
 
 ## Building the Harness
 
-There are two convenience scripts for building the docker images for the environment. `build` builds all the required images, and `clean` deletes them. Some images build from base images that `build` creates locally, so if your buildx builder uses the `docker-container` driver, run it as `BUILDX_BUILDER=default testing/build`.
+There are two convenience scripts for building the docker images for the environment. `build` builds all the required images, and `clean` deletes them.
 
-The environment's images build `FROM` the `test-env-base` images, which a buildx builder that uses the `docker-container` driver can't see in Docker's image store. So unless `BUILDX_BUILDER` names a builder, `env/build` and `env/controller` use the Docker driver builder of the current Docker context, whatever builder is selected.
+The environment's images build `FROM` the `test-env-base` images, which a buildx builder that uses the `docker-container` driver can't see in Docker's image store. So unless `BUILDX_BUILDER` names a builder, the build scripts and `env/controller` use the Docker driver builder of the current Docker context, whatever builder is selected.
 
 ## Testing
 

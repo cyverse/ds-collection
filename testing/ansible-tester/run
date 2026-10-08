@@ -49,9 +49,6 @@ main() {
 	local ttyArg=()
 	if [[ -t 0 ]]; then
 		ttyArg=(--tty)
-	elif [[ -n "$inspect" ]]; then
-		printf 'Inspection needs a terminal\n' >&2
-		return 1
 	fi
 
 	docker run --interactive --rm ${ttyArg[@]+"${ttyArg[@]}"} \
