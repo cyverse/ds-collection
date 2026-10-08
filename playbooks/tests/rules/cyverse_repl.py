@@ -404,7 +404,7 @@ class TestSyncreplicasFailure(IrodsTestCase):
     def setUp(self):
         super().setUp()
         self._objPath = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
-        self.scp.put(Path(__file__).parent / 'mocks' / 'irepl-exec', self._execPath.absolute())
+        self.scp.put(Path(__file__).parent / 'mocks' / 'irepl-exec', Path('/') / self._execPath)
         obj = self.irods.data_objects.create(self._objPath)
         rule = self.mk_rule(
             f"writeLine('stdout', errorcode(cyverse_repl_syncReplicas({obj.id})))")  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
@@ -415,7 +415,7 @@ class TestSyncreplicasFailure(IrodsTestCase):
             self.ensure_obj_absent(self._objPath)
         self.scp.put(
             Path(__file__).parent / '..' / '..' / 'files' / 'irods' / self._execPath,
-            self._execPath.absolute())
+            Path('/') / self._execPath)
         super().tearDown()
 
     def test_fail_status(self):
