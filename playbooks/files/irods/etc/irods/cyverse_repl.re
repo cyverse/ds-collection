@@ -235,6 +235,7 @@ _repl_scheduleSyncReplicas(*Object) {
 # two-tuple with the first is element is the name of the resource, and the
 # second is the value 'forced' or 'preferred'. 'forced' means that the user
 # cannot override this choice, and 'preferred' means they can.
+_repl_findResc : forall X in {path string}, X -> string * string
 _repl_findResc(*ObjPath) =
 	let *collPath = '' in
 	let *objName = '' in
