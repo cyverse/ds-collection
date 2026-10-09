@@ -165,8 +165,8 @@ prepare_venv() {
 
 	printf 'Installing the Python and Galaxy requirements into %s\n' "$VENV_DIR"
 
-	# ansible-core 2.16, the newest requirements.txt allows, supports controller
-	# Pythons 3.10 through 3.12.
+	# ansible-core 2.18, the newest requirements.txt allows, supports controller
+	# Pythons 3.11 through 3.13.
 	if command -v uv > /dev/null; then
 		uv venv --quiet --allow-existing --python 3.12 "$VENV_DIR"
 		uv pip install --quiet --python "$VENV_DIR"/bin/python \
