@@ -287,9 +287,9 @@ class TestMvreplicasMvReplSuccess(IrodsTestCase):
         """Test it"""
         objPath = iRODSPath(self.irods.zone, "home", "shared", "avra", "obj")
         self.ensure_obj_absent(objPath)
-        self.update_rulebase([('pire.re', 'mocks/pire.re')])
-        obj = self.irods.data_objects.create(objPath)
         try:
+            self.update_rulebase([('pire.re', 'mocks/pire.re')])
+            obj = self.irods.data_objects.create(objPath)
             obj.chksum()
             obj.replicate('replRes')
             self.exec_rule(
@@ -305,8 +305,10 @@ class TestMvreplicasMvReplSuccess(IrodsTestCase):
         except RuleExecFailure as e:
             self.fail(f"cyverse_repl_mvReplicas failed: {e}")
         finally:
-            obj.unlink(force=True)
-            self.update_rulebase([('pire.re', '../../files/irods/etc/irods/pire.re')])
+            try:
+                self.ensure_obj_absent(objPath)
+            finally:
+                self.update_rulebase([('pire.re', '../../files/irods/etc/irods/pire.re')])
 
 
 class TestMvreplicasMvReplFailure(IrodsTestCase):
