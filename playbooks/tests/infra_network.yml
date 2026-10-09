@@ -1,4 +1,6 @@
 ---
+# The NIC tuning runs only on physical hosts, and every test host is a container, while the TCP
+# tuning is tagged no_testing. So only the udev rule's template can be tested.
 - name: Test infra_network template expansion
   hosts: localhost
   gather_facts: false
@@ -15,11 +17,3 @@
           - rule is search('Ansible managed')
           - rule is search('KERNEL=="eth0"')
           - rule is search(('ATTR{tx_queue_len}="' ~ _infra_txqueuelen ~ '"') | regex_escape)
-
-
-- name: Test infra_network
-  hosts: all
-  tasks:
-    - name: Test plays
-      ansible.builtin.debug:
-        msg: 'TODO: implement'
