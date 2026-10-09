@@ -504,22 +504,27 @@ class IrodsTestCase(TestCase):
             proj  the project's rule base prefix, e.g., avra
 
         Raises:
-            RuntimeError  if the env rule base couldn't be edited
+            RuntimeError  if the env rule base couldn't be edited, after restoring it
         """
         env = f'/etc/irods/{proj}-env.re'
         self.scp.get(env, f'/tmp/{proj}-env.re')
-        # sed exits 0 even when nothing matches, so grep confirms the edit happened.
         try:
-            self.run_on_server(
-                f"sed --in-place 's/{proj}_RESC = .*/{proj}_RESC = cyverse_DEFAULT_RESC/' {env}"
-                f" && grep --quiet --line-regexp '{proj}_RESC = cyverse_DEFAULT_RESC' {env}")
-        except RuntimeError as e:
-            raise RuntimeError(
-                f"Failed to set {proj}_RESC to cyverse_DEFAULT_RESC in {env}. This usually means"
-                f" {env} no longer defines it as '{proj}_RESC = ...', or the SSH user can't"
-                " write to /etc/irods on the catalog service provider."
-            ) from e
-        self.reload_rules()
+            # sed exits 0 even when nothing matches, so grep confirms the edit happened.
+            try:
+                self.run_on_server(
+                    f"sed --in-place 's/{proj}_RESC = .*/{proj}_RESC = cyverse_DEFAULT_RESC/' {env}"
+                    f" && grep --quiet --line-regexp '{proj}_RESC = cyverse_DEFAULT_RESC' {env}")
+            except RuntimeError as e:
+                raise RuntimeError(
+                    f"Failed to set {proj}_RESC to cyverse_DEFAULT_RESC in {env}. This usually"
+                    f" means {env} no longer defines it as '{proj}_RESC = ...', or the SSH user"
+                    " can't write to /etc/irods on the catalog service provider."
+                ) from e
+            self.reload_rules()
+        except Exception:
+            # unittest skips tearDown when setUp fails, so put the original file back here.
+            self.restore_proj_env(proj)
+            raise
 
     def restore_proj_env(self, proj: str) -> None:
         """
