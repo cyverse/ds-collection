@@ -54,6 +54,8 @@ readonly ExecName TestingDir CollectionDir
 source "$TestingDir"/portability.sh
 #shellcheck source=testing/irods_crash.sh
 source "$TestingDir"/irods_crash.sh
+#shellcheck source=testing/irods_version.sh
+source "$TestingDir"/irods_version.sh
 
 portability::require_bash 4
 
@@ -92,10 +94,15 @@ main() {
 		export IRODS_VERSION="${opts[version]}"
 	fi
 
-	if [[ -n "${IRODS_VERSION-}" && ! "$IRODS_VERSION" =~ ^[0-9]+(\.[0-9]+)+$ ]]
+	if ! irods_version::check
 	then
-		printf 'The iRODS version %s is not a release number like 4.3.4\n' "$IRODS_VERSION" >&2
 		exit_with_help
+	fi
+
+	if [[ -n "${opts[inspect]}" && ! -t 0 ]]
+	then
+		printf 'Inspection needs a terminal\n' >&2
+		exit 1
 	fi
 
 	# The inspection shell needs the terminal, so an inspected run isn't captured or retried.
@@ -195,7 +202,11 @@ do_run() {
 	local setup="$4"
 	local playbook="$5"
 
-	"$TestingDir"/env/controller "$Cfg" start
+	if ! "$TestingDir"/env/controller "$Cfg" start
+	then
+		"$TestingDir"/env/controller "$Cfg" stop
+		return 1
+	fi
 
 	local rc
 	if ! \

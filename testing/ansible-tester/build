@@ -10,11 +10,16 @@ set -o errexit -o nounset -o pipefail
 EXEC_NAME="$(readlink -f "$0")"
 readonly EXEC_NAME
 
-declare BaseDir
+BASE_DIR="$(dirname "$EXEC_NAME")"
+readonly BASE_DIR
+
+#shellcheck source=testing/portability.sh
+. "$BASE_DIR"/../portability.sh
 
 main()
 {
-  BaseDir="$(dirname "$EXEC_NAME")"
+  # Without the Docker driver, buildx leaves the image in its own cache.
+  portability::use_docker_builder
 
   local cfg="$1"
 
@@ -30,10 +35,10 @@ main()
   # shellcheck disable=SC1090
   . "$cfg"
 
-  trap 'rm -f "$BaseDir"/requirements.txt "$BaseDir"/requirements.yml' EXIT
+  trap 'rm -f "$BASE_DIR"/requirements.txt "$BASE_DIR"/requirements.yml' EXIT
   local req
   for req in requirements.txt requirements.yml; do
-    [[ -e "$BaseDir"/"$req" ]] || cp "$BaseDir"/../../"$req" "$BaseDir"/
+    [[ -e "$BASE_DIR"/"$req" ]] || cp "$BASE_DIR"/../../"$req" "$BASE_DIR"/
   done
 
   local buildArgs=(
@@ -42,7 +47,7 @@ main()
     --platform=linux/amd64
     --tag=ansible-tester )
 
-  docker buildx build "${buildArgs[@]}" "$BaseDir"
+  docker buildx build "${buildArgs[@]}" "$BASE_DIR"
 }
 
 main "$@"

@@ -159,7 +159,12 @@ main() {
 		ansible-tester \
 		-c '
 			run() {
-				ansible-playbook -i /inventory/hosts-configured /wait-for-ready.yml > /dev/null || return
+				# Print a failed wait, so that irods_crash.sh can retry a server that never starts.
+				local wait
+				if ! wait="$(ansible-playbook -i /inventory/hosts-configured /wait-for-ready.yml)"; then
+					printf "%s\n" "$wait"
+					return 1
+				fi
 				if [[ "$RULES" == data_store ]]; then
 					deploy_data_store_rules || return
 				fi
