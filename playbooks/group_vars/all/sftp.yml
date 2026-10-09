@@ -7,10 +7,13 @@ _sftp_admin_tls_key: "{{ sftp_admin_tls_key | d(None) }}"
 _sftp_admin_tls_key_file: "{{ sftp_admin_tls_key_file | d('') }}"
 _sftp_admin_ui_port:  "{{ sftp_admin_ui_port | d(18023) }}"
 
+_sftp_auth_cache_time: "{{ sftp_auth_cache_time | d(60) }}"
+
 _sftp_irods_admin_password: "{{ sftp_irods_admin_password | mandatory }}"
 _sftp_irods_admin_username: "{{ sftp_irods_admin_username | d('rods') }}"
 _sftp_irods_auth_scheme: "{{ sftp_irods_auth_scheme | d('native') }}"
 _sftp_irods_host: "{{ sftp_irods_host | d('localhost') }}"
+_sftp_irods_pool_endpoint: "{{ sftp_irods_pool_endpoint | d('') }}"
 _sftp_irods_port: "{{ sftp_irods_port | d(1247) }}"
 _sftp_irods_proxy_username: "{{ sftp_irods_proxy_username | d('sftp') }}"
 _sftp_irods_proxy_password: "{{ sftp_irods_proxy_password | mandatory }}"
