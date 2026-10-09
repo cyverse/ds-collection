@@ -34,8 +34,9 @@ class TestPepResourceResolveHierarchyPreNcemsResDefault(IrodsTestCase):
     def setUp(self):
         super().setUp()
         self.scp.get('/etc/irods/ncems-env.re', '/tmp/ncems-env.re')
-        self.ssh.exec_command(
-            "sed --in-place 's/ncems_RESC = .*/ncems_RESC = cyverse_DEFAULT_RESC/'")
+        self.run_on_server(
+            "sed --in-place 's/ncems_RESC = .*/ncems_RESC = cyverse_DEFAULT_RESC/'"
+            " /etc/irods/ncems-env.re")
         self.reload_rules()
 
     def tearDown(self):

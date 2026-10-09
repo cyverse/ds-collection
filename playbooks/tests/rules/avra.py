@@ -33,7 +33,9 @@ class TestPepResourceResolveHierarchyPreAvraResDefault(IrodsTestCase):
     def setUp(self):
         super().setUp()
         self.scp.get('/etc/irods/avra-env.re', '/tmp/avra-env.re')
-        self.ssh.exec_command("sed --in-place 's/avra_RESC = .*/avra_RESC = cyverse_DEFAULT_RESC/'")
+        self.run_on_server(
+            "sed --in-place 's/avra_RESC = .*/avra_RESC = cyverse_DEFAULT_RESC/'"
+            " /etc/irods/avra-env.re")
         self.reload_rules()
 
     def tearDown(self):

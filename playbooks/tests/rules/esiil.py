@@ -34,8 +34,9 @@ class TestPepResourceResolveHierarchyPreEsiilResDefault(IrodsTestCase):
     def setUp(self):
         super().setUp()
         self.scp.get('/etc/irods/esiil-env.re', '/tmp/esiil-env.re')
-        self.ssh.exec_command(
-            "sed --in-place 's/esiil_RESC = .*/esiil_RESC = cyverse_DEFAULT_RESC/'")
+        self.run_on_server(
+            "sed --in-place 's/esiil_RESC = .*/esiil_RESC = cyverse_DEFAULT_RESC/'"
+            " /etc/irods/esiil-env.re")
         self.reload_rules()
 
     def tearDown(self):

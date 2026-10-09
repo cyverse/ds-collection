@@ -34,7 +34,9 @@ class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
     def setUp(self):
         super().setUp()
         self.scp.get('/etc/irods/pire-env.re', '/tmp/pire-env.re')
-        self.ssh.exec_command("sed --in-place 's/pire_RESC = .*/pire_RESC = cyverse_DEFAULT_RESC/'")
+        self.run_on_server(
+            "sed --in-place 's/pire_RESC = .*/pire_RESC = cyverse_DEFAULT_RESC/'"
+            " /etc/irods/pire-env.re")
         self.reload_rules()
 
     def tearDown(self):

@@ -479,6 +479,23 @@ class IrodsTestCase(TestCase):
                 return False
             return True
 
+    def run_on_server(self, cmd: str) -> None:
+        """
+        Runs a shell command on the catalog service provider and waits for it to finish.
+
+        Parameters:
+            cmd  the command to run
+
+        Raises:
+            RuntimeError  if the command exits nonzero
+        """
+        _, stdout, stderr = self.ssh.exec_command(cmd)
+        status = stdout.channel.recv_exit_status()
+        if status != 0:
+            raise RuntimeError(
+                f"{cmd} exited with {status} on the catalog service provider"
+                f" ({stderr.read().decode().strip()})")
+
     def reload_rules(self) -> None:
         """Reloads the iRODS rule engine."""
         if self._irods:
