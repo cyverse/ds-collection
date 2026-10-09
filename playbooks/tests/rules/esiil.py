@@ -33,22 +33,20 @@ class TestPepResourceResolveHierarchyPreEsiilResDefault(IrodsTestCase):
 
     def setUp(self):
         super().setUp()
-        self.scp.get('/etc/irods/esiil-env.re', '/tmp/esiil-env.re')
-        self.run_on_server(
-            "sed --in-place 's/esiil_RESC = .*/esiil_RESC = cyverse_DEFAULT_RESC/'"
-            " /etc/irods/esiil-env.re")
-        self.reload_rules()
+        self.make_proj_resc_default('esiil')
 
     def tearDown(self):
-        for obj in [
-            "/testing/home/rods/other",
-            "/testing/home/rods/esiil",
-            "/testing/home/shared/esiil/other",
-            "/testing/home/shared/esiil/esiil",
-        ]:
-            self.ensure_obj_absent(obj)
-        self.update_rulebase([('esiil-env.re', '/tmp/esiil-env.re')])
-        super().tearDown()
+        try:
+            for obj in [
+                "/testing/home/rods/other",
+                "/testing/home/rods/esiil",
+                "/testing/home/shared/esiil/other",
+                "/testing/home/shared/esiil/esiil",
+            ]:
+                self.ensure_obj_absent(obj)
+        finally:
+            self.restore_proj_env('esiil')
+            super().tearDown()
 
     def test_esiil_res_and_coll(self):
         """

@@ -33,22 +33,20 @@ class TestPepResourceResolveHierarchyPrePireResDefault(IrodsTestCase):
 
     def setUp(self):
         super().setUp()
-        self.scp.get('/etc/irods/pire-env.re', '/tmp/pire-env.re')
-        self.run_on_server(
-            "sed --in-place 's/pire_RESC = .*/pire_RESC = cyverse_DEFAULT_RESC/'"
-            " /etc/irods/pire-env.re")
-        self.reload_rules()
+        self.make_proj_resc_default('pire')
 
     def tearDown(self):
-        for obj in [
-            "/testing/home/rods/other",
-            "/testing/home/rods/pire",
-            "/testing/home/shared/bhpire/other",
-            "/testing/home/shared/bhpire/pire",
-        ]:
-            self.ensure_obj_absent(obj)
-        self.update_rulebase([('pire-env.re', '/tmp/pire-env.re')])
-        super().tearDown()
+        try:
+            for obj in [
+                "/testing/home/rods/other",
+                "/testing/home/rods/pire",
+                "/testing/home/shared/bhpire/other",
+                "/testing/home/shared/bhpire/pire",
+            ]:
+                self.ensure_obj_absent(obj)
+        finally:
+            self.restore_proj_env('pire')
+            super().tearDown()
 
     def test_pire_res_and_coll(self):
         """

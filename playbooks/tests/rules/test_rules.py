@@ -496,6 +496,40 @@ class IrodsTestCase(TestCase):
                 f"{cmd} exited with {status} on the catalog service provider"
                 f" ({stderr.read().decode().strip()})")
 
+    def make_proj_resc_default(self, proj: str) -> None:
+        """
+        Backs up a project's env rule base, then makes the project's resource the default one.
+
+        Parameters:
+            proj  the project's rule base prefix, e.g., avra
+
+        Raises:
+            RuntimeError  if the env rule base couldn't be edited
+        """
+        env = f'/etc/irods/{proj}-env.re'
+        self.scp.get(env, f'/tmp/{proj}-env.re')
+        # sed exits 0 even when nothing matches, so grep confirms the edit happened.
+        try:
+            self.run_on_server(
+                f"sed --in-place 's/{proj}_RESC = .*/{proj}_RESC = cyverse_DEFAULT_RESC/' {env}"
+                f" && grep --quiet --line-regexp '{proj}_RESC = cyverse_DEFAULT_RESC' {env}")
+        except RuntimeError as e:
+            raise RuntimeError(
+                f"Failed to set {proj}_RESC to cyverse_DEFAULT_RESC in {env}. This usually means"
+                f" {env} no longer defines it as '{proj}_RESC = ...', or the SSH user can't"
+                " write to /etc/irods on the catalog service provider."
+            ) from e
+        self.reload_rules()
+
+    def restore_proj_env(self, proj: str) -> None:
+        """
+        Restores a project's env rule base backed up by make_proj_resc_default.
+
+        Parameters:
+            proj  the project's rule base prefix, e.g., avra
+        """
+        self.update_rulebase([(f'{proj}-env.re', f'/tmp/{proj}-env.re')])
+
     def reload_rules(self) -> None:
         """Reloads the iRODS rule engine."""
         if self._irods:
