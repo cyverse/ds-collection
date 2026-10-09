@@ -1,9 +1,13 @@
 ---
 services:
   amqp:
-    image: test-env-base:ubuntu2204
+    image: test-env-base:ubuntu2204-systemd
+    cgroup: private
     platform: linux/amd64
     privileged: true
+    tmpfs:
+      - /run
+      - /run/lock
     tty: true
 
   sftp:
