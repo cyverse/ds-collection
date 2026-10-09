@@ -12,3 +12,4 @@ sftp_proxy_allowed:
   - data.cyverse.org
 
 sftp_vault_dir: /vault
+sftp_auth_cache_time: 60

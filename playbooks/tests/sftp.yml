@@ -30,7 +30,10 @@
           - sftpgo_json.command.commands[0].env[9] == 'IRODS_SSL_SALT_SIZE=0'
           - sftpgo_json.command.commands[0].env[10] == 'IRODS_SSL_HASH_ROUNDS=0'
           - sftpgo_json.command.commands[0].env[11] == 'IRODS_SHARED=/tempZone/home/shared'
-          - sftpgo_json.command.commands[0].env[12] == 'SFTPGO_HOME_PATH=/sftpgo_vault/data'
+          - sftpgo_json.command.commands[0].env[12] == 'IRODS_POOL_ENDPOINT='
+          - sftpgo_json.command.commands[0].env[13] == 'SFTPGO_HOME_PATH=/sftpgo_vault/data'
+          - sftpgo_json.command.commands[0].env[14] == 'SFTPGO_LOG_DIR=/sftpgo_vault/auth_logs'
+          - sftpgo_json.command.commands[0].env[15] == 'SFTPGO_AUTH_CACHE_TIME=60'
           - sftpgo_json.common.defender.blocklist|length == 0
           - sftpgo_json.common.defender.safelist|length == 0
           - sftpgo_json.common.proxy_allowed|length == 0
