@@ -53,6 +53,8 @@ main()
   local dcCmd
   case "$action" in
     start)
+      # Starting builds any image that's missing, such as another iRODS release's.
+      portability::use_docker_builder
       dcCmd=(up -d --scale dbms_unconfigured=2)
       ;;
     stop)

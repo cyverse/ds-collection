@@ -51,6 +51,8 @@ readonly EXEC_NAME TESTING_DIR COLLECTION_DIR
 source "$TESTING_DIR"/portability.sh
 #shellcheck source=testing/irods_crash.sh
 source "$TESTING_DIR"/irods_crash.sh
+#shellcheck source=testing/irods_version.sh
+source "$TESTING_DIR"/irods_version.sh
 #shellcheck source=testing/results.sh
 source "$TESTING_DIR"/results.sh
 
@@ -89,8 +91,7 @@ main() {
 		esac
 	done
 
-	if [[ -n "${IRODS_VERSION-}" && ! "$IRODS_VERSION" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
-		printf 'The iRODS version %s is not a release number like 4.3.4\n' "$IRODS_VERSION" >&2
+	if ! irods_version::check; then
 		exit_with_help
 	fi
 
@@ -112,8 +113,9 @@ main() {
 		return
 	fi
 
-	"$TESTING_DIR"/env/controller "$CFG" start
+	# Set before starting, so a start that fails partway doesn't leave containers behind.
 	trap stop_env EXIT
+	"$TESTING_DIR"/env/controller "$CFG" start
 
 	prepare_env
 

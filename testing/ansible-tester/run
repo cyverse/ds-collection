@@ -45,7 +45,13 @@ main() {
 
 	collection="$(readlink -f "$collection")"
 
-	docker run --interactive --rm --tty \
+	# A terminal is optional, so that tests can run from scripts and CI jobs.
+	local ttyArg=()
+	if [[ -t 0 ]]; then
+		ttyArg=(--tty)
+	fi
+
+	docker run --interactive --rm ${ttyArg[@]+"${ttyArg[@]}"} \
 		--env IRODS_HOST="$IRODS_PROVIDER_CONF_HOST" \
 		--env IRODS_VERSION="${IRODS_VERSION-}" \
 		--env IRODS_ZONE_NAME="$IRODS_ZONE_NAME" \

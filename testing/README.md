@@ -16,11 +16,13 @@ On macOS the scripts stick to options the BSD tools share with the GNU ones, and
 * bash 4 or later ahead of `/bin/bash` on `PATH`, since macOS ships bash 3.2.
 * An x86_64 Docker daemon. iRODS publishes x86_64 packages only, which is why the compose file and the image builds ask for `linux/amd64`. On Apple Silicon, run a fully emulated x86_64 virtual machine — for example `colima start --arch x86_64`, which needs `qemu` and `lima-additional-guestagents` installed. Do not use Rosetta translation: iRODS cannot run under it, because every translated process's `/proc/<pid>/exe` points at the translator outside the container, which aborts `irodsctl`, and the server then accepts connections without servicing them.
 
-`test-playbook` and `test-plugin` start the tester with `docker run --interactive --tty`, so they need a terminal. To run them from a script or a CI job, give them a pseudo-terminal with `script`, whose syntax differs between platforms. On macOS, use `script -q /dev/null testing/test-playbook -P <playbook>`. On Linux, util-linux's `script` rejects that form, so use `script -qec "testing/test-playbook -P <playbook>" /dev/null`, where `-e` passes the command's exit status through.
+The test scripts give the tester container a terminal only when they have one, so they also run from scripts and CI jobs. `--inspect` needs a terminal.
 
 ## Building the Harness
 
-There are two convenience scripts for building the docker images for the environment. `build` builds all the required images, and `clean` deletes them. Some images build from base images that `build` creates locally, so if your buildx builder uses the `docker-container` driver, run it as `BUILDX_BUILDER=default testing/build`.
+There are two convenience scripts for building the docker images for the environment. `build` builds all the required images, and `clean` deletes them.
+
+The environment's images build `FROM` the `test-env-base` images, which a buildx builder that uses the `docker-container` driver can't see in Docker's image store. So unless `BUILDX_BUILDER` names a builder, the build scripts and `env/controller` use the Docker driver builder of the current Docker context, whatever builder is selected.
 
 ## Testing
 
@@ -34,13 +36,28 @@ There are two convenience scripts for building the docker images for the environ
    1. It performs an idempotency check of the playbook.
 1. If the inspect option was provided, it opens a command prompt.
 
+Before testing, the tester waits for every host to accept SSH connections, and for each configured iRODS server to accept connections on port 1247.
+
 Tests can be defined for a given playbook. They should be placed in a playbook with the same name inside the `playbooks/tests` folder.
 
 `test-playbook --irods-version <version>`, or the `IRODS_VERSION` environment variable, runs the configured iRODS servers on another iRODS release, such as 4.3.4, and passes it to the setup playbooks, the playbook under test, and its tests as `irods_version`. Tests that check an iRODS version should compare against `_irods_version` from `playbooks/group_vars/all/irods.yml`, not a literal release.
 
 iRODS 4.3.1 occasionally segfaults while starting ([irods/irods#7747](https://github.com/irods/irods/issues/7747), fixed in 4.3.3). Both the EL7 and EL9 builds crash this way, in `libirods_plugin_dependencies.so`. When it happens, the playbook fails with `iRODS server failed to start` or `iRODS server failed to restart`, usually in a restart handler or in `setup_irods.py`. Sometimes the server crashes just after a restart reports success, and the next task that talks to it fails with `Could not connect to specified host and port: <host>:1247`. The servers that depend on the crashed one then fail to start as well. The host's kernel log records every crash, so `journalctl -k | grep irodsServer` shows whether a failure was this bug.
 
-So that these crashes don't fail a test, `test-playbook`, `test-plugin`, `test-rules`, and `test-leaks` retry once, using `irods_crash.sh`. When a run fails and its output contains any of these messages, the script tears down the environment, brings up a fresh one, and runs everything again. A server that fails to start for any other reason fails the retry too, so the retry doesn't hide real problems. `test-playbook` and `test-plugin` don't retry with `--inspect`, because the inspection shell needs the terminal and its output isn't captured.
+So that these crashes don't fail a test, `test-playbook`, `test-plugin`, `test-rules`, and `test-leaks` retry once, using `irods_crash.sh`. When a run fails and its output contains any of these messages, the script tears down the environment, brings up a fresh one, and runs everything again. A server that fails to start for any other reason fails the retry too, so the retry doesn't hide real problems. `test-playbook` and `test-plugin` don't retry with `--inspect`, because the inspection shell needs the terminal and its output isn't captured. A configured server that never accepts connections fails the wait before testing with `iRODS server failed to start`, so it's retried too.
+
+## Running every test
+
+`test-all` runs each playbook's test with the inventory and setup playbooks it needs, each plugin's test with `hosts-configured`, and the iRODS rule tests, each in a fresh environment. It prints a line per test as it finishes, then how many passed and which failed, and writes each test's output to a log in `./test-results`, or the directory given with `-o`. It exits nonzero if any test failed.
+
+```bash
+testing/test-all                         # every test
+testing/test-all -v 4.3.4                # every test, on iRODS 4.3.4
+testing/test-all --list                  # the IDs of the tests
+testing/test-all playbook/irods_cfg rules  # the named tests
+```
+
+A playbook test that needs an inventory other than `hosts-all`, or setup playbooks, is listed in the `PLAYBOOK_INVENTORIES` and `PLAYBOOK_SETUPS` tables at the top of the script. Add a new test there when it needs them.
 
 ## The iRODS rule tests
 
@@ -110,6 +127,6 @@ The probe, `leak-check/files/leak_probe.py`, runs each workload and size once as
 
 * `--data-store-rules` deploys the Data Store's rules with `irods_cfg.yml`, `irods_runtime_init.yml`, and `dbms_icat.yml`, then runs each workload in `leak_check_workloads` once against them, with no PEP added and no control, so the leak is the agent's whole growth. The environment has no AMQP broker, so `amqp-topic-send` is replaced with a script that succeeds without output, the way a real publish does; otherwise every failed publish would add `msiExecCmd`'s leak. The results file ends in `-data-store.json`.
 * `--cases <file>` runs the cases in a vars file under the stock rule bases; it can't be combined with `--data-store-rules`. The file can set any of the playbook's `leak_check_*` variables, including `leak_check_command_scripts` for scripts the cases' rules call with `msiExecCmd`. The results file ends in the cases file's name. `leak-check/exec_cmd_cases.yml` reproduces a leak in `msiExecCmd`, described at the top of that file.
-* `--irods-version <version>` runs the provider on another iRODS release, such as 4.3.5 to compare against the default 4.3.1. It builds that version's provider image the first time it's needed and tags it with the version, so the default image stays. `testing/build` rebuilds it along with the default. If your buildx builder uses the `docker-container` driver, set `BUILDX_BUILDER=default` so the build can find `test-env-base:alma9`.
+* `--irods-version <version>` runs the provider on another iRODS release, such as 4.3.5 to compare against the default 4.3.1. It builds that version's provider image the first time it's needed and tags it with the version, so the default image stays. `testing/build` rebuilds it along with the default.
 
 <!-- TODO: document test-plugin -->
