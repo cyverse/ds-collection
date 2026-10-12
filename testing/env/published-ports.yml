@@ -1,0 +1,11 @@
+---
+# Publishes the catalog service provider and the ICAT DB on the host's loopback
+# interface, so that clients outside the Docker network can reach them.
+services:
+  dbms_configured:
+    ports:
+      - "127.0.0.1:${ICAT_HOST_PORT:-5432}:5432"
+
+  provider_configured:
+    ports:
+      - "127.0.0.1:${IRODS_HOST_PORT:-1247}:1247"
