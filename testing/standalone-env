@@ -32,7 +32,8 @@ Summary:
 up prepares the environment the way test-rules does, without restarting iRODS
 in test mode, which takes about four minutes on an x86_64 host. It publishes the
 catalog service provider's port 1247 and the ICAT DB's port 5432 on the host's
-loopback interface. If preparing the environment fails, up stops it.
+loopback interface. If preparing the environment fails, up stops it. up refuses
+to start while any container of the environment exists.
 
 Environment Variables:
  ICAT_HOST_PORT   the host port to publish the ICAT DB on, default 5432
@@ -123,6 +124,20 @@ up() {
 		exit_with_help
 	fi
 
+	local var
+	for var in IRODS_HOST_PORT ICAT_HOST_PORT; do
+		if ! is_port "${!var-1}"; then
+			printf '%s must be a port number from 1 to 65535, not "%s"\n' "$var" "${!var}" >&2
+			exit_with_help
+		fi
+	done
+
+	# Otherwise a failure while preparing would stop the running environment.
+	if [[ -n "$(docker ps --all --quiet --filter label=com.docker.compose.project="$ENV_NAME")" ]]; then
+		printf 'The %s environment is already up. Run "%s down" first.\n' "$ENV_NAME" "$EXEC_NAME" >&2
+		return 1
+	fi
+
 	if ! irods_crash::is_attempt; then
 		irods_crash::run_retrying "$EXEC_NAME" up
 		return
@@ -141,29 +156,69 @@ up() {
 
 
 # Writes the connection settings as shell variable assignments to source, with
-# the ones for a container on the Docker network in comments.
+# the ones for a container on the Docker network in comments. The ICAT DB
+# settings come from the catalog service provider's server_config.json, so they
+# match whatever the images were built with.
 print_info() {
-	local irodsPort icatPort
+	local irodsPort icatPort dbSettings
 	irodsPort="$(host_port provider_configured 1247)"
 	icatPort="$(host_port dbms_configured 5432)"
+	dbSettings="$(icat_db_settings)"
+
+	local dbName dbUser dbPassword
+	IFS=$'\t' read -r dbName dbUser dbPassword <<< "$dbSettings"
 
 	cat <<EOF
 # The Data Store from $EXEC_NAME. Stop it with "$EXEC_NAME down".
 # From a container on the Docker network $DOMAIN, use
 # IRODS_HOST=$IRODS_PROVIDER_CONF_HOST, IRODS_PORT=1247,
 # ICAT_DB_HOST=$DBMS_HOST, and ICAT_DB_PORT=5432 instead.
-export IRODS_HOST=localhost
-export IRODS_PORT=$irodsPort
-export IRODS_ZONE=$IRODS_ZONE_NAME
-export IRODS_ADMIN_USER=rods
-export IRODS_ADMIN_PASSWORD=$IRODS_CLERVER_PASSWORD
-export IRODS_DEFAULT_RESOURCE=$IRODS_DEFAULT_RESOURCE
-export ICAT_DB_HOST=localhost
-export ICAT_DB_PORT=$icatPort
-export ICAT_DB_NAME=ICAT
-export ICAT_DB_USER=$DB_USER
-export ICAT_DB_PASSWORD=testpassword
 EOF
+
+	print_export IRODS_HOST 127.0.0.1
+	print_export IRODS_PORT "$irodsPort"
+	print_export IRODS_ZONE "$IRODS_ZONE_NAME"
+	print_export IRODS_ADMIN_USER rods
+	print_export IRODS_ADMIN_PASSWORD "$IRODS_CLERVER_PASSWORD"
+	print_export IRODS_DEFAULT_RESOURCE "$IRODS_DEFAULT_RESOURCE"
+	print_export ICAT_DB_HOST 127.0.0.1
+	print_export ICAT_DB_PORT "$icatPort"
+	print_export ICAT_DB_NAME "$dbName"
+	print_export ICAT_DB_USER "$dbUser"
+	print_export ICAT_DB_PASSWORD "$dbPassword"
+}
+
+
+# Writes an export statement that is safe to source, whatever the value holds.
+# Input:
+#  $1  the variable's name
+#  $2  its value
+print_export() {
+	printf 'export %s=%q\n' "$1" "$2"
+}
+
+
+# Writes the ICAT DB's name, user, and password, separated by tabs, as the
+# catalog service provider connects with them.
+icat_db_settings() {
+	if ! docker exec "$ENV_NAME"-provider_configured-1 python3 -c '
+import json
+db = json.load(open("/etc/irods/server_config.json"))["plugin_configuration"]["database"]["postgres"]
+print(db["db_name"], db["db_username"], db["db_password"], sep="\t")'
+	then
+		printf 'Could not read the ICAT DB settings from the catalog service provider.\n' >&2
+		return 1
+	fi
+}
+
+
+# Succeeds when the value is a TCP port number.
+# Input:
+#  $1  the value
+is_port() {
+	local value="$1"
+
+	[[ "$value" =~ ^[0-9]{1,5}$ ]] && (( 10#$value >= 1 && 10#$value <= 65535 ))
 }
 
 
@@ -175,8 +230,15 @@ host_port() {
 	local service="$1"
 	local port="$2"
 
+	# Called in a command substitution, where bash clears errexit, so the failure
+	# has to be returned explicitly.
 	local binding
-	binding="$(docker port "$ENV_NAME"-"$service"-1 "$port"/tcp)"
+	if ! binding="$(docker port "$ENV_NAME"-"$service"-1 "$port"/tcp)"; then
+		printf 'Could not read the host port of %s; the environment is probably not up.\n' \
+			"$service" >&2
+		return 1
+	fi
+
 	printf '%s\n' "${binding##*:}"
 }
 
