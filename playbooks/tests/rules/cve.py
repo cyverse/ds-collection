@@ -90,7 +90,7 @@ class _TarTest(_CveTest):
 
     def mk_unsafe_tar(self) -> iRODSPath:
         """Create an unsafe tar file"""
-        msiexeccmd_bin = (Path('var') / "lib" / "irods" / "msiExecCmd_bin").absolute()
+        msiexeccmd_bin = Path('/var/lib/irods/msiExecCmd_bin')
         msiexeccmd_bin.mkdir(exist_ok=True)
         file = msiexeccmd_bin.joinpath("TestIsUnsafeTar")
         file.touch()
@@ -771,7 +771,7 @@ class TestPepApiRegDataObjClient(IrodsTestCase):
         self._username = 'reg_data_obj_test'
         self._password = 'password'
         self._obj_path = None
-        self._repl_path = Path('tmp', 'obj').absolute()
+        self._repl_path = Path('/tmp/obj')
         self._result = None
 
     def setUp(self):

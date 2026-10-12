@@ -1,4 +1,4 @@
-FROM test-env-base:alma8
+FROM test-env-base:alma8-systemd
 
 RUN <<EOF
 	set -o errexit

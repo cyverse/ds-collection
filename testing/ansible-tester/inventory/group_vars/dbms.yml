@@ -6,3 +6,5 @@ dbms_max_connections: 10
 
 dbms_replication_password: password
 dbms_replication_username: replicator
+
+dbms_restart_allowed: true

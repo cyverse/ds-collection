@@ -33,21 +33,20 @@ class TestPepResourceResolveHierarchyPreNcemsResDefault(IrodsTestCase):
 
     def setUp(self):
         super().setUp()
-        self.scp.get('/etc/irods/ncems-env.re', '/tmp/ncems-env.re')
-        self.ssh.exec_command(
-            "sed --in-place 's/ncems_RESC = .*/ncems_RESC = cyverse_DEFAULT_RESC/'")
-        self.reload_rules()
+        self.make_proj_resc_default('ncems')
 
     def tearDown(self):
-        for obj in [
-            "/testing/home/rods/other",
-            "/testing/home/rods/ncems",
-            "/testing/home/shared/ncems/other",
-            "/testing/home/shared/ncems/ncems",
-        ]:
-            self.ensure_obj_absent(obj)
-        self.update_rulebase([('ncems-env.re', '/tmp/ncems-env.re')])
-        super().tearDown()
+        try:
+            for obj in [
+                "/testing/home/rods/other",
+                "/testing/home/rods/ncems",
+                "/testing/home/shared/ncems/other",
+                "/testing/home/shared/ncems/ncems",
+            ]:
+                self.ensure_obj_absent(obj)
+        finally:
+            self.restore_proj_env('ncems')
+            super().tearDown()
 
     def test_ncems_res_and_coll(self):
         """

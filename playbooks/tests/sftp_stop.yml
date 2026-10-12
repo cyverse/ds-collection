@@ -1,0 +1,12 @@
+---
+- name: Test the SFTP services are stopped and disabled
+  hosts: sftp
+  become: true
+  tasks:
+    - name: Test the SFTP services are stopped and disabled
+      ansible.builtin.include_tasks: tasks/test_services.yml
+      vars:
+        services:
+          - sftpgo
+        active: false
+        enabled: false

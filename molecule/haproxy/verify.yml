@@ -64,7 +64,7 @@
       ansible.builtin.assert:
         that:
           - haproxy is search('\nlisten webdav\n(..[^\n]*\n)*  bind .* :80\n')
-          - haproxy is search('\nlisten webdav\n(..[^\n]*\n)*  server .* 127.0.0.1\n')
+          - haproxy is search('\nlisten webdav\n(..[^\n]*\n)*  server .* 127.0.0.1 maxconn 500\n')
 
     - name: Verify haproxy config webdavs listener
       ansible.builtin.assert:
@@ -116,9 +116,10 @@
           - haproxy is search('\nlisten stats\n(..[^\n]*\n)*  stats auth +ds:pass\n')
           - haproxy is not search('\nlisten stats\n(  [^\n]*\n)*  stats realm')
 
-    - name: Verify irods_main frontend
-      ansible.builtin.debug:
-        msg: "TODO: test bind"
+    - name: Verify haproxy config irods_main frontend
+      ansible.builtin.assert:
+        that:
+          - haproxy is search('\nfrontend irods_main\n(  [^\n]*\n)*  bind +:2\n')
 
     - name: Verify haproxy config irods section
       ansible.builtin.debug:

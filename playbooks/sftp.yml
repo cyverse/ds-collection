@@ -4,12 +4,6 @@
   strategy: linear
   become: true
   tasks:
-    - name: Enable notifications when not testing
-      ansible.builtin.set_fact:
-        notifications_enabled: true
-      tags:
-        - no_testing
-
     - name: Update package list
       ansible.builtin.apt:
         update_cache: true
@@ -85,16 +79,12 @@
           ansible.builtin.stat:
             path: /usr/lib/systemd/system/sftpgo.service
           register: service_resp
-          tags:
-            - no_testing
 
         - name: Stop sftpgo service if running
           ansible.builtin.service:
             name: sftpgo
             state: stopped
           when: service_resp.stat.exists
-          tags:
-            - no_testing
 
         - name: Create download dir for sftpgo package
           ansible.builtin.file:
@@ -186,10 +176,14 @@
         mode: '0750'
 
     # remove old db file, we don't need old db because we recreate it dynamically
+    # Every run deletes the database, re-templates sftpgo.json over the API key patched into it, and
+    # issues a new key, so these tasks are tagged non_idempotent.
     - name: Remove an old sftpgo.db file
       ansible.builtin.file:
         path: /var/lib/sftpgo/sftpgo.db
         state: absent
+      tags:
+        - non_idempotent
 
     - name: Create a config dir
       ansible.builtin.file:
@@ -209,6 +203,8 @@
         - "sftpgo.conf"
       notify:
         - Restart sftpgo
+      tags:
+        - non_idempotent
 
     - name: Check if there are ssh host_keys on the host
       ansible.builtin.stat:
@@ -323,7 +319,6 @@
       delay: 2
       until: _sftpgo_version.rc == 0
       changed_when: false
-      tags: no_testing
 
     - name: Get SFTPGo admin JWT token
       ansible.builtin.shell:
@@ -336,7 +331,6 @@
       register: _sftpgo_token
       changed_when: false
       no_log: true
-      tags: no_testing
 
     - name: Enable API key auth for SFTPGo admin
       ansible.builtin.shell:
@@ -349,7 +343,8 @@
           http://localhost:{{ _sftp_admin_ui_port }}/api/v2/admins/{{ _sftp_admin_username }}
       changed_when: true
       no_log: true
-      tags: no_testing
+      tags:
+        - non_idempotent
 
     - name: Issue SFTPGo API key for sftpgo-auth-irods
       ansible.builtin.shell:
@@ -364,7 +359,8 @@
       register: _sftpgo_apikey
       changed_when: true
       no_log: true
-      tags: no_testing
+      tags:
+        - non_idempotent
 
     - name: Patch sftpgo.json with API key
       ansible.builtin.shell:
@@ -382,7 +378,8 @@
           chown sftpgo "$CFG"
       become: true
       notify: Restart sftpgo
-      tags: no_testing
+      tags:
+        - non_idempotent
 
     # It updates MOTD by installing a shell script the shell script generates a
     # message for SFTPGo
@@ -406,12 +403,10 @@
         remote_src: true
 
     - name: Reload systemd
-      when: notifications_enabled | d(false)
       ansible.builtin.systemd:
         daemon_reload: true
 
     - name: Restart sftpgo
-      when: notifications_enabled | d(false)
       ansible.builtin.service:
         name: sftpgo
         state: restarted

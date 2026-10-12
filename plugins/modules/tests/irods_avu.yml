@@ -30,7 +30,7 @@
   become_user: irods
   tasks:
     - name: Add <a1,v1> to data object
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a1
         value: v1
         entity_name: /testing/home/rods/add-object
@@ -39,7 +39,7 @@
         state: add
 
     - name: Explicit add explicit unitless <a1,v1> to data object
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a1
         value: v1
         units: null
@@ -55,7 +55,7 @@
       failed_when: results['changed'] or results['failed']
 
     - name: Add <a1,v1,u> to data object
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a1
         value: v1
         units: u
@@ -66,7 +66,7 @@
         state: add
 
     - name: Add <a1,v2> to data object
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a1
         value: v2
         entity_name: /testing/home/rods/add-object
@@ -75,7 +75,7 @@
         state: add
 
     - name: Add <a2,v1> to data object
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a2
         value: v1
         entity_name: /testing/home/rods/add-object
@@ -84,7 +84,7 @@
         state: add
 
     - name: Set new <set-a3,set-v1> to data object
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: set-a3
         value: set-v1
         entity_name: /testing/home/rods/add-object
@@ -93,7 +93,7 @@
         state: set
 
     - name: Set existing <set-a1,set-v2> to data object
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: set-a1
         value: set-v2
         entity_name: /testing/home/rods/add-object
@@ -114,7 +114,7 @@
       changed_when: false
 
     - name: Set new <set-a4,set-v2,set-u> to data object
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: set-a4
         value: set-v2
         units: set-u
@@ -124,7 +124,7 @@
         state: set
 
     - name: Set existing <set-a2,set-v2,set-u> to data object
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: set-a2
         value: set-v2
         units: set-u
@@ -147,7 +147,7 @@
       changed_when: false
 
     - name: Remove <rm-a1,rm-v1> from resource
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: rm-a1
         value: rm-v1
         entity_type: resource
@@ -157,7 +157,7 @@
         state: absent
 
     - name: Remove <rm-a,rm-v1,rm-u> from resource
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: rm-a1
         value: rm-v1
         units: rm-u
@@ -168,7 +168,7 @@
         state: absent
 
     - name: Remove <rm-a1,rm-v2> from resource
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: rm-a1
         value: rm-v2
         entity_type: resource
@@ -178,7 +178,7 @@
         state: absent
 
     - name: Remove <rm-a1,rm-v2> from resource
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: rm-a1
         value: rm-v2
         entity_type: resource
@@ -188,7 +188,7 @@
         state: absent
 
     - name: Remove <rm-a2,rm-v1> from resource
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: rm-a2
         value: rm-v1
         entity_type: resource
@@ -198,7 +198,7 @@
         state: absent
 
     - name: Verify empty host fails
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a1
         value: v1
         entity_name: /testing/home/rods/add-object
@@ -210,7 +210,7 @@
       failed_when: not result.failed or result.msg is not search('host')
 
     - name: Verify wrong host fails
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a1
         value: v1
         entity_name: /testing/home/rods/add-object
@@ -222,7 +222,7 @@
       failed_when: not result.failed or result.msg is not search('Could not connect')
 
     - name: Verify empty port fails
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a1
         value: v1
         entity_name: /testing/home/rods/add-object
@@ -235,7 +235,7 @@
       failed_when: not result.failed or result.msg is not search('port')
 
     - name: Verify wrong port fails
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a1
         value: v1
         entity_name: /testing/home/rods/add-object
@@ -248,7 +248,7 @@
       failed_when: not result.failed or result.msg is not search('Could not connect')
 
     - name: Verify unknown zone fails
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a1
         value: v1
         entity_name: /testing/home/rods/add-object
@@ -260,7 +260,7 @@
       failed_when: not result.failed or result.msg is not search('cannot be authenticated')
 
     - name: Verify incorrect user fails
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a1
         value: v1
         entity_name: /testing/home/rods/add-object
@@ -272,7 +272,7 @@
       failed_when: not result.failed or result.msg is not search('cannot be authenticated')
 
     - name: Verify normal user is denied
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a1
         value: v1
         entity_name: /testing/home/rods/add-object
@@ -284,7 +284,7 @@
       failed_when: not result.failed or result.msg is not search('rodsadmin')
 
     - name: Verify incorrect password fails
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a1
         value: v1
         entity_name: /testing/home/rods/add-object
@@ -295,7 +295,7 @@
       failed_when: not result.failed or result.msg is not search('cannot be authenticated')
 
     - name: Verify adding <'',v1> to data object fails
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: ''
         value: v1
         entity_name: /testing/home/rods/add-object
@@ -306,7 +306,7 @@
       failed_when: not result.failed or result.msg is not search('attribute')
 
     - name: Verify adding <a1,''> to data object fails
-      irods_avu:
+      cyverse.ds.irods_avu:
         attribute: a1
         value: ''
         entity_name: /testing/home/rods/add-object

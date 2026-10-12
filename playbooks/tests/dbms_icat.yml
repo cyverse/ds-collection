@@ -4,20 +4,29 @@
   run_once: true
   become: true
   become_user: postgres
+  vars_files:
+    - ../group_vars/all/dbms.yml
   tasks:
     - name: Test ensure ICAT database exists
-      ansible.builtin.command: psql --command='\quit' ICAT
+      ansible.builtin.command: psql --port={{ _dbms_port }} --command='\quit' ICAT
       changed_when: false
 
     - name: Verify irods DBMS user exists
-      ansible.builtin.command: psql --no-align --tuples-only --command='\du irods'
+      ansible.builtin.command: >-
+        psql --port={{ _dbms_port }} --no-align --tuples-only
+        --command='\du "{{ _dbms_irods_username }}"'
       register: response
       failed_when: response.stdout | length == 0
       changed_when: false
 
     - name: Verify irods DBMS user password
-      ansible.builtin.command: psql --list ICAT irods
-      delegate_to: localhost
+      ansible.builtin.command: >-
+        psql --host={{ inventory_hostname }} --port={{ _dbms_port }}
+        --username={{ _dbms_irods_username }} --list ICAT
+      environment:
+        PGPASSWORD: "{{ _dbms_irods_password }}"
+      delegate_to: "{{ item }}"
+      loop: "{{ groups['irods_catalog'] }}"
       become: false
       changed_when: false
 
@@ -26,7 +35,8 @@
         executable: /bin/bash
         cmd: |
           set -o pipefail
-          psql --command='\l "ICAT"' | grep --quiet 'irods=CTc'
+          psql --port={{ _dbms_port }} --command='\l "ICAT"' \
+            | grep --quiet --fixed-strings --word-regexp '{{ _dbms_irods_username }}=CTc'
       changed_when: false
 
     - name: Verify client host access

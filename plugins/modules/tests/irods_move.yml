@@ -29,7 +29,7 @@
         executable: /bin/bash
         cmd: |
           set -o errexit
-          res="$(iquest "select COLL_ID where COLL_NAME = '{{ test_src }}'")"
+          res="$(iquest "select COLL_ID where COLL_NAME = '{{ test_src }}'")" || true
           if [[ "$res" =~ ^CAT_NO_ROWS_FOUND: ]]; then
             imkdir '{{ test_src }}' > /dev/null
             echo changed
@@ -41,7 +41,7 @@
   tasks:
     - name: Neither source nor destination exist
       failed_when: response is succeeded
-      irods_move:
+      cyverse.ds.irods_move:
         source: /testing/home/rods/null
         destination: /testing/home/rods/null
         host: "{{ irods_host }}"
@@ -52,7 +52,7 @@
       register: response
 
     - name: Move collection
-      irods_move:
+      cyverse.ds.irods_move:
         source: "{{ test_src }}"
         destination: "{{ test_dest }}"
         host: "{{ irods_host }}"
@@ -74,7 +74,7 @@
           fi
 
     - name: Test if source and destination are identical
-      irods_move:
+      cyverse.ds.irods_move:
         source: "{{ test_dest }}"
         destination: "{{ test_dest }}"
         host: "{{ irods_host }}"

@@ -4,7 +4,7 @@ This folder contains the test harness for the DS playbooks. It consists of a sim
 
 ## The Environment
 
-The environment consists of a set of containers. The `amqp` container hosts the RabbitMQ broker that in turn hosts the `irods` exchange, where the Data Store publishes messages to. The `dbms_configured` container hosts the PostgreSQL server that in turn hosts the ICAT DB. The iRODS servers all run on AlmaLinux 9. The `webdav_configured` and `webdav_unconfigured` containers run AlmaLinux 8, because davrods 4.3.0_1.5.0, the release the WebDAV hosts use, doesn't install on AlmaLinux 9. The `provider_configured` container hosts a configured iRODS catalog service provider. The `provider_unconfigured` container hosts an unconfigured service provider. The `consumer_configured_centos` container hosts a configured catalog service consumer acting as a resource server for `replRes` and `ingestRes`; it keeps its old name, though it no longer runs CentOS. Finally, the `consumer_unconfigured` container hosts an unconfigured service consumer.
+The environment consists of a set of containers. The `amqp` container hosts the RabbitMQ broker that in turn hosts the `irods` exchange, where the Data Store publishes messages to. The `dbms_configured` container hosts the PostgreSQL server that in turn hosts the ICAT DB. The iRODS servers all run on AlmaLinux 9. The `webdav_configured` and `webdav_unconfigured` containers run AlmaLinux 8, because davrods 4.3.0_1.5.0, the release the WebDAV hosts use, doesn't install on AlmaLinux 9. They, the `amqp` and `sftp` containers, and the `dbms_configured` and `dbms_unconfigured` containers boot systemd, so playbooks can start, stop and enable their services; the other containers run only sshd and the services their images start. The `provider_configured` container hosts a configured iRODS catalog service provider. The `provider_unconfigured` container hosts an unconfigured service provider. The `consumer_configured_centos` container hosts a configured catalog service consumer acting as a resource server for `replRes` and `ingestRes`; it keeps its old name, though it no longer runs CentOS. Finally, the `consumer_unconfigured` container hosts an unconfigured service consumer.
 
 ## Requirements
 
@@ -20,7 +20,7 @@ On macOS the scripts stick to options the BSD tools share with the GNU ones, and
 
 ## Building the Harness
 
-There are two convenience scripts for building the docker images for the environment. `build` builds all the required images, and `clean` deletes them.
+There are two convenience scripts for building the docker images for the environment. `build` builds all the required images, and `clean` deletes them. Some images build from base images that `build` creates locally, so if your buildx builder uses the `docker-container` driver, run it as `BUILDX_BUILDER=default testing/build`.
 
 ## Testing
 
@@ -36,6 +36,8 @@ There are two convenience scripts for building the docker images for the environ
 
 Tests can be defined for a given playbook. They should be placed in a playbook with the same name inside the `playbooks/tests` folder.
 
+`test-playbook --irods-version <version>`, or the `IRODS_VERSION` environment variable, runs the configured iRODS servers on another iRODS release, such as 4.3.4, and passes it to the setup playbooks, the playbook under test, and its tests as `irods_version`. Tests that check an iRODS version should compare against `_irods_version` from `playbooks/group_vars/all/irods.yml`, not a literal release.
+
 iRODS 4.3.1 occasionally segfaults while starting ([irods/irods#7747](https://github.com/irods/irods/issues/7747), fixed in 4.3.3). Both the EL7 and EL9 builds crash this way, in `libirods_plugin_dependencies.so`. When it happens, the playbook fails with `iRODS server failed to start` or `iRODS server failed to restart`, usually in a restart handler or in `setup_irods.py`. Sometimes the server crashes just after a restart reports success, and the next task that talks to it fails with `Could not connect to specified host and port: <host>:1247`. The servers that depend on the crashed one then fail to start as well. The host's kernel log records every crash, so `journalctl -k | grep irodsServer` shows whether a failure was this bug.
 
 So that these crashes don't fail a test, `test-playbook`, `test-plugin`, `test-rules`, and `test-leaks` retry once, using `irods_crash.sh`. When a run fails and its output contains any of these messages, the script tears down the environment, brings up a fresh one, and runs everything again. A server that fails to start for any other reason fails the retry too, so the retry doesn't hide real problems. `test-playbook` and `test-plugin` don't retry with `--inspect`, because the inspection shell needs the terminal and its output isn't captured.
@@ -47,7 +49,10 @@ The `unittest` modules in `playbooks/tests/rules` test the rule logic against a 
 ```bash
 testing/test-rules                   # every module
 testing/test-rules cyverse_logic     # the named modules
+testing/test-rules -v 4.3.4          # every module, on iRODS 4.3.4
 ```
+
+As with `test-playbook`, `--irods-version`, or `IRODS_VERSION`, runs the configured iRODS servers on another release and passes it to the setup playbooks as `irods_version`. Without it, `irods_resource_server.yml` would provision the servers for the default release.
 
 A freshly started environment lacks several things the tests depend on, so before running them `test-rules` does the following. Preparing the environment takes about four minutes on an x86_64 host.
 
@@ -75,6 +80,8 @@ It runs each scenario even when an earlier one fails, prints a summary, and exit
 * It puts `.venv-molecule/bin` first on `PATH`, because molecule runs whichever `ansible` it finds there.
 * It sets `DOCKER_HOST` from the current Docker context when it isn't already set, because molecule reaches Docker through the Python SDK, which ignores contexts. This matters for daemons like colima's.
 * It points `ANSIBLE_HOME` into the temporary directory. Otherwise molecule installs the collection under test and the scenarios' Galaxy roles into `~/.ansible`, where they shadow any other `cyverse.ds`.
+
+The `postgresql`, `haproxy`, `rabbitmq`, `firewalld`, and `irods_cfg_initialize` scenarios boot systemd in privileged containers. Their Dockerfiles embed `testing/env/base/systemd.sh`, like the testing environment's systemd images, so editing that script changes them too. The `postgresql` scenario skips `no_testing` tasks, because the role's huge pages and swappiness tasks would change the host's kernel settings.
 
 ## PEP memory leaks
 

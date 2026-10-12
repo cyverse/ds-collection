@@ -1,5 +1,8 @@
 ---
+# The role's tasks usually run as the DBMS's service account, which systemd won't let reload it.
 - name: Reload
+  become: true
+  become_user: root
   ansible.builtin.service:
     name: postgresql
     state: reloaded

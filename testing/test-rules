@@ -18,7 +18,11 @@ Parameters:
          its .py extension, e.g., cyverse_logic
 
 Options:
- -h, --help  show help and exit
+ -h, --help                     show help and exit
+ -v, --irods-version <version>  run the configured iRODS servers on iRODS
+                                <version> instead of 4.3.1, building their
+                                images if needed, and pass it to the setup
+                                playbooks as irods_version
 
 Summary:
 This script starts the testing environment, prepares it for the rule tests,
@@ -28,6 +32,10 @@ container. Preparing the environment takes about four minutes on an x86_64
 host. It deploys the Data Store's rule bases, creates the rodsadmin group, the
 r_transfer_totals table, and the AVRA, ESIIL, NCEMS, and PIRE resources and
 collections, and restarts every iRODS server in test mode.
+
+Environment Variables:
+ IRODS_VERSION  the iRODS release to run, as with --irods-version, which takes
+                precedence
 EOF
 }
 
@@ -58,7 +66,7 @@ source "$CFG"
 
 main() {
 	local args
-	if ! args="$(portability::getopt h help "$EXEC_NAME" "$@")"; then
+	if ! args="$(portability::getopt hv: help,irods-version: "$EXEC_NAME" "$@")"; then
 		exit_with_help
 	fi
 
@@ -70,12 +78,21 @@ main() {
 				help
 				return
 				;;
+			-v|--irods-version)
+				export IRODS_VERSION="$2"
+				shift 2
+				;;
 			--)
 				shift 1
 				break
 				;;
 		esac
 	done
+
+	if [[ -n "${IRODS_VERSION-}" && ! "$IRODS_VERSION" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
+		printf 'The iRODS version %s is not a release number like 4.3.4\n' "$IRODS_VERSION" >&2
+		exit_with_help
+	fi
 
 	local modules=("${@%.py}")
 	if (( ${#modules[@]} == 0 )); then
@@ -179,7 +196,8 @@ run_playbook() {
 	local hosts="$1"
 	shift
 
-	run_in_tester "ansible-playbook -i /inventory/$hosts $*"
+	run_in_tester \
+		"ansible-playbook -i /inventory/$hosts ${IRODS_VERSION:+--extra-vars=irods_version=$IRODS_VERSION} $*"
 }
 
 
