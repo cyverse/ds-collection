@@ -5,7 +5,7 @@
     - non_idempotent
   tasks:
     - name: Start receiver
-      port_check_receiver:
+      cyverse.ds.port_check_receiver:
         tcp_ports:
           - 1100
       async: 120

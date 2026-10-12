@@ -408,7 +408,16 @@
       ansible.builtin.stat:
         path: /var/lib/varnish
       register: resp
-      failed_when: not resp.stat.isdir or resp.stat.mode != '0777'
+      failed_when: not resp.stat.isdir or resp.stat.mode != '1777'
+
+    - name: Test mount varnish shared memory
+      ansible.builtin.command: findmnt --noheadings --output FSTYPE,OPTIONS /var/lib/varnish
+      register: resp
+      changed_when: false
+      failed_when: >-
+        resp.stdout is not search('^tmpfs ')
+        or resp.stdout is not search('\\bnodev\\b')
+        or resp.stdout is not search('\\bnosuid\\b')
 
     - name: Test create directory for cache
       ansible.builtin.stat:
@@ -494,3 +503,13 @@
         path: /etc/systemd/system/varnish.service.requires/purgeman.service
       register: resp
       failed_when: resp.stat.lnk_source != '/usr/lib/systemd/system/purgeman.service'
+
+    - name: Test the WebDAV services are running after their restart handlers
+      ansible.builtin.include_tasks: tasks/test_services.yml
+      vars:
+        services:
+          - httpd
+          - purgeman
+          - varnish
+          - varnishncsa
+        active: true

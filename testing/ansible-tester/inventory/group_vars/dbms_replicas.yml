@@ -1,0 +1,3 @@
+---
+# Build the replicas from the primary, so the tests exercise replication.
+dbms_replication_start: true

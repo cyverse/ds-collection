@@ -287,9 +287,9 @@ class TestMvreplicasMvReplSuccess(IrodsTestCase):
         """Test it"""
         objPath = iRODSPath(self.irods.zone, "home", "shared", "avra", "obj")
         self.ensure_obj_absent(objPath)
-        self.update_rulebase([('pire.re', 'mocks/pire.re')])
-        obj = self.irods.data_objects.create(objPath)
         try:
+            self.update_rulebase([('pire.re', 'mocks/pire.re')])
+            obj = self.irods.data_objects.create(objPath)
             obj.chksum()
             obj.replicate('replRes')
             self.exec_rule(
@@ -305,8 +305,10 @@ class TestMvreplicasMvReplSuccess(IrodsTestCase):
         except RuleExecFailure as e:
             self.fail(f"cyverse_repl_mvReplicas failed: {e}")
         finally:
-            obj.unlink(force=True)
-            self.update_rulebase([('pire.re', '../../files/irods/etc/irods/pire.re')])
+            try:
+                self.ensure_obj_absent(objPath)
+            finally:
+                self.update_rulebase([('pire.re', '../../files/irods/etc/irods/pire.re')])
 
 
 class TestMvreplicasMvReplFailure(IrodsTestCase):
@@ -398,24 +400,30 @@ class TestSyncreplicasFailure(IrodsTestCase):
     def __init__(self, methodName: str) -> None:
         super().__init__(methodName)
         self._objPath = None
-        self._execPath = Path('var', 'lib', 'irods', 'msiExecCmd_bin', 'irepl-exec')
+        self._execPath = Path('/var/lib/irods/msiExecCmd_bin/irepl-exec')
         self._rc = None
 
     def setUp(self):
         super().setUp()
         self._objPath = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
-        self.scp.put(Path(__file__).parent / 'mocks' / 'irepl-exec', self._execPath.absolute())
-        obj = self.irods.data_objects.create(self._objPath)
-        rule = self.mk_rule(
-            f"writeLine('stdout', errorcode(cyverse_repl_syncReplicas({obj.id})))")  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
-        self._rc = self.exec_rule(rule, IrodsType.INTEGER)
+        self.scp.put(Path(__file__).parent / 'mocks' / 'irepl-exec', self._execPath)
+        # unittest skips tearDown when setUp fails, which would leave the mock in place.
+        try:
+            obj = self.irods.data_objects.create(self._objPath)
+            rule = self.mk_rule(
+                f"writeLine('stdout', errorcode(cyverse_repl_syncReplicas({obj.id})))")  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+            self._rc = self.exec_rule(rule, IrodsType.INTEGER)
+        except Exception:
+            self.tearDown()
+            raise
 
     def tearDown(self):
         if self._objPath:
             self.ensure_obj_absent(self._objPath)
         self.scp.put(
-            Path(__file__).parent / '..' / '..' / 'files' / 'irods' / self._execPath,
-            self._execPath.absolute())
+            Path(__file__).parent / '..' / '..' / 'files' / 'irods'
+            / self._execPath.relative_to('/'),
+            self._execPath)
         super().tearDown()
 
     def test_fail_status(self):

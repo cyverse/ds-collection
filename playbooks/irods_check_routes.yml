@@ -126,16 +126,23 @@
       tags:
         - skip_ansible_lint
 
+    # async_status reports a missing job the same way as a failed receiver, so look for the job first
+    - name: Find the receiver's job status
+      ansible.builtin.stat:
+        path: "{{ receiver.results_file }}"
+      register: receiver_status
+
     - name: Wait for receiver to stop
+      when: receiver_status.stat.exists
       ansible.builtin.async_status:
         jid: "{{ receiver.ansible_job_id }}"
       register: job_result
-      until: job_result.finished
+      until: job_result is finished
       retries: 1
-      failed_when: not job_result.finished
+      failed_when: job_result is not finished
 
     - name: Check receiver failure
-      when: job_result.msg is defined
+      when: receiver_status.stat.exists and job_result.msg is defined
       ansible.builtin.fail:
         msg: '{{ job_result.msg }}'
       ignore_errors: true
@@ -157,3 +164,19 @@
       tags:
         - non_idempotent
         - skip_ansible_lint
+
+
+- name: Report receivers without a job status
+  hosts: irods
+  gather_facts: false
+  tags:
+    - non_idempotent
+  tasks:
+    # This runs after the restart so that a missing job status doesn't leave iRODS stopped.
+    - name: Require the receiver's job status
+      when: receiver_status is defined and not receiver_status.stat.exists
+      ansible.builtin.fail:
+        msg: >-
+          The port check receiver's job status, {{ receiver.results_file }}, is missing, so its
+          results are unknown. This usually means the receiver never started, or something removed
+          the async job directory while it ran.

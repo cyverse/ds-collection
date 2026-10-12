@@ -2,6 +2,8 @@
 - name: Test provision for iRODS
   hosts: irods:!unmanaged_systems
   become: true
+  vars_files:
+    - ../group_vars/all/irods.yml
   vars:
     group_name: >-
       {{ 'irods_provider' if inventory_hostname in groups['irods_catalog'] else 'irods' }}
@@ -28,28 +30,27 @@
             executable: /bin/bash
             cmd: |
               set -o pipefail
-              if ! yum versionlock list | grep --quiet '^{{ item }}-0:4\.3\.1[.-]'; then
-                printf '{{ item }} not locked to 4.3.1\n' >&2
+              if ! yum versionlock list \
+                | grep --quiet '^{{ item }}-0:{{ _irods_version | regex_escape }}[.-]'
+              then
+                printf '{{ item }} not locked to {{ _irods_version }}\n' >&2
                 exit 1
               elif info="$(yum --quiet list installed '{{ item }}' | tail --lines=+2)"; then
                 readarray -t versions <<< "$info"
                 for version in "${versions[@]}"; do
                   read _ verNum _ <<< "$version"
-                  if ! [[ "$verNum" =~ 4\.3\.1 ]]; then
+                  if ! [[ "$verNum" =~ {{ _irods_version | regex_escape }} ]]; then
                     printf 'found version %s\n' "$verNum" >&2
                     exit 1
                   fi
                 done
               fi
           changed_when: false
-          loop:
-            - irods-icommands
-            - irods-netcdf-client_modules
-            - irods-netcdf-icommands
-            - irods-netcdf-server_modules
-            - irods-resource-plugin-s3
-            - irods-runtime
-            - irods-server
+          loop: >-
+            {{
+              ['irods-icommands']
+                + (_irods_netcdf_packages if _irods_netcdf_supported else [])
+                + ['irods-resource-plugin-s3', 'irods-runtime', 'irods-server'] }}
 
         # irods_provision.yml removes a stale lock only if its line matches this copy of its pattern.
         - name: RedHat | test irods package locks match the stale lock pattern
@@ -79,6 +80,20 @@
           loop_control:
             loop_var: pkg
 
+        - name: RedHat | verify chkconfig installed
+          when: _irods_chkconfig_required
+          ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
+          vars:
+            pkg: chkconfig
+
+        - name: RedHat | verify /etc/init.d is chkconfig's link
+          when: _irods_chkconfig_required
+          ansible.builtin.stat:
+            path: /etc/init.d
+          register: resp
+          failed_when: >-
+            not resp.stat.exists or not resp.stat.islnk or resp.stat.lnk_target != 'rc.d/init.d'
+
     - name: Test Ubuntu provisioning
       when: ansible_distribution == 'Ubuntu'
       block:
@@ -106,7 +121,8 @@
             cmd: |
               set -o pipefail
               apt-cache policy \
-                | grep --quiet --regexp='{{ item }} -> 4\.3\.1\([.-].*\)\? with priority 1001'
+                | grep --quiet \
+                  --regexp='{{ item }} -> {{ _irods_version | regex_escape }}\([.-].*\)\? with priority 1001'
           changed_when: false
           loop:
             - irods-resource-plugin-s3
@@ -121,17 +137,29 @@
           loop_control:
             loop_var: pkg
 
+    - name: Determine which packages are installed
+      when: not _irods_netcdf_supported
+      ansible.builtin.package_facts:
+
+    - name: Verify the NetCDF modules are absent
+      when: not _irods_netcdf_supported
+      ansible.builtin.assert:
+        that:
+          - item not in ansible_facts.packages
+      loop: "{{ _irods_netcdf_packages }}"
+
     - name: Verify iRODS server installed
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: irods-server
-        ver: 4.3.1
+        ver: "{{ _irods_version }}"
 
     - name: Verify iRODS S3 resource plugin installed
       ansible.builtin.include_tasks: tasks/test_pkg_installed.yml
       vars:
         pkg: irods-resource-plugin-s3
-        ver: 4.3.1.0
+        # Plugin releases add a fourth number to the iRODS release they're built for.
+        ver_prefix: "{{ _irods_version }}"
 
     - name: Test create service group
       ansible.builtin.command:

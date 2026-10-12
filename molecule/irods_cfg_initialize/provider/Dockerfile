@@ -69,6 +69,16 @@ COPY provider/irods.service /etc/systemd/system
 
 RUN systemctl enable postgresql irods
 
+# systemd skips some units that would act on the host only when this is set; systemd.sh masks the
+# rest.
+ENV container=docker
+
+# Molecule builds from the scenario directory, which can't reach systemd.sh, so the template embeds
+# it.
+RUN echo '{{ lookup("file", molecule_scenario_directory ~ "/../../testing/env/base/systemd.sh") | b64encode }}' | base64 --decode > /tmp/systemd.sh \
+	&& bash /tmp/systemd.sh \
+	&& rm /tmp/systemd.sh
+
 EXPOSE 1247/tcp
 EXPOSE 1248/tcp
 

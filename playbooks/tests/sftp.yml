@@ -181,3 +181,53 @@
     - name: Test update message of the day
       ansible.builtin.debug:
         msg: TODO implement
+
+
+- name: Test the sftpgo service and its API key
+  hosts: sftp
+  become: true
+  vars_files:
+    - ../group_vars/all/sftp.yml
+  tasks:
+    - name: Test sftpgo is running after its restarts
+      ansible.builtin.include_tasks: tasks/test_services.yml
+      vars:
+        services:
+          - sftpgo
+        active: true
+
+    - name: Test patch sftpgo.json with API key
+      ansible.builtin.command: >-
+        jq --exit-status
+        '.command.commands[0].env
+          | ([.[] | select(startswith("SFTPGO_API_BASE_URL="))] | length == 1)
+            and ([.[] | select(startswith("SFTPGO_API_KEY="))] | length == 1)'
+        /etc/sftpgo/sftpgo.json
+      changed_when: false
+
+    # The admin list needs admin credentials, so rejecting the key with its last character changed
+    # shows the real key is what's accepted.
+    - name: Test the API key authenticates
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit -o pipefail
+          key="$(jq --raw-output \
+            '.command.commands[0].env[] | select(startswith("SFTPGO_API_KEY=")) | ltrimstr("SFTPGO_API_KEY=")' \
+            /etc/sftpgo/sftpgo.json)"
+          admins_status() {
+            curl --silent --output /dev/null --write-out '%{http_code}' --header "X-SFTPGO-API-KEY: $1" \
+              http://localhost:{{ _sftp_admin_ui_port }}/api/v2/admins
+          }
+          if [[ "$key" == *A ]]; then
+            wrongKey="${key%A}B"
+          else
+            wrongKey="${key%?}A"
+          fi
+          status="$(admins_status "$key")"
+          wrongStatus="$(admins_status "$wrongKey")"
+          if [[ "$status" != 200 || "$wrongStatus" != 401 ]]; then
+            printf 'API key got HTTP %s and a wrong key HTTP %s\n' "$status" "$wrongStatus" >&2
+            exit 1
+          fi
+      changed_when: false

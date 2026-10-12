@@ -2,8 +2,6 @@
 - name: Start the WebDAV services
   hosts: webdav
   become: true
-  tags:
-    - no_testing
   tasks:
     - name: Start varnish
       ansible.builtin.service:

@@ -1,0 +1,18 @@
+---
+# Tests the state of systemd services
+#
+# services  the names of the services
+# active    whether the services should be running
+# enabled   (optional) whether the services should start on boot
+
+- name: Check service state
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: |
+      set -o errexit
+      [[ "$(systemctl is-active '{{ item }}')" == {{ 'active' if active else 'inactive' }} ]]
+      {% if enabled is defined %}
+      [[ "$(systemctl is-enabled '{{ item }}')" == {{ 'enabled' if enabled else 'disabled' }} ]]
+      {% endif %}
+  changed_when: false
+  loop: "{{ services }}"

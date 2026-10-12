@@ -7,6 +7,7 @@ platforms:
     dockerfile: provider/Dockerfile
     pre_build_image: false
     command: /usr/sbin/init
+    cgroupns_mode: private
     hostname: provider.molecule
     privileged: true
     tty: true

@@ -2,8 +2,6 @@
 - name: Stop the WebDAV services
   hosts: webdav
   become: true
-  tags:
-    - no_testing
   tasks:
     - name: Stop purgeman
       ansible.builtin.service:

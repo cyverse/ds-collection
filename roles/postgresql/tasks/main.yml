@@ -1,9 +1,4 @@
 ---
-- name: Enable untestable notifications
-  ansible.builtin.set_fact:
-    _notifications_enabled: true
-  tags: no_testing
-
 - name: Verify variables
   ansible.builtin.include_tasks: variables.yml
 

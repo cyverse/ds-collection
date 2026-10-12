@@ -7,9 +7,14 @@ platforms:
     pre_build_image: false
     dockerfile: Dockerfile
     command: /lib/systemd/systemd
+    cgroupns_mode: private
     privileged: true
 provisioner:
   name: ansible
+  # The role's no_testing tasks set host-wide kernel settings. This replaces molecule's default
+  # skip-tags, so they're listed too; the role uses none of them.
+  options:
+    skip-tags: molecule-notest,notest,no_testing
   inventory:
     hosts:
       all:

@@ -529,7 +529,7 @@ class CyVerseGiveaccessdataobj(CyverseTestCase):
             IrodsType.NONE)
 
     def tearDown(self):
-        self.irods.data_objects.unlink(self._obj, forced=True)
+        self.irods.data_objects.unlink(self._obj, force=True)
         self.irods.users.remove('user')
         super().tearDown()
 
