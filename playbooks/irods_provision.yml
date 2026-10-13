@@ -194,7 +194,7 @@
         state: present
       notify: Restart iRODS if needed
       loop: >-
-        {{ (_irods_netcdf_packages if _irods_netcdf_supported else []) + ['irods-resource-plugin-s3'] }}
+        {{ _irods_netcdf_installed_packages + ['irods-resource-plugin-s3'] }}
 
     - name: Ensure iRODS attempts to start on boot
       ansible.builtin.service:

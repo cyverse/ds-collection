@@ -29,17 +29,25 @@ RUN <<'EOF'
 	apt-get upgrade --yes
 
 # Install iRODS
-	netcdf=''
-	for pkg in $IRODS_NETCDF_PACKAGES; do
-		netcdf="$netcdf $pkg=$IRODS_VERSION.*"
-	done
+	if [ -z "$IRODS_VERSION" ]; then
+		echo 'The IRODS_VERSION build arg is required; it comes from the .env file' >&2
+		exit 1
+	fi
 
-	apt-get install --yes \
+	set -- \
 		irods-icommands="$IRODS_VERSION-*" \
 		irods-runtime="$IRODS_VERSION-*" \
 		irods-server="$IRODS_VERSION-*" \
-		irods-resource-plugin-s3="$IRODS_VERSION.*" \
-		$netcdf
+		irods-resource-plugin-s3="$IRODS_VERSION.*"
+
+	# Only the word splitting of the space-separated list is wanted, not globbing.
+	set -o noglob
+	for pkg in $IRODS_NETCDF_PACKAGES; do
+		set -- "$@" "$pkg=$IRODS_VERSION.*"
+	done
+	set +o noglob
+
+	apt-get install --yes "$@"
 
 	groupadd --non-unique --system --gid="$IRODS_HOST_UID" irods
 
