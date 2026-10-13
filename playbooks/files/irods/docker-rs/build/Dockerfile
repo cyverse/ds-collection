@@ -1,9 +1,11 @@
 FROM ubuntu:22.04
 
 ARG IRODS_HOST_UID
+ARG IRODS_NETCDF_PACKAGES
 ARG IRODS_SERVER_PORT_RANGE_START
 ARG IRODS_SERVER_PORT_RANGE_END
 ARG IRODS_VAULT_PATH
+ARG IRODS_VERSION
 ARG IRODS_ZONE_PORT
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -27,14 +29,17 @@ RUN <<'EOF'
 	apt-get upgrade --yes
 
 # Install iRODS
+	netcdf=''
+	for pkg in $IRODS_NETCDF_PACKAGES; do
+		netcdf="$netcdf $pkg=$IRODS_VERSION.*"
+	done
+
 	apt-get install --yes \
-		irods-icommands=4.3.1 \
-		irods-runtime=4.3.1 \
-		irods-server=4.3.1 \
-		irods-netcdf-client_modules \
-		irods-netcdf-icommands \
-		irods-netcdf-server_modules \
-		irods-resource-plugin-s3=4.3.1.0-0~jammy
+		irods-icommands="$IRODS_VERSION-*" \
+		irods-runtime="$IRODS_VERSION-*" \
+		irods-server="$IRODS_VERSION-*" \
+		irods-resource-plugin-s3="$IRODS_VERSION.*" \
+		$netcdf
 
 	groupadd --non-unique --system --gid="$IRODS_HOST_UID" irods
 
