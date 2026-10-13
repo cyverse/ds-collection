@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Usage:
-#  service.sh (start|stop)
+#  service (start|stop)
 #
 # Starts or stops the moto S3 server the S3 resource tests store data in. It
 # listens on port 5000, keeps everything in memory, and accepts any credentials.
@@ -50,10 +50,20 @@ start() {
 
 
 stop() {
-	if [[ -f "$PID_FILE" ]]; then
-		kill "$(cat "$PID_FILE")" || true
-		rm --force "$PID_FILE"
+	if ! [[ -f "$PID_FILE" ]]; then
+		return 0
 	fi
+
+	local pid
+	pid="$(< "$PID_FILE")"
+
+	if kill "$pid" 2> /dev/null; then
+		while kill -0 "$pid" 2> /dev/null; do
+			sleep 0.2
+		done
+	fi
+
+	rm --force "$PID_FILE"
 }
 
 
