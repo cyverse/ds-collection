@@ -81,6 +81,23 @@ A freshly started environment lacks several things the tests depend on, so befor
 
 Each module runs in its own container, since a module that stops partway can leave a mock rule base deployed.
 
+## A standalone Data Store
+
+`standalone-env` runs the environment as a small Data Store for testing other services, such as data-info, against the Data Store's rules. `up` starts the environment, prepares it the way `test-rules` does except for the restart into test mode, and leaves it running. If preparing fails, it stops the environment. It refuses to start while any container of the environment exists, so a failed `up` can't stop one that's already running. `down` stops it.
+
+```bash
+testing/standalone-env up                  # start it on iRODS 4.3.1
+testing/standalone-env -v 4.3.4 up         # start it on iRODS 4.3.4
+source <(testing/standalone-env info)      # set the connection variables
+testing/standalone-env down                # stop it
+```
+
+It publishes the catalog service provider's port 1247 and the ICAT DB's port 5432 on the host's loopback interface. `IRODS_HOST_PORT` and `ICAT_HOST_PORT` choose other host ports when those are taken. `info`, which `up` runs once the environment is ready, prints the connection settings as `export` statements: the iRODS host, port, zone, admin account and default resource, and the ICAT DB's host, port, name, user and password. It reads the ports from Docker and the ICAT DB settings from the catalog service provider's `server_config.json`, so it fails when the environment isn't up. A client in a container on the environment's Docker network should use the container host names that `info` prints in its comments instead.
+
+The environment has no users other than the admin accounts; a test suite creates the ones it needs with the admin account. Nothing publishes the resource servers, so a client on the host can't follow iRODS when it redirects a transfer to the resource server that holds the data. A client that needs that should run in a container on the Docker network.
+
+The other test scripts run the same environment under the same name, so running one of them while the standalone Data Store is up replaces its containers and then stops it.
+
 ## Molecule
 
 The roles are tested with the molecule scenarios in `molecule/`, which run on the host rather than in this environment. `test-molecule` runs them with the setup they need.
