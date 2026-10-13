@@ -5,6 +5,8 @@ platforms:
   - name: provider-cfg
     image: provider
     dockerfile: provider/Dockerfile
+    buildargs:
+      IRODS_VERSION: ${IRODS_VERSION:-4.3.1}
     pre_build_image: false
     command: /usr/sbin/init
     cgroupns_mode: private
@@ -41,6 +43,7 @@ provisioner:
       all:
         vars:
           ansible_python_interpreter: /usr/bin/python3
+          irods_version: ${IRODS_VERSION:-4.3.1}
           irods_cfg_default_resource_name: ingestRes
           irods_cfg_validate: true
       irods_resource:

@@ -8,7 +8,7 @@ This role will eventually be able to be used to completely configure an iRODS se
 
 ## Requirements
 
-iRODS 4.3.1 is installed.
+iRODS 4.3 is installed. The molecule scenarios test it with 4.3.1 and 4.3.4.
 
 ## Tasks Files
 

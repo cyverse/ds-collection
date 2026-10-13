@@ -15,6 +15,7 @@ provisioner:
       all:
         vars:
           ansible_python_interpreter: /usr/bin/python3
+          irods_version: ${IRODS_VERSION:-4.3.1}
           irods_cfg_validate: true
       irods_catalog:
         hosts:

@@ -1,5 +1,5 @@
 [Unit]
-Description=iRODS 4.3.1
+Description=iRODS
 Wants=postgresql.service
 After=local-fs.target network.target postgresql.service
 
