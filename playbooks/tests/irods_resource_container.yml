@@ -29,9 +29,18 @@
               '^IRODS_CATALOG_PROVIDER=' ~ (groups['irods_catalog'][0] | regex_escape) ~ '$',
               multiline=true )
           - env is search('^IRODS_HOST_UID=999$', multiline=true)
+          - >-
+            env is search(
+              '^IRODS_NETCDF_PACKAGES='
+                ~ (
+                  'irods-netcdf-client_modules irods-netcdf-icommands irods-netcdf-server_modules'
+                    if _irods_version is version('4.3.2', '<') else '' )
+                ~ '$',
+              multiline=true )
           - env is search('^IRODS_SERVER_PORT_RANGE_START=20000$', multiline=true)
           - env is search('^IRODS_SERVER_PORT_RANGE_END=20199$', multiline=true)
           - env is search('^IRODS_USER_PASSWORD=rods$', multiline=true)
+          - env is search('^IRODS_VERSION=' ~ (_irods_version | regex_escape) ~ '$', multiline=true)
           - env is search('^IRODS_ZONE_PORT=1247$', multiline=true)
 
     - name: Test logrotate.d/irods expansion
