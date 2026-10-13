@@ -1,0 +1,251 @@
+#!/usr/bin/env bash
+#
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
+help() {
+	cat <<EOF
+
+$EXEC_NAME
+
+Usage:
+$EXEC_NAME [options] (up|down|info)
+
+run the testing environment as a small Data Store for other services to test
+against
+
+Parameters:
+ up    start the environment, deploy the Data Store's rule bases, leave it
+       running, and print its connection settings the way info does
+ down  stop the environment
+ info  print the connection settings as shell variable assignments to source,
+       e.g., source <($EXEC_NAME info)
+
+Options:
+ -h, --help                     show help and exit
+ -v, --irods-version <version>  with up, run the configured iRODS servers on
+                                iRODS <version> instead of 4.3.1, building
+                                their images if needed, and pass it to the
+                                setup playbooks as irods_version
+
+Summary:
+up prepares the environment the way test-rules does, without restarting iRODS
+in test mode, which takes about four minutes on an x86_64 host. It publishes the
+catalog service provider's port 1247 and the ICAT DB's port 5432 on the host's
+loopback interface. If preparing the environment fails, up stops it. up refuses
+to start while any container of the environment exists.
+
+Environment Variables:
+ ICAT_HOST_PORT   the host port to publish the ICAT DB on, default 5432
+ IRODS_HOST_PORT  the host port to publish iRODS on, default 1247
+ IRODS_VERSION    the iRODS release to run, as with --irods-version, which
+                  takes precedence
+EOF
+}
+
+
+set -o errexit -o nounset -o pipefail
+
+EXEC_NAME="$(readlink -f "$0")"
+TESTING_DIR="$(dirname "$EXEC_NAME")"
+COLLECTION_DIR="$(dirname "$TESTING_DIR")"
+readonly EXEC_NAME TESTING_DIR COLLECTION_DIR
+
+#shellcheck source=testing/portability.sh
+source "$TESTING_DIR"/portability.sh
+#shellcheck source=testing/data_store_env.sh
+source "$TESTING_DIR"/data_store_env.sh
+#shellcheck source=testing/irods_crash.sh
+source "$TESTING_DIR"/irods_crash.sh
+#shellcheck source=testing/irods_version.sh
+source "$TESTING_DIR"/irods_version.sh
+
+readonly CFG="$TESTING_DIR"/config.inc
+readonly PORTS_OVERRIDE="$TESTING_DIR"/env/published-ports.yml
+
+# shellcheck disable=SC1090
+source "$CFG"
+
+
+main() {
+	local args
+	if ! args="$(portability::getopt hv: help,irods-version: "$EXEC_NAME" "$@")"; then
+		exit_with_help
+	fi
+
+	eval set -- "$args"
+
+	while true; do
+		case "$1" in
+			-h|--help)
+				help
+				return
+				;;
+			-v|--irods-version)
+				export IRODS_VERSION="$2"
+				shift 2
+				;;
+			--)
+				shift 1
+				break
+				;;
+		esac
+	done
+
+	if (( $# != 1 )); then
+		exit_with_help
+	fi
+
+	case "$1" in
+		up)
+			up
+			;;
+		down)
+			stop_env
+			;;
+		info)
+			print_info
+			;;
+		*)
+			exit_with_help
+			;;
+	esac
+}
+
+
+exit_with_help() {
+	help >&2
+	exit 1
+}
+
+
+up() {
+	if ! irods_version::check; then
+		exit_with_help
+	fi
+
+	local var
+	for var in IRODS_HOST_PORT ICAT_HOST_PORT; do
+		if ! is_port "${!var-1}"; then
+			printf '%s must be a port number from 1 to 65535, not "%s"\n' "$var" "${!var}" >&2
+			exit_with_help
+		fi
+	done
+
+	# Otherwise a failure while preparing would stop the running environment.
+	if [[ -n "$(docker ps --all --quiet --filter label=com.docker.compose.project="$ENV_NAME")" ]]; then
+		printf 'The %s environment is already up. Run "%s down" first.\n' "$ENV_NAME" "$EXEC_NAME" >&2
+		return 1
+	fi
+
+	if ! irods_crash::is_attempt; then
+		irods_crash::run_retrying "$EXEC_NAME" up
+		return
+	fi
+
+	# Set before starting, so a start that fails partway doesn't leave containers
+	# behind, and cleared once the environment is ready, so it stays up.
+	trap stop_env EXIT
+	"$TESTING_DIR"/env/controller "$CFG" start "$PORTS_OVERRIDE"
+	data_store_env::prepare
+	trap - EXIT
+
+	printf '\n'
+	print_info
+}
+
+
+# Writes the connection settings as shell variable assignments to source, with
+# the ones for a container on the Docker network in comments. The ICAT DB
+# settings come from the catalog service provider's server_config.json, so they
+# match whatever the images were built with.
+print_info() {
+	local irodsPort icatPort dbSettings
+	irodsPort="$(host_port provider_configured 1247)"
+	icatPort="$(host_port dbms_configured 5432)"
+	dbSettings="$(icat_db_settings)"
+
+	local dbName dbUser dbPassword
+	IFS=$'\t' read -r dbName dbUser dbPassword <<< "$dbSettings"
+
+	cat <<EOF
+# The Data Store from $EXEC_NAME. Stop it with "$EXEC_NAME down".
+# From a container on the Docker network $DOMAIN, use
+# IRODS_HOST=$IRODS_PROVIDER_CONF_HOST, IRODS_PORT=1247,
+# ICAT_DB_HOST=$DBMS_HOST, and ICAT_DB_PORT=5432 instead.
+EOF
+
+	print_export IRODS_HOST 127.0.0.1
+	print_export IRODS_PORT "$irodsPort"
+	print_export IRODS_ZONE "$IRODS_ZONE_NAME"
+	print_export IRODS_ADMIN_USER rods
+	print_export IRODS_ADMIN_PASSWORD "$IRODS_CLERVER_PASSWORD"
+	print_export IRODS_DEFAULT_RESOURCE "$IRODS_DEFAULT_RESOURCE"
+	print_export ICAT_DB_HOST 127.0.0.1
+	print_export ICAT_DB_PORT "$icatPort"
+	print_export ICAT_DB_NAME "$dbName"
+	print_export ICAT_DB_USER "$dbUser"
+	print_export ICAT_DB_PASSWORD "$dbPassword"
+}
+
+
+# Writes an export statement that is safe to source, whatever the value holds.
+# Input:
+#  $1  the variable's name
+#  $2  its value
+print_export() {
+	printf 'export %s=%q\n' "$1" "$2"
+}
+
+
+# Writes the ICAT DB's name, user, and password, separated by tabs, as the
+# catalog service provider connects with them.
+icat_db_settings() {
+	if ! docker exec "$ENV_NAME"-provider_configured-1 python3 -c '
+import json
+db = json.load(open("/etc/irods/server_config.json"))["plugin_configuration"]["database"]["postgres"]
+print(db["db_name"], db["db_username"], db["db_password"], sep="\t")'
+	then
+		printf 'Could not read the ICAT DB settings from the catalog service provider.\n' >&2
+		return 1
+	fi
+}
+
+
+# Succeeds when the value is a TCP port number.
+# Input:
+#  $1  the value
+is_port() {
+	local value="$1"
+
+	[[ "$value" =~ ^[0-9]{1,5}$ ]] && (( 10#$value >= 1 && 10#$value <= 65535 ))
+}
+
+
+# Writes the host port a service's container port is published on.
+# Input:
+#  $1  the compose service
+#  $2  the container port
+host_port() {
+	local service="$1"
+	local port="$2"
+
+	# Called in a command substitution, where bash clears errexit, so the failure
+	# has to be returned explicitly.
+	local binding
+	if ! binding="$(docker port "$ENV_NAME"-"$service"-1 "$port"/tcp)"; then
+		printf 'Could not read the host port of %s; the environment is probably not up.\n' \
+			"$service" >&2
+		return 1
+	fi
+
+	printf '%s\n' "${binding##*:}"
+}
+
+
+stop_env() {
+	"$TESTING_DIR"/env/controller "$CFG" stop "$PORTS_OVERRIDE"
+}
+
+
+main "$@"
