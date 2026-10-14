@@ -61,6 +61,7 @@ services:
         IRODS_ZONE_NAME: "$IRODS_ZONE_NAME"
         IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
     cgroup: private
+    image: "${ENV_NAME}-dbms_configured:${ENV_IMAGE_TAG:-latest}"
     platform: linux/amd64
     privileged: true
     tmpfs:
@@ -96,7 +97,7 @@ services:
         IRODS_ZONE_NAME: "$IRODS_ZONE_NAME"
         IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
     # Tagged by version so building another iRODS release doesn't replace the default image
-    image: "${ENV_NAME}-provider_configured:${IRODS_VERSION:-4.3.1}"
+    image: "${ENV_NAME}-provider_configured:${ENV_IMAGE_TAG:-${IRODS_VERSION:-4.3.1}}"
     hostname: "$IRODS_PROVIDER_CONF_HOST"
     platform: linux/amd64
     privileged: true
@@ -139,7 +140,7 @@ services:
         IRODS_VERSION: "${IRODS_VERSION:-4.3.1}"
         IRODS_ZONE_NAME: "$IRODS_ZONE_NAME"
         IRODS_ZONE_PASSWORD: "$IRODS_CLERVER_PASSWORD"
-    image: "${ENV_NAME}-consumer_configured_centos:${IRODS_VERSION:-4.3.1}"
+    image: "${ENV_NAME}-consumer_configured_centos:${ENV_IMAGE_TAG:-${IRODS_VERSION:-4.3.1}}"
     hostname: "$IRODS_CONSUMER_CONF_CENTOS_HOST"
     platform: linux/amd64
     privileged: true

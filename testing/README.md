@@ -62,7 +62,7 @@ testing/test-all playbook/irods_cfg rules  # the named tests
 
 A playbook test that needs an inventory other than `hosts-all`, or setup playbooks, is listed in the `PLAYBOOK_INVENTORIES` and `PLAYBOOK_SETUPS` tables at the top of the script. Add a new test there when it needs them.
 
-`test-all --upgrade-from <version>` runs every test on servers upgraded from `<version>` to the `--irods-version` release. Without it, `playbook/irods_upgrade` only checks that the playbook leaves servers already on the release alone; with it, the environment's upgrade is what that test checks.
+`test-all --upgrade-from <version>` runs every test on servers upgraded from `<version>` to the `--irods-version` release. Rather than upgrade each test's environment, it upgrades one first, reporting it as `upgrade from <version>` with its output in `upgrade.log`, and saves the configured iRODS servers and DBMS as images tagged `<from>-to-<to>`. Each test then starts a fresh environment from those images, and the images are deleted when the run ends. If the upgrade fails, no test runs. `playbook/irods_upgrade` is the exception: it upgrades its own environment, since the upgrade is what it checks. Without `--upgrade-from`, that test only checks that the playbook leaves servers already on the release alone.
 
 ## The iRODS rule tests
 
