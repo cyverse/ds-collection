@@ -22,13 +22,20 @@ Options:
  -l, --list                     print the ID of every test and exit
  -o, --output <dir>             the directory to write each test's output to,
                                 default ./test-results
- -v, --irods-version <version>  run the configured iRODS servers on iRODS
+ -u, --upgrade-from <version>   start each test's configured iRODS servers on
+                                iRODS <version>, then upgrade them with
+                                irods_upgrade.yml to the --irods-version
+                                release before the test runs
+ -v, --irods-version, --to-version <version>
+                                run the configured iRODS servers on iRODS
                                 <version> instead of 4.3.1, and pass it to the
                                 playbooks as irods_version
 
 Environment Variables:
- IRODS_VERSION  the iRODS release to run, as with --irods-version, which takes
-                precedence
+ IRODS_UPGRADE_FROM  the iRODS release to upgrade from, as with
+                     --upgrade-from, which takes precedence
+ IRODS_VERSION       the iRODS release to run, as with --irods-version, which
+                     takes precedence
 
 Output:
  It writes a line for each test as the test finishes, then how many tests
@@ -79,6 +86,7 @@ declare -A -r PLAYBOOK_INVENTORIES=(
 	[irods_s3_cred]=hosts-configured
 	[irods_specific_queries]=hosts-configured
 	[irods_storage_resources]=hosts-unconfigured-consumer
+	[irods_upgrade]=hosts-configured
 	[ncems_usage]=hosts-unconfigured-consumer
 	[pire_usage]=hosts-unconfigured-consumer )
 
@@ -104,7 +112,8 @@ declare -A -r PLAYBOOK_SETUPS=(
 main() {
 	local args
 	if ! args="$(
-		portability::getopt hlo:v: help,list,output:,irods-version: "$EXEC_NAME" "$@" )"
+		portability::getopt \
+			hlo:u:v: help,list,output:,irods-version:,to-version:,upgrade-from: "$EXEC_NAME" "$@" )"
 	then
 		exit_with_help
 	fi
@@ -126,7 +135,11 @@ main() {
 				output="$2"
 				shift 2
 				;;
-			-v|--irods-version)
+			-u|--upgrade-from)
+				export IRODS_UPGRADE_FROM="$2"
+				shift 2
+				;;
+			-v|--irods-version|--to-version)
 				export IRODS_VERSION="$2"
 				shift 2
 				;;
@@ -137,7 +150,7 @@ main() {
 		esac
 	done
 
-	if ! irods_version::check; then
+	if ! irods_version::check || ! irods_version::check_upgrade; then
 		exit_with_help
 	fi
 

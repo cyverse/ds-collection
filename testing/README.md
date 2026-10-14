@@ -42,6 +42,8 @@ Tests can be defined for a given playbook. They should be placed in a playbook w
 
 `test-playbook --irods-version <version>`, or the `IRODS_VERSION` environment variable, runs the configured iRODS servers on another iRODS release, such as 4.3.4, and passes it to the setup playbooks, the playbook under test, and its tests as `irods_version`. Tests that check an iRODS version should compare against `_irods_version` from `playbooks/group_vars/all/irods.yml`, not a literal release.
 
+`--to-version` is another name for `--irods-version`. `test-playbook --upgrade-from <version>`, or the `IRODS_UPGRADE_FROM` environment variable, starts the configured iRODS servers on `<version>` instead, then upgrades them to the `--irods-version` release with `irods_upgrade.yml`, before any setup playbook runs. The playbooks and tests then run against the upgraded servers, e.g., `testing/test-playbook -u 4.3.1 -v 4.3.4 -P irods_cfg -I hosts-configured` tests `irods_cfg.yml` on servers upgraded from 4.3.1 to 4.3.4. `test-plugin` doesn't take the option, but it honors `IRODS_UPGRADE_FROM`, and `test-rules` takes it too. The environment controller does the upgrade, which adds about a minute and a half to each start.
+
 iRODS 4.3.1 occasionally segfaults while starting ([irods/irods#7747](https://github.com/irods/irods/issues/7747), fixed in 4.3.3). Both the EL7 and EL9 builds crash this way, in `libirods_plugin_dependencies.so`. When it happens, the playbook fails with `iRODS server failed to start` or `iRODS server failed to restart`, usually in a restart handler or in `setup_irods.py`. Sometimes the server crashes just after a restart reports success, and the next task that talks to it fails with `Could not connect to specified host and port: <host>:1247`. The servers that depend on the crashed one then fail to start as well. The host's kernel log records every crash, so `journalctl -k | grep irodsServer` shows whether a failure was this bug.
 
 So that these crashes don't fail a test, `test-playbook`, `test-plugin`, `test-rules`, and `test-leaks` retry once, using `irods_crash.sh`. When a run fails and its output contains any of these messages, the script tears down the environment, brings up a fresh one, and runs everything again. A server that fails to start for any other reason fails the retry too, so the retry doesn't hide real problems. `test-playbook` and `test-plugin` don't retry with `--inspect`, because the inspection shell needs the terminal and its output isn't captured. A configured server that never accepts connections fails the wait before testing with `iRODS server failed to start`, so it's retried too.
@@ -53,11 +55,14 @@ So that these crashes don't fail a test, `test-playbook`, `test-plugin`, `test-r
 ```bash
 testing/test-all                         # every test
 testing/test-all -v 4.3.4                # every test, on iRODS 4.3.4
+testing/test-all -u 4.3.1 -v 4.3.4       # every test, on servers upgraded from 4.3.1 to 4.3.4
 testing/test-all --list                  # the IDs of the tests
 testing/test-all playbook/irods_cfg rules  # the named tests
 ```
 
 A playbook test that needs an inventory other than `hosts-all`, or setup playbooks, is listed in the `PLAYBOOK_INVENTORIES` and `PLAYBOOK_SETUPS` tables at the top of the script. Add a new test there when it needs them.
+
+`test-all --upgrade-from <version>` runs every test on servers upgraded from `<version>` to the `--irods-version` release. Without it, `playbook/irods_upgrade` only checks that the playbook leaves servers already on the release alone; with it, the environment's upgrade is what that test checks.
 
 ## The iRODS rule tests
 

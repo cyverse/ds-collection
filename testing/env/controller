@@ -9,15 +9,20 @@
 #  OVERRIDE_FILE  A compose file to apply over docker-compose.yml. Pass the
 #                 same ones to stop as to start.
 #
-# Starts or stops all of the containers.
+# Starts or stops all of the containers. When IRODS_UPGRADE_FROM is set, start
+# runs the configured iRODS servers on that release, then upgrades them to
+# IRODS_VERSION.
 
 set -o errexit -o nounset -o pipefail
 
 ExecName=$(readlink -f "$0")
-readonly ExecName
+COLLECTION_DIR="$(dirname "$(dirname "$(dirname "$ExecName")")")"
+readonly ExecName COLLECTION_DIR
 
 #shellcheck source=testing/portability.sh
 . "$(dirname "$ExecName")"/../portability.sh
+#shellcheck source=testing/data_store_env.sh
+. "$(dirname "$ExecName")"/../data_store_env.sh
 
 
 main()
@@ -76,7 +81,17 @@ main()
 
   composeArgs+=(--project-name="$ENV_NAME" "${dcCmd[@]}")
 
-  portability::compose "${composeArgs[@]}"
+  if [ "$action" != start ] || [ -z "${IRODS_UPGRADE_FROM-}" ]
+  then
+    portability::compose "${composeArgs[@]}"
+    return
+  fi
+
+  IRODS_VERSION="$IRODS_UPGRADE_FROM" portability::compose "${composeArgs[@]}"
+
+  printf 'Upgrading the configured iRODS servers from %s to %s\n' \
+    "$IRODS_UPGRADE_FROM" "${IRODS_VERSION:-4.3.1}"
+  data_store_env::upgrade
 }
 
 

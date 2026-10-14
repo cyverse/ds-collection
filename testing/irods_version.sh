@@ -15,3 +15,30 @@ irods_version::check() {
 		return 1
 	fi
 }
+
+
+# Fails when IRODS_UPGRADE_FROM is set but isn't a release number earlier than
+# IRODS_VERSION, which defaults to 4.3.1.
+# Input:
+#  IRODS_UPGRADE_FROM  the iRODS release the environment starts on
+#  IRODS_VERSION       the iRODS release it's upgraded to
+irods_version::check_upgrade() {
+	if [[ -z "${IRODS_UPGRADE_FROM-}" ]]; then
+		return 0
+	fi
+
+	if ! IRODS_VERSION="$IRODS_UPGRADE_FROM" irods_version::check; then
+		return 1
+	fi
+
+	local to="${IRODS_VERSION:-4.3.1}"
+
+	local earliest
+	earliest="$(printf '%s\n' "$IRODS_UPGRADE_FROM" "$to" | sort --version-sort | head --lines=1)"
+
+	if [[ "$IRODS_UPGRADE_FROM" == "$to" || "$earliest" != "$IRODS_UPGRADE_FROM" ]]; then
+		printf 'The iRODS version to upgrade from, %s, is not earlier than %s\n' \
+			"$IRODS_UPGRADE_FROM" "$to" >&2
+		return 1
+	fi
+}

@@ -1,0 +1,37 @@
+---
+- name: Test upgrade iRODS
+  hosts: irods:!irods_resource_container:!unmanaged_systems
+  become: true
+  vars_files:
+    - ../group_vars/all/irods.yml
+  tasks:
+    - name: Gather the installed packages
+      ansible.builtin.package_facts:
+
+    - name: Verify the installed iRODS packages are the release
+      ansible.builtin.assert:
+        that: ansible_facts.packages[item][0].version is regex(release_pattern)
+        fail_msg: >-
+          {{ item }} {{ ansible_facts.packages[item][0].version }} is installed, not
+          {{ _irods_version }}
+      loop: >-
+        {{ ansible_facts.packages.keys() | select('match', 'irods-(?!externals-)') | list }}
+      vars:
+        release_pattern: ^{{ _irods_version | regex_escape }}([.-]|$)
+
+    - name: Verify the upgraded servers are running
+      when: "'irods-server' in ansible_facts.packages"
+      become: true
+      become_user: irods
+      ansible.builtin.import_tasks: tasks/irods/test_running.yml
+
+    - name: Verify the server reports the release
+      when: "'irods-server' in ansible_facts.packages"
+      become: true
+      become_user: irods
+      ansible.builtin.command: imiscsvrinfo
+      register: resp
+      changed_when: false
+      failed_when: >-
+        resp is failed
+          or resp.stdout is not search('^relVersion=rods' ~ _irods_version ~ '$', multiline=true)

@@ -19,7 +19,12 @@ Parameters:
 
 Options:
  -h, --help                     show help and exit
- -v, --irods-version <version>  run the configured iRODS servers on iRODS
+ -u, --upgrade-from <version>   start the configured iRODS servers on iRODS
+                                <version>, then upgrade them with
+                                irods_upgrade.yml to the --irods-version
+                                release before preparing the environment
+ -v, --irods-version, --to-version <version>
+                                run the configured iRODS servers on iRODS
                                 <version> instead of 4.3.1, building their
                                 images if needed, and pass it to the setup
                                 playbooks as irods_version
@@ -34,8 +39,10 @@ r_transfer_totals table, and the AVRA, ESIIL, NCEMS, and PIRE resources and
 collections, and restarts every iRODS server in test mode.
 
 Environment Variables:
- IRODS_VERSION  the iRODS release to run, as with --irods-version, which takes
-                precedence
+ IRODS_UPGRADE_FROM  the iRODS release to upgrade from, as with
+                     --upgrade-from, which takes precedence
+ IRODS_VERSION       the iRODS release to run, as with --irods-version, which
+                     takes precedence
 EOF
 }
 
@@ -70,7 +77,8 @@ source "$CFG"
 
 main() {
 	local args
-	if ! args="$(portability::getopt hv: help,irods-version: "$EXEC_NAME" "$@")"; then
+	if ! args="$(portability::getopt \
+		hu:v: help,irods-version:,to-version:,upgrade-from: "$EXEC_NAME" "$@")"; then
 		exit_with_help
 	fi
 
@@ -82,7 +90,11 @@ main() {
 				help
 				return
 				;;
-			-v|--irods-version)
+			-u|--upgrade-from)
+				export IRODS_UPGRADE_FROM="$2"
+				shift 2
+				;;
+			-v|--irods-version|--to-version)
 				export IRODS_VERSION="$2"
 				shift 2
 				;;
@@ -93,7 +105,7 @@ main() {
 		esac
 	done
 
-	if ! irods_version::check; then
+	if ! irods_version::check || ! irods_version::check_upgrade; then
 		exit_with_help
 	fi
 
