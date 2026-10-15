@@ -1,5 +1,7 @@
 FROM almalinux:9
 
+ARG IRODS_VERSION
+
 RUN dnf --assumeyes install epel-release && \
 	dnf config-manager --set-enabled crb && \
 	dnf --assumeyes install jq moreutils python3-dnf-plugin-versionlock python3-pip sudo && \
@@ -9,15 +11,15 @@ RUN dnf --assumeyes install epel-release && \
 		https://packages.irods.org/renci-irods.yum.repo && \
 	dnf --assumeyes makecache && \
 	dnf --assumeyes install \
-		irods-database-plugin-postgres-4.3.1 \
-		irods-icommands-4.3.1 \
-		irods-runtime-4.3.1 \
-		irods-server-4.3.1 && \
+		irods-database-plugin-postgres-"$IRODS_VERSION" \
+		irods-icommands-"$IRODS_VERSION" \
+		irods-runtime-"$IRODS_VERSION" \
+		irods-server-"$IRODS_VERSION" && \
 	yum versionlock add \
-		irods-database-plugin-postgres-4.3.1 \
-		irods-icommands-4.3.1 \
-		irods-runtime-4.3.1 \
-		irods-server-4.3.1 && \
+		irods-database-plugin-postgres-"$IRODS_VERSION" \
+		irods-icommands-"$IRODS_VERSION" \
+		irods-runtime-"$IRODS_VERSION" \
+		irods-server-"$IRODS_VERSION" && \
 ### Install PostgreSQL and the PostgreSQL 12 ODBC driver
 	dnf --assumeyes install postgresql-contrib postgresql-server && \
 	printf '%s\n' \

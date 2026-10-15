@@ -1,4 +1,16 @@
 ---
+- name: Converge | check the versions
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Check the upgrade is to a later release
+      ansible.builtin.assert:
+        that: irods_upgrade_version is version(irods_version, '>')
+        fail_msg: >-
+          IRODS_UPGRADE_VERSION ({{ irods_upgrade_version }}) has to be later than IRODS_VERSION
+          ({{ irods_version }}), or the scenario tests no upgrade.
+
+
 - name: Converge | Stop iRODS
   hosts: all
   gather_facts: false
@@ -16,24 +28,24 @@
   hosts: all
   gather_facts: false
   tasks:
-    - name: Remove 4.3.1 version lock
+    - name: Remove the starting version lock
       ansible.builtin.command:  # noqa: command-instead-of-module
         cmd: >-
           yum versionlock delete
-            irods-database-plugin-postgres-4.3.1
-            irods-icommands-4.3.1
-            irods-runtime-4.3.1
-            irods-server-4.3.1
+            irods-database-plugin-postgres-{{ irods_version }}
+            irods-icommands-{{ irods_version }}
+            irods-runtime-{{ irods_version }}
+            irods-server-{{ irods_version }}
       register: resp
       changed_when: resp.stdout is regex('Deleting versionlock')
 
-    - name: Add 4.3.5 version lock
+    - name: Add the upgrade version lock
       community.general.yum_versionlock:
         name:
-          - irods-database-plugin-postgres-4.3.5
-          - irods-icommands-4.3.5
-          - irods-runtime-4.3.5
-          - irods-server-4.3.5
+          - irods-database-plugin-postgres-{{ irods_upgrade_version }}
+          - irods-icommands-{{ irods_upgrade_version }}
+          - irods-runtime-{{ irods_upgrade_version }}
+          - irods-server-{{ irods_upgrade_version }}
         state: present
 # XXX - Due to https://github.com/ansible-collections/community.general/issues/4470, this isn't
 # idempotent.

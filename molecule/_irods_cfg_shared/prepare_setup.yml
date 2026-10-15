@@ -1,6 +1,6 @@
 ---
-- name: Base | prepare with iRODS 4.3.1
-  ansible.builtin.import_playbook: prepare_with_431.yml
+- name: Base | prepare with iRODS
+  ansible.builtin.import_playbook: prepare_with_irods.yml
 
 - name: Prepare | initialize iRODS
   hosts: all
