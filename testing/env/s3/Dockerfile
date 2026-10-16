@@ -1,4 +1,4 @@
-FROM test-env-base:alma9
+FROM test-env-base:alma10
 
 RUN pip3 install --no-cache-dir 'moto[server]==5.0.28'
 
