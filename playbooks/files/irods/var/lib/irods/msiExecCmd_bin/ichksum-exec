@@ -15,4 +15,12 @@
 # © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
-ichksum "$@"
+set -o errexit -o nounset -o pipefail
+
+main() {
+	if ! ichksum "$@"; then
+		printf 'failed: ichksum %s\n' "$*" >&2
+	fi
+}
+
+main "$@"
