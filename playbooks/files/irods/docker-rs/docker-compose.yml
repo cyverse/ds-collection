@@ -10,9 +10,11 @@ services:
       dockerfile: Dockerfile
       args:
         IRODS_HOST_UID: ${IRODS_HOST_UID}
+        IRODS_NETCDF_PACKAGES: ${IRODS_NETCDF_PACKAGES}
         IRODS_SERVER_PORT_RANGE_START: ${IRODS_SERVER_PORT_RANGE_START}
         IRODS_SERVER_PORT_RANGE_END: ${IRODS_SERVER_PORT_RANGE_END}
         IRODS_VAULT_PATH: ${IRODS_VAULT_PATH}
+        IRODS_VERSION: ${IRODS_VERSION}
         IRODS_ZONE_PORT: ${IRODS_ZONE_PORT}
     network_mode: host
     restart: on-failure

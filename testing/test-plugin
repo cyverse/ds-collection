@@ -43,7 +43,7 @@ _DEFAULT_HOSTS = "hosts-all"
 
 _TEST_CMD_FORM = """
     source {0} && \
-    (docker run --interactive --rm --tty \
+    (docker run --interactive --rm {8} \
             --env IRODS_HOST="$IRODS_PROVIDER_CONF_HOST" \
             --env IRODS_VERSION="${{IRODS_VERSION-}}" \
             --env IRODS_ZONE_NAME="$IRODS_ZONE_NAME" \
@@ -68,6 +68,10 @@ def _main():
     # The inspection shell needs the terminal, so an inspected run isn't captured or retried.
     if not args.inspect and "IRODS_CRASH_ATTEMPT" not in environ:
         return _run_retrying()
+
+    if args.inspect and not sys.stdin.isatty():
+        print("Inspection needs a terminal", file=sys.stderr)
+        return 1
 
     test = _PluginTest(args)
 
@@ -166,7 +170,9 @@ class _PluginTest:
             self._pretty,
             self._verbose,
             self._inventory,
-            self._test_file_name)
+            self._test_file_name,
+            # A terminal is optional, so that tests can run from scripts and CI jobs.
+            "--tty" if sys.stdin.isatty() else "")
 
 
 def _verify_existence(plugin_file, test_file):

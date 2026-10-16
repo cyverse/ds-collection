@@ -23,6 +23,8 @@ readonly EXEC_PATH
 
 main()
 {
+  portability::use_docker_builder
+
   local baseDir
   baseDir="$(dirname "$EXEC_PATH")"
 

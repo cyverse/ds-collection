@@ -14,12 +14,19 @@ $EXEC_NAME [options] [scenario ...]
 test Data Store roles with molecule
 
 Options:
- -h, --help  show help and exit
+ -h, --help                     show help and exit
+ -v, --irods-version <version>  install iRODS <version> instead of 4.3.1 in the
+                                irods_cfg scenarios
 
 Environment Variables:
- DOCKER_HOST  the Docker daemon for molecule to use, default the endpoint of
-              the current Docker context
- TMPDIR       where to create the temporary directory, default /tmp
+ DOCKER_HOST            the Docker daemon for molecule to use, default the
+                        endpoint of the current Docker context
+ IRODS_UPGRADE_VERSION  the iRODS release irods_cfg_upgrade upgrades to,
+                        default 4.3.4; it has to be later than the installed
+                        release
+ IRODS_VERSION          the iRODS release to install, as with
+                        --irods-version, which takes precedence
+ TMPDIR                 where to create the temporary directory, default /tmp
 
 Summary:
 This script runs the given molecule scenarios, or every scenario if none are
@@ -42,6 +49,8 @@ TESTING_DIR="$(dirname "$EXEC_NAME")"
 COLLECTION_DIR="$(dirname "$TESTING_DIR")"
 readonly EXEC_NAME TESTING_DIR COLLECTION_DIR
 
+#shellcheck source=testing/irods_version.sh
+source "$TESTING_DIR"/irods_version.sh
 #shellcheck source=testing/portability.sh
 source "$TESTING_DIR"/portability.sh
 #shellcheck source=testing/results.sh
@@ -57,7 +66,7 @@ readonly INSTALL_STAMP="$VENV_DIR"/.installed
 
 main() {
 	local args
-	if ! args="$(portability::getopt h help "$EXEC_NAME" "$@")"; then
+	if ! args="$(portability::getopt hv: help,irods-version: "$EXEC_NAME" "$@")"; then
 		exit_with_help
 	fi
 
@@ -69,12 +78,20 @@ main() {
 				help
 				return
 				;;
+			-v|--irods-version)
+				export IRODS_VERSION="$2"
+				shift 2
+				;;
 			--)
 				shift 1
 				break
 				;;
 		esac
 	done
+
+	if ! irods_version::check || ! IRODS_VERSION="${IRODS_UPGRADE_VERSION-}" irods_version::check; then
+		exit_with_help
+	fi
 
 	local scenarios=("$@")
 	if (( ${#scenarios[@]} == 0 )); then
@@ -165,8 +182,8 @@ prepare_venv() {
 
 	printf 'Installing the Python and Galaxy requirements into %s\n' "$VENV_DIR"
 
-	# ansible-core 2.16, the newest requirements.txt allows, supports controller
-	# Pythons 3.10 through 3.12.
+	# ansible-core 2.18, the newest requirements.txt allows, supports controller
+	# Pythons 3.11 through 3.13.
 	if command -v uv > /dev/null; then
 		uv venv --quiet --allow-existing --python 3.12 "$VENV_DIR"
 		uv pip install --quiet --python "$VENV_DIR"/bin/python \

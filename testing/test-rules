@@ -49,8 +49,12 @@ readonly EXEC_NAME TESTING_DIR COLLECTION_DIR
 
 #shellcheck source=testing/portability.sh
 source "$TESTING_DIR"/portability.sh
+#shellcheck source=testing/data_store_env.sh
+source "$TESTING_DIR"/data_store_env.sh
 #shellcheck source=testing/irods_crash.sh
 source "$TESTING_DIR"/irods_crash.sh
+#shellcheck source=testing/irods_version.sh
+source "$TESTING_DIR"/irods_version.sh
 #shellcheck source=testing/results.sh
 source "$TESTING_DIR"/results.sh
 
@@ -89,8 +93,7 @@ main() {
 		esac
 	done
 
-	if [[ -n "${IRODS_VERSION-}" && ! "$IRODS_VERSION" =~ ^[0-9]+(\.[0-9]+)+$ ]]; then
-		printf 'The iRODS version %s is not a release number like 4.3.4\n' "$IRODS_VERSION" >&2
+	if ! irods_version::check; then
 		exit_with_help
 	fi
 
@@ -112,8 +115,9 @@ main() {
 		return
 	fi
 
-	"$TESTING_DIR"/env/controller "$CFG" start
+	# Set before starting, so a start that fails partway doesn't leave containers behind.
 	trap stop_env EXIT
+	"$TESTING_DIR"/env/controller "$CFG" start
 
 	prepare_env
 
@@ -123,7 +127,7 @@ main() {
 	for module in "${modules[@]}"; do
 		printf '\nRunning %s\n' "$module"
 
-		if ! run_in_tester "cd /playbooks-under-test/tests/rules && python $module.py"; then
+		if ! data_store_env::run_in_tester "cd /playbooks-under-test/tests/rules && python $module.py"; then
 			failed+=("$module")
 		fi
 	done
@@ -156,27 +160,10 @@ list_modules() {
 }
 
 
-# Runs the playbooks that create what the rule tests depend on, then restarts
+# Deploys the Data Store's rule bases and what they depend on, then restarts
 # iRODS in test mode so that it writes the test_mode_output.log the tests read.
 prepare_env() {
-	run_playbook hosts-configured /wait-for-ready.yml
-
-	# With --skip-tags=no_testing, irods_cfg's restart into test mode fails
-	# intermittently. Without it, iRODS restarts normally, so the servers are
-	# restarted in test mode by hand below.
-	run_playbook hosts-configured /playbooks-under-test/irods_cfg.yml
-
-	local playbook
-	for playbook in irods_runtime_init dbms_icat; do
-		run_playbook hosts-configured \
-			--skip-tags=no_testing /playbooks-under-test/"$playbook".yml
-	done
-
-	# The avra and pire storage resources belong to the unconfigured consumer.
-	for playbook in irods_resource_server avra_usage esiil_usage ncems_usage pire_usage; do
-		run_playbook hosts-unconfigured-consumer \
-			--skip-tags=no_testing /playbooks-under-test/"$playbook".yml
-	done
+	data_store_env::prepare
 
 	local service
 	for service in "${IRODS_SERVICES[@]}"; do
@@ -184,40 +171,6 @@ prepare_env() {
 		docker exec "$ENV_NAME"-"$service"-1 \
 			su - irods -c '/var/lib/irods/irodsctl --test restart'
 	done
-}
-
-
-# Runs a playbook in an ansible-tester container.
-# Input:
-#  $1     the inventory hosts file in the container's /inventory
-#  $2...  the ansible-playbook options followed by the playbook's path in the
-#         container
-run_playbook() {
-	local hosts="$1"
-	shift
-
-	run_in_tester \
-		"ansible-playbook -i /inventory/$hosts ${IRODS_VERSION:+--extra-vars=irods_version=$IRODS_VERSION} $*"
-}
-
-
-# Runs a bash command in an ansible-tester container, mounting the collection
-# the way ansible-tester/run does. It replaces the image's /test-playbook
-# entrypoint, so it needs no terminal.
-# Input:
-#  $1  the command
-run_in_tester() {
-	local cmd="$1"
-
-	docker run --rm --entrypoint bash \
-		--env IRODS_HOST="$IRODS_PROVIDER_CONF_HOST" \
-		--env IRODS_ZONE_NAME="$IRODS_ZONE_NAME" \
-		--env PGHOST="$DBMS_HOST" \
-		--network "$DOMAIN" \
-		--platform=linux/amd64 \
-		--volume "$COLLECTION_DIR":/root/.ansible/collections/ansible_collections/cyverse/ds:ro \
-		--volume "$COLLECTION_DIR"/playbooks:/playbooks-under-test:ro \
-		ansible-tester -c "$cmd"
 }
 
 

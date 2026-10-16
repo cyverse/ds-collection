@@ -10,3 +10,20 @@
         delay: 1
         connect_timeout: 10
         timeout: 100
+
+- name: Wait for configured iRODS servers
+  hosts: irods
+  gather_facts: false
+  tasks:
+    - name: Check for an iRODS server configuration
+      ansible.builtin.stat:
+        path: /etc/irods/server_config.json
+      register: server_config
+
+    # The message is one irods_crash.sh retries on, since a 4.3.1 server can segfault while starting.
+    - name: Wait for iRODS to accept connections
+      when: server_config.stat.exists
+      ansible.builtin.wait_for:
+        port: 1247
+        timeout: 100
+        msg: iRODS server failed to start
