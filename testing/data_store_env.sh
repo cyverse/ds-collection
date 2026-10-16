@@ -33,6 +33,16 @@ data_store_env::prepare() {
 }
 
 
+# Upgrades the configured iRODS servers to IRODS_VERSION with irods_upgrade.yml.
+# Input:
+#  IRODS_VERSION  (optional) the iRODS release to upgrade to
+data_store_env::upgrade() {
+	data_store_env::run_playbook hosts-configured /wait-for-ready.yml
+	data_store_env::run_playbook hosts-configured \
+		--skip-tags=no_testing /playbooks-under-test/irods_upgrade.yml
+}
+
+
 # Runs a playbook in an ansible-tester container.
 # Input:
 #  $1             the inventory hosts file in the container's /inventory

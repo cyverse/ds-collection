@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #
 # Usage:
-#  controller INC_FILE (start|stop) [OVERRIDE_FILE ...]
+#  controller INC_FILE (start|stop|snapshot|remove-snapshot) [OVERRIDE_FILE ...]
 #
 # PARAMETERS:
 #  INC_FILE       The absolute path to a file including the build time
@@ -9,22 +9,35 @@
 #  OVERRIDE_FILE  A compose file to apply over docker-compose.yml. Pass the
 #                 same ones to stop as to start.
 #
-# Starts or stops all of the containers.
+# Starts or stops all of the containers. When IRODS_UPGRADE_FROM is set, start
+# runs the configured iRODS servers on that release, then upgrades them to
+# IRODS_VERSION. If IRODS_UPGRADE_SNAPSHOT is set too, start runs the snapshot
+# of that upgrade instead.
+#
+# snapshot starts the environment upgraded from IRODS_UPGRADE_FROM, saves the
+# configured iRODS servers and DBMS as images tagged with the upgrade, and
+# stops the environment. remove-snapshot deletes those images.
 
 set -o errexit -o nounset -o pipefail
 
 ExecName=$(readlink -f "$0")
-readonly ExecName
+COLLECTION_DIR="$(dirname "$(dirname "$(dirname "$ExecName")")")"
+readonly ExecName COLLECTION_DIR
 
 #shellcheck source=testing/portability.sh
 . "$(dirname "$ExecName")"/../portability.sh
+#shellcheck source=testing/data_store_env.sh
+. "$(dirname "$ExecName")"/../data_store_env.sh
+
+# The services whose containers a snapshot saves
+readonly SnapshotServices=(dbms_configured provider_configured consumer_configured_centos)
+
+# The compose files given after the action
+declare -a Overrides=()
 
 
 main()
 {
-  local baseDir
-  baseDir=$(dirname "$ExecName")
-
   if [ "$#" -lt 1 ]
   then
     printf 'An environment variable include file is required as its first parameter.\n' >&2
@@ -35,7 +48,7 @@ main()
 
   if [ "$#" -lt 2 ]
   then
-    printf 'Requires either "start" or "stop" as its second parameter.\n' >&2
+    printf 'Requires start, stop, snapshot, or remove-snapshot as its second parameter.\n' >&2
     return 1
   fi
 
@@ -50,33 +63,153 @@ main()
   # shellcheck disable=SC1090
   . "$cfg"
 
-  local dcCmd
+  Overrides=("$@")
+
+  local images
+
   case "$action" in
     start)
-      # Starting builds any image that's missing, such as another iRODS release's.
-      portability::use_docker_builder
-      dcCmd=(up -d --scale dbms_unconfigured=2)
+      start
       ;;
     stop)
-      dcCmd=(down --remove-orphans --volumes)
+      compose down --remove-orphans --volumes
+      ;;
+    snapshot)
+      snapshot
+      ;;
+    remove-snapshot)
+      require_upgrade
+      readarray -t images < <(snapshot_images)
+      docker image rm --force "${images[@]}" > /dev/null
       ;;
     *)
       printf 'Unknown command "%s"\n' "$action" >&2
       return 1
       ;;
   esac
+}
+
+
+start()
+{
+  # Starting builds any image that's missing, such as another iRODS release's.
+  portability::use_docker_builder
+
+  local upArgs=(up -d --scale dbms_unconfigured=2)
+
+  if [ -z "${IRODS_UPGRADE_FROM-}" ]
+  then
+    compose "${upArgs[@]}"
+    return
+  fi
+
+  if [ -n "${IRODS_UPGRADE_SNAPSHOT-}" ]
+  then
+    local images
+    readarray -t images < <(snapshot_images)
+
+    # Without the images, compose would build the from release's under the snapshot's tag.
+    if ! docker image inspect "${images[@]}" > /dev/null 2>&1
+    then
+      printf 'There is no snapshot of the upgrade from %s to %s\n' \
+        "$IRODS_UPGRADE_FROM" "$(upgrade_target)" >&2
+      return 1
+    fi
+
+    ENV_IMAGE_TAG="$(snapshot_tag)" compose "${upArgs[@]}"
+    return
+  fi
+
+  IRODS_VERSION="$IRODS_UPGRADE_FROM" compose "${upArgs[@]}"
+
+  printf 'Upgrading the configured iRODS servers from %s to %s\n' \
+    "$IRODS_UPGRADE_FROM" "$(upgrade_target)"
+  data_store_env::upgrade
+}
+
+
+# Stops iRODS and PostgreSQL before saving the containers, so that the images
+# hold no running servers' state.
+snapshot()
+{
+  require_upgrade
+
+  local rc=0
+  if ! IRODS_UPGRADE_SNAPSHOT='' start
+  then
+    rc=1
+  fi
+
+  if [ "$rc" -eq 0 ]
+  then
+    printf 'Saving the upgraded environment as %s\n' "$(snapshot_tag)"
+
+    local service
+    for service in provider_configured consumer_configured_centos
+    do
+      docker exec "$ENV_NAME"-"$service"-1 /service.sh stop
+    done
+
+    # The postgresql unit returns before its clusters stop, so a snapshot would need recovery.
+    docker exec "$ENV_NAME"-dbms_configured-1 systemctl stop 'postgresql@*'
+
+    for service in "${SnapshotServices[@]}"
+    do
+      docker commit "$ENV_NAME"-"$service"-1 "$ENV_NAME"-"$service":"$(snapshot_tag)" > /dev/null
+    done
+  fi
+
+  compose down --remove-orphans --volumes
+  return "$rc"
+}
+
+
+compose()
+{
+  local baseDir
+  baseDir=$(dirname "$ExecName")
 
   local composeArgs=(--file="$baseDir"/docker-compose.yml)
 
   local override
-  for override in "$@"
+  for override in ${Overrides[@]+"${Overrides[@]}"}
   do
     composeArgs+=(--file="$override")
   done
 
-  composeArgs+=(--project-name="$ENV_NAME" "${dcCmd[@]}")
+  portability::compose "${composeArgs[@]}" --project-name="$ENV_NAME" "$@"
+}
 
-  portability::compose "${composeArgs[@]}"
+
+require_upgrade()
+{
+  if [ -z "${IRODS_UPGRADE_FROM-}" ]
+  then
+    printf 'IRODS_UPGRADE_FROM must name the iRODS release the snapshot upgrades from\n' >&2
+    return 1
+  fi
+}
+
+
+snapshot_images()
+{
+  local service
+  for service in "${SnapshotServices[@]}"
+  do
+    printf '%s\n' "$ENV_NAME"-"$service":"$(snapshot_tag)"
+  done
+}
+
+
+snapshot_tag()
+{
+  printf '%s-to-%s' "$IRODS_UPGRADE_FROM" "$(upgrade_target)"
+}
+
+
+upgrade_target()
+{
+  printf '%s' "${IRODS_VERSION:-4.3.1}"
 }
 
 

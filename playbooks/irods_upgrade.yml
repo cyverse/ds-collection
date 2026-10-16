@@ -1,0 +1,84 @@
+---
+# Upgrades the iRODS servers with an earlier release installed to _irods_version. The catalog
+# service providers start before the consumers, since a provider updates the catalog schema when it
+# starts on a new release.
+
+- name: Upgrade iRODS | find the servers to upgrade
+  hosts: irods:!irods_resource_container:!unmanaged_systems
+  become: true
+  tasks:
+    - name: Gather the installed packages
+      ansible.builtin.package_facts:
+
+    # A Debian version has a revision, e.g., 4.3.1-0~jammy.
+    - name: Determine the installed iRODS release
+      ansible.builtin.set_fact:
+        irods_upgrade_installed: >-
+          {{
+            ansible_facts.packages['irods-server'][0].version | split('-') | first
+              if 'irods-server' in ansible_facts.packages else '' }}
+
+    - name: Check iRODS isn't being downgraded
+      when: irods_upgrade_installed != ''
+      ansible.builtin.assert:
+        that: irods_upgrade_installed is version(_irods_version, '<=')
+        fail_msg: >-
+          iRODS {{ irods_upgrade_installed }} is installed, which is later than
+          {{ _irods_version }}. iRODS doesn't support downgrading.
+
+    - name: Group the servers to upgrade
+      when: >-
+        irods_upgrade_installed != '' and irods_upgrade_installed is version(_irods_version, '<')
+      ansible.builtin.group_by:
+        key: irods_upgrading
+      changed_when: false
+
+
+- name: Upgrade iRODS | stop the catalog service consumers
+  hosts: irods_upgrading:&irods_resource:!irods_catalog
+  become: "{{ _irods_become_svc_acnt }}"
+  become_user: "{{ _irods_service_account_name }}"
+  gather_facts: false
+  tasks:
+    - name: Stop
+      cyverse.ds.irods_ctl:
+        state: stopped
+
+
+- name: Upgrade iRODS | stop the catalog service providers
+  hosts: irods_upgrading:&irods_catalog
+  become: "{{ _irods_become_svc_acnt }}"
+  become_user: "{{ _irods_service_account_name }}"
+  gather_facts: false
+  tasks:
+    - name: Stop
+      cyverse.ds.irods_ctl:
+        state: stopped
+
+
+# The package manager upgrades the installed plugins with irods-server, since each requires the
+# irods-runtime of its own release.
+- name: Upgrade iRODS | upgrade the packages
+  ansible.builtin.import_playbook: irods_provision.yml
+
+
+- name: Upgrade iRODS | start the catalog service providers
+  hosts: irods_upgrading:&irods_catalog
+  become: "{{ _irods_become_svc_acnt }}"
+  become_user: "{{ _irods_service_account_name }}"
+  gather_facts: false
+  tasks:
+    - name: Start
+      cyverse.ds.irods_ctl:
+        state: started
+
+
+- name: Upgrade iRODS | start the catalog service consumers
+  hosts: irods_upgrading:&irods_resource:!irods_catalog
+  become: "{{ _irods_become_svc_acnt }}"
+  become_user: "{{ _irods_service_account_name }}"
+  gather_facts: false
+  tasks:
+    - name: Start
+      cyverse.ds.irods_ctl:
+        state: started
