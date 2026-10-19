@@ -299,6 +299,7 @@
             - Restart httpd
 
     - name: Install dnf versionlock
+      when: ansible_distribution_major_version >= '8'
       ansible.builtin.package:
         name: python3-dnf-plugin-versionlock
         state: present
@@ -372,7 +373,18 @@
       register: resp
       changed_when: resp.stdout is regex('^changed')
 
-    - name: Install davrods
+    - name: Install davrods CentOS 7
+      when: ansible_distribution_major_version < '8'
+      ansible.builtin.yum:
+        name: >-
+          https://github.com/UtrechtUniversity/davrods/releases/download/{{ _webdav_davrods_release }}/davrods-{{
+            _webdav_davrods_release }}-1.rpm
+        # The davrods release RPMs aren't signed.
+        disable_gpg_check: true
+        state: present
+
+    - name: Install davrods AlmaLinux
+      when: ansible_distribution_major_version >= '8'
       ansible.builtin.dnf:
         name: >-
           https://github.com/UtrechtUniversity/davrods/releases/download/{{ _webdav_davrods_release }}/davrods-{{
@@ -455,7 +467,7 @@
         mode: a+r
 
     - name: Install varnish-cache package
-      ansible.builtin.dnf:
+      ansible.builtin.package:
         name: varnish
         state: present
 
