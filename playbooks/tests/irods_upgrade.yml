@@ -19,6 +19,10 @@
       vars:
         release_pattern: ^{{ _irods_version | regex_escape }}([.-]|$)
 
+    - name: Verify the release's rule bases are installed
+      when: "'irods-server' in ansible_facts.packages"
+      ansible.builtin.import_tasks: tasks/irods/test_release_rulebases.yml
+
     - name: Verify the upgraded servers are running
       when: "'irods-server' in ansible_facts.packages"
       become: true

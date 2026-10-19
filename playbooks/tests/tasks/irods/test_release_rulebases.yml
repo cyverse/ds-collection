@@ -1,0 +1,10 @@
+---
+- name: Test release rule bases | verify the iRODS release's rule bases are in place
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /etc/irods/{{ item | basename }}
+    mode: u+r
+  check_mode: true
+  register: resp
+  failed_when: resp is changed or resp is failed
+  with_fileglob: ../files/irods/etc/irods/{{ _irods_version }}/*.re

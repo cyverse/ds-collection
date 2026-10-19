@@ -8,6 +8,13 @@
       tags:
         - no_testing
 
+- name: Check the iRODS release
+  hosts: irods
+  gather_facts: false
+  tasks:
+    - name: Check the release's rule bases
+      ansible.builtin.import_tasks: tasks/irods/check_release_rulebases.yml
+
 # XXX: This can be removed after upgrading to iRODS 5.1.0
 - name: TAR slip workaround
   hosts: irods
@@ -83,6 +90,7 @@
         irods_cfg_restart_allowed: "{{ _irods_restart_allowed }}"
         irods_cfg_rulebases_static:
           - files/irods/etc/irods/*.re
+          - files/irods/etc/irods/{{ _irods_version }}/*.re
         irods_cfg_rulebases_templated:
           - templates/irods/etc/irods/*.re.j2
         irods_cfg_server_control_plane_key: "{{ _irods_server_control_plane_key }}"
@@ -144,6 +152,7 @@
         irods_cfg_restart_allowed: "{{ _irods_restart_allowed }}"
         irods_cfg_rulebases_static:
           - files/irods/etc/irods/*.re
+          - files/irods/etc/irods/{{ _irods_version }}/*.re
         irods_cfg_rulebases_templated:
           - templates/irods/etc/irods/*.re.j2
         irods_cfg_server_control_plane_key: "{{ _irods_server_control_plane_key }}"

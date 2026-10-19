@@ -145,6 +145,8 @@
   hosts: irods_catalog
   become: true
   become_user: irods
+  vars_files:
+    - ../group_vars/all/irods.yml
   tasks:
     - name: Check common configuration files in place
       ansible.builtin.stat:
@@ -162,9 +164,11 @@
         - core.fnm
         - core.re
         - cve.re
+        - cve_version.re
         - cyverse.re
         - cyverse-env.re
         - cyverse_core.re
+        - cyverse_core_version.re
         - cyverse_encryption.re
         - cyverse_housekeeping.re
         - cyverse_json.re
@@ -176,6 +180,9 @@
         - pire-env.re
         - server_config.json
         - service_account.config
+
+    - name: Verify the iRODS release's rule bases are in place
+      ansible.builtin.import_tasks: tasks/irods/test_release_rulebases.yml
 
     - name: Verify old config do not exist
       ansible.builtin.stat:

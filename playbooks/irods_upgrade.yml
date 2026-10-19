@@ -7,6 +7,9 @@
   hosts: irods:!irods_resource_container:!unmanaged_systems
   become: true
   tasks:
+    - name: Check the release's rule bases
+      ansible.builtin.import_tasks: tasks/irods/check_release_rulebases.yml
+
     - name: Gather the installed packages
       ansible.builtin.package_facts:
 
@@ -60,6 +63,25 @@
 # irods-runtime of its own release.
 - name: Upgrade iRODS | upgrade the packages
   ansible.builtin.import_playbook: irods_provision.yml
+
+
+# The rule bases shared by every release don't change with it, so only the release's own are
+# installed. The upgraded servers are stopped, so the new release starts with them. A server
+# already on the release gets them too, in case it has another release's.
+- name: Upgrade iRODS | install the release's rule bases
+  hosts: irods:!irods_resource_container:!unmanaged_systems
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Install
+      when: irods_upgrade_installed != ''
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: /etc/irods/{{ item | basename }}
+        owner: "{{ _irods_service_account_name }}"
+        group: "{{ _irods_service_group_name }}"
+        mode: u+r
+      with_fileglob: files/irods/etc/irods/{{ _irods_version }}/*.re
 
 
 - name: Upgrade iRODS | start the catalog service providers
