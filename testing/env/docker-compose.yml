@@ -28,9 +28,8 @@ services:
       dockerfile: webdav/Dockerfile.configured
     cgroup: private
     platform: linux/amd64
+    # No AppArmor profile, since docker-default denies the tmpfs mount webdav.yml makes for varnish
     privileged: true
-    security_opt:
-      - apparmor=docker-default
     tmpfs:
       - /run
       - /run/lock
@@ -42,9 +41,8 @@ services:
       dockerfile: webdav/Dockerfile.unconfigured
     cgroup: private
     platform: linux/amd64
+    # No AppArmor profile, since docker-default denies the tmpfs mount webdav.yml makes for varnish
     privileged: true
-    security_opt:
-      - apparmor=docker-default
     tmpfs:
       - /run
       - /run/lock
