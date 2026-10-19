@@ -230,14 +230,15 @@
         - no_testing
 
   pre_tasks:
-    - name: Require an EL8 host
+    - name: Require an EL8 host or older
       ansible.builtin.assert:
         that:
           - ansible_os_family == 'RedHat'
-          - ansible_distribution_major_version == '8'
+          - ansible_distribution_major_version <= '8'
         fail_msg: >-
-          WebDAV hosts must run EL8. davrods {{ _webdav_davrods_release }} needs irods-runtime
-          {{ _webdav_davrods_irods_version }}, which iRODS doesn't publish for EL9 or later.
+          WebDAV hosts must run on EL7 or EL8. davrods {{ _webdav_davrods_release }} needs
+          irods-runtime {{ _webdav_davrods_irods_version }}, which iRODS doesn't publish for EL9 or
+          later.
 
     - name: Install prerequisites for selinux_permissive
       when: ansible_selinux.status == 'enabled'
@@ -607,6 +608,12 @@
             path: /tmp/purgeman_setup
             state: directory
             mode: u+rwx
+
+        - name: Purgeman | installed required packages for ansible.builtin.archive
+          ansible.builtin.package:
+            name:
+              - tar
+              - unzip
 
         - name: Purgeman | download new package from github and uncompress
           ansible.builtin.unarchive:
