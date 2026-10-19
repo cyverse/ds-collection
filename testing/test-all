@@ -1,0 +1,261 @@
+#!/usr/bin/env bash
+#
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
+help() {
+	cat <<EOF
+
+$EXEC_NAME
+
+Usage:
+$EXEC_NAME [options] [test ...]
+
+run the playbook, plugin, and iRODS rule tests
+
+Parameters:
+ test  the ID of a test to run, as --list prints it, e.g., playbook/irods_cfg,
+       plugin/modules/irods_avu, or rules; every test runs if none is given
+
+Options:
+ -h, --help                     show help and exit
+ -l, --list                     print the ID of every test and exit
+ -o, --output <dir>             the directory to write each test's output to,
+                                default ./test-results
+ -v, --irods-version <version>  run the configured iRODS servers on iRODS
+                                <version> instead of 4.3.1, and pass it to the
+                                playbooks as irods_version
+
+Environment Variables:
+ IRODS_VERSION  the iRODS release to run, as with --irods-version, which takes
+                precedence
+
+Output:
+ It writes a line for each test as the test finishes, then how many tests
+ passed and the ID of each one that failed. It writes the summary to
+ <dir>/summary.txt as well, and each test's output to <dir>/<ID>.log, with the
+ slashes in the ID replaced by underscores.
+
+Summary:
+This script runs each test in a fresh testing environment: every playbook's
+test with the inventory and setup playbooks it needs, through test-playbook,
+every plugin's test with hosts-configured, through test-plugin, and the iRODS
+rule tests, through test-rules. It doesn't need a terminal, so it can run from
+a CI job.
+EOF
+}
+
+
+set -o errexit -o nounset -o pipefail
+
+EXEC_NAME="$(readlink -f "$0")"
+TESTING_DIR="$(dirname "$EXEC_NAME")"
+COLLECTION_DIR="$(dirname "$TESTING_DIR")"
+readonly EXEC_NAME TESTING_DIR COLLECTION_DIR
+
+#shellcheck source=testing/portability.sh
+source "$TESTING_DIR"/portability.sh
+#shellcheck source=testing/irods_version.sh
+source "$TESTING_DIR"/irods_version.sh
+#shellcheck source=testing/results.sh
+source "$TESTING_DIR"/results.sh
+
+portability::require_bash 4
+
+# The inventories of the playbook tests that don't use test-playbook's default,
+# hosts-all, which includes hosts nothing has provisioned
+declare -A -r PLAYBOOK_INVENTORIES=(
+	[avra_usage]=hosts-unconfigured-consumer
+	[dbms_icat]=hosts-configured
+	[esiil_usage]=hosts-unconfigured-consumer
+	[irods_catalog_provider]=hosts-unconfigured-provider
+	[irods_cfg]=hosts-configured
+	[irods_free_space]=hosts-unconfigured-consumer
+	[irods_resource_hierarchies]=hosts-configured
+	[irods_resource_server]=hosts-unconfigured-consumer
+	[irods_restart_all]=hosts-configured
+	[irods_restart_rs]=hosts-configured
+	[irods_runtime_init]=hosts-configured
+	[irods_s3_cred]=hosts-configured
+	[irods_specific_queries]=hosts-configured
+	[irods_storage_resources]=hosts-unconfigured-consumer
+	[ncems_usage]=hosts-unconfigured-consumer
+	[pire_usage]=hosts-unconfigured-consumer )
+
+# The setup playbooks of the playbook tests that need any. irods_resource_server
+# needs the rodsadmin group, and the free-space test the others share checks the
+# avra and pire resources, which only the unconfigured consumer defines. The
+# start and stop tests install their services, then put them in the opposite
+# state, so that their checks can fail.
+declare -A -r PLAYBOOK_SETUPS=(
+	[avra_usage]='irods_runtime_init,irods_resource_server'
+	[esiil_usage]='irods_runtime_init,irods_resource_server'
+	[irods_free_space]='irods_runtime_init,irods_resource_server'
+	[irods_resource_server]=irods_runtime_init
+	[irods_storage_resources]='irods_runtime_init,irods_resource_server'
+	[ncems_usage]='irods_runtime_init,irods_resource_server'
+	[pire_usage]='irods_runtime_init,irods_resource_server'
+	[sftp_start]='sftp,sftp_stop'
+	[sftp_stop]='sftp,sftp_start'
+	[webdav_start]='webdav,webdav_stop'
+	[webdav_stop]='webdav,webdav_start' )
+
+
+main() {
+	local args
+	if ! args="$(
+		portability::getopt hlo:v: help,list,output:,irods-version: "$EXEC_NAME" "$@" )"
+	then
+		exit_with_help
+	fi
+
+	eval set -- "$args"
+
+	local output=test-results
+	while true; do
+		case "$1" in
+			-h|--help)
+				help
+				return
+				;;
+			-l|--list)
+				list_tests
+				return
+				;;
+			-o|--output)
+				output="$2"
+				shift 2
+				;;
+			-v|--irods-version)
+				export IRODS_VERSION="$2"
+				shift 2
+				;;
+			--)
+				shift 1
+				break
+				;;
+		esac
+	done
+
+	if ! irods_version::check; then
+		exit_with_help
+	fi
+
+	local playbook
+	for playbook in "${!PLAYBOOK_INVENTORIES[@]}" "${!PLAYBOOK_SETUPS[@]}"; do
+		if ! [[ -f "$COLLECTION_DIR"/playbooks/"$playbook".yml ]]; then
+			printf "The tables in %s name the playbook %s, which doesn't exist\n" \
+				"$EXEC_NAME" "$playbook" >&2
+			exit 1
+		fi
+	done
+
+	local known
+	readarray -t known < <(list_tests)
+
+	local tests=("$@")
+	if (( ${#tests[@]} == 0 )); then
+		tests=("${known[@]}")
+	fi
+
+	local -A isKnown=()
+	local test
+	for test in "${known[@]}"; do
+		isKnown[$test]=1
+	done
+
+	for test in "${tests[@]}"; do
+		if [[ -z "${isKnown[$test]-}" ]]; then
+			printf 'There is no test with the ID %s\n' "$test" >&2
+			exit 1
+		fi
+	done
+
+	mkdir -p "$output"
+
+	local failed=()
+	for test in "${tests[@]}"; do
+		local start="$SECONDS"
+		local status=PASSED
+		if ! run_test "$test" > "$output"/"${test//\//_}".log 2>&1; then
+			status=FAILED
+			failed+=("$test")
+		fi
+
+		printf '%s %s (%d s)\n' "$status" "$test" $(( SECONDS - start ))
+	done
+
+	results::print_summary tests "${#tests[@]}" ${failed[@]+"${failed[@]}"} \
+		| tee "$output"/summary.txt
+
+	if (( ${#failed[@]} > 0 )); then
+		return 1
+	fi
+}
+
+
+exit_with_help() {
+	help >&2
+	exit 1
+}
+
+
+# Writes the ID of every test to stdout, one per line: playbook/<name> for each
+# playbook, plugin/<type>/<name> for each plugin with a test playbook, and rules.
+list_tests() {
+	local file
+	for file in "$COLLECTION_DIR"/playbooks/*.yml; do
+		printf 'playbook/%s\n' "$(basename "$file" .yml)"
+	done
+
+	for file in "$COLLECTION_DIR"/plugins/*/tests/*.yml; do
+		local name
+		name="$(basename "$file" .yml)"
+
+		local typeDir
+		typeDir="$(dirname "$(dirname "$file")")"
+
+		if [[ -f "$typeDir"/"$name".py ]]; then
+			printf 'plugin/%s/%s\n' "$(basename "$typeDir")" "$name"
+		fi
+	done
+
+	printf 'rules\n'
+}
+
+
+# Runs a test in its own testing environment, without a terminal.
+# Input:
+#  $1  the test's ID
+# Output:
+#  the test's output to stdout and stderr
+run_test() {
+	local test="$1"
+
+	local name
+	case "$test" in
+		playbook/*)
+			name="${test#playbook/}"
+
+			local opts=(-P "$name")
+			if [[ -n "${PLAYBOOK_INVENTORIES[$name]-}" ]]; then
+				opts+=(-I "${PLAYBOOK_INVENTORIES[$name]}")
+			fi
+			if [[ -n "${PLAYBOOK_SETUPS[$name]-}" ]]; then
+				opts+=(-S "${PLAYBOOK_SETUPS[$name]}")
+			fi
+
+			"$TESTING_DIR"/test-playbook "${opts[@]}" < /dev/null
+			;;
+		plugin/*)
+			name="${test#plugin/}"
+			"$TESTING_DIR"/test-plugin -I hosts-configured "${name%/*}" "${name#*/}" < /dev/null
+			;;
+		rules)
+			"$TESTING_DIR"/test-rules < /dev/null
+			;;
+	esac
+}
+
+
+main "$@"

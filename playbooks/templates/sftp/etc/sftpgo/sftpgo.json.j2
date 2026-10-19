@@ -441,7 +441,10 @@
           "IRODS_SSL_SALT_SIZE={{ _sftp_irods_ssl_salt_size }}",
           "IRODS_SSL_HASH_ROUNDS={{ _sftp_irods_ssl_hash_rounds }}",
           "IRODS_SHARED=/{{ _sftp_irods_zone }}/home/shared",
-          "SFTPGO_HOME_PATH={{ _sftp_vault_dir }}/data"
+          "IRODS_POOL_ENDPOINT={{ _sftp_irods_pool_endpoint }}",
+          "SFTPGO_HOME_PATH={{ _sftp_vault_dir }}/data",
+          "SFTPGO_LOG_DIR={{ _sftp_vault_dir }}/auth_logs",
+          "SFTPGO_AUTH_CACHE_TIME={{ _sftp_auth_cache_time }}"
         ],
         "args": [],
         "hook": ""

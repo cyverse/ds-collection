@@ -151,10 +151,12 @@ Variable                                   | Required | Default                 
 `sftp_admin_tls_key_file`                  | no       |                                      |         | The TLS key file for SFTPGo admin access
 `sftp_admin_ui_port`                       | no       | 18023                                |         | The SFTPGo admin UI service port number
 `sftp_admin_username`                      | no       | admin                                |         | The SFTPGo admin account name
+`sftp_auth_cache_time`                     | no       | 60                                   |         | The number of seconds SFTPGo may reuse a successful iRODS authentication before running sftpgo-auth-irods again
 `sftp_irods_admin_password`                | yes      |                                      |         | The password for the rodsadmin user that creates the iRODS user for SFTP
 `sftp_irods_admin_username`                | no       | rods                                 |         | The rodsadmin user that creates tbe iRODS user for SFTP
 `sftp_irods_auth_scheme`                   | no       | native                               |         | The auth scheme of irods. 'pam' and 'pam_for_users' are also available.
 `sftp_irods_host`                          | no       | localhost                            |         | The hostname of the iRODS server SFTP uses
+`sftp_irods_pool_endpoint`                 | no       |                                      |         | The irodsfs-pool service endpoint, e.g. `tcp://host:port` or `unix:///path/to/socket`, SFTPGo connects to iRODS through. If empty, it connects to iRODS directly
 `sftp_irods_port`                          | no       | 1247                                 |         | The iRODS SFTP will use to connect to iRODS
 `sftp_irods_proxy_password`                | yes      |                                      |         | The password of the SFTPGo irods proxy user
 `sftp_irods_proxy_username`                | no       | sftp                                 |         | The irods user who provides proxy access to SFTPGo

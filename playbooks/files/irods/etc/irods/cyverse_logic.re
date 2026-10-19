@@ -949,7 +949,7 @@ _cyverse_logic_isAdm(*Username, *UserZone) =
 # Gets the new AVU setting from a list of candidates. New AVU settings are
 # passed in an arbitrary order and the type of AVU setting is identified by a
 # prefix. This function looks for values matching the given prefix. If multiple
-# matching values are found then the last one wins.
+# matching values are found then the first one wins.
 #
 _cyverse_logic_getNewAVUSetting(*Orig, *Prefix, *Candidates) =
 	if size(*Candidates) == 0 then *Orig
@@ -991,12 +991,8 @@ cyverse_logic_chksumRepl(*DataId, *ReplNum) {
 
 		if (*status < 0) {
 			msiGetStderrInExecCmdOut(*resp, *msg);
-
-			writeLine(
-				'serverLog', 'failed to compute checksum for *DataId (*dataPath): *err (*msg)' );
+			failmsg(*status, 'failed to compute checksum for *DataId (*dataPath): *err (*msg)');
 		}
-
-		*status;
 # XXX - ^^^
 	}
 }

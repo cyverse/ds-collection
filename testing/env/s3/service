@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+#
+# Usage:
+#  service (start|stop)
+#
+# Starts or stops the moto S3 server the S3 resource tests store data in. It
+# listens on port 5000, keeps everything in memory, and accepts any credentials.
+#
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
+set -o errexit -o nounset -o pipefail
+
+readonly LOG=/var/log/moto.log
+readonly PID_FILE=/run/moto.pid
+readonly PORT=5000
+
+
+main() {
+	case "${1-}" in
+		start)
+			start
+			;;
+		stop)
+			stop
+			;;
+		*)
+			printf 'Usage: %s (start|stop)\n' "$0" >&2
+			return 1
+			;;
+	esac
+}
+
+
+start() {
+	nohup moto_server --host 0.0.0.0 --port "$PORT" > "$LOG" 2>&1 &
+	echo "$!" > "$PID_FILE"
+
+	for _ in {1..30}; do
+		if curl --silent --output /dev/null http://localhost:"$PORT"/; then
+			return 0
+		fi
+
+		sleep 1
+	done
+
+	printf 'moto did not start listening on port %s; see %s\n' "$PORT" "$LOG" >&2
+	return 1
+}
+
+
+stop() {
+	if ! [[ -f "$PID_FILE" ]]; then
+		return 0
+	fi
+
+	local pid
+	pid="$(< "$PID_FILE")"
+
+	if kill "$pid" 2> /dev/null; then
+		while kill -0 "$pid" 2> /dev/null; do
+			sleep 0.2
+		done
+	fi
+
+	rm --force "$PID_FILE"
+}
+
+
+main "$@"

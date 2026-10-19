@@ -58,7 +58,7 @@ The following actions need to be performed for each person who will be developin
 
 1. The following python packages need to be installed on the development machines and Ansible control nodes using `pip`.
 
-   * ansible-core<2.17.0
+   * ansible-core<2.19.0
    * ansible-lint
    * dnspython
    * docker
