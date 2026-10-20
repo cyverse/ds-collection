@@ -189,3 +189,11 @@ services:
   cbuoy:
     image: test-env-base:alma9
     platform: linux/amd64
+
+  # The S3 resource tests reach it as s3, its service name. moto reads a dotted host name as a
+  # virtual-hosted bucket, so the container's FQDN doesn't work.
+  s3:
+    build:
+      context: .
+      dockerfile: s3/Dockerfile
+    platform: linux/amd64
