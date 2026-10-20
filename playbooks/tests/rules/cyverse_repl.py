@@ -658,6 +658,49 @@ class TestFileresc(IrodsTestCase):
                     '_repl_findResc', [p], IrodsVal.tuple_string_string(('avraRes', 'forced')))
 
 
+class TestHasgoodreplica(IrodsTestCase):
+    """Tests of _repl_hasGoodReplica"""
+
+    def __init__(self, method: str):
+        super().__init__(method)
+        self._objPath = None
+        self._objId = 0
+
+    def setUp(self):
+        super().setUp()
+        self._objPath = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
+        self._objId = self.irods.data_objects.create(self._objPath).id  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+
+    def tearDown(self):
+        if self._objPath:
+            self.ensure_obj_absent(self._objPath)
+        super().tearDown()
+
+    def test(self):
+        """Verify that only a good replica on the given resource is found"""
+        cases = [
+            ("replica on resource", self._objId, 'ingestRes', True),
+            ("no replica on resource", self._objId, 'replRes', False),
+            ("data object gone", 1, 'ingestRes', False),
+        ]
+        for name, data_id, resc, expected in cases:
+            with self.subTest(name):
+                self.fn_test(
+                    '_repl_hasGoodReplica',
+                    [IrodsVal.integer(data_id), IrodsVal.string(resc)],
+                    IrodsVal.boolean(expected))
+
+    def test_gone_not_logged(self):
+        """Verify that a data object without good replicas isn't logged as a failure"""
+        self.fn_test(
+            '_repl_hasGoodReplica',
+            [IrodsVal.integer(1), IrodsVal.string('ingestRes')],
+            IrodsVal.boolean(False))
+        for line in self.tail_rods_log():
+            if 'failed to look up good replicas' in line:
+                self.fail("logged a failure when there were no good replicas")
+
+
 class TestFindreplresc(IrodsTestCase):
     """Tests of _repl_findReplResc"""
 
