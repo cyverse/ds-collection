@@ -280,14 +280,18 @@ _repl_hasGoodReplica(*DataId, *RescName) =
 		"select DATA_RESC_HIER where DATA_ID = '*DataId' and DATA_REPL_STATUS = '1'" ) in
 	let *argStr = '*fmtArg *queryArg' in
 	let *status = errormsg(msiExecCmd('iquest-exec', *argStr, '', '', '', *resp), *err) in
-	let *_ = msiGetStdoutInExecCmdOut(*resp, *hiers) in
+	let *hiers = '' in
+	# msiExecCmd leaves *resp unset when it can't run the command at all.
+	let *_ = errorcode(msiGetStdoutInExecCmdOut(*resp, *hiers)) in
 	# iquest fails when nothing matches, writing CAT_NO_ROWS_FOUND to stdout, which
 	# matches no resource below.
 	if *status < 0 && !(*hiers like 'CAT_NO_ROWS_FOUND*')
 		then
-			let *_ = msiGetStderrInExecCmdOut(*resp, *msg) in
+			let *msg = '' in
+			let *_ = errorcode(msiGetStderrInExecCmdOut(*resp, *msg)) in
 			let *_ = _repl_logMsg(
-				'failed to look up good replicas of data object *DataId, assuming none: *err (*msg)' ) in
+				'failed to look up good replicas of data object *DataId, assuming none; this usually'
+				++ ' means iquest-exec could not run or reach the catalog provider: *err (*msg)' ) in
 			false
 		else
 			let *found = false in

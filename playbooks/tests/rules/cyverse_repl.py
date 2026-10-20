@@ -665,15 +665,29 @@ class TestHasgoodreplica(IrodsTestCase):
         super().__init__(method)
         self._objPath = None
         self._objId = 0
+        self._staleObjPath = None
+        self._staleObjId = 0
+        self._staleResc = ''
 
     def setUp(self):
         super().setUp()
         self._objPath = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
         self._objId = self.irods.data_objects.create(self._objPath).id  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+        self._staleObjPath = iRODSPath(self.irods.zone, "home", self.irods.username, "stale_obj")
+        stale_obj = self.irods.data_objects.create(self._staleObjPath)
+        stale_obj.replicate(resource='replRes')
+        with stale_obj.open('r+') as f:
+            f.write(b'change')
+        stale_obj = self.irods.data_objects.get(self._staleObjPath)
+        self._staleObjId = stale_obj.id  # type: ignore  # pylint: disable=no-member
+        self._staleResc = next(
+            r.resc_hier.split(';')[0] for r in stale_obj.replicas if r.status == '0')
 
     def tearDown(self):
         if self._objPath:
             self.ensure_obj_absent(self._objPath)
+        if self._staleObjPath:
+            self.ensure_obj_absent(self._staleObjPath)
         super().tearDown()
 
     def test(self):
@@ -681,24 +695,19 @@ class TestHasgoodreplica(IrodsTestCase):
         cases = [
             ("replica on resource", self._objId, 'ingestRes', True),
             ("no replica on resource", self._objId, 'replRes', False),
+            ("stale replica on resource", self._staleObjId, self._staleResc, False),
             ("data object gone", 1, 'ingestRes', False),
         ]
+        log_start = len(self.tail_rods_log())
         for name, data_id, resc, expected in cases:
             with self.subTest(name):
                 self.fn_test(
                     '_repl_hasGoodReplica',
                     [IrodsVal.integer(data_id), IrodsVal.string(resc)],
                     IrodsVal.boolean(expected))
-
-    def test_gone_not_logged(self):
-        """Verify that a data object without good replicas isn't logged as a failure"""
-        self.fn_test(
-            '_repl_hasGoodReplica',
-            [IrodsVal.integer(1), IrodsVal.string('ingestRes')],
-            IrodsVal.boolean(False))
-        for line in self.tail_rods_log():
+        for line in self.tail_rods_log()[log_start:]:
             if 'failed to look up good replicas' in line:
-                self.fail("logged a failure when there were no good replicas")
+                self.fail("logged a lookup failure when the lookup succeeded")
 
 
 class TestFindreplresc(IrodsTestCase):
