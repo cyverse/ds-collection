@@ -44,6 +44,10 @@ cyverse_repl_replicate(*DataId, *RescName) {
 
 	if (*dataPath == '/') {
 		_repl_logMsg('data object *DataId no longer exists');
+	} else if (_repl_hasGoodReplica(*DataId, *RescName)) {
+		# As of iRODS 4.3.4, irepl succeeds without doing anything in this case
+		# instead of failing with SYS_NOT_ALLOWED, so it is checked first.
+		_repl_logMsg('data object *dataPath already replicated');
 	} else {
 		temporaryStorage.cyverse_repl_replicate = 'REPL_FORCED_REPL_RESC';
 
@@ -256,6 +260,20 @@ _repl_findResc(*ObjPath) =
 			}
 		} in
 	(*resc, *residency)
+
+# Determines whether a data object has a good replica on the given root
+# resource.
+_repl_hasGoodReplica(*DataId, *RescName) =
+	let *found = false in
+	let *_ = foreach ( *rec in
+			SELECT DATA_RESC_HIER WHERE DATA_ID = '*DataId' AND DATA_REPL_STATUS = '1'
+		) {
+			if (hd(split(*rec.DATA_RESC_HIER, ';')) == *RescName) {
+				*found = true;
+				break;
+			}
+		} in
+	*found
 
 # Given a resource, this rule determines the list of resources that
 # asynchronously replicate its replicas.
