@@ -110,7 +110,10 @@ The roles are tested with the molecule scenarios in `molecule/`, which run on th
 ```bash
 testing/test-molecule                              # every scenario
 testing/test-molecule haproxy irods_cfg_upgrade    # the named scenarios
+testing/test-molecule -v 4.3.4 irods_cfg_update    # on another iRODS release
 ```
+
+The `irods_cfg` scenarios install iRODS 4.3.1 unless `-v/--irods-version` or `IRODS_VERSION` names another release, and `irods_cfg_client` validates against that release's client schema. `irods_cfg_upgrade` starts from that release and upgrades to `IRODS_UPGRADE_VERSION`, default 4.3.4, and fails if that isn't later. Running molecule directly honors the same variables.
 
 It runs each scenario even when an earlier one fails, prints a summary, and exits nonzero if any failed. Along the way, it does the following.
 

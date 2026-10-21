@@ -121,8 +121,8 @@ class TestUserInfo(IrodsTestCase):
             IrodsVal.boolean(expected_result))
 
 
-class TestAvus(IrodsTestCase):
-    """Tests of private AVU rule logic"""
+class TestGetnewavusetting(IrodsTestCase):
+    """Tests of _cyverse_logic_getNewAVUSetting"""
 
     def test_no_candidates(self):
         """Verify that if no candidates are provided the orignal is returned"""
@@ -163,12 +163,13 @@ class TestAvus(IrodsTestCase):
         """
         self._test_getnewavusetting('orig', 'prefix', ['val1', 'prefix' + 'val2', 'val3'], 'val2')
 
-    @unittest.skip("not implemented")
     def test_multiple_candidates_mult_matches(self):
         """
         Verify that it works correctly when multiple candidates are provided
         and multiple start with the prefix.
         """
+        self._test_getnewavusetting(
+            'orig', 'prefix', ['prefix' + 'val1', 'prefix' + 'val2'], 'val1')
 
     def _test_getnewavusetting(self, orig_val, prefix, candidates, exp_res):
         self.fn_test(
@@ -177,12 +178,29 @@ class TestAvus(IrodsTestCase):
             IrodsVal.string(exp_res))
 
 
-class TestPrivateCyVerseLogic(IrodsTestCase):
-    """Tests of the internal logic"""
+@test_rules.unimplemented
+class TestChksumrepl(IrodsTestCase):
+    """Tests of cyverse_logic_chksumRepl"""
+
+
+class TestChecksums(IrodsTestCase):
+    """Tests of checksum logic"""
 
     @unittest.skip("not implemented")
-    def test_checksum(self):
-        """Test private checksum rule logic"""
+    def test_needschecksum(self):
+        """Test _cyverse_logic_needsChecksum"""
+
+    @unittest.skip("not implemented")
+    def test_schedchksumrepl(self):
+        """Test _cyverse_logic_schedChksumRepl"""
+
+    @unittest.skip("not implemented")
+    def test_ensurereplicachecksum(self):
+        """Test _cyverse_logic_ensureReplicaChecksum"""
+
+
+class TestPrivateCyVerseLogic(IrodsTestCase):
+    """Tests of the internal logic"""
 
     @unittest.skip("not implemented")
     def test_uuids(self):
