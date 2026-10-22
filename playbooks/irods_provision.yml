@@ -196,12 +196,6 @@
       loop: >-
         {{ _irods_netcdf_installed_packages + ['irods-resource-plugin-s3'] }}
 
-    - name: Ensure iRODS attempts to start on boot
-      ansible.builtin.service:
-        name: irods
-        enabled: true
-      tags: no_testing
-
     - name: Create service group
       ansible.builtin.group:
         name: "{{ _irods_service_group_name }}"
