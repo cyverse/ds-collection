@@ -17,6 +17,9 @@
       vars:
         dir: /var/lib/irods
 
+    - name: Test the command scripts are protected
+      ansible.builtin.import_tasks: tasks/irods/test_cmd_scripts_protected.yml
+
 
 - name: Test rule template expansion
   ansible.builtin.import_playbook: irods_rule_templates.yml
@@ -84,10 +87,7 @@
       ansible.builtin.stat:
         path: /var/lib/irods/msiExecCmd_bin/{{ item }}
       register: response
-      failed_when: >-
-        not response.stat.exists
-        or response.stat.pw_name != 'irods'
-        or not response.stat.xusr
+      failed_when: not response.stat.exists or not response.stat.xgrp
       loop:
         - add-transfer
         - amqp-topic-send
@@ -233,6 +233,148 @@
 
     - name: Verify iRODS running
       ansible.builtin.import_tasks: tasks/irods/test_running.yml
+
+
+- name: Test the S3 resource plugin stores data in S3
+  hosts: irods_resource_native:!irods_catalog
+  become: true
+  become_user: irods
+  vars:
+    s3_bucket: irods-s3-test
+    s3_context:
+      - S3_DEFAULT_HOSTNAME={{ s3_endpoint }}
+      - S3_AUTH_FILE={{ s3_keypair }}
+      - S3_PROTO=HTTP
+      - S3_REGIONNAME=us-east-1
+      - S3_RETRY_COUNT=1
+      - S3_WAIT_TIME_SECONDS=3
+      - S3_STSDATE=both
+      - HOST_MODE=cacheless_attached
+      - S3_CACHE_DIR=/var/lib/irods
+      - ARCHIVE_NAMING_POLICY=consistent
+    s3_endpoint: s3:5000
+    s3_key_prefix: "{{ inventory_hostname_short }}/"
+    s3_keypair: /var/lib/irods/s3-test.keypair
+    s3_list_url: http://{{ s3_endpoint }}/{{ s3_bucket }}?prefix={{ s3_key_prefix | urlencode }}
+    s3_resource: s3Test_{{ inventory_hostname_short | replace('-', '_') }}
+    s3_vault: /{{ s3_bucket }}/{{ inventory_hostname_short }}
+    # The replication and checksum rules can schedule delayed rules for the test object, and those
+    # would race the overwrite and the removal. iqstat doesn't show rule arguments, so this waits for
+    # every pending rule of those kinds.
+    wait_for_delayed_rules: |
+      wait_for_delayed_rules() {
+        local rules
+        for _ in {1..60}; do
+          rules="$(iqstat -a)"
+          if ! grep --quiet --extended-regexp -- '^[0-9]+ +(cyverse_repl_|cyverse_logic_chksumRepl)' <<< "$rules"; then
+            return 0
+          fi
+          sleep 2
+        done
+        printf 'delayed replication or checksum rules were still pending after 2 minutes; see the delay server log on the catalog provider\n' >&2
+        return 1
+      }
+  tasks:
+    # The s3 service may still be starting.
+    - name: Create the bucket  # noqa: run-once[task]
+      run_once: true
+      ansible.builtin.uri:
+        url: http://{{ s3_endpoint }}/{{ s3_bucket }}
+        method: PUT
+      register: response
+      until: response is succeeded
+      retries: 15
+      delay: 2
+
+    # The test S3 server accepts any credentials.
+    - name: Create the S3 credentials
+      ansible.builtin.copy:
+        dest: "{{ s3_keypair }}"
+        content: |
+          test-access-key
+          test-secret-key
+        mode: u=r
+
+    - name: Test put, get, overwrite, checksum and remove through an S3 resource
+      block:
+        - name: Create the S3 resource
+          ansible.builtin.command:
+            argv:
+              - iadmin
+              - mkresc
+              - "{{ s3_resource }}"
+              - s3
+              - "{{ inventory_hostname }}:{{ s3_vault }}"
+              - "{{ s3_context | join(';') }}"
+          changed_when: true
+
+        # 40 MB is over the 32 MB single-buffer limit, so the first put uses parallel transfer and a
+        # multipart upload, and the 5 kB overwrite uses a single buffer.
+        - name: Move data through the S3 resource
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o errexit -o pipefail
+              {{ wait_for_delayed_rules }}
+              src="$(mktemp)"
+              dest="$(mktemp)"
+              trap 'rm --force "$src" "$dest"' EXIT
+
+              head --bytes=40000000 /dev/urandom > "$src"
+              iput -K -R {{ s3_resource }} "$src" s3-test.dat
+              wait_for_delayed_rules
+              iget -f -K -R {{ s3_resource }} s3-test.dat "$dest"
+              if [[ "$(md5sum < "$src")" != "$(md5sum < "$dest")" ]]; then
+                printf 'the data read back differs from the data written\n' >&2
+                exit 1
+              fi
+
+              head --bytes=5000 /dev/urandom > "$src"
+              iput -f -K -R {{ s3_resource }} "$src" s3-test.dat
+              wait_for_delayed_rules
+              iget -f -K -R {{ s3_resource }} s3-test.dat "$dest"
+              if [[ "$(md5sum < "$src")" != "$(md5sum < "$dest")" ]]; then
+                printf 'the overwritten data read back differs\n' >&2
+                exit 1
+              fi
+
+              ichksum -K -R {{ s3_resource }} s3-test.dat > /dev/null
+          changed_when: true
+
+        - name: Test the data is in S3
+          ansible.builtin.uri:
+            url: "{{ s3_list_url }}"
+            return_content: true
+          register: response
+          failed_when: response.content is not search('<Key>' ~ s3_key_prefix ~ '.*s3-test\.dat</Key>')
+
+        - name: Remove the data object
+          ansible.builtin.command: irm -f s3-test.dat
+          changed_when: true
+
+        - name: Test removing the data object removed the S3 object
+          ansible.builtin.uri:
+            url: "{{ s3_list_url }}"
+            return_content: true
+          register: response
+          failed_when: response.content is search('<Key>')
+
+      always:
+        # Only needed when a step above failed before the removal.
+        - name: Ensure the test data object is gone
+          ansible.builtin.command: irm -f s3-test.dat
+          register: response
+          changed_when: response.rc == 0
+          failed_when: false
+
+        - name: Remove the S3 resource
+          ansible.builtin.command: iadmin rmresc {{ s3_resource }}
+          changed_when: true
+
+        - name: Remove the S3 credentials
+          ansible.builtin.file:
+            path: "{{ s3_keypair }}"
+            state: absent
 
 
 - name: Test storage resource creation

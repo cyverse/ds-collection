@@ -20,9 +20,10 @@ Parameters:
 Options:
  -h, --help                     show help and exit
  -u, --upgrade-from <version>   start the configured iRODS servers on iRODS
-                                <version>, then upgrade them with
-                                irods_upgrade.yml to the --irods-version
-                                release before preparing the environment
+                                <version> and prepare the environment on it,
+                                then upgrade them with irods_upgrade.yml to
+                                the --irods-version release, so that the tests
+                                run on the rule bases the upgrade left
  -v, --irods-version, --to-version <version>
                                 run the configured iRODS servers on iRODS
                                 <version> instead of 4.3.1, building their
@@ -129,9 +130,12 @@ main() {
 
 	# Set before starting, so a start that fails partway doesn't leave containers behind.
 	trap stop_env EXIT
-	"$TESTING_DIR"/env/controller "$CFG" start
 
-	prepare_env
+	# The controller prepares the environment, before any upgrade, so that the
+	# tests check the rule bases an upgrade leaves, not freshly deployed ones.
+	PREPARE_DATA_STORE=1 IRODS_UPGRADE_SNAPSHOT='' "$TESTING_DIR"/env/controller "$CFG" start
+
+	restart_in_test_mode
 
 	# A module that stops partway can leave a mock rule base deployed, so give
 	# each one a fresh container.
@@ -172,11 +176,9 @@ list_modules() {
 }
 
 
-# Deploys the Data Store's rule bases and what they depend on, then restarts
-# iRODS in test mode so that it writes the test_mode_output.log the tests read.
-prepare_env() {
-	data_store_env::prepare
-
+# Restarts iRODS in test mode so that it writes the test_mode_output.log the
+# tests read.
+restart_in_test_mode() {
 	local service
 	for service in "${IRODS_SERVICES[@]}"; do
 		printf 'Restarting iRODS on %s in test mode\n' "$service"

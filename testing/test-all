@@ -25,7 +25,9 @@ Options:
  -u, --upgrade-from <version>   upgrade a testing environment's configured
                                 iRODS servers from iRODS <version> to the
                                 --irods-version release with irods_upgrade.yml,
-                                then start each test from a snapshot of it
+                                then start each test from a snapshot of it,
+                                except the rule tests and irods_upgrade's,
+                                which upgrade a deployed Data Store of their own
  -v, --irods-version, --to-version <version>
                                 run the configured iRODS servers on iRODS
                                 <version> instead of 4.3.1, and pass it to the
@@ -90,7 +92,7 @@ declare -A -r PLAYBOOK_INVENTORIES=(
 	[irods_s3_cred]=hosts-configured
 	[irods_specific_queries]=hosts-configured
 	[irods_storage_resources]=hosts-unconfigured-consumer
-	[irods_upgrade]=hosts-configured
+	[irods_upgrade]=hosts-unconfigured-consumer
 	[ncems_usage]=hosts-unconfigured-consumer
 	[pire_usage]=hosts-unconfigured-consumer )
 
@@ -190,7 +192,7 @@ main() {
 
 	mkdir -p "$output"
 
-	if [[ -n "${IRODS_UPGRADE_FROM-}" ]]; then
+	if [[ -n "${IRODS_UPGRADE_FROM-}" ]] && uses_snapshot "${tests[@]}"; then
 		if ! make_upgrade_snapshot "$output"; then
 			return 1
 		fi
@@ -253,6 +255,22 @@ remove_upgrade_snapshot() {
 }
 
 
+# Succeeds when any of the given tests starts from the upgrade snapshot. The
+# rule tests and irods_upgrade's test upgrade their own environments.
+# Input:
+#  $@  the tests' IDs
+uses_snapshot() {
+	local test
+	for test in "$@"; do
+		if [[ "$test" != playbook/irods_upgrade && "$test" != rules ]]; then
+			return 0
+		fi
+	done
+
+	return 1
+}
+
+
 # Writes the ID of every test to stdout, one per line: playbook/<name> for each
 # playbook, plugin/<type>/<name> for each plugin with a test playbook, and rules.
 list_tests() {
@@ -289,11 +307,6 @@ run_test() {
 	case "$test" in
 		playbook/*)
 			name="${test#playbook/}"
-
-			# The upgrade playbook's test checks the upgrade itself, not a snapshot of it.
-			if [[ "$name" == irods_upgrade ]]; then
-				local -x IRODS_UPGRADE_SNAPSHOT=''
-			fi
 
 			local opts=(-P "$name")
 			if [[ -n "${PLAYBOOK_INVENTORIES[$name]-}" ]]; then

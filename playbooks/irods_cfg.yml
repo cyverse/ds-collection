@@ -15,19 +15,14 @@
     - name: Check the release's rule bases
       ansible.builtin.import_tasks: tasks/irods/check_release_rulebases.yml
 
-# XXX: This can be removed after upgrading to iRODS 5.1.0
-- name: TAR slip workaround
+# XXX: After upgrading to iRODS 5.1.0, the irods_cfg role can deploy the command scripts again.
+- name: TAR slip workaround | deploy the command scripts
   hosts: irods
   become: true
   gather_facts: false
   tasks:
-    - name: Ensure service account owns msiExecCmd_bin and its contents
-      ansible.builtin.file:
-        path: /var/lib/irods/msiExecCmd_bin
-        state: directory
-        owner: "{{ _irods_service_account_name }}"
-        recurse: true
-      tags: non_idempotent
+    - name: Deploy the command scripts
+      ansible.builtin.import_tasks: tasks/irods/deploy_cmd_scripts.yml
 # XXX: ^^^
 
 - name: Configure iRODS
@@ -49,8 +44,6 @@
           - "{{ inventory_hostname }}"
         irods_cfg_catalog_service_role: provider
         irods_cfg_client_server_policy: "{{ _irods_client_server_policy }}"
-        irods_cfg_cmd_scripts:
-          - files/irods/var/lib/irods/msiExecCmd_bin/*
         irods_cfg_database:
           db_host: "{{ _irods_dbms_host }}"
           db_odbc_driver: "{{ _irods_odbc_driver }}"
@@ -121,8 +114,6 @@
         irods_cfg_catalog_provider_hosts: "{{ groups['irods_catalog'] }}"
         irods_cfg_catalog_service_role: consumer
         irods_cfg_client_server_policy: "{{ _irods_client_server_policy }}"
-        irods_cfg_cmd_scripts:
-          - files/irods/var/lib/irods/msiExecCmd_bin/*
         irods_cfg_database: null
         irods_cfg_database_user_password_salt: "{{ _irods_user_password_salt }}"
         irods_cfg_default_dir_mode: "{{ _irods_default_dir_mode }}"
@@ -184,13 +175,3 @@
       ansible.builtin.file:
         path: /var/lib/irods/msiExecCmd_bin/correct-size
         state: absent
-
-    # XXX: This can be removed after upgrading to iRODS 5.1.0
-    - name: Ensure service account can't modify msiExecCmd_bin or its contents
-      ansible.builtin.file:
-        path: /var/lib/irods/msiExecCmd_bin
-        state: directory
-        owner: root
-        mode: go-w,g+rx
-        recurse: true
-    # XXX: ^^^
