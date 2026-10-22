@@ -33,6 +33,7 @@
         - coll2/sub_coll1
         - coll2/sub_coll2
         - coll3
+      tags: non_idempotent
 
     - name: Upload data for data user
       environment:
@@ -46,6 +47,7 @@
           done
           iput /tmp/junk /testing/trash/home/'{{ former_user_data }}'/data
       changed_when: true
+      tags: non_idempotent
 
   tasks:
     - name: Create user
