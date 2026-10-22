@@ -1,0 +1,110 @@
+---
+# Upgrades the iRODS servers with an earlier release installed to _irods_version. The catalog
+# service providers start before the consumers, since a provider updates the catalog schema when it
+# starts on a new release. A failure on any server stops the upgrade on all of them, so that no
+# server starts against a provider that wasn't upgraded.
+
+- name: Upgrade iRODS | find the servers to upgrade
+  hosts: irods:!irods_resource_container:!unmanaged_systems
+  become: true
+  any_errors_fatal: true
+  tasks:
+    - name: Gather the installed packages
+      ansible.builtin.package_facts:
+
+    # The upgrade provisions every server, so it would install iRODS on one that doesn't have it.
+    - name: Check iRODS is installed
+      ansible.builtin.assert:
+        that: "'irods-server' in ansible_facts.packages"
+        fail_msg: >-
+          iRODS isn't installed, so there's nothing to upgrade. Provision the server with
+          irods_provision.yml first, or leave it out of the inventory.
+
+    # A Debian version has a revision, e.g., 4.3.1-0~jammy.
+    - name: Determine the installed iRODS release
+      ansible.builtin.set_fact:
+        irods_upgrade_installed: >-
+          {{ ansible_facts.packages['irods-server'][0].version | split('-') | first }}
+
+    - name: Check iRODS isn't being downgraded
+      ansible.builtin.assert:
+        that: irods_upgrade_installed is version(_irods_version, '<=')
+        fail_msg: >-
+          iRODS {{ irods_upgrade_installed }} is installed, which is later than
+          {{ _irods_version }}. iRODS doesn't support downgrading.
+
+    - name: Group the servers to upgrade
+      when: irods_upgrade_installed is version(_irods_version, '<')
+      ansible.builtin.group_by:
+        key: irods_upgrading
+      changed_when: false
+
+
+- name: Upgrade iRODS | stop the catalog service consumers
+  hosts: irods_upgrading:&irods_resource:!irods_catalog
+  become: "{{ _irods_become_svc_acnt }}"
+  become_user: "{{ _irods_service_account_name }}"
+  any_errors_fatal: true
+  gather_facts: false
+  tasks:
+    - name: Stop
+      cyverse.ds.irods_ctl:
+        state: stopped
+
+
+- name: Upgrade iRODS | stop the catalog service providers
+  hosts: irods_upgrading:&irods_catalog
+  become: "{{ _irods_become_svc_acnt }}"
+  become_user: "{{ _irods_service_account_name }}"
+  any_errors_fatal: true
+  gather_facts: false
+  tasks:
+    - name: Stop
+      cyverse.ds.irods_ctl:
+        state: stopped
+
+
+# The package manager upgrades the installed plugins with irods-server, since each requires the
+# irods-runtime of its own release.
+- name: Upgrade iRODS | upgrade the packages
+  ansible.builtin.import_playbook: irods_provision.yml
+
+
+# A server that failed in irods_provision.yml is left out of the plays after it, rather than
+# stopping them, so none is started unless every one was upgraded.
+- name: Upgrade iRODS | check every server was upgraded
+  hosts: irods:!irods_resource_container:!unmanaged_systems
+  any_errors_fatal: true
+  gather_facts: false
+  tasks:
+    - name: Check
+      ansible.builtin.assert:
+        that: failed | length == 0
+        fail_msg: >-
+          Upgrading the packages failed on {{ failed | join(', ') }}, so no server was started.
+      vars:
+        failed: "{{ groups['irods_upgrading'] | d([]) | difference(ansible_play_hosts) }}"
+
+
+- name: Upgrade iRODS | start the catalog service providers
+  hosts: irods_upgrading:&irods_catalog
+  become: "{{ _irods_become_svc_acnt }}"
+  become_user: "{{ _irods_service_account_name }}"
+  any_errors_fatal: true
+  gather_facts: false
+  tasks:
+    - name: Start
+      cyverse.ds.irods_ctl:
+        state: started
+
+
+- name: Upgrade iRODS | start the catalog service consumers
+  hosts: irods_upgrading:&irods_resource:!irods_catalog
+  become: "{{ _irods_become_svc_acnt }}"
+  become_user: "{{ _irods_service_account_name }}"
+  any_errors_fatal: true
+  gather_facts: false
+  tasks:
+    - name: Start
+      cyverse.ds.irods_ctl:
+        state: started

@@ -24,7 +24,12 @@ Options:
                               files, vaults, and logs
  -p, --pretty                 more information will be output and newlines will
                               be expanded in that output.
- -v, --irods-version <version>
+ -u, --upgrade-from <version>
+                              start the configured iRODS servers on iRODS
+                              <version>, then upgrade them with
+                              irods_upgrade.yml to the --irods-version release
+                              before the setup playbooks run
+ -v, --irods-version, --to-version <version>
                               run the configured iRODS servers on iRODS
                               <version> instead of 4.3.1, building their images
                               if needed, and pass it to the playbooks as
@@ -36,9 +41,15 @@ hosts file is provided, it will use 'hosts-all'. If no playbook is provided, no
 playbook will be run. When combined with -i, this allows the environment to be
 started in interactive mode.
 
+The irods_upgrade playbook is tested on a deployed Data Store. The environment
+deploys it before any upgrade, and with --upgrade-from, adds the data the test
+checks survives the upgrade.
+
 Environment Variables:
- IRODS_VERSION  the iRODS release to run, as with --irods-version, which takes
-                precedence
+ IRODS_UPGRADE_FROM  the iRODS release to upgrade from, as with
+                     --upgrade-from, which takes precedence
+ IRODS_VERSION       the iRODS release to run, as with --irods-version, which
+                     takes precedence
 EOF
 }
 
@@ -76,6 +87,7 @@ main() {
 		[playbook]=''
 		[pretty]=''
 		[setup]=''
+		[upgrade]=''
 		[version]='' )
 
 	if ! resolve_opts opts "$@"
@@ -94,7 +106,12 @@ main() {
 		export IRODS_VERSION="${opts[version]}"
 	fi
 
-	if ! irods_version::check
+	if [[ -n "${opts[upgrade]}" ]]
+	then
+		export IRODS_UPGRADE_FROM="${opts[upgrade]}"
+	fi
+
+	if ! irods_version::check || ! irods_version::check_upgrade
 	then
 		exit_with_help
 	fi
@@ -116,6 +133,12 @@ main() {
 	if [[ -n "${opts[playbook]}" ]]
 	then
 		playbook="$(resolve_playbook "${opts[playbook]}")"
+
+		# The upgrade test checks the upgrade itself, not a snapshot of it.
+		if [[ "$playbook" == irods_upgrade.yml ]]
+		then
+			export PREPARE_DATA_STORE=1 IRODS_UPGRADE_SNAPSHOT=''
+		fi
 	fi
 
 	local setup
@@ -182,7 +205,11 @@ resolve_opts() {
 				eval "$optsVar""[setup]='$2'"
 				shift 2
 				;;
-			-v|--irods-version)
+			-u|--upgrade-from)
+				printf -v "$optsVar"'[upgrade]' '%s' "$2"
+				shift 2
+				;;
+			-v|--irods-version|--to-version)
 				printf -v "$optsVar"'[version]' '%s' "$2"
 				shift 2
 				;;
@@ -231,8 +258,8 @@ parse_cmd_line() {
 	local opts
 	opts="$(\
 		portability::getopt \
-			hiI:P:pS:v: \
-			help,inspect,inventory:,irods-version:,playbook:,pretty,setup: \
+			hiI:P:pS:u:v: \
+			help,inspect,inventory:,irods-version:,playbook:,pretty,setup:,to-version:,upgrade-from: \
 			"$ExecName" \
 			"$@" )"
 

@@ -33,6 +33,30 @@ data_store_env::prepare() {
 }
 
 
+# Adds the data that the irods_upgrade test checks survives an upgrade.
+data_store_env::seed() {
+	data_store_env::run_playbook hosts-configured /playbooks-under-test/tests/irods_upgrade_seed.yml
+}
+
+
+# Upgrades the configured iRODS servers to IRODS_VERSION with irods_upgrade.yml.
+# When the Data Store is deployed, the unconfigured consumer runs iRODS too, so
+# it's upgraded with them.
+# Input:
+#  IRODS_VERSION       (optional) the iRODS release to upgrade to
+#  PREPARE_DATA_STORE  (optional) whether data_store_env::prepare deployed the
+#                      Data Store
+data_store_env::upgrade() {
+	local hosts='hosts-configured'
+	if [[ -n "${PREPARE_DATA_STORE-}" ]]; then
+		hosts='hosts-unconfigured-consumer'
+	fi
+
+	data_store_env::run_playbook "$hosts" /wait-for-ready.yml
+	data_store_env::run_playbook "$hosts" --skip-tags=no_testing /playbooks-under-test/irods_upgrade.yml
+}
+
+
 # Runs a playbook in an ansible-tester container.
 # Input:
 #  $1             the inventory hosts file in the container's /inventory

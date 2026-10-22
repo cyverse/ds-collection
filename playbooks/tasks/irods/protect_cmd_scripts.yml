@@ -1,0 +1,13 @@
+---
+# XXX: This is to prevent TAR slip. It can be removed after upgrading to iRODS 5.1.0
+# Keeps the service account from modifying the command scripts, including those the iRODS packages
+# install.
+- name: Protect command scripts | service account can't modify msiExecCmd_bin or its contents
+  ansible.builtin.file:
+    path: /var/lib/irods/msiExecCmd_bin
+    state: directory
+    owner: root
+    group: "{{ _irods_service_group_name }}"
+    mode: go-w,g+rx
+    recurse: true
+# XXX: ^^^

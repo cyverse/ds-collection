@@ -22,13 +22,22 @@ Options:
  -l, --list                     print the ID of every test and exit
  -o, --output <dir>             the directory to write each test's output to,
                                 default ./test-results
- -v, --irods-version <version>  run the configured iRODS servers on iRODS
+ -u, --upgrade-from <version>   upgrade a testing environment's configured
+                                iRODS servers from iRODS <version> to the
+                                --irods-version release with irods_upgrade.yml,
+                                then start each test from a snapshot of it,
+                                except the rule tests and irods_upgrade's,
+                                which upgrade a deployed Data Store of their own
+ -v, --irods-version, --to-version <version>
+                                run the configured iRODS servers on iRODS
                                 <version> instead of 4.3.1, and pass it to the
                                 playbooks as irods_version
 
 Environment Variables:
- IRODS_VERSION  the iRODS release to run, as with --irods-version, which takes
-                precedence
+ IRODS_UPGRADE_FROM  the iRODS release to upgrade from, as with
+                     --upgrade-from, which takes precedence
+ IRODS_VERSION       the iRODS release to run, as with --irods-version, which
+                     takes precedence
 
 Output:
  It writes a line for each test as the test finishes, then how many tests
@@ -55,12 +64,16 @@ readonly EXEC_NAME TESTING_DIR COLLECTION_DIR
 
 #shellcheck source=testing/portability.sh
 source "$TESTING_DIR"/portability.sh
+#shellcheck source=testing/irods_crash.sh
+source "$TESTING_DIR"/irods_crash.sh
 #shellcheck source=testing/irods_version.sh
 source "$TESTING_DIR"/irods_version.sh
 #shellcheck source=testing/results.sh
 source "$TESTING_DIR"/results.sh
 
 portability::require_bash 4
+
+readonly CFG="$TESTING_DIR"/config.inc
 
 # The inventories of the playbook tests that don't use test-playbook's default,
 # hosts-all, which includes hosts nothing has provisioned
@@ -79,6 +92,7 @@ declare -A -r PLAYBOOK_INVENTORIES=(
 	[irods_s3_cred]=hosts-configured
 	[irods_specific_queries]=hosts-configured
 	[irods_storage_resources]=hosts-unconfigured-consumer
+	[irods_upgrade]=hosts-unconfigured-consumer
 	[ncems_usage]=hosts-unconfigured-consumer
 	[pire_usage]=hosts-unconfigured-consumer )
 
@@ -104,7 +118,8 @@ declare -A -r PLAYBOOK_SETUPS=(
 main() {
 	local args
 	if ! args="$(
-		portability::getopt hlo:v: help,list,output:,irods-version: "$EXEC_NAME" "$@" )"
+		portability::getopt \
+			hlo:u:v: help,list,output:,irods-version:,to-version:,upgrade-from: "$EXEC_NAME" "$@" )"
 	then
 		exit_with_help
 	fi
@@ -126,7 +141,11 @@ main() {
 				output="$2"
 				shift 2
 				;;
-			-v|--irods-version)
+			-u|--upgrade-from)
+				export IRODS_UPGRADE_FROM="$2"
+				shift 2
+				;;
+			-v|--irods-version|--to-version)
 				export IRODS_VERSION="$2"
 				shift 2
 				;;
@@ -137,7 +156,7 @@ main() {
 		esac
 	done
 
-	if ! irods_version::check; then
+	if ! irods_version::check || ! irods_version::check_upgrade; then
 		exit_with_help
 	fi
 
@@ -173,6 +192,15 @@ main() {
 
 	mkdir -p "$output"
 
+	if [[ -n "${IRODS_UPGRADE_FROM-}" ]] && uses_snapshot "${tests[@]}"; then
+		if ! make_upgrade_snapshot "$output"; then
+			return 1
+		fi
+
+		trap remove_upgrade_snapshot EXIT
+		export IRODS_UPGRADE_SNAPSHOT=1
+	fi
+
 	local failed=()
 	for test in "${tests[@]}"; do
 		local start="$SECONDS"
@@ -197,6 +225,49 @@ main() {
 exit_with_help() {
 	help >&2
 	exit 1
+}
+
+
+# Upgrades a fresh environment once and saves it, so that each test can start
+# from the upgraded servers instead of upgrading its own.
+# Input:
+#  $1  the directory to write the upgrade's output to
+# Output:
+#  a line saying whether the upgrade succeeded
+make_upgrade_snapshot() {
+	local output="$1"
+
+	local start="$SECONDS"
+	local status=PASSED
+	if ! irods_crash::run_retrying "$TESTING_DIR"/env/controller "$CFG" snapshot \
+		> "$output"/upgrade.log 2>&1
+	then
+		status=FAILED
+	fi
+
+	printf '%s upgrade from %s (%d s)\n' "$status" "$IRODS_UPGRADE_FROM" $(( SECONDS - start ))
+	[[ "$status" == PASSED ]]
+}
+
+
+remove_upgrade_snapshot() {
+	"$TESTING_DIR"/env/controller "$CFG" remove-snapshot
+}
+
+
+# Succeeds when any of the given tests starts from the upgrade snapshot. The
+# rule tests and irods_upgrade's test upgrade their own environments.
+# Input:
+#  $@  the tests' IDs
+uses_snapshot() {
+	local test
+	for test in "$@"; do
+		if [[ "$test" != playbook/irods_upgrade && "$test" != rules ]]; then
+			return 0
+		fi
+	done
+
+	return 1
 }
 
 
