@@ -51,7 +51,31 @@
   become: true
   become_user: irods
   gather_facts: false
+  vars_files:
+    - ../group_vars/all/irods.yml
   tasks:
+    # cve_version.re refuses physical paths from 4.3.4 on. The client sees the failure of a PEP that
+    # cuts the operation, not the rule's message.
+    - name: Verify the release's own rule bases are in force
+      when: _irods_version is version('4.3.4', '>=')
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit -o nounset -o pipefail
+          file="$(mktemp)"
+          trap 'rm --force "$file"' EXIT
+          if resp="$(iput -p /tmp/upgrade-test-physical "$file" upgrade-test-physical 2>&1)"; then
+            irm -f upgrade-test-physical
+            printf 'iput -p was allowed\n' >&2
+            exit 1
+          fi
+          if [[ "$resp" != *CUT_ACTION_PROCESSED_ERR* ]] || ils upgrade-test-physical &> /dev/null
+          then
+            printf 'iput -p failed for another reason: %s\n' "$resp" >&2
+            exit 1
+          fi
+      changed_when: false
+
     - name: Verify the replicated data object
       when: irods_upgrade_from is defined
       ansible.builtin.shell:
@@ -97,3 +121,27 @@
           printf 'the queued replication of %s/queued did not run\n' "$coll" >&2
           exit 1
       changed_when: false
+
+
+# The upgrade installs only the release's own rule bases, so the rest of the deployed configuration
+# must already be what irods_cfg.yml deploys for the release.
+- name: Test upgrade iRODS | the deployed configuration is the release's
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/irods.yml
+  tasks:
+    # The skipped tags are the ones the idempotency check skips.
+    - name: Verify irods_cfg.yml would change nothing
+      ansible.builtin.command:
+        argv:
+          - ansible-playbook
+          - --check
+          - --inventory={{ ansible_inventory_sources | first }}
+          - --limit=irods:!irods_resource_container:!unmanaged_systems
+          - --skip-tags=no_testing,non_idempotent
+          - --extra-vars=irods_version={{ _irods_version }}
+          - "{{ playbook_dir }}/../irods_cfg.yml"
+      register: resp
+      changed_when: false
+      failed_when: resp is failed or resp.stdout is search('changed=[1-9]')
