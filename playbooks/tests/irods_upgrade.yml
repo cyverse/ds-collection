@@ -19,6 +19,10 @@
       vars:
         release_pattern: ^{{ _irods_version | regex_escape }}([.-]|$)
 
+    - name: Verify the command scripts are still protected
+      when: "'irods-server' in ansible_facts.packages"
+      ansible.builtin.import_tasks: tasks/irods/test_cmd_scripts_protected.yml
+
     - name: Verify the upgraded servers are running
       when: "'irods-server' in ansible_facts.packages"
       become: true
@@ -35,3 +39,57 @@
       failed_when: >-
         resp is failed
           or resp.stdout is not search('^relVersion=rods' ~ _irods_version ~ '$', multiline=true)
+
+
+# irods_upgrade_seed.yml adds this data before the upgrade.
+- name: Test upgrade iRODS | the Data Store's data and queued rules survive
+  hosts: irods_catalog
+  become: true
+  become_user: irods
+  gather_facts: false
+  tasks:
+    - name: Verify the replicated data object
+      when: irods_upgrade_from is defined
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit -o nounset -o pipefail
+          coll="$(ipwd)"/upgrade-test
+          rescs="$(iquest '%s' \
+            "select DATA_RESC_NAME
+             where COLL_NAME = '$coll' and DATA_NAME = 'replicated' and DATA_REPL_STATUS = '1'" \
+            | sort | paste --serial --delimiters=,)"
+          if [[ "$rescs" != ingestRes,replRes ]]; then
+            printf 'good replicas on %s, not ingestRes and replRes\n' "$rescs" >&2
+            exit 1
+          fi
+          ichksum -K -a "$coll"/replicated
+          imeta ls -d "$coll"/replicated upgrade-test | grep --quiet '^value: seeded$'
+      changed_when: false
+
+    - name: Verify the replication queued before the upgrade runs after it
+      when: irods_upgrade_from is defined
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit -o nounset -o pipefail
+          coll="$(ipwd)"/upgrade-test
+          id="$(iquest '%s' \
+            "select DATA_ID where COLL_NAME = '$coll' and DATA_NAME = 'queued'")"
+          ruleId="$(iquest '%s' \
+            "select RULE_EXEC_ID where RULE_EXEC_NAME like '%cyverse_repl_replicate%$id%'")"
+          iqmod "$ruleId" exeTime "$(date +%s)"
+          # The delay server checks the queue every 30 seconds.
+          for _ in {1..24}; do
+            if iquest '%s' \
+                "select DATA_REPL_NUM
+                 where DATA_ID = '$id' and DATA_RESC_NAME = 'replRes' and DATA_REPL_STATUS = '1'" \
+              | grep --quiet '^[0-9]'
+            then
+              exit 0
+            fi
+            sleep 5
+          done
+          printf 'the queued replication of %s/queued did not run\n' "$coll" >&2
+          exit 1
+      changed_when: false

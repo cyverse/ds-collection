@@ -1,0 +1,17 @@
+---
+# XXX: This is to prevent TAR slip. It can be removed after upgrading to iRODS 5.1.0
+- name: Test command scripts protected | irods can't modify msiExecCmd_bin
+  ansible.builtin.stat:
+    path: /var/lib/irods/msiExecCmd_bin
+  register: resp
+  failed_when: >-
+    not resp.stat.exists or resp.stat.pw_name == 'irods' or resp.stat.wgrp or resp.stat.woth
+
+- name: Test command scripts protected | irods can run but not modify the command scripts
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: >-
+      test -z "$(find /var/lib/irods/msiExecCmd_bin -mindepth 1
+      \( -user irods -o -perm /go=w -o -not -perm -g=rx \) -print -quit)"
+  changed_when: false
+# XXX: ^^^

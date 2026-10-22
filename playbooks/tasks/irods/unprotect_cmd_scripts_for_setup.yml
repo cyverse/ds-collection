@@ -1,0 +1,17 @@
+---
+# XXX: This is to prevent TAR slip. It can be removed after upgrading to iRODS 5.1.0
+# iRODS setup gives the service account everything in /var/lib/irods, so it fails on protected
+# command scripts. Run deploy_cmd_scripts.yml after setup to protect them again.
+- name: Unprotect command scripts for setup | determine if iRODS is set up
+  ansible.builtin.stat:
+    path: /var/lib/irods/version.json
+  register: resp
+
+- name: Unprotect command scripts for setup | service account owns msiExecCmd_bin and its contents
+  when: not resp.stat.exists
+  ansible.builtin.file:
+    path: /var/lib/irods/msiExecCmd_bin
+    state: directory
+    owner: "{{ _irods_service_account_name }}"
+    recurse: true
+# XXX: ^^^

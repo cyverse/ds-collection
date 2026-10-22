@@ -17,6 +17,9 @@
       vars:
         dir: /var/lib/irods
 
+    - name: Test the command scripts are protected
+      ansible.builtin.import_tasks: tasks/irods/test_cmd_scripts_protected.yml
+
 
 - name: Test rule template expansion
   ansible.builtin.import_playbook: irods_rule_templates.yml
@@ -77,10 +80,7 @@
       ansible.builtin.stat:
         path: /var/lib/irods/msiExecCmd_bin/{{ item }}
       register: response
-      failed_when: >-
-        not response.stat.exists
-        or response.stat.pw_name != 'irods'
-        or not response.stat.xusr
+      failed_when: not response.stat.exists or not response.stat.xgrp
       loop:
         - add-transfer
         - amqp-topic-send

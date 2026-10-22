@@ -189,3 +189,6 @@
         - /var/lib/irods
       loop_control:
         loop_var: dir
+
+    - name: Verify the command scripts are protected
+      ansible.builtin.import_tasks: tasks/irods/test_cmd_scripts_protected.yml

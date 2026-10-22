@@ -41,6 +41,10 @@ hosts file is provided, it will use 'hosts-all'. If no playbook is provided, no
 playbook will be run. When combined with -i, this allows the environment to be
 started in interactive mode.
 
+The irods_upgrade playbook is tested on a deployed Data Store. The environment
+deploys it before any upgrade, and with --upgrade-from, adds the data the test
+checks survives the upgrade.
+
 Environment Variables:
  IRODS_UPGRADE_FROM  the iRODS release to upgrade from, as with
                      --upgrade-from, which takes precedence
@@ -129,6 +133,12 @@ main() {
 	if [[ -n "${opts[playbook]}" ]]
 	then
 		playbook="$(resolve_playbook "${opts[playbook]}")"
+
+		# The upgrade test checks the upgrade itself, not a snapshot of it.
+		if [[ "$playbook" == irods_upgrade.yml ]]
+		then
+			export PREPARE_DATA_STORE=1 IRODS_UPGRADE_SNAPSHOT=''
+		fi
 	fi
 
 	local setup

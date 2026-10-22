@@ -45,6 +45,17 @@
         zone: "{{ _irods_zone_name }}"
 
 
+# XXX: This can be removed after upgrading to iRODS 5.1.0
+- name: TAR slip workaround | let iRODS setup own the command scripts
+  hosts: irods_resource_native:!irods_catalog
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Unprotect the command scripts for setup
+      ansible.builtin.import_tasks: tasks/irods/unprotect_cmd_scripts_for_setup.yml
+# XXX: ^^^
+
+
 - name: Configure iRODS
   hosts: irods_resource_native:!irods_catalog
   become: "{{ _irods_become_svc_acnt }}"
@@ -59,8 +70,6 @@
         irods_cfg_catalog_provider_hosts: "{{ groups['irods_catalog'] }}"
         irods_cfg_catalog_service_role: consumer
         irods_cfg_client_server_policy: "{{ _irods_client_server_policy }}"
-        irods_cfg_cmd_scripts:
-          - files/irods/var/lib/irods/msiExecCmd_bin/*
         irods_cfg_database: null
         irods_cfg_default_dir_mode: "{{ _irods_default_dir_mode }}"
         irods_cfg_default_file_mode: "{{ _irods_default_file_mode }}"
@@ -105,6 +114,17 @@
 
     - name: Start iRODS
       cyverse.ds.irods_ctl:
+
+
+# XXX: After upgrading to iRODS 5.1.0, the irods_cfg role can deploy the command scripts again.
+- name: TAR slip workaround | deploy the command scripts
+  hosts: irods_resource_native:!irods_catalog
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Deploy the command scripts
+      ansible.builtin.import_tasks: tasks/irods/deploy_cmd_scripts.yml
+# XXX: ^^^
 
 
 - name: Create storage resources
