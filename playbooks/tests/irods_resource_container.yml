@@ -318,6 +318,9 @@
       failed_when: resp is changed or resp is failed
       with_fileglob: ../files/irods/etc/irods/*
 
+    - name: Verify the iRODS release's rule bases are in place
+      ansible.builtin.import_tasks: tasks/irods/test_release_rulebases.yml
+
     - name: Verify service_account.config deposition
       ansible.builtin.stat:
         path: /etc/irods/service_account.config

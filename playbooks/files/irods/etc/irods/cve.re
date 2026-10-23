@@ -3,6 +3,9 @@
 # © 2025 The Arizona Board of Regents on behalf of The University of Arizona.
 # For license information, see https://cyverse.org/license.
 
+# The workarounds that depend on the iRODS release
+@include 'cve_version'
+
 
 # Bug in the parsing of input to msiSendMail
 # - https://www.cve.org/CVERecord?id=CVE-2024-38462
@@ -166,32 +169,6 @@ pep_api_data_obj_copy_pre(*Instance, *Comm, *DataObjCopyInp, *TransStat) {
 		failmsg(-31000, 'CYVERSE ERROR: no physical path allowed');
 	}
 }
-
-# There is a security hole in `iput -p` that allows an overwrite to escape the
-# iRODS access control and overwrite a file not accessible to the user. This
-# prevents `iput -p` from being able to write to client-submitted physical paths.
-#
-# This can be removed after upgrading to 4.3.5
-#
-# Parameters:
-#  Instance        (string) unused
-#  Comm            (`KeyValuePair_PI`) unused
-#  DataObjInp      (`KeyValuePair_PI`) information related to the data object
-#  DataObjInpBBuf  (unknown) unused
-#  PORTAL_OPR_OUT  (unknown) unused
-#
-# Error Codes:
-#  -31000 (SYS_INVALID_FILE_PATH)
-#
-# XXX: This PEP has a huge memory leak:
-#      https://github.com/irods/irods/issues/8106. Fixed in 4.3.4. There is no
-#      workaround.
-# pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
-# 	on (errorcode(*DataObjInp.filePath) == 0) {
-# 		cut;
-# 		failmsg(-31000, 'CYVERSE ERROR: no physical path allowed');
-# 	}
-# }
 
 # There is a security hole in irm -f that allows a user with read permission on
 # a data object to silently delete the underlying physical files. See

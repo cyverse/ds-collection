@@ -15,6 +15,9 @@
 @include 'cyverse_transfer_tracking'
 @include 'cyverse_trash'
 
+# The PEPs that depend on the iRODS release
+@include 'cyverse_core_version'
+
 # SERVICE SPECIFIC RULES
 #
 # Rule logic specific to supporting a service that uses the Data Store goes in
@@ -651,80 +654,8 @@ pep_api_data_obj_get_post(*Instance, *Comm, *DataObjInp, *PORTAL_OPR, *DATA_OBJ_
 
 # DATA_OBJ_PUT
 
-# This is the pre processing logic for when an attempt is made to upload a data
-# object through the API using a DATA_OBJ_PUT request.
-#
-# Parameters:
-#  Instance        (string) unknown
-#  Comm            (`KeyValuePair_PI`) user connection and auth information
-#  DataObjInp      (`KeyValuePair_PI`) information related to the data object
-#  DataObjInpBBuf  (unknown) may contain the contents of the file being uploaded
-#  PORTAL_OPR_OUT  unknown
-#
-# XXX: This PEP has a huge memory leak:
-#      https://github.com/irods/irods/issues/8106. Fixed in 4.3.4. There is no
-#      workaround.
-# pep_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR_OUT) {
-#	cyverse_encryption_api_data_obj_put_pre(*Instance, *Comm, *DataObjInp);
-# }
-
-# This is the post processing logic for when a data object is uploaded through
-# the API using a DATA_OBJ_PUT request.
-#
-# Parameters:
-#  Instance        (string) unknown
-#  Comm            (`KeyValuePair_PI`) user connection and auth information
-#  DataObjInp      (`KeyValuePair_PI`) information related to the data object
-#  DataObjInpBBuf  (unknown) may contain the contents of the file being uploaded
-#  PORTAL_OPR      unknown
-#
-# *DataObjInp:
-#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
-#
-# XXX: This PEP has a huge memory leak:
-#      https://github.com/irods/irods/issues/8106. Fixed in 4.3.4.
-# pep_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR) {
-acPostProcForPut {
-	*Instance = '';
-
-	*Comm.user_rods_zone = $rodsZoneClient;
-	*Comm.user_user_name = $userNameClient;
-
-	*DataObjInpBBuf = '';
-
-	*DataObjInp.obj_path = $objPath;
-	*DataObjInp.data_size = str($dataSize);
-
-	msiSplitPath($objPath, *collPath, *dataName);
-
-	foreach( *rec in
-		SELECT DATA_RESC_HIER
-		WHERE COLL_NAME = *collPath AND DATA_NAME = *dataName AND DATA_RESC_NAME = $rescName
-	) {
-		*DataObjInp.resc_hier = *rec.DATA_RESC_HIER;
-	}
-
-# XXX: ^^^
-	*status = errormsg(
-		cyverse_logic_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
-		*msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(
-		cyverse_repl_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
-		*msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(
-		cyverse_transfer_tracking_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
-		*msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-
-	*status = errormsg(
-		cyverse_trash_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
-		*msg );
-	if (*status < 0) { writeLine('serverLog', *msg); }
-}
+# The DATA_OBJ_PUT PEPs are in cyverse_core_version.re, since the ones that can
+# be used depend on the iRODS release.
 
 
 # DATA_OBJ_RENAME
@@ -1183,6 +1114,41 @@ _cyverse_core_dataObjCreated(*User, *Zone, *DataObjInfo, *Step) {
 
 _cyverse_core_dataObjMetadataModified(*User, *Zone, *Object) {
 	*status = errormsg(cyverse_logic_dataObjMetaMod(*User, *Zone, *Object), *msg);
+	if (*status < 0) { writeLine('serverLog', *msg); }
+}
+
+# This is the post processing logic for when a data object is uploaded through
+# the API using a DATA_OBJ_PUT request. cyverse_core_version.re calls it.
+#
+# Parameters:
+#  Instance        (string) unknown
+#  Comm            (`KeyValuePair_PI`) user connection and auth information
+#  DataObjInp      (`KeyValuePair_PI`) information related to the data object
+#  DataObjInpBBuf  (unknown) may contain the contents of the file being uploaded
+#  PORTAL_OPR      unknown
+#
+# *DataObjInp:
+#   https://docs.irods.org/4.3.1/doxygen/group__data__object.html#ga1b1d0d95bd1cbc6f07860d6f8174371f
+#
+_cyverse_core_apiDataObjPutPost(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR) {
+	*status = errormsg(
+		cyverse_logic_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_repl_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_transfer_tracking_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
+		*msg );
+	if (*status < 0) { writeLine('serverLog', *msg); }
+
+	*status = errormsg(
+		cyverse_trash_api_data_obj_put_post(*Instance, *Comm, *DataObjInp, *DataObjInpBBuf, *PORTAL_OPR),
+		*msg );
 	if (*status < 0) { writeLine('serverLog', *msg); }
 }
 

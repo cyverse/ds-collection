@@ -570,7 +570,9 @@ class PepApiDataObjPutTest(CyverseCoreTestCase):
         self.ensure_obj_absent(self.artifact_file)
         super().tearDown()
 
-    @unittest.skip("pep_api_data_obj_put_pre has memory leak. Fixed in 4.3.4")
+    @unittest.skipIf(
+        test_rules.irods_release_before((4, 3, 4)),
+        "pep_api_data_obj_put_pre has memory leak. Fixed in 4.3.4")
     def test_cyverseencryption_called(self):
         """Test that the rule is called."""
         if not self.verify_msg_logged('cyverse_encryption_api_data_obj_put_pre'):

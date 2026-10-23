@@ -9,6 +9,9 @@
   become: true
   any_errors_fatal: true
   tasks:
+    - name: Check the release's rule bases
+      ansible.builtin.import_tasks: tasks/irods/check_release_rulebases.yml
+
     - name: Gather the installed packages
       ansible.builtin.package_facts:
 
@@ -32,6 +35,36 @@
         fail_msg: >-
           iRODS {{ irods_upgrade_installed }} is installed, which is later than
           {{ _irods_version }}. iRODS doesn't support downgrading.
+
+    # The upgrade installs only the release's own rule bases, which the shared ones include.
+    - name: Look up the deployed shared rule bases
+      ansible.builtin.stat:
+        path: /etc/irods/{{ item | basename }}
+        get_attributes: false
+        get_mime: false
+      register: resp
+      with_fileglob: files/irods/etc/irods/*.re
+      loop_control:
+        label: "{{ item | basename }}"
+
+    # A server irods_cfg.yml hasn't configured doesn't have them, which is fine.
+    - name: Check the shared rule bases are the ones irods_cfg.yml deploys
+      ansible.builtin.assert:
+        that: stale | length == 0
+        fail_msg: >-
+          These deployed rule bases differ from the ones irods_cfg.yml deploys, so they may not
+          include the release's own: {{ stale | join(', ') }}. Run irods_cfg.yml for the installed
+          release first.
+        quiet: true
+      vars:
+        stale: >-
+          {%- set stale = [] -%}
+          {%- for r in resp.results if r.stat.exists -%}
+            {%- if r.stat.checksum != lookup('ansible.builtin.file', r.item, rstrip=false) | hash('sha1') -%}
+              {%- set _ = stale.append(r.item | basename) -%}
+            {%- endif -%}
+          {%- endfor -%}
+          {{ stale }}
 
     - name: Group the servers to upgrade
       when: irods_upgrade_installed is version(_irods_version, '<')
@@ -84,6 +117,35 @@
           Upgrading the packages failed on {{ failed | join(', ') }}, so no server was started.
       vars:
         failed: "{{ groups['irods_upgrading'] | d([]) | difference(ansible_play_hosts) }}"
+
+
+# The rule bases shared by every release don't change with it, so only the release's own are
+# installed. The upgraded servers are stopped, so the new release starts with them. A server
+# already on the release gets them too, in case it has another release's, and reloads its rules.
+- name: Upgrade iRODS | install the release's rule bases
+  hosts: irods:!irods_resource_container:!unmanaged_systems
+  become: true
+  any_errors_fatal: true
+  gather_facts: false
+  tasks:
+    - name: Install
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: /etc/irods/{{ item | basename }}
+        owner: "{{ _irods_service_account_name }}"
+        group: "{{ _irods_service_group_name }}"
+        mode: u+r
+      with_fileglob: files/irods/etc/irods/{{ _irods_version }}/*.re
+      register: resp
+
+    - name: Reload the rules on a running server
+      when:
+        - resp is changed
+        - inventory_hostname not in groups['irods_upgrading'] | d([])
+      ansible.builtin.file:
+        path: /etc/irods/core.re
+        mode: u+r
+        state: touch
 
 
 - name: Upgrade iRODS | start the catalog service providers
