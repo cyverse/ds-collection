@@ -44,6 +44,10 @@ cyverse_repl_replicate(*DataId, *RescName) {
 
 	if (*dataPath == '/') {
 		_repl_logMsg('data object *DataId no longer exists');
+	} else if (_repl_hasGoodReplica(*DataId, *RescName)) {
+		# As of iRODS 4.3.4, irepl succeeds without doing anything in this case
+		# instead of failing with SYS_NOT_ALLOWED, so it is checked first.
+		_repl_logMsg('data object *dataPath already replicated');
 	} else {
 		temporaryStorage.cyverse_repl_replicate = 'REPL_FORCED_REPL_RESC';
 
@@ -256,6 +260,49 @@ _repl_findResc(*ObjPath) =
 			}
 		} in
 	(*resc, *residency)
+
+# Determines whether a data object has a good replica on the given root
+# resource.
+_repl_hasGoodReplica(*DataId, *RescName) =
+# XXX - As of iRODS 4.3.1, deferred rules don't propagate ticket information
+# 	let *found = false in
+# 	let *_ = foreach ( *rec in
+# 			SELECT DATA_RESC_HIER WHERE DATA_ID = '*DataId' AND DATA_REPL_STATUS = '1'
+# 		) {
+# 			if (hd(split(*rec.DATA_RESC_HIER, ';')) == *RescName) {
+# 				*found = true;
+# 				break;
+# 			}
+# 		} in
+# 	*found
+	let *fmtArg = execCmdArg('%s') in
+	let *queryArg = execCmdArg(
+		"select DATA_RESC_HIER where DATA_ID = '*DataId' and DATA_REPL_STATUS = '1'" ) in
+	let *argStr = '*fmtArg *queryArg' in
+	let *status = errormsg(msiExecCmd('iquest-exec', *argStr, '', '', '', *resp), *err) in
+	let *hiers = '' in
+	# msiExecCmd leaves *resp unset when it can't run the command at all.
+	let *_ = errorcode(msiGetStdoutInExecCmdOut(*resp, *hiers)) in
+	# iquest fails when nothing matches, writing CAT_NO_ROWS_FOUND to stdout, which
+	# matches no resource below.
+	if *status < 0 && !(*hiers like 'CAT_NO_ROWS_FOUND*')
+		then
+			let *msg = '' in
+			let *_ = errorcode(msiGetStderrInExecCmdOut(*resp, *msg)) in
+			let *_ = _repl_logMsg(
+				'failed to look up good replicas of data object *DataId, assuming none; this usually'
+				++ ' means iquest-exec could not run or reach the catalog provider: *err (*msg)' ) in
+			false
+		else
+			let *found = false in
+			let *_ = foreach (*hier in split(*hiers, '\n')) {
+					if (hd(split(*hier, ';')) == *RescName) {
+						*found = true;
+						break;
+					}
+				} in
+			*found
+# XXX - ^^^
 
 # Given a resource, this rule determines the list of resources that
 # asynchronously replicate its replicas.
