@@ -11,11 +11,12 @@ $EXEC_NAME
 Usage:
 $EXEC_NAME [options] [test ...]
 
-run the playbook, plugin, and iRODS rule tests
+run the playbook, plugin, image, and iRODS rule tests
 
 Parameters:
  test  the ID of a test to run, as --list prints it, e.g., playbook/irods_cfg,
-       plugin/modules/irods_avu, or rules; every test runs if none is given
+       plugin/modules/irods_avu, image/irods-rs, or rules; every test runs if
+       none is given
 
 Options:
  -h, --help                     show help and exit
@@ -27,7 +28,9 @@ Options:
                                 --irods-version release with irods_upgrade.yml,
                                 then start each test from a snapshot of it,
                                 except the rule tests and irods_upgrade's,
-                                which upgrade a deployed Data Store of their own
+                                which upgrade a deployed Data Store of their
+                                own, and the image test, which builds the
+                                --irods-version release's image
  -v, --irods-version, --to-version <version>
                                 run the configured iRODS servers on iRODS
                                 <version> instead of 4.3.1, and pass it to the
@@ -49,8 +52,9 @@ Summary:
 This script runs each test in a fresh testing environment: every playbook's
 test with the inventory and setup playbooks it needs, through test-playbook,
 every plugin's test with hosts-configured, through test-plugin, and the iRODS
-rule tests, through test-rules. It doesn't need a terminal, so it can run from
-a CI job.
+rule tests, through test-rules. It also tests the containerized resource
+servers' image, through test-rs-image, which needs no environment. It doesn't
+need a terminal, so it can run from a CI job.
 EOF
 }
 
@@ -256,13 +260,14 @@ remove_upgrade_snapshot() {
 
 
 # Succeeds when any of the given tests starts from the upgrade snapshot. The
-# rule tests and irods_upgrade's test upgrade their own environments.
+# rule tests and irods_upgrade's test upgrade their own environments, and the
+# image test doesn't use one.
 # Input:
 #  $@  the tests' IDs
 uses_snapshot() {
 	local test
 	for test in "$@"; do
-		if [[ "$test" != playbook/irods_upgrade && "$test" != rules ]]; then
+		if [[ "$test" != playbook/irods_upgrade && "$test" != rules && "$test" != image/* ]]; then
 			return 0
 		fi
 	done
@@ -272,7 +277,8 @@ uses_snapshot() {
 
 
 # Writes the ID of every test to stdout, one per line: playbook/<name> for each
-# playbook, plugin/<type>/<name> for each plugin with a test playbook, and rules.
+# playbook, plugin/<type>/<name> for each plugin with a test playbook,
+# image/irods-rs, and rules.
 list_tests() {
 	local file
 	for file in "$COLLECTION_DIR"/playbooks/*.yml; do
@@ -291,6 +297,7 @@ list_tests() {
 		fi
 	done
 
+	printf 'image/irods-rs\n'
 	printf 'rules\n'
 }
 
@@ -321,6 +328,9 @@ run_test() {
 		plugin/*)
 			name="${test#plugin/}"
 			"$TESTING_DIR"/test-plugin -I hosts-configured "${name%/*}" "${name#*/}" < /dev/null
+			;;
+		image/irods-rs)
+			"$TESTING_DIR"/test-rs-image < /dev/null
 			;;
 		rules)
 			"$TESTING_DIR"/test-rules < /dev/null

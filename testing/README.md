@@ -52,7 +52,7 @@ So that these crashes don't fail a test, `test-playbook`, `test-plugin`, `test-r
 
 ## Running every test
 
-`test-all` runs each playbook's test with the inventory and setup playbooks it needs, each plugin's test with `hosts-configured`, and the iRODS rule tests, each in a fresh environment. It prints a line per test as it finishes, then how many passed and which failed, and writes each test's output to a log in `./test-results`, or the directory given with `-o`. It exits nonzero if any test failed.
+`test-all` runs each playbook's test with the inventory and setup playbooks it needs, each plugin's test with `hosts-configured`, and the iRODS rule tests, each in a fresh environment. It also runs the resource server image test, which needs no environment. It prints a line per test as it finishes, then how many passed and which failed, and writes each test's output to a log in `./test-results`, or the directory given with `-o`. It exits nonzero if any test failed.
 
 ```bash
 testing/test-all                         # every test
@@ -64,7 +64,25 @@ testing/test-all playbook/irods_cfg rules  # the named tests
 
 A playbook test that needs an inventory other than `hosts-all`, or setup playbooks, is listed in the `PLAYBOOK_INVENTORIES` and `PLAYBOOK_SETUPS` tables at the top of the script. Add a new test there when it needs them.
 
-`test-all --upgrade-from <version>` runs every test on servers upgraded from `<version>` to the `--irods-version` release. Rather than upgrade each test's environment, it upgrades one first, reporting it as `upgrade from <version>` with its output in `upgrade.log`, and saves the configured iRODS servers and DBMS as images tagged `<from>-to-<to>`. Each test then starts a fresh environment from those images, and the images are deleted when the run ends. If the upgrade fails, no test runs. `rules` and `playbook/irods_upgrade` are the exceptions: each upgrades a deployed Data Store of its own, since the upgrade is what they check. When neither of the others is selected, no snapshot is made. Without `--upgrade-from`, the `irods_upgrade` test only checks that the playbook leaves servers already on the release alone.
+`test-all --upgrade-from <version>` runs every test on servers upgraded from `<version>` to the `--irods-version` release. Rather than upgrade each test's environment, it upgrades one first, reporting it as `upgrade from <version>` with its output in `upgrade.log`, and saves the configured iRODS servers and DBMS as images tagged `<from>-to-<to>`. Each test then starts a fresh environment from those images, and the images are deleted when the run ends. If the upgrade fails, no test runs. `rules` and `playbook/irods_upgrade` are the exceptions: each upgrades a deployed Data Store of its own, since the upgrade is what they check. `image/irods-rs` builds the `--irods-version` release's image and uses no environment. When only these are selected, no snapshot is made. Without `--upgrade-from`, the `irods_upgrade` test only checks that the playbook leaves servers already on the release alone.
+
+## The resource server image
+
+`test-rs-image` tests the `irods-rs` image the containerized resource servers run, which the environment doesn't build. It builds the image from `playbooks/files/irods/docker-rs/build` on the Docker host, with the build arguments `irods_resource_container.yml` gives it, including the NetCDF plugins for the releases before 4.3.2. It then checks, inside a container of the image, that:
+
+* every installed iRODS package other than the externals is the release,
+* `irods-server`, `irods-runtime`, `irods-icommands`, the S3 plugin and any NetCDF plugins are installed,
+* the `irods` account and `/etc/irods`, `/var/lib/irods` and `/var/lib/irods/.irods` have the host account's IDs, and
+* the entrypoint and `irodsServer` are executable.
+
+It removes the image when it's done. A build downloads the packages from packages.irods.org, so it takes a few minutes.
+
+```bash
+testing/test-rs-image            # the image for iRODS 4.3.1
+testing/test-rs-image -v 4.3.4   # the image for iRODS 4.3.4
+```
+
+`irods_resource_container.yml`'s test checks the `irodsctl` adapter on the containerized hosts against a fake `docker`, since the environment doesn't run Docker on them.
 
 ## The iRODS rule tests
 
