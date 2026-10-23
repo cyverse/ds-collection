@@ -48,6 +48,7 @@
 # irods_upgrade_seed.yml adds this data before the upgrade.
 - name: Test upgrade iRODS | the Data Store's data and queued rules survive
   hosts: irods_catalog
+  run_once: true
   become: true
   become_user: irods
   gather_facts: false
@@ -143,5 +144,7 @@
           - --extra-vars=irods_version={{ _irods_version }}
           - "{{ playbook_dir }}/../irods_cfg.yml"
       register: resp
+      environment:
+        ANSIBLE_STDOUT_CALLBACK: default
       changed_when: false
       failed_when: resp is failed or resp.stdout is search('changed=[1-9]')

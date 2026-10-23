@@ -1,4 +1,12 @@
 ---
+- name: Test release rule bases | verify the iRODS release has rule bases to check
+  ansible.builtin.assert:
+    that: query('ansible.builtin.fileglob', rulebases) | length > 0
+    fail_msg: There are no rule bases for iRODS {{ _irods_version }} to check.
+    quiet: true
+  vars:
+    rulebases: ../files/irods/etc/irods/{{ _irods_version }}/*.re
+
 - name: Test release rule bases | verify the iRODS release's rule bases are in place
   ansible.builtin.copy:
     src: "{{ item }}"

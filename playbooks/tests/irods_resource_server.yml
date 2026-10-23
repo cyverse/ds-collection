@@ -136,6 +136,7 @@
       ansible.builtin.assert:
         that:
           - server_config.advanced_settings.default_number_of_transfer_threads == 4
+          - server_config.advanced_settings.number_of_concurrent_delay_rule_executors == 4
           - server_config.advanced_settings.transfer_buffer_size_for_parallel_transfer_in_megabytes == 4
           - server_config.advanced_settings.transfer_buffer_size_for_parallel_transfer_in_megabytes == 4
           - server_config.catalog_provider_hosts == groups['irods_catalog']

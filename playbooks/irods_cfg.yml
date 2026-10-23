@@ -15,6 +15,22 @@
     - name: Check the release's rule bases
       ansible.builtin.import_tasks: tasks/irods/check_release_rulebases.yml
 
+    - name: Gather the installed packages
+      ansible.builtin.package_facts:
+
+    # The rule bases deployed for one release may not work on another.
+    - name: Check the installed iRODS release is irods_version
+      when: "'irods-server' in ansible_facts.packages"
+      ansible.builtin.assert:
+        that: installed == _irods_version
+        fail_msg: >-
+          iRODS {{ installed }} is installed, but irods_version is {{ _irods_version }}. Set
+          irods_version to the installed release, or upgrade the servers with irods_upgrade.yml
+          first.
+        quiet: true
+      vars:
+        installed: "{{ ansible_facts.packages['irods-server'][0].version | split('-') | first }}"
+
 # XXX: After upgrading to iRODS 5.1.0, the irods_cfg role can deploy the command scripts again.
 - name: TAR slip workaround | deploy the command scripts
   hosts: irods
