@@ -99,8 +99,6 @@ services:
     hostname: "$IRODS_PROVIDER_CONF_HOST"
     platform: linux/amd64
     privileged: true
-    security_opt:
-      - apparmor=docker-default
     tty: true
     # A server that segfaults on startup (irods/irods#7747) leaves its shared
     # memory behind, and at Docker's 64 MB default the next server can't prepare
@@ -119,8 +117,6 @@ services:
     hostname: "$IRODS_PROVIDER_UNCONF_HOST"
     platform: linux/amd64
     privileged: true
-    security_opt:
-      - apparmor=docker-default
     tty: true
     shm_size: 128mb
 
@@ -143,8 +139,6 @@ services:
     platform: linux/amd64
     privileged: true
     tty: true
-    security_opt:
-      - apparmor=docker-default
     shm_size: 128mb
     depends_on:
       - provider_configured
@@ -158,8 +152,6 @@ services:
     hostname: "${ENV_NAME}-consumer_unconfigured-1.${DOMAIN}"
     platform: linux/amd64
     privileged: true
-    security_opt:
-      - apparmor=docker-default
     tty: true
     shm_size: 128mb
 
@@ -167,16 +159,12 @@ services:
     image: test-env-base:alma10
     platform: linux/amd64
     privileged: true
-    security_opt:
-      - apparmor=docker-default
     tty: true
 
   consumer_containerized_alma9:
     image: test-env-base:alma9
     platform: linux/amd64
     privileged: true
-    security_opt:
-      - apparmor=docker-default
     tty: true
 
   consumer_containerized_ubuntu:
