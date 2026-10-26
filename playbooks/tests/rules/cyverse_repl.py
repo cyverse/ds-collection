@@ -13,6 +13,7 @@ from subprocess import CalledProcessError
 from typing import Any
 import unittest
 
+from irods import keywords as kw
 from irods.column import Criterion
 from irods.exception import SYS_INVALID_RESC_INPUT, SYS_NOT_ALLOWED
 from irods.models import RuleExec
@@ -663,39 +664,36 @@ class TestHasgoodreplica(IrodsTestCase):
 
     def __init__(self, method: str):
         super().__init__(method)
-        self._objPath = None
         self._objId = 0
-        self._staleObjPath = None
         self._staleObjId = 0
-        self._staleResc = ''
 
+    # Creating each data object queues its replication to replRes, which the delay server may run
+    # at any time, so no case depends on what replRes holds.
     def setUp(self):
         super().setUp()
-        self._objPath = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
-        self._objId = self.irods.data_objects.create(self._objPath).id  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
-        self._staleObjPath = iRODSPath(self.irods.zone, "home", self.irods.username, "stale_obj")
-        stale_obj = self.irods.data_objects.create(self._staleObjPath)
-        stale_obj.replicate(resource='replRes')
-        with stale_obj.open('r+') as f:
+        obj_path = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
+        self._objId = self.irods.data_objects.create(obj_path).id  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+        self.addCleanup(self.ensure_obj_absent, obj_path)
+        stale_obj_path = iRODSPath(self.irods.zone, "home", self.irods.username, "stale_obj")
+        stale_obj = self.irods.data_objects.create(stale_obj_path)
+        self.addCleanup(self.ensure_obj_absent, stale_obj_path)
+        try:
+            stale_obj.replicate(resource='replRes')
+        except SYS_NOT_ALLOWED:
+            pass  # Before iRODS 4.3.4, when the delay server replicated it first
+        with stale_obj.open('r+', **{kw.RESC_NAME_KW: 'replRes'}) as f:
             f.write(b'change')
-        stale_obj = self.irods.data_objects.get(self._staleObjPath)
+        stale_obj = self.irods.data_objects.get(stale_obj_path)
         self._staleObjId = stale_obj.id  # type: ignore  # pylint: disable=no-member
-        self._staleResc = next(
-            r.resc_hier.split(';')[0] for r in stale_obj.replicas if r.status == '0')
-
-    def tearDown(self):
-        if self._objPath:
-            self.ensure_obj_absent(self._objPath)
-        if self._staleObjPath:
-            self.ensure_obj_absent(self._staleObjPath)
-        super().tearDown()
+        stale_rescs = [r.resc_hier.split(';')[0] for r in stale_obj.replicas if r.status == '0']
+        self.assertEqual(stale_rescs, ['ingestRes'], "the replica on ingestRes isn't the stale one")
 
     def test(self):
         """Verify that only a good replica on the given resource is found"""
         cases = [
             ("replica on resource", self._objId, 'ingestRes', True),
-            ("no replica on resource", self._objId, 'replRes', False),
-            ("stale replica on resource", self._staleObjId, self._staleResc, False),
+            ("no replica on resource", self._objId, 'fakeRes', False),
+            ("stale replica on resource", self._staleObjId, 'ingestRes', False),
             ("data object gone", 1, 'ingestRes', False),
         ]
         log_start = len(self.tail_rods_log())
@@ -708,6 +706,19 @@ class TestHasgoodreplica(IrodsTestCase):
         for line in self.tail_rods_log()[log_start:]:
             if 'failed to look up good replicas' in line:
                 self.fail("logged a lookup failure when the lookup succeeded")
+
+    def test_lookup_failure(self):
+        """Verify that a failed lookup is logged and finds no good replica"""
+        log_start = len(self.tail_rods_log())
+        # The catalog can't compare a DATA_ID with text that isn't a number, so iquest fails.
+        self.fn_test(
+            '_repl_hasGoodReplica',
+            [IrodsVal.string('not-an-id'), IrodsVal.string('ingestRes')],
+            IrodsVal.boolean(False))
+        self.assertTrue(
+            any('failed to look up good replicas of data object not-an-id' in line
+                for line in self.tail_rods_log()[log_start:]),
+            "didn't log the lookup failure")
 
 
 class TestFindreplresc(IrodsTestCase):
