@@ -116,14 +116,14 @@
         # The modules require their own iRODS release, so they would block the upgrade.
         - name: RedHat | remove the NetCDF modules
           when: not _irods_netcdf_supported
-          ansible.builtin.dnf:
+          ansible.builtin.package:
             name: "{{ _irods_netcdf_packages }}"
             state: absent
           notify: Restart iRODS if needed
 
         # The RPM irods-server needs irods-icommands but doesn't declare it as a dependency.
         - name: RedHat | install iRODS server
-          ansible.builtin.dnf:
+          ansible.builtin.package:
             name:
               - irods-icommands-{{ _irods_version }}
               - irods-server-{{ _irods_version }}
@@ -195,12 +195,6 @@
       notify: Restart iRODS if needed
       loop: >-
         {{ _irods_netcdf_installed_packages + ['irods-resource-plugin-s3'] }}
-
-    - name: Ensure iRODS attempts to start on boot
-      ansible.builtin.service:
-        name: irods
-        enabled: true
-      tags: no_testing
 
     - name: Create service group
       ansible.builtin.group:
