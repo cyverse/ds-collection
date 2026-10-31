@@ -1,0 +1,215 @@
+#!/usr/bin/env bash
+#
+# © 2026 The Arizona Board of Regents on behalf of The University of Arizona.
+# For license information, see https://cyverse.org/license.
+
+help() {
+	cat <<EOF
+
+$EXEC_NAME
+
+Usage:
+$EXEC_NAME [options]
+
+test the image of the containerized resource servers
+
+Options:
+ -h, --help                     show help and exit
+ -v, --irods-version, --to-version <version>
+                                build the image for iRODS <version> instead of
+                                4.3.1
+
+Environment Variables:
+ IRODS_VERSION  the iRODS release to build the image for, as with
+                --irods-version, which takes precedence
+
+Summary:
+This script builds the irods-rs image from playbooks/files/irods/docker-rs/build
+on the Docker host, the way irods_resource_container.yml has a resource server
+build it, including the NetCDF plugins for the releases that have them. It then
+checks that every iRODS package installed in the image is the requested release,
+that the plugins are installed, and that the irods account and the directories
+the server writes to have the host account's IDs. It removes the image when it's
+done. It doesn't use the testing environment.
+EOF
+}
+
+
+set -o errexit -o nounset -o pipefail
+
+EXEC_NAME="$(readlink -f "$0")"
+TESTING_DIR="$(dirname "$EXEC_NAME")"
+COLLECTION_DIR="$(dirname "$TESTING_DIR")"
+readonly EXEC_NAME TESTING_DIR COLLECTION_DIR
+
+#shellcheck source=testing/portability.sh
+source "$TESTING_DIR"/portability.sh
+#shellcheck source=testing/irods_version.sh
+source "$TESTING_DIR"/irods_version.sh
+
+readonly BUILD_DIR="$COLLECTION_DIR"/playbooks/files/irods/docker-rs/build
+
+# Any ID the image doesn't already use, so the checks show the build applied it
+readonly HOST_UID=2468
+
+# playbooks/group_vars/all/irods.yml installs these for releases before 4.3.2.
+readonly NETCDF_PACKAGES=(
+	irods-netcdf-client_modules irods-netcdf-icommands irods-netcdf-server_modules )
+
+
+main() {
+	local args
+	if ! args="$(
+		portability::getopt hv: help,irods-version:,to-version: "$EXEC_NAME" "$@" )"
+	then
+		exit_with_help
+	fi
+
+	eval set -- "$args"
+
+	while true; do
+		case "$1" in
+			-h|--help)
+				help
+				return
+				;;
+			-v|--irods-version|--to-version)
+				export IRODS_VERSION="$2"
+				shift 2
+				;;
+			--)
+				shift
+				break
+				;;
+		esac
+	done
+
+	if (( $# > 0 )) || ! irods_version::check; then
+		exit_with_help
+	fi
+
+	local version="${IRODS_VERSION:-4.3.1}"
+
+	local netcdf=()
+	if [[ "$(printf '%s\n' "$version" 4.3.2 | sort --version-sort | head --lines=1)" != 4.3.2 ]]
+	then
+		netcdf=("${NETCDF_PACKAGES[@]}")
+	fi
+
+	local tag=irods-rs-test:"$version"
+
+	portability::use_docker_builder
+
+	# The trap runs after main returns, so it needs the tag expanded now.
+	# shellcheck disable=SC2064
+	trap "docker image rm --force '$tag' &> /dev/null" EXIT
+
+	printf 'Building the irods-rs image for iRODS %s\n' "$version"
+	build_image "$tag" "$version" "${netcdf[*]}"
+
+	printf 'Checking the image\n'
+	if ! check_image "$tag" "$version" "${netcdf[@]}"; then
+		printf 'FAILED\n'
+		return 1
+	fi
+
+	printf 'PASSED\n'
+}
+
+
+exit_with_help() {
+	help >&2
+	exit 1
+}
+
+
+# Builds the image with the build arguments the resource servers' .env file
+# gives it
+# Input:
+#  $1  the tag to give the image
+#  $2  the iRODS release
+#  $3  the space-separated NetCDF packages to install
+build_image() {
+	local tag="$1"
+	local version="$2"
+	local netcdfPackages="$3"
+
+	docker build --platform linux/amd64 --tag "$tag" \
+		--build-arg IRODS_HOST_UID="$HOST_UID" \
+		--build-arg IRODS_NETCDF_PACKAGES="$netcdfPackages" \
+		--build-arg IRODS_SERVER_PORT_RANGE_START=20000 \
+		--build-arg IRODS_SERVER_PORT_RANGE_END=20199 \
+		--build-arg IRODS_VAULT_PATH=/irods_vault \
+		--build-arg IRODS_VERSION="$version" \
+		--build-arg IRODS_ZONE_PORT=1247 \
+		"$BUILD_DIR"
+}
+
+
+# Runs the checks inside a container of the image
+# Input:
+#  $1   the image's tag
+#  $2   the iRODS release
+#  $3+  the NetCDF packages that should be installed
+# Output:
+#  a line to stderr for each failed check
+check_image() {
+	local tag="$1"
+	local version="$2"
+	shift 2
+
+	docker run --rm --interactive --platform linux/amd64 --entrypoint /bin/bash \
+			--env VERSION="$version" --env HOST_UID="$HOST_UID" \
+			"$tag" -s -- irods-icommands irods-resource-plugin-s3 irods-runtime irods-server "$@" \
+		<<'CHECKS'
+set -o nounset -o pipefail
+
+failed=0
+
+fail() {
+	printf '%s\n' "$*" >&2
+	failed=1
+}
+
+declare -A installed=()
+while read -r status pkg pkgVersion; do
+	if [[ "$status" == installed ]]; then
+		installed[$pkg]="$pkgVersion"
+	fi
+done < <(dpkg-query --show --showformat '${db:Status-Status} ${Package} ${Version}\n' 'irods-*')
+
+for pkg in "$@"; do
+	if [[ -z "${installed[$pkg]-}" ]]; then
+		fail "$pkg isn't installed"
+	fi
+done
+
+for pkg in "${!installed[@]}"; do
+	if [[ "$pkg" != irods-externals-* && "${installed[$pkg]}" != "$VERSION"[.-]* ]]; then
+		fail "$pkg ${installed[$pkg]} is installed, not iRODS $VERSION"
+	fi
+done
+
+if [[ "$(id --user irods)" != "$HOST_UID" || "$(id --group irods)" != "$HOST_UID" ]]; then
+	fail "irods is $(id irods), not $HOST_UID:$HOST_UID"
+fi
+
+for dir in /etc/irods /var/lib/irods /var/lib/irods/.irods; do
+	owner="$(stat --format '%u:%g' "$dir")"
+	if [[ "$owner" != "$HOST_UID:$HOST_UID" ]]; then
+		fail "$dir is owned by $owner, not $HOST_UID:$HOST_UID"
+	fi
+done
+
+for exe in /entrypoint.sh /usr/sbin/irodsServer; do
+	if ! [[ -x "$exe" ]]; then
+		fail "$exe isn't executable"
+	fi
+done
+
+exit "$failed"
+CHECKS
+}
+
+
+main "$@"

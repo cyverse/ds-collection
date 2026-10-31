@@ -495,3 +495,104 @@
 
     - name: Test log rotation config placement for iRODS
       ansible.builtin.import_tasks: tasks/irods/test_logrotate.yml
+
+- name: Test the irodsctl adapter
+  hosts: irods_resource_container
+  become: true
+  become_user: irods
+  gather_facts: false
+  vars:
+    compose: compose --file=/var/lib/irods/docker-compose.yml
+  tasks:
+    - name: Make a directory for the fake docker
+      ansible.builtin.tempfile:
+        state: directory
+      register: fake_dir
+
+    - name: Test the commands it sends to docker
+      block:
+        # It records its arguments, and its exec reports a running server unless told not to.
+        - name: Add a fake docker
+          ansible.builtin.copy:
+            dest: "{{ fake_dir.path }}/docker"
+            mode: u+rx
+            content: |
+              #!/usr/bin/env bash
+              printf '%s\n' "$*" >> "$FAKE_DOCKER_LOG"
+              if [[ "$*" == *' exec '* ]]; then
+                if [[ -n "${FAKE_DOCKER_EXEC_FAILS-}" ]]; then
+                  exit 1
+                fi
+                printf 'irodsServer :: Process 7\n'
+              fi
+
+        # The adapter's output goes to stderr and the calls to docker to stdout.
+        - name: Test each command
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o nounset
+              export FAKE_DOCKER_LOG='{{ fake_dir.path }}'/docker.log
+              rm --force "$FAKE_DOCKER_LOG"
+              PATH='{{ fake_dir.path }}':"$PATH" /var/lib/irods/irodsctl {{ item.args }} >&2
+              rc=$?
+              cat "$FAKE_DOCKER_LOG" 2> /dev/null
+              exit "$rc"
+          environment:
+            FAKE_DOCKER_EXEC_FAILS: "{{ 'yes' if item.stopped | d(false) else '' }}"
+          register: resp
+          changed_when: false
+          failed_when: >-
+            resp.rc != item.rc
+              or resp.stdout_lines != item.calls
+              or resp.stderr is not search(item.out | d(''))
+          loop_control:
+            label: "{{ item.args }}{{ ' with the server stopped' if item.stopped | d(false) else '' }}"
+          loop:
+            - args: start
+              rc: 0
+              calls: ["{{ compose }} up --detach"]
+            - args: stop
+              rc: 0
+              calls: ["{{ compose }} down"]
+            - args: restart
+              rc: 0
+              calls: ["{{ compose }} restart"]
+            # irods_ctl passes --test when the irods_cfg role's test logging is on.
+            - args: --test start
+              rc: 0
+              calls: ["{{ compose }} up --detach"]
+            - args: --test restart
+              rc: 0
+              calls: ["{{ compose }} restart"]
+            - args: status
+              rc: 0
+              calls: ["{{ compose }} exec --user=irods irods-rs /var/lib/irods/irodsctl status"]
+              out: irodsServer
+            - args: status
+              stopped: true
+              rc: 0
+              calls: ["{{ compose }} exec --user=irods irods-rs /var/lib/irods/irodsctl status"]
+              out: No iRODS servers running
+            - args: --help
+              rc: 0
+              calls: []
+              out: Usage
+            - args: ""
+              rc: 1
+              calls: []
+              out: Usage
+            - args: unknown
+              rc: 1
+              calls: []
+              out: Usage
+            - args: --unknown start
+              rc: 1
+              calls: []
+              out: Usage
+
+      always:
+        - name: Remove the fake docker
+          ansible.builtin.file:
+            path: "{{ fake_dir.path }}"
+            state: absent
