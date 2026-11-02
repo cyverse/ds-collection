@@ -1,10 +1,20 @@
 ---
+# The command scripts are left to protect_cmd_scripts.yml, since giving them to the service account
+# and back on every run would never leave them unchanged.
 - name: Ensure iRODS ownership | /var/lib/irods owned by {{ _irods_service_account_name }}
-  ansible.builtin.file:
-    path: /var/lib/irods
-    owner: "{{ _irods_service_account_name }}"
-    group: "{{ _irods_service_group_name }}"
-    recurse: true
+  ansible.builtin.shell:
+    executable: /bin/bash
+    cmd: >-
+      find /var/lib/irods -path /var/lib/irods/msiExecCmd_bin -prune
+      -o \( -not -user {{ _irods_service_account_name }}
+      -o -not -group {{ _irods_service_group_name }} \)
+      -print -exec chown --no-dereference
+      {{ _irods_service_account_name }}:{{ _irods_service_group_name }} {} +
+  register: resp
+  changed_when: resp.stdout != ''
+
+- name: Ensure iRODS ownership | protect the command scripts
+  ansible.builtin.import_tasks: protect_cmd_scripts.yml
 
 - name: Ensure iRODS ownership | /etc/irods owned by {{ _irods_service_account_name }}
   ansible.builtin.file:

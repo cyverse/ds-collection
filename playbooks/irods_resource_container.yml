@@ -3,6 +3,9 @@
   hosts: irods_resource_container
   become: true
   pre_tasks:
+    - name: Check the release's rule bases
+      ansible.builtin.import_tasks: tasks/irods/check_release_rulebases.yml
+
     - name: Enable notifications
       ansible.builtin.set_fact:
         _enable_notifications: true
@@ -195,7 +198,9 @@
             - cve
             - cyverse_core
             - cyverse_housekeeping
-        irods_cfg_rulebases_static: files/irods/etc/irods/*
+        irods_cfg_rulebases_static:
+          - files/irods/etc/irods/*
+          - files/irods/etc/irods/{{ _irods_version }}/*.re
         irods_cfg_rulebases_templated: templates/irods/etc/irods/*
         irods_cfg_schema_validation_base_uri: 'off'
         irods_cfg_server_control_plane_key: "{{ _irods_server_control_plane_key }}"

@@ -9,6 +9,9 @@ backend default {
 }
 
 sub vcl_recv {
+    # only vcl_miss may request a size probe
+    unset req.http.X-Size-Probe;
+
     # handle PIPE
     # request is restarted from the previous request
     if (req.restarts == 0) {
@@ -74,6 +77,9 @@ sub vcl_hit {
 }
 
 sub vcl_miss {
+    # probe the file size with HEAD before fetching the body
+    # (see vcl_backend_fetch and vcl_backend_response)
+    set req.http.X-Size-Probe = "1";
     return (fetch);
 }
 
@@ -102,10 +108,37 @@ sub vcl_backend_fetch {
         unset bereq.http.X-Restart-And-Pipe;
     }
 
+    # The first fetch of a cache miss only requests the headers, so that the body of a file too
+    # large to cache is never fetched. If the file can be cached, the fetch is retried with GET.
+    if (bereq.http.X-Size-Probe) {
+        if (bereq.retries == 0) {
+            set bereq.method = "HEAD";
+        } else {
+            unset bereq.http.X-Size-Probe;
+            set bereq.method = "GET";
+        }
+    }
+
     return (fetch);
 }
 
 sub vcl_backend_response {
+    if (bereq.http.X-Size-Probe) {
+        if (beresp.status == 200
+            && std.integer(beresp.http.Content-Length, 0) > {{ _webdav_cache_max_file_size|int * 1024 * 1024 }}) {
+            # the file is too large to cache, restart the request to use pipe
+            set beresp.http.X-Restart-And-Pipe = "1";
+            set beresp.ttl = 1s;
+            set beresp.grace = 0s;
+            set beresp.keep = 0s;
+            set beresp.uncacheable = true;
+            return (deliver);
+        }
+
+        # fetch the body
+        return (retry);
+    }
+
     set beresp.ttl = (now - std.time(beresp.http.Last-Modified, now)) * {{ _webdav_cache_ttl_fraction }};
 
     # need to put 's' to the value to tell this is in seconds

@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/python3
 # -*- coding: utf-8 -*-
 #
 # © 2024 The Arizona Board of Regents on behalf of The University of Arizona.
