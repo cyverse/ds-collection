@@ -26,6 +26,7 @@ ExecStartPre=-/bin/rm {{ _webdav_cache_dir }}/varnish_cache.bin
 ExecStart=/usr/sbin/varnishd \
 	-a :{{ _webdav_varnish_service_port }},HTTP \
 	-p feature=+http2 \
+	-p cli_timeout={{ _webdav_varnish_cli_timeout }} \
 	-f /etc/varnish/default.vcl \
 	-s file,{{ _webdav_cache_dir }}/varnish_cache.bin,{{ _webdav_cache_size }}M
 ExecReload=/usr/sbin/varnishreload

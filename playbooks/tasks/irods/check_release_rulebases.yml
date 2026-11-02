@@ -1,0 +1,31 @@
+---
+- name: Check release rule bases | find every release's rule bases
+  delegate_to: localhost
+  become: false
+  run_once: true
+  ansible.builtin.find:
+    paths: "{{ playbook_dir }}/files/irods/etc/irods"
+    patterns: "*.re"
+    recurse: true
+    depth: 2
+  register: release_rulebases_found
+
+- name: Check release rule bases | verify the iRODS release has its own version of each rule base
+  ansible.builtin.assert:
+    that:
+      - release_rulebases | length > 0
+      - missing | length == 0
+    fail_msg: >-
+      files/irods/etc/irods/{{ _irods_version }} doesn't have iRODS {{ _irods_version }}'s version of
+      {{ missing | join(', ') if missing else 'any rule base' }}. Add that release's version of each
+      rule base in the other release directories.
+    quiet: true
+  vars:
+    base_pattern: "{{ (playbook_dir ~ '/files/irods/etc/irods/') | regex_escape }}"
+    release_paths: >-
+      {{ release_rulebases_found.files | map(attribute='path') | reject('match', base_pattern ~ '[^/]*$')
+        | list }}
+    release_rulebases: >-
+      {{ release_paths | select('match', base_pattern ~ (_irods_version | regex_escape) ~ '/')
+        | map('basename') | list }}
+    missing: "{{ release_paths | map('basename') | unique | difference(release_rulebases) }}"

@@ -195,6 +195,9 @@ class CyverseEncryptionApiDataObjPutPre(_CyverseEncryptionTestCase):
         if not self._attempt_put(self.enc_coll, "file.enc"):
             self.fail("Failed to upload encrypted file to collection requiring encryption")
 
+    @unittest.skipIf(
+        test_rules.irods_release_before((4, 3, 4)),
+        "pep_api_data_obj_put_pre has memory leak. Fixed in 4.3.4")
     def test_not_enc_not_allowed_in_enc_coll(self):
         """
         Test that an unencrypted file cannot be uploaded into a collection requiring encryption

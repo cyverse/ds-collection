@@ -136,6 +136,9 @@
       loop_control:
         loop_var: dir
 
+    - name: Verify the command scripts are protected
+      ansible.builtin.import_tasks: tasks/irods/test_cmd_scripts_protected.yml
+
 
 - name: Test rule template expansion
   ansible.builtin.import_playbook: irods_rule_templates.yml
@@ -145,6 +148,8 @@
   hosts: irods_catalog
   become: true
   become_user: irods
+  vars_files:
+    - ../group_vars/all/irods.yml
   tasks:
     - name: Check common configuration files in place
       ansible.builtin.stat:
@@ -162,9 +167,11 @@
         - core.fnm
         - core.re
         - cve.re
+        - cve_version.re
         - cyverse.re
         - cyverse-env.re
         - cyverse_core.re
+        - cyverse_core_version.re
         - cyverse_encryption.re
         - cyverse_housekeeping.re
         - cyverse_json.re
@@ -176,6 +183,9 @@
         - pire-env.re
         - server_config.json
         - service_account.config
+
+    - name: Verify the iRODS release's rule bases are in place
+      ansible.builtin.import_tasks: tasks/irods/test_release_rulebases.yml
 
     - name: Verify old config do not exist
       ansible.builtin.stat:
@@ -196,10 +206,7 @@
       ansible.builtin.stat:
         path: /var/lib/irods/msiExecCmd_bin/{{ item }}
       register: response
-      failed_when: >-
-        not response.stat.exists
-        or response.stat.pw_name != 'irods'
-        or not response.stat.xusr
+      failed_when: not response.stat.exists or not response.stat.xgrp
       loop:
         - add-transfer
         - amqp-topic-send

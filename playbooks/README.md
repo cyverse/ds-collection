@@ -6,6 +6,7 @@ These folder contains all of the playbooks used to deploy and configure a CyVers
 
 <!-- TODO: document remaining playbooks -->
 
+* `irods_upgrade.yml` upgrades the iRODS servers with an earlier release installed to `irods_version`. It stops them, upgrades their packages, then starts the catalog service providers, which update the catalog schema, before the consumers. It requires iRODS on every server it targets, and when a server fails, it starts none of them.
 * `proxy.yml` completely deploys the proxies
 * `proxy_start.yml` starts HAProxy
 * `proxy_stop.yml` stops HAProxy
@@ -203,6 +204,7 @@ Variable                                   | Required | Default                 
 `webdav_tls_chain_file`                    | no       | /etc/ssl/certs/dummy-chain.crt       |         | The TLS certificate chain file used for encrypted communication
 `webdav_tls_key`                           | no       |                                      |         | The TLS key
 `webdav_tls_key_file`                      | no       | /etc/ssl/certs/dummy.key             |         | The TLS key file used for encrypted communication
+`webdav_varnish_cli_timeout`               | no       | 300                                  |         | The number of seconds varnish-cache waits for its child process to respond to a CLI ping before killing it
 `webdav_varnish_service_port`              | no       | 6081                                 |         | The service port number for varnish-cache
 
 An element of `infra_maintainer_keys` is either a string or a mapping with the following fields.

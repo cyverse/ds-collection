@@ -1,0 +1,54 @@
+---
+# Adds the data that irods_upgrade.yml's test checks survives an upgrade: a data object replicated
+# to replRes, with a checksum and an AVU, and one that only a queued delayed replication will
+# replicate. The testing environment runs it on the deployed Data Store before upgrading it.
+
+- name: Seed the Data Store for the upgrade test
+  hosts: irods_catalog
+  become: true
+  become_user: irods
+  gather_facts: false
+  tasks:
+    - name: Seed
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o errexit -o nounset -o pipefail
+
+          coll="$(ipwd)"/upgrade-test
+
+          has_repl_resc_replica() {
+            iquest '%s' \
+                "select DATA_REPL_NUM
+                 where COLL_NAME = '$coll' and DATA_NAME = '$1' and DATA_RESC_NAME = 'replRes'" \
+              | grep --quiet '^[0-9]'
+          }
+
+          file="$(mktemp)"
+          trap 'rm --force "$file"' EXIT
+          printf 'upgrade test\n' > "$file"
+
+          imkdir -p "$coll"
+          iput -f -K -R ingestRes "$file" "$coll"/replicated
+          imeta add -d "$coll"/replicated upgrade-test seeded
+          iput -f -K -R ingestRes "$file" "$coll"/queued
+
+          # Remove the replications the rules scheduled. iqdel exits 4 when a rule finishes while
+          # it's deleting them.
+          iqdel -a || (( $? == 4 ))
+
+          if ! has_repl_resc_replica replicated; then
+            irepl -R replRes "$coll"/replicated
+          fi
+
+          if has_repl_resc_replica queued; then
+            itrim -N 1 -S replRes "$coll"/queued
+          fi
+
+          id="$(iquest '%s' \
+            "select DATA_ID where COLL_NAME = '$coll' and DATA_NAME = 'queued'")"
+
+          irule -r irods_rule_engine_plugin-irods_rule_language-instance \
+            "delay('<PLUSET>1d</PLUSET>') {cyverse_repl_replicate($id, 'replRes')}" \
+            null ruleExecOut
+      changed_when: true

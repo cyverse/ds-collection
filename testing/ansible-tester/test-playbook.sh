@@ -16,8 +16,10 @@
 #            flag -vvv
 #
 # Environment Variables:
-#  IRODS_VERSION  (OPTIONAL) the iRODS release the environment runs, passed to
-#                 the playbooks as irods_version
+#  IRODS_UPGRADE_FROM  (OPTIONAL) the iRODS release the environment was upgraded
+#                      from, passed to the playbooks as irods_upgrade_from
+#  IRODS_VERSION       (OPTIONAL) the iRODS release the environment runs, passed
+#                      to the playbooks as irods_version
 #
 # This program executes and ansible playbook on the test environment.
 #
@@ -48,6 +50,10 @@ main() {
 
 	if [[ -n "${IRODS_VERSION-}" ]]; then
 		VersionArgs=(--extra-vars=irods_version="$IRODS_VERSION")
+	fi
+
+	if [[ -n "${IRODS_UPGRADE_FROM-}" ]]; then
+		VersionArgs+=(--extra-vars=irods_upgrade_from="$IRODS_UPGRADE_FROM")
 	fi
 
 	if [[ -n "$pretty" ]]; then
@@ -140,15 +146,15 @@ do_test() {
 
 	printf 'checking idempotency\n'
 
+	# A failed loop item is reported as "failed:" rather than "fatal:".
 	local idempotencyRes
-	idempotencyRes="$(run_idempotency "$inventory" "$modPath" "$playbook")"
-
-	if grep --quiet --regexp '^\(changed\|fatal\):' <<< "$idempotencyRes"; then
+	if idempotencyRes="$(run_idempotency "$inventory" "$modPath" "$playbook")" \
+		&& ! grep --quiet --regexp '^\(changed\|failed\|fatal\):' <<< "$idempotencyRes"; then
+		printf 'ok: idempotency check\n'
+	else
 		echo "$idempotencyRes"
 		printf 'failed: idempotency check\n'
 		return 1
-	else
-		printf 'ok: idempotency check\n'
 	fi
 }
 
