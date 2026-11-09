@@ -663,33 +663,28 @@ class TestHasgoodreplica(IrodsTestCase):
 
     def __init__(self, method: str):
         super().__init__(method)
-        self._objPath = None
         self._objId = 0
-        self._staleObjPath = None
         self._staleObjId = 0
 
     def setUp(self):
         super().setUp()
-        self._objPath = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
-        self._objId = self.irods.data_objects.create(self._objPath).id  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
-        self._staleObjPath = iRODSPath(self.irods.zone, "home", self.irods.username, "stale_obj")
-        self._staleObjId = self.irods.data_objects.create(self._staleObjPath).id  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+        obj_path = iRODSPath(self.irods.zone, "home", self.irods.username, "obj")
+        self._objId = self.irods.data_objects.create(obj_path).id  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+        self.addCleanup(self.ensure_obj_absent, obj_path)
+        stale_obj_path = iRODSPath(self.irods.zone, "home", self.irods.username, "stale_obj")
+        self._staleObjId = self.irods.data_objects.create(stale_obj_path).id  # type: ignore  # pylint: disable=no-member,line-too-long  # noqa: E501
+        self.addCleanup(self.ensure_obj_absent, stale_obj_path)
+        # Creating them queued their replication to replRes, which would change their replicas.
+        subprocess.run("iqdel -a", shell=True, check=True, encoding='utf-8')
         # Unlike writing to another replica, this doesn't queue a sync that makes it good again.
         subprocess.run(
             f"iadmin modrepl data_id {self._staleObjId} replica_number 0 DATA_REPL_STATUS 0",
             shell=True,
             check=True,
             encoding='utf-8')
-        stale_obj = self.irods.data_objects.get(self._staleObjPath)
+        stale_obj = self.irods.data_objects.get(stale_obj_path)
         stale_rescs = [r.resc_hier.split(';')[0] for r in stale_obj.replicas if r.status == '0']
         self.assertEqual(stale_rescs, ['ingestRes'], "the replica on ingestRes isn't the stale one")
-
-    def tearDown(self):
-        if self._objPath:
-            self.ensure_obj_absent(self._objPath)
-        if self._staleObjPath:
-            self.ensure_obj_absent(self._staleObjPath)
-        super().tearDown()
 
     def test(self):
         """Verify that only a good replica on the given resource is found"""
