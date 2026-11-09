@@ -15,7 +15,7 @@ test the image of the containerized resource servers
 
 Options:
  -h, --help                     show help and exit
- -v, --irods-version, --to-version <version>
+ -v, --irods-version <version>
                                 build the image for iRODS <version> instead of
                                 4.3.1
 
@@ -47,6 +47,8 @@ source "$TESTING_DIR"/portability.sh
 #shellcheck source=testing/irods_version.sh
 source "$TESTING_DIR"/irods_version.sh
 
+portability::require_bash 4
+
 readonly BUILD_DIR="$COLLECTION_DIR"/playbooks/files/irods/docker-rs/build
 
 # Any ID the image doesn't already use, so the checks show the build applied it
@@ -60,7 +62,7 @@ readonly NETCDF_PACKAGES=(
 main() {
 	local args
 	if ! args="$(
-		portability::getopt hv: help,irods-version:,to-version: "$EXEC_NAME" "$@" )"
+		portability::getopt hv: help,irods-version: "$EXEC_NAME" "$@" )"
 	then
 		exit_with_help
 	fi
@@ -73,7 +75,7 @@ main() {
 				help
 				return
 				;;
-			-v|--irods-version|--to-version)
+			-v|--irods-version)
 				export IRODS_VERSION="$2"
 				shift 2
 				;;
@@ -91,12 +93,14 @@ main() {
 	local version="${IRODS_VERSION:-4.3.1}"
 
 	local netcdf=()
-	if [[ "$(printf '%s\n' "$version" 4.3.2 | sort --version-sort | head --lines=1)" != 4.3.2 ]]
-	then
+	local oldest
+	oldest="$(printf '%s\n' "$version" 4.3.2 | sort --version-sort | head --lines=1)"
+	if [[ "$oldest" != 4.3.2 ]]; then
 		netcdf=("${NETCDF_PACKAGES[@]}")
 	fi
 
-	local tag=irods-rs-test:"$version"
+	# The process ID keeps concurrent runs from removing each other's image.
+	local tag=irods-rs-test:"$version"-$$
 
 	portability::use_docker_builder
 
@@ -105,10 +109,13 @@ main() {
 	trap "docker image rm --force '$tag' &> /dev/null" EXIT
 
 	printf 'Building the irods-rs image for iRODS %s\n' "$version"
-	build_image "$tag" "$version" "${netcdf[*]}"
+	if ! build_image "$tag" "$version" "${netcdf[*]}"; then
+		printf 'FAILED\n'
+		return 1
+	fi
 
 	printf 'Checking the image\n'
-	if ! check_image "$tag" "$version" "${netcdf[@]}"; then
+	if ! check_image "$tag" "$version" ${netcdf[@]+"${netcdf[@]}"}; then
 		printf 'FAILED\n'
 		return 1
 	fi
@@ -126,9 +133,11 @@ exit_with_help() {
 # Builds the image with the build arguments the resource servers' .env file
 # gives it
 # Input:
-#  $1  the tag to give the image
-#  $2  the iRODS release
-#  $3  the space-separated NetCDF packages to install
+#  $1         the tag to give the image
+#  $2         the iRODS release
+#  $3         the space-separated NetCDF packages to install
+#  BUILD_DIR  the image's build context
+#  HOST_UID   the UID and GID to give the irods account
 build_image() {
 	local tag="$1"
 	local version="$2"
@@ -148,9 +157,10 @@ build_image() {
 
 # Runs the checks inside a container of the image
 # Input:
-#  $1   the image's tag
-#  $2   the iRODS release
-#  $3+  the NetCDF packages that should be installed
+#  $1        the image's tag
+#  $2        the iRODS release
+#  $3+       the NetCDF packages that should be installed
+#  HOST_UID  the UID and GID the irods account should have
 # Output:
 #  a line to stderr for each failed check
 check_image() {
@@ -158,7 +168,7 @@ check_image() {
 	local version="$2"
 	shift 2
 
-	docker run --rm --interactive --platform linux/amd64 --entrypoint /bin/bash \
+	docker run --rm --interactive --platform linux/amd64 --pull never --entrypoint /bin/bash \
 			--env VERSION="$version" --env HOST_UID="$HOST_UID" \
 			"$tag" -s -- irods-icommands irods-resource-plugin-s3 irods-runtime irods-server "$@" \
 		<<'CHECKS'
@@ -171,12 +181,16 @@ fail() {
 	failed=1
 }
 
+readarray -t pkgs < <(
+	dpkg-query --show --showformat '${db:Status-Status} ${Package} ${Version}\n' 'irods-*' )
+
 declare -A installed=()
-while read -r status pkg pkgVersion; do
+for line in "${pkgs[@]}"; do
+	read -r status pkg pkgVersion <<< "$line"
 	if [[ "$status" == installed ]]; then
 		installed[$pkg]="$pkgVersion"
 	fi
-done < <(dpkg-query --show --showformat '${db:Status-Status} ${Package} ${Version}\n' 'irods-*')
+done
 
 for pkg in "$@"; do
 	if [[ -z "${installed[$pkg]-}" ]]; then
