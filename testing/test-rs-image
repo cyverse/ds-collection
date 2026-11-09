@@ -15,8 +15,7 @@ test the image of the containerized resource servers
 
 Options:
  -h, --help                     show help and exit
- -v, --irods-version <version>
-                                build the image for iRODS <version> instead of
+ -v, --irods-version <version>  build the image for iRODS <version> instead of
                                 4.3.1
 
 Environment Variables:
@@ -46,8 +45,6 @@ readonly EXEC_NAME TESTING_DIR COLLECTION_DIR
 source "$TESTING_DIR"/portability.sh
 #shellcheck source=testing/irods_version.sh
 source "$TESTING_DIR"/irods_version.sh
-
-portability::require_bash 4
 
 readonly BUILD_DIR="$COLLECTION_DIR"/playbooks/files/irods/docker-rs/build
 
@@ -109,7 +106,7 @@ main() {
 	trap "docker image rm --force '$tag' &> /dev/null" EXIT
 
 	printf 'Building the irods-rs image for iRODS %s\n' "$version"
-	if ! build_image "$tag" "$version" "${netcdf[*]}"; then
+	if ! build_image "$tag" "$version" "${netcdf[*]-}"; then
 		printf 'FAILED\n'
 		return 1
 	fi
