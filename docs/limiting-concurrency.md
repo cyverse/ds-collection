@@ -237,7 +237,7 @@ listen irods
 
 listen webdav
    mode                    http
-   bind                    :443 ssl crt /etc/ssl/private/cyverse.rocks.pem
+   bind                    :443 ssl crt /etc/ssl/private/cyverse.org.pem
    server                  dav 10.0.1.1 port 80 maxconn 100
    acl                     too-many-conn sc1_conn_cur gt 5
    capture request header  Authorization len 700
