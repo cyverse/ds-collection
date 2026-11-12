@@ -155,23 +155,49 @@ services:
     tty: true
     shm_size: 128mb
 
+  # The containerized resource server hosts run Docker, which needs systemd and can't keep its or
+  # containerd's storage on the container's own overlay file system.
   consumer_containerized_alma:
-    image: test-env-base:alma10
+    image: test-env-base:alma10-systemd
+    cgroup: private
+    hostname: "${ENV_NAME}-consumer_containerized_alma-1.${DOMAIN}"
     platform: linux/amd64
     privileged: true
+    tmpfs:
+      - /run
+      - /run/lock
     tty: true
+    volumes:
+      - /var/lib/containerd
+      - /var/lib/docker
 
   consumer_containerized_alma9:
-    image: test-env-base:alma9
+    image: test-env-base:alma9-systemd
+    cgroup: private
+    hostname: "${ENV_NAME}-consumer_containerized_alma9-1.${DOMAIN}"
     platform: linux/amd64
     privileged: true
+    tmpfs:
+      - /run
+      - /run/lock
     tty: true
+    volumes:
+      - /var/lib/containerd
+      - /var/lib/docker
 
   consumer_containerized_ubuntu:
-    image: test-env-base:ubuntu2404
+    image: test-env-base:ubuntu2404-systemd
+    cgroup: private
+    hostname: "${ENV_NAME}-consumer_containerized_ubuntu-1.${DOMAIN}"
     platform: linux/amd64
     privileged: true
+    tmpfs:
+      - /run
+      - /run/lock
     tty: true
+    volumes:
+      - /var/lib/containerd
+      - /var/lib/docker
 
   cbuoy:
     image: test-env-base:alma9

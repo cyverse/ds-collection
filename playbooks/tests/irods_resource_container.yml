@@ -236,6 +236,7 @@
         or not (resp.stat.rusr and resp.stat.wusr and resp.stat.xusr)
       loop:
         - /etc/irods
+        - /irods_vault/container
         - /var/lib/irods
         - /var/lib/irods/.irods
         - /var/lib/irods/msiExecCmd_bin
@@ -596,3 +597,110 @@
           ansible.builtin.file:
             path: "{{ fake_dir.path }}"
             state: absent
+
+- name: Test the running resource server
+  hosts: irods_resource_container
+  become: true
+  become_user: irods
+  gather_facts: false
+  vars:
+    in_container: [docker, compose, --file=/var/lib/irods/docker-compose.yml, exec, -T, --user=irods,
+      irods-rs]
+    test_obj: /testing/home/rods/{{ inventory_hostname_short }}-test.dat
+    test_resc: "{{ inventory_hostname_short }}-test"
+  tasks:
+    - name: Test the container is running
+      ansible.builtin.command:
+        argv: [docker, compose, --file=/var/lib/irods/docker-compose.yml, ps, --format=json, irods-rs]
+      register: resp
+      changed_when: false
+      failed_when: (resp.stdout | from_json).State != 'running'
+
+    - name: Restart the server through the adapter
+      ansible.builtin.command: /var/lib/irods/irodsctl restart
+      changed_when: true
+
+    # The entrypoint logs this each time the container starts.
+    - name: Test the server logs to the host's iRODS log
+      ansible.builtin.command: grep --quiet 'Starting server' /var/log/irods/irods.log
+      register: resp
+      changed_when: false
+      until: resp is succeeded
+      retries: 15
+      delay: 2
+
+    - name: Test the adapter reports the server running
+      ansible.builtin.command: /var/lib/irods/irodsctl status
+      register: resp
+      changed_when: false
+      until: resp.stdout is search('irodsServer')
+      retries: 30
+      delay: 2
+
+    # The server's processes start before it listens for connections.
+    - name: Test the server answers requests
+      ansible.builtin.command:
+        argv: "{{ in_container + ['ils'] }}"
+      register: resp
+      changed_when: false
+      until: resp is succeeded
+      retries: 30
+      delay: 2
+
+    - name: Test putting and getting data through a resource on the server
+      block:
+        - name: Create a resource on the server
+          ansible.builtin.command:
+            argv: >-
+              {{ in_container
+                + ['bash', '-c', 'iadmin mkresc "$1" unixfilesystem "$2:$IRODS_VAULT_PATH/test"', '_']
+                + [test_resc, inventory_hostname] }}
+          changed_when: true
+
+        - name: Test a put and a get through the server
+          ansible.builtin.command:
+            argv: "{{ in_container + ['bash', '-s', '--', test_resc, test_obj] }}"
+            stdin: |
+              set -o errexit -o nounset -o pipefail
+              src="$(mktemp)"
+              dest="$(mktemp)"
+              trap 'rm --force "$src" "$dest"' EXIT
+              head --bytes=100000 /dev/urandom > "$src"
+              iput -K -R "$1" "$src" "$2"
+              iget -f -K "$2" "$dest"
+              cmp "$src" "$dest"
+          changed_when: true
+
+        # The container bind mounts the vault, so the data should be on the host, owned by irods.
+        - name: Test the data is in the host's vault
+          ansible.builtin.find:
+            paths: /irods_vault/container/test
+            patterns: "{{ test_obj | basename }}"
+            recurse: true
+          register: resp
+          failed_when: resp.matched != 1 or resp.files[0].pw_name != 'irods'
+
+        - name: Test the catalog provider can get the data from the server
+          delegate_to: "{{ groups['irods_catalog'][0] }}"
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o errexit -o nounset
+              dest="$(mktemp)"
+              trap 'rm --force "$dest"' EXIT
+              iget -f -K {{ test_obj | quote }} "$dest"
+          changed_when: false
+
+      always:
+        # A failed put leaves no data object, and irm fails then.
+        - name: Remove the test data object
+          ansible.builtin.command:
+            argv: "{{ in_container + ['irm', '-f', test_obj] }}"
+          register: resp
+          changed_when: resp.rc == 0
+          failed_when: false
+
+        - name: Remove the test resource
+          ansible.builtin.command:
+            argv: "{{ in_container + ['iadmin', 'rmresc', test_resc] }}"
+          changed_when: true

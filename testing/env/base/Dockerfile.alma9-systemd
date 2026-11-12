@@ -1,0 +1,19 @@
+FROM test-env-base:alma9
+
+# Docker doesn't set this, and without it systemd treats the privileged container as a whole
+# machine: shutting down turns off the host's swap and detaches its loop and DM devices.
+ENV container=docker
+
+# Docker CE's packages otherwise bring in iptables-legacy, which needs the kernel's legacy nat
+# table that nftables-only hosts lack, so a Docker daemon in the container couldn't start.
+RUN dnf --assumeyes install iptables-nft && dnf clean all && rm --force --recursive /var/cache/dnf
+
+# The resource server's container takes this host's name, which iRODS has to be able to resolve.
+COPY base/restore-hostname.service /etc/systemd/system/restore-hostname.service
+RUN systemctl enable restore-hostname.service
+
+RUN --mount=target=/tmp/systemd,source=base/systemd.sh /tmp/systemd sshd
+
+STOPSIGNAL SIGRTMIN+3
+
+ENTRYPOINT [ "/usr/sbin/init" ]

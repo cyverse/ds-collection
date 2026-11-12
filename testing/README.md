@@ -4,7 +4,7 @@ This folder contains the test harness for the DS playbooks. It consists of a sim
 
 ## The Environment
 
-The environment consists of a set of containers. The `amqp` container hosts the RabbitMQ broker that in turn hosts the `irods` exchange, where the Data Store publishes messages to. The `dbms_configured` container hosts the PostgreSQL server that in turn hosts the ICAT DB. The iRODS servers all run on AlmaLinux 9. The `webdav_configured` and `webdav_unconfigured` containers run AlmaLinux 8, because davrods 4.3.0_1.5.0, the release the WebDAV hosts use, doesn't install on AlmaLinux 9. They, the `amqp` and `sftp` containers, and the `dbms_configured` and `dbms_unconfigured` containers boot systemd, so playbooks can start, stop and enable their services; the other containers run only sshd and the services their images start. The `provider_configured` container hosts a configured iRODS catalog service provider. The `provider_unconfigured` container hosts an unconfigured service provider. The `consumer_configured_centos` container hosts a configured catalog service consumer acting as a resource server for `replRes` and `ingestRes`; it keeps its old name, though it no longer runs CentOS. Finally, the `consumer_unconfigured` container hosts an unconfigured service consumer.
+The environment consists of a set of containers. The `amqp` container hosts the RabbitMQ broker that in turn hosts the `irods` exchange, where the Data Store publishes messages to. The `dbms_configured` container hosts the PostgreSQL server that in turn hosts the ICAT DB. The iRODS servers all run on AlmaLinux 9. The `webdav_configured` and `webdav_unconfigured` containers run AlmaLinux 8, because davrods 4.3.0_1.5.0, the release the WebDAV hosts use, doesn't install on AlmaLinux 9. They, the `amqp` and `sftp` containers, the `dbms_configured` and `dbms_unconfigured` containers, and the containerized resource server hosts boot systemd, so playbooks can start, stop and enable their services; the other containers run only sshd and the services their images start. The `provider_configured` container hosts a configured iRODS catalog service provider. The `provider_unconfigured` container hosts an unconfigured service provider. The `consumer_configured_centos` container hosts a configured catalog service consumer acting as a resource server for `replRes` and `ingestRes`; it keeps its old name, though it no longer runs CentOS. The `consumer_unconfigured` container hosts an unconfigured service consumer. Finally, `consumer_containerized_alma`, `consumer_containerized_alma9` and `consumer_containerized_ubuntu` are unconfigured AlmaLinux 10, AlmaLinux 9 and Ubuntu 24.04 hosts for containerized resource servers. Each runs its own Docker daemon, so `irods_resource_container.yml` can build and start the `irods-rs` container on it.
 
 ## Requirements
 
@@ -68,7 +68,7 @@ A playbook test that needs an inventory other than `hosts-all`, or setup playboo
 
 ## The resource server image
 
-`test-rs-image` tests the `irods-rs` image the containerized resource servers run, which the environment doesn't build. It builds the image from `playbooks/files/irods/docker-rs/build` on the Docker host, with the build arguments `irods_resource_container.yml` gives it, including the NetCDF plugins for the releases before 4.3.2. It then checks, inside a container of the image, that:
+`test-rs-image` tests the `irods-rs` image the containerized resource servers run, without the environment. It builds the image from `playbooks/files/irods/docker-rs/build` on the Docker host, with the build arguments `irods_resource_container.yml` gives it, including the NetCDF plugins for the releases before 4.3.2. It then checks, inside a container of the image, that:
 
 * every installed iRODS package other than the externals is the release,
 * `irods-server`, `irods-runtime`, `irods-icommands`, the S3 plugin and any NetCDF plugins are installed,
@@ -82,7 +82,7 @@ testing/test-rs-image            # the image for iRODS 4.3.1
 testing/test-rs-image -v 4.3.4   # the image for iRODS 4.3.4
 ```
 
-`irods_resource_container.yml`'s test checks the `irodsctl` adapter on the containerized hosts against a fake `docker`, since the environment doesn't run Docker on them.
+`irods_resource_container.yml`'s test checks the `irodsctl` adapter's commands against a fake `docker`. It then checks the resource server the playbook started on each containerized host: that its container runs, restarts through the adapter, and logs to `/var/log/irods/irods.log`, and that a resource on it takes a put and a get, keeps the data in the host's vault, and serves it to the catalog provider.
 
 ## The iRODS rule tests
 
