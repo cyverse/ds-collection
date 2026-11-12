@@ -236,7 +236,7 @@
         or not (resp.stat.rusr and resp.stat.wusr and resp.stat.xusr)
       loop:
         - /etc/irods
-        - /irods_vault/container
+        - "{{ irods_default_vault }}"
         - /var/lib/irods
         - /var/lib/irods/.irods
         - /var/lib/irods/msiExecCmd_bin
@@ -611,18 +611,31 @@
   tasks:
     - name: Test the container is running
       ansible.builtin.command:
-        argv: [docker, compose, --file=/var/lib/irods/docker-compose.yml, ps, --format=json, irods-rs]
+        argv: [docker, compose, --file=/var/lib/irods/docker-compose.yml, ps, --status=running,
+          --quiet, irods-rs]
       register: resp
       changed_when: false
-      failed_when: (resp.stdout | from_json).State != 'running'
+      failed_when: resp is failed or resp.stdout == ''
+
+    - name: Count the lines already in the host's iRODS log
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: cat /var/log/irods/irods.log 2> /dev/null | wc --lines
+      register: log_lines
+      changed_when: false
 
     - name: Restart the server through the adapter
       ansible.builtin.command: /var/lib/irods/irodsctl restart
       changed_when: true
 
     # The entrypoint logs this each time the container starts.
-    - name: Test the server logs to the host's iRODS log
-      ansible.builtin.command: grep --quiet 'Starting server' /var/log/irods/irods.log
+    - name: Test the restarted server logs to the host's iRODS log
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: |
+          set -o pipefail
+          tail --lines=+{{ log_lines.stdout | int + 1 }} /var/log/irods/irods.log \
+            | grep --quiet 'Starting server'
       register: resp
       changed_when: false
       until: resp is succeeded
@@ -674,7 +687,7 @@
         # The container bind mounts the vault, so the data should be on the host, owned by irods.
         - name: Test the data is in the host's vault
           ansible.builtin.find:
-            paths: /irods_vault/container/test
+            paths: "{{ irods_default_vault }}/test"
             patterns: "{{ test_obj | basename }}"
             recurse: true
           register: resp

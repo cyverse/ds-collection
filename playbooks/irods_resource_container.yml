@@ -110,6 +110,14 @@
           The resource server image gives its irods group the host account's UID as its GID, so the
           service group must be the account's own group, {{ _irods_service_account_name }}.
 
+    - name: Require an absolute vault path
+      ansible.builtin.assert:
+        that:
+          - _irods_default_vault is string and _irods_default_vault is match('/')
+        fail_msg: >-
+          The resource server's container bind mounts its vault from the host, so irods_default_vault
+          must be set to an absolute path.
+
     - name: Create iRODS user
       ansible.builtin.user:
         name: "{{ _irods_service_account_name }}"
