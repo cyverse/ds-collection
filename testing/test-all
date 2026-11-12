@@ -88,6 +88,7 @@ declare -A -r PLAYBOOK_INVENTORIES=(
 	[irods_catalog_provider]=hosts-unconfigured-provider
 	[irods_cfg]=hosts-configured
 	[irods_free_space]=hosts-unconfigured-consumer
+	[irods_resource_container]=hosts-containerized
 	[irods_resource_hierarchies]=hosts-configured
 	[irods_resource_server]=hosts-unconfigured-consumer
 	[irods_restart_all]=hosts-configured

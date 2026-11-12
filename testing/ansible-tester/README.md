@@ -39,7 +39,7 @@ idempotency check.
 
 Some tasks can't be run inside a Docker container, e.g., /etc/hosts can't be
 modified. Tag each of these tasks with `no_testing`, and those tasks will be
-skipped. Only the WebDAV, SFTP and DBMS containers run systemd, so on other
+skipped. Only the WebDAV, SFTP, DBMS and containerized resource server containers run systemd, so on other
 hosts, tasks that start, stop or enable services also need the tag.
 
 ## Testing Environment

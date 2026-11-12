@@ -239,7 +239,9 @@
         - "{{ irods_default_vault }}"
         - /var/lib/irods
         - /var/lib/irods/.irods
-        - /var/lib/irods/msiExecCmd_bin
+
+    - name: Test the command scripts are protected
+      ansible.builtin.import_tasks: tasks/irods/test_cmd_scripts_protected.yml
 
     - name: Test add irodsctl adapter
       ansible.builtin.stat:
@@ -290,9 +292,9 @@
       ansible.builtin.copy:
         src: "{{ item }}"
         dest: /var/lib/irods/msiExecCmd_bin/{{ item | basename }}
-        owner: irods
+        owner: root
         group: irods
-        mode: u+rx
+        mode: u+rx,g+rx,go-w
       check_mode: true
       register: resp
       failed_when: resp is changed or resp is failed
@@ -364,15 +366,9 @@
       ansible.builtin.assert:
         that:
           - server_config.advanced_settings.default_number_of_transfer_threads == 4
+          - server_config.advanced_settings.number_of_concurrent_delay_rule_executors == 4
           - server_config.advanced_settings.transfer_buffer_size_for_parallel_transfer_in_megabytes == 4
-          - >-
-            server_config.catalog_provider_hosts
-              | symmetric_difference(
-                [
-                  'dstesting-provider_configured-1.dstesting_default',
-                  'dstesting-provider_unconfigured-1.dstesting_default' ] )
-              | length
-            == 0
+          - server_config.catalog_provider_hosts == groups['irods_catalog']
           - server_config.catalog_service_role == 'consumer'
           - server_config.default_dir_mode == '0750'
           - server_config.default_file_mode == '0600'
@@ -391,7 +387,7 @@
           - >-
             server_config.plugin_configuration.rule_engines[1].plugin_name
             == 'irods_rule_engine_plugin-cpp_default_policy'
-          - server_config.schema_validation_base_uri == 'off'
+          - server_config.schema_validation_base_uri == 'file:///var/lib/irods/configuration_schemas'
           - server_config.server_control_plane_key == 'TEMPORARY__32byte_ctrl_plane_key'
           - server_config.server_port_range_end == 20009
           - server_config.server_port_range_start == 20000
@@ -409,7 +405,7 @@
         irods_env: "{{ env_encoded.content | b64decode | from_json }}"
       ansible.builtin.assert:
         that:
-          - irods_env.irods_authentication_file == '/var/lib/irods/.irods/.irodsA'
+          - irods_env.irods_authentication_file is undefined
           - irods_env.irods_default_resource == 'ingestRes'
           - irods_env.irods_host == inventory_hostname
           - irods_env.irods_port == 1247
@@ -668,6 +664,14 @@
       retries: 30
       delay: 2
 
+    # The scripts are root's, so the container's irods account runs them through its group.
+    - name: Test the server's account can run the command scripts
+      ansible.builtin.command:
+        argv: "{{ in_container + ['/var/lib/irods/msiExecCmd_bin/generate-uuid'] }}"
+      register: resp
+      changed_when: false
+      failed_when: resp is failed or resp.stdout is not match('[0-9a-f-]{36}$')
+
     - name: Test putting and getting data through a resource on the server
       block:
         - name: Create a resource on the server
@@ -725,3 +729,55 @@
           ansible.builtin.command:
             argv: "{{ in_container + ['iadmin', 'rmresc', test_resc] }}"
           changed_when: true
+
+- name: Record the iRODS configuration irods_resource_container.yml left
+  hosts: irods_resource_container
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Record the configuration files' owners, modes and contents
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: &record_cfg |
+          set -o errexit -o pipefail
+          find /etc/irods /var/lib/irods/.irods /var/lib/irods/msiExecCmd_bin -type f \
+            -exec stat --format='%n %U:%G %a' {} + -exec sha1sum {} + \
+            | sort
+      register: cfg_before
+      changed_when: false
+
+# irods_cfg.yml configures every resource server, including the containerized ones.
+- name: Configure the iRODS servers with irods_cfg.yml
+  ansible.builtin.import_playbook: ../irods_cfg.yml
+
+- name: Test irods_cfg.yml agrees with irods_resource_container.yml
+  hosts: irods_resource_container
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Record the configuration files again
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: *record_cfg
+      register: cfg_after
+      changed_when: false
+
+    - name: Test irods_cfg.yml left the configuration as it was
+      ansible.builtin.assert:
+        that: cfg_after.stdout == cfg_before.stdout
+        fail_msg: >-
+          irods_cfg.yml changed these files' owners, modes or contents:
+          {{ cfg_before.stdout_lines | symmetric_difference(cfg_after.stdout_lines) }}
+        quiet: true
+
+    - name: Test the server still answers requests
+      become: true
+      become_user: irods
+      ansible.builtin.command:
+        argv: [docker, compose, --file=/var/lib/irods/docker-compose.yml, exec, -T, --user=irods,
+          irods-rs, ils]
+      register: resp
+      changed_when: false
+      until: resp is succeeded
+      retries: 30
+      delay: 2

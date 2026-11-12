@@ -49,6 +49,9 @@ RUN <<'EOF'
 
 	apt-get install --yes "$@"
 
+	# The generate-uuid command script needs uuidgen, which irods_provision.yml installs natively.
+	apt-get install --yes uuid-runtime
+
 	groupadd --non-unique --system --gid="$IRODS_HOST_UID" irods
 
 	useradd --non-unique --system \

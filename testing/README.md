@@ -82,7 +82,7 @@ testing/test-rs-image            # the image for iRODS 4.3.1
 testing/test-rs-image -v 4.3.4   # the image for iRODS 4.3.4
 ```
 
-`irods_resource_container.yml`'s test checks the `irodsctl` adapter's commands against a fake `docker`. It then checks the resource server the playbook started on each containerized host: that its container runs, restarts through the adapter, and logs to `/var/log/irods/irods.log`, and that a resource on it takes a put and a get, keeps the data in the host's vault, and serves it to the catalog provider.
+`irods_resource_container.yml`'s test checks the `irodsctl` adapter's commands against a fake `docker`. It then checks the resource server the playbook started on each containerized host: that its container runs, restarts through the adapter, and logs to `/var/log/irods/irods.log`, and that a resource on it takes a put and a get, keeps the data in the host's vault, and serves it to the catalog provider. Finally, it runs `irods_cfg.yml`, which configures these servers too, and checks that the configuration files didn't change and the server still answers. It uses the `hosts-containerized` inventory, whose only catalog provider is the configured one, so that `irods_cfg.yml` can run.
 
 ## The iRODS rule tests
 
