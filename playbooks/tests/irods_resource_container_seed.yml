@@ -11,22 +11,11 @@
   vars_files:
     - vars/irods_resource_container.yml
   tasks:
-    - name: Wait for the server to answer requests
-      ansible.builtin.command:
-        argv: "{{ in_container + ['ils'] }}"
-      register: resp
-      changed_when: false
-      until: resp is succeeded
-      retries: 30
-      delay: 2
-
-    - name: Create the upgrade test's resource
-      ansible.builtin.command:
-        argv: >-
-          {{ in_container
-            + ['bash', '-c', 'iadmin mkresc "$1" unixfilesystem "$2:$IRODS_VAULT_PATH/upgrade"', '_']
-            + [upgrade_resc, inventory_hostname] }}
-      changed_when: true
+    - name: Create the upgrade test's resource once the server answers
+      ansible.builtin.import_tasks: tasks/irods/make_container_resource.yml
+      vars:
+        _container_resc: "{{ upgrade_resc }}"
+        _container_resc_vault: upgrade
 
     - name: Put the upgrade test's data object
       ansible.builtin.command:
