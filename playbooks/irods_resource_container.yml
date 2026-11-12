@@ -13,8 +13,8 @@
         that:
           - _irods_service_group_name == _irods_service_account_name
         fail_msg: >-
-          The resource server image gives its irods group the host account's UID as its GID, so the
-          service group must be the account's own group, {{ _irods_service_account_name }}.
+          The resource server image gives its irods group the host account's GID, so the service
+          group must be the account's own group, {{ _irods_service_account_name }}.
 
     - name: Require an absolute vault path
       ansible.builtin.assert:
@@ -184,11 +184,13 @@
         group: "{{ _irods_service_group_name }}"
         mode: u+r
 
-    # irods_cfg.yml configures these servers too, with the same settings.
+    # irods_cfg.yml configures these servers too, with the same settings. The running container
+    # only picks up a change when it restarts.
     - name: Generate iRODS config files
       ansible.builtin.import_role:
         name: cyverse.ds.irods_cfg
-      notify: Restart irods
+      vars:
+        irods_cfg_restart_allowed: true
 
     - name: Add build dir
       ansible.builtin.file:
@@ -215,8 +217,10 @@
         database: passwd
         key: "{{ _irods_service_account_name }}"
 
-    - name: Set irods user uid
+    # The image gives its irods account these IDs, so it can use what the host account owns.
+    - name: Set irods user uid and gid
       ansible.builtin.set_fact:
+        _irods_host_gid: "{{ getent_passwd[_irods_service_account_name][2] }}"
         _irods_host_uid: "{{ getent_passwd[_irods_service_account_name][1] }}"
 
     - name: Generate .env file
@@ -280,11 +284,6 @@
       ansible.builtin.service:
         name: docker
         state: restarted
-
-    - name: Restart irods
-      when: _enable_notifications | d(false)
-      become_user: "{{ _irods_service_account_name }}"
-      ansible.builtin.command: /var/lib/irods/irodsctl restart
 
     - name: Update apt cache
       ansible.builtin.apt:

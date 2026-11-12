@@ -9,6 +9,7 @@ services:
       context: build
       dockerfile: Dockerfile
       args:
+        IRODS_HOST_GID: ${IRODS_HOST_GID}
         IRODS_HOST_UID: ${IRODS_HOST_UID}
         IRODS_NETCDF_PACKAGES: ${IRODS_NETCDF_PACKAGES}
         IRODS_SERVER_PORT_RANGE_START: ${IRODS_SERVER_PORT_RANGE_START}

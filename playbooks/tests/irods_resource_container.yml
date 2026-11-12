@@ -8,6 +8,7 @@
   vars_files:
     - ../group_vars/all/irods.yml
   vars:
+    _irods_host_gid: 999
     _irods_host_uid: 999
     core: "{{ lookup('template', '../templates/irods/docker-rs/run/etc/irods/core.re.j2') }}"
     env: "{{ lookup('template', '../templates/irods/docker-rs/env.j2') }}"
@@ -28,6 +29,7 @@
             env is search(
               '^IRODS_CATALOG_PROVIDER=' ~ (groups['irods_catalog'][0] | regex_escape) ~ '$',
               multiline=true )
+          - env is search('^IRODS_HOST_GID=999$', multiline=true)
           - env is search('^IRODS_HOST_UID=999$', multiline=true)
           - >-
             env is search(
@@ -64,6 +66,7 @@
     irods_server_port_range_end: 30099
     irods_server_port_range_start: 30000
     irods_zone_name: customZone
+    _irods_host_gid: 4321
     _irods_host_uid: 1234
     core: "{{ lookup('template', '../templates/irods/docker-rs/run/etc/irods/core.re.j2') }}"
     env: "{{ lookup('template', '../templates/irods/docker-rs/env.j2') }}"
@@ -78,6 +81,7 @@
     - name: Test .env expansion
       ansible.builtin.assert:
         that:
+          - env is search('^IRODS_HOST_GID=4321$', multiline=true)
           - env is search('^IRODS_HOST_UID=1234$', multiline=true)
           - env is search('^IRODS_SERVER_PORT_RANGE_START=30000$', multiline=true)
           - env is search('^IRODS_SERVER_PORT_RANGE_END=30099$', multiline=true)
@@ -456,6 +460,7 @@
             dotenv is search(
               '^IRODS_CATALOG_PROVIDER=' ~ (groups['irods_catalog'][0] | regex_escape) ~ '$',
               multiline=true )
+          - dotenv is search('^IRODS_HOST_GID=' ~ getent_passwd.irods[2] ~ '$', multiline=true)
           - dotenv is search('^IRODS_HOST_UID=' ~ getent_passwd.irods[1] ~ '$', multiline=true)
           - dotenv is search('^IRODS_SERVER_PORT_RANGE_START=20000$', multiline=true)
           - dotenv is search('^IRODS_SERVER_PORT_RANGE_END=20009$', multiline=true)
@@ -600,8 +605,8 @@
   become_user: irods
   gather_facts: false
   vars:
-    compose: [docker, compose, --file=/var/lib/irods/docker-compose.yml]
-    in_container: "{{ compose + ['exec', '-T', '--user=irods', 'irods-rs'] }}"
+    compose: &compose [docker, compose, --file=/var/lib/irods/docker-compose.yml]
+    in_container: &in_container "{{ compose + ['exec', '-T', '--user=irods', 'irods-rs'] }}"
     test_obj: /testing/home/rods/{{ inventory_hostname_short }}-test.dat
     test_resc: "{{ inventory_hostname_short }}-test"
   tasks:
@@ -735,14 +740,14 @@
   become: true
   gather_facts: false
   tasks:
-    - name: Record the configuration files' owners, modes and contents
+    - name: Record the configuration files' and directories' owners, modes and contents
       ansible.builtin.shell:
         executable: /bin/bash
         cmd: &record_cfg |
           set -o errexit -o pipefail
-          find /etc/irods /var/lib/irods/.irods /var/lib/irods/msiExecCmd_bin -type f \
-            -exec stat --format='%n %U:%G %a' {} + -exec sha1sum {} + \
-            | sort
+          dirs=(/etc/irods /var/lib/irods/.irods /var/lib/irods/msiExecCmd_bin)
+          find "${dirs[@]}" -exec stat --format='%n %F %U:%G %a' {} + | sort
+          find "${dirs[@]}" -type f -exec sha1sum {} + | sort
       register: cfg_before
       changed_when: false
 
@@ -754,6 +759,9 @@
   hosts: irods_resource_container
   become: true
   gather_facts: false
+  vars:
+    compose: *compose
+    in_container: *in_container
   tasks:
     - name: Record the configuration files again
       ansible.builtin.shell:
@@ -766,7 +774,7 @@
       ansible.builtin.assert:
         that: cfg_after.stdout == cfg_before.stdout
         fail_msg: >-
-          irods_cfg.yml changed these files' owners, modes or contents:
+          irods_cfg.yml changed these files' or directories' owners, modes or contents:
           {{ cfg_before.stdout_lines | symmetric_difference(cfg_after.stdout_lines) }}
         quiet: true
 
@@ -774,8 +782,7 @@
       become: true
       become_user: irods
       ansible.builtin.command:
-        argv: [docker, compose, --file=/var/lib/irods/docker-compose.yml, exec, -T, --user=irods,
-          irods-rs, ils]
+        argv: "{{ in_container + ['ils'] }}"
       register: resp
       changed_when: false
       until: resp is succeeded
