@@ -13,7 +13,8 @@ main() {
 		> /dev/null
 
 	log $$ 'Starting server ...'
-	su --command='/usr/sbin/irodsServer -u' irods
+	# bash as PID 1 would ignore SIGTERM, but su passes it on to the server, so it can shut down.
+	exec su --command='/usr/sbin/irodsServer -u' irods
 }
 
 log() {

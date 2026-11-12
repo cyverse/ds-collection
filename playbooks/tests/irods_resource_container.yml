@@ -604,15 +604,14 @@
   become_user: irods
   gather_facts: false
   vars:
-    in_container: [docker, compose, --file=/var/lib/irods/docker-compose.yml, exec, -T, --user=irods,
-      irods-rs]
+    compose: [docker, compose, --file=/var/lib/irods/docker-compose.yml]
+    in_container: "{{ compose + ['exec', '-T', '--user=irods', 'irods-rs'] }}"
     test_obj: /testing/home/rods/{{ inventory_hostname_short }}-test.dat
     test_resc: "{{ inventory_hostname_short }}-test"
   tasks:
     - name: Test the container is running
       ansible.builtin.command:
-        argv: [docker, compose, --file=/var/lib/irods/docker-compose.yml, ps, --status=running,
-          --quiet, irods-rs]
+        argv: "{{ compose + ['ps', '--status=running', '--quiet', 'irods-rs'] }}"
       register: resp
       changed_when: false
       failed_when: resp is failed or resp.stdout == ''
@@ -620,7 +619,7 @@
     - name: Count the lines already in the host's iRODS log
       ansible.builtin.shell:
         executable: /bin/bash
-        cmd: cat /var/log/irods/irods.log 2> /dev/null | wc --lines
+        cmd: "{ wc --lines < /var/log/irods/irods.log; } 2> /dev/null || echo 0"
       register: log_lines
       changed_when: false
 
@@ -628,19 +627,28 @@
       ansible.builtin.command: /var/lib/irods/irodsctl restart
       changed_when: true
 
-    # The entrypoint logs this each time the container starts.
+    # The entrypoint logs this each time the container starts. grep stops at the first match, which
+    # can kill tail with SIGPIPE, so tail isn't in a pipeline whose status counts.
     - name: Test the restarted server logs to the host's iRODS log
       ansible.builtin.shell:
         executable: /bin/bash
-        cmd: |
-          set -o pipefail
-          tail --lines=+{{ log_lines.stdout | int + 1 }} /var/log/irods/irods.log \
-            | grep --quiet 'Starting server'
+        cmd: >-
+          grep --quiet 'Starting server'
+          <(tail --lines=+{{ log_lines.stdout | int + 1 }} /var/log/irods/irods.log)
       register: resp
       changed_when: false
       until: resp is succeeded
       retries: 15
       delay: 2
+
+    # A server Docker has to kill after it ignores SIGTERM never logs this.
+    - name: Test the server shut down cleanly for the restart
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: >-
+          grep --quiet 'iRODS Server is done'
+          <(tail --lines=+{{ log_lines.stdout | int + 1 }} /var/log/irods/irods.log)
+      changed_when: false
 
     - name: Test the adapter reports the server running
       ansible.builtin.command: /var/lib/irods/irodsctl status
