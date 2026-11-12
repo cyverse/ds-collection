@@ -15,7 +15,10 @@
 # of that upgrade instead. If PREPARE_DATA_STORE is set, start deploys the Data
 # Store on the configured servers, with data_store_env::prepare, at the release
 # they start on. When it upgrades them too, it then adds the data the upgrade
-# test checks, and upgrades the deployed Data Store.
+# test checks, and upgrades the deployed Data Store. If PREPARE_CONTAINERS is set
+# when it upgrades them, start first deploys the containerized resource servers
+# on the release they start on, with data_store_env::prepare_containers, and
+# leaves them on it.
 #
 # snapshot starts the environment upgraded from IRODS_UPGRADE_FROM, saves the
 # configured iRODS servers and DBMS as images tagged with the upgrade, and
@@ -141,6 +144,12 @@ start()
   IRODS_VERSION="$IRODS_UPGRADE_FROM" compose "${upArgs[@]}"
 
   IRODS_VERSION="$IRODS_UPGRADE_FROM" prepare_if_asked
+
+  if [ -n "${PREPARE_CONTAINERS-}" ]
+  then
+    printf 'Deploying the containerized resource servers on iRODS %s\n' "$IRODS_UPGRADE_FROM"
+    IRODS_VERSION="$IRODS_UPGRADE_FROM" data_store_env::prepare_containers
+  fi
 
   if [ -n "${PREPARE_DATA_STORE-}" ]
   then

@@ -1,0 +1,9 @@
+---
+# What the containerized resource server tests and their upgrade seed share
+compose: [docker, compose, --file=/var/lib/irods/docker-compose.yml]
+in_container: "{{ compose + ['exec', '-T', '--user=irods', 'irods-rs'] }}"
+
+# The data object the seed adds before the servers' upgrade, and the resource holding it
+upgrade_content: data {{ inventory_hostname_short }} had before its upgrade
+upgrade_obj: /testing/home/rods/{{ inventory_hostname_short }}-upgrade.dat
+upgrade_resc: "{{ inventory_hostname_short }}-upgrade"

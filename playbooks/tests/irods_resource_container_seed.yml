@@ -1,0 +1,40 @@
+---
+# Adds the data that irods_resource_container.yml's test checks survives the containerized resource
+# servers' upgrade: a data object on a resource on each one. The testing environment runs it after
+# deploying them on the release they're upgraded from.
+
+- name: Seed the containerized resource servers for the upgrade test
+  hosts: irods_resource_container
+  become: true
+  become_user: irods
+  gather_facts: false
+  vars_files:
+    - vars/irods_resource_container.yml
+  tasks:
+    - name: Wait for the server to answer requests
+      ansible.builtin.command:
+        argv: "{{ in_container + ['ils'] }}"
+      register: resp
+      changed_when: false
+      until: resp is succeeded
+      retries: 30
+      delay: 2
+
+    - name: Create the upgrade test's resource
+      ansible.builtin.command:
+        argv: >-
+          {{ in_container
+            + ['bash', '-c', 'iadmin mkresc "$1" unixfilesystem "$2:$IRODS_VAULT_PATH/upgrade"', '_']
+            + [upgrade_resc, inventory_hostname] }}
+      changed_when: true
+
+    - name: Put the upgrade test's data object
+      ansible.builtin.command:
+        argv: "{{ in_container + ['bash', '-s', '--', upgrade_resc, upgrade_obj, upgrade_content] }}"
+        stdin: |
+          set -o errexit -o nounset -o pipefail
+          src="$(mktemp)"
+          trap 'rm --force "$src"' EXIT
+          printf '%s\n' "$3" > "$src"
+          iput -K -R "$1" "$src" "$2"
+      changed_when: true

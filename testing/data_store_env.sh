@@ -39,6 +39,22 @@ data_store_env::seed() {
 }
 
 
+# Deploys the containerized resource servers with irods_resource_container.yml,
+# then adds the data that its test checks survives their upgrade.
+# irods_upgrade.yml doesn't upgrade them, so the test's run of the playbook does.
+# Input:
+#  IRODS_VERSION  (optional) the iRODS release to deploy them on
+data_store_env::prepare_containers() {
+	data_store_env::run_playbook hosts-containerized /wait-for-ready.yml
+
+	data_store_env::run_playbook hosts-containerized \
+		--skip-tags=no_testing /playbooks-under-test/irods_resource_container.yml
+
+	data_store_env::run_playbook hosts-containerized \
+		/playbooks-under-test/tests/irods_resource_container_seed.yml
+}
+
+
 # Upgrades the configured iRODS servers to IRODS_VERSION with irods_upgrade.yml.
 # When the Data Store is deployed, the unconfigured consumer runs iRODS too, so
 # it's upgraded with them.

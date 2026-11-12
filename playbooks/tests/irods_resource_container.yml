@@ -604,9 +604,9 @@
   become: true
   become_user: irods
   gather_facts: false
+  vars_files:
+    - vars/irods_resource_container.yml
   vars:
-    compose: &compose [docker, compose, --file=/var/lib/irods/docker-compose.yml]
-    in_container: &in_container "{{ compose + ['exec', '-T', '--user=irods', 'irods-rs'] }}"
     test_obj: /testing/home/rods/{{ inventory_hostname_short }}-test.dat
     test_resc: "{{ inventory_hostname_short }}-test"
   tasks:
@@ -735,6 +735,60 @@
             argv: "{{ in_container + ['iadmin', 'rmresc', test_resc] }}"
           changed_when: true
 
+- name: Test the containerized resource servers' upgrade
+  hosts: irods_resource_container
+  become: true
+  become_user: irods
+  gather_facts: false
+  vars_files:
+    - vars/irods_resource_container.yml
+  tasks:
+    # With --upgrade-from, the environment deploys these servers on that release and seeds them
+    # before upgrading the others, so the playbook under test upgrades them.
+    - name: Test the upgrade
+      when: irods_upgrade_from is defined
+      block:
+        - name: Test the server runs the release it was upgraded to
+          ansible.builtin.command:
+            argv: "{{ in_container + ['dpkg-query', '--show', '--showformat=${Version}', 'irods-server'] }}"
+          register: resp
+          changed_when: false
+          failed_when: resp is failed or resp.stdout is not match(irods_version ~ '-')
+
+        - name: Test the release's own rule bases are deployed
+          ansible.builtin.copy:
+            src: "{{ item }}"
+            dest: /etc/irods/{{ item | basename }}
+            owner: irods
+            group: irods
+            mode: u+r
+          check_mode: true
+          register: resp
+          failed_when: resp is changed or resp is failed
+          with_fileglob: ../files/irods/etc/irods/{{ irods_version }}/*.re
+
+        - name: Test the data from before the upgrade is intact
+          ansible.builtin.command:
+            argv: "{{ in_container + ['bash', '-s', '--', upgrade_obj, upgrade_content] }}"
+            stdin: |
+              set -o errexit -o nounset -o pipefail
+              dest="$(mktemp)"
+              trap 'rm --force "$dest"' EXIT
+              iget -f -K "$1" "$dest"
+              [[ "$(< "$dest")" == "$2" ]]
+          changed_when: false
+
+      always:
+        - name: Remove the upgrade test's data object
+          ansible.builtin.command:
+            argv: "{{ in_container + ['irm', '-f', upgrade_obj] }}"
+          changed_when: true
+
+        - name: Remove the upgrade test's resource
+          ansible.builtin.command:
+            argv: "{{ in_container + ['iadmin', 'rmresc', upgrade_resc] }}"
+          changed_when: true
+
 - name: Record the iRODS configuration irods_resource_container.yml left
   hosts: irods_resource_container
   become: true
@@ -759,9 +813,8 @@
   hosts: irods_resource_container
   become: true
   gather_facts: false
-  vars:
-    compose: *compose
-    in_container: *in_container
+  vars_files:
+    - vars/irods_resource_container.yml
   tasks:
     - name: Record the configuration files again
       ansible.builtin.shell:
