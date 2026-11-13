@@ -660,12 +660,13 @@
       delay: 2
 
     # The scripts are root's, so the container's irods account runs them through its group.
+    # Unlike the rule below, which hides it, this shows the script's own error.
     - name: Test the server's account can run the command scripts
       ansible.builtin.command:
         argv: "{{ in_container + ['/var/lib/irods/msiExecCmd_bin/generate-uuid'] }}"
       register: resp
       changed_when: false
-      failed_when: resp is failed or resp.stdout is not match('[0-9a-f-]{36}$')
+      failed_when: resp is failed or resp.stdout is not match('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
 
     - name: Test putting and getting data through a resource on the server
       block:
@@ -724,17 +725,17 @@
             argv: "{{ in_container + ['iadmin', 'rmresc', test_resc] }}"
           changed_when: true
 
-    # irule runs a rule on the server it connects to, and _cyverse_logic_genUUID runs generate-uuid
-    # with msiExecCmd on the server running it, so this runs the script in the server's container.
+    # irule runs the rule, and so its msiExecCmd of generate-uuid, on the server it connects to.
     - name: Test a Data Store rule on the server runs a command script
       ansible.builtin.command:
         argv: >-
-          {{ in_container
+          {{ compose
+            + ['exec', '-T', '--user=irods', '--env=IRODS_HOST=' ~ inventory_hostname, 'irods-rs']
             + ['irule', '-r', 'irods_rule_engine_plugin-irods_rule_language-instance']
             + ['writeLine("stdout", _cyverse_logic_genUUID())', 'null', 'ruleExecOut'] }}
       register: resp
       changed_when: false
-      failed_when: resp is failed or resp.stdout is not match('[0-9a-f-]{36}$')
+      failed_when: resp is failed or resp.stdout is not match('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
 
 - name: Test the containerized resource servers' upgrade
   hosts: irods_resource_container
