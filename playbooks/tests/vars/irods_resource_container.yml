@@ -7,3 +7,8 @@ in_container: "{{ compose + ['exec', '-T', '--user=irods', 'irods-rs'] }}"
 upgrade_content: data {{ inventory_hostname_short }} had before its upgrade
 upgrade_obj: /testing/home/rods/{{ inventory_hostname_short }}-upgrade.dat
 upgrade_resc: "{{ inventory_hostname_short }}-upgrade"
+
+# Copies of that data object made through the server and through the catalog provider after the
+# provider's upgrade, while the server still runs the earlier release
+mixed_provider_obj: /testing/home/rods/{{ inventory_hostname_short }}-mixed-provider.dat
+mixed_server_obj: /testing/home/rods/{{ inventory_hostname_short }}-mixed-server.dat

@@ -750,9 +750,11 @@
           vars:
             _irods_client_bash: "{{ in_container + ['bash'] }}"
 
+        # The environment made the copies after upgrading the catalog provider, while the server
+        # still ran the earlier release.
         - name: Test the data from before the upgrade is intact
           ansible.builtin.command:
-            argv: "{{ in_container + ['bash', '-s', '--', upgrade_obj, upgrade_content] }}"
+            argv: "{{ in_container + ['bash', '-s', '--', item.obj, upgrade_content] }}"
             stdin: |
               set -o errexit -o nounset -o pipefail
               dest="$(mktemp)"
@@ -760,15 +762,28 @@
               iget -f -K "$1" "$dest"
               [[ "$(< "$dest")" == "$2" ]]
           changed_when: false
+          loop_control:
+            label: "{{ item.label }}"
+          loop:
+            - label: the seeded data object
+              obj: "{{ upgrade_obj }}"
+            - label: its copy through the server while the releases were mixed
+              obj: "{{ mixed_server_obj }}"
+            - label: its copy through the catalog provider while the releases were mixed
+              obj: "{{ mixed_provider_obj }}"
 
       always:
-        # It's missing when the upgrade lost it, and irm fails then.
-        - name: Remove the upgrade test's data object
+        # One is missing when the upgrade lost it or a copy failed, and irm fails then.
+        - name: Remove the upgrade test's data objects
           ansible.builtin.command:
-            argv: "{{ in_container + ['irm', '-f', upgrade_obj] }}"
+            argv: "{{ in_container + ['irm', '-f', item] }}"
           register: resp
           changed_when: resp.rc == 0
           failed_when: false
+          loop:
+            - "{{ upgrade_obj }}"
+            - "{{ mixed_server_obj }}"
+            - "{{ mixed_provider_obj }}"
 
         - name: Remove the upgrade test's resource
           ansible.builtin.command:

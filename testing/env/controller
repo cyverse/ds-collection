@@ -18,7 +18,8 @@
 # test checks, and upgrades the deployed Data Store. If PREPARE_CONTAINERS is set
 # when it upgrades them, start first deploys the containerized resource servers
 # on the release they start on, with data_store_env::prepare_containers, and
-# leaves them on it.
+# leaves them on it. After the upgrade, it copies data through them while the
+# releases are mixed, with data_store_env::use_mixed_containers.
 #
 # The containerized resource server hosts keep Docker's storage in volumes that
 # outlive the environment, so that they build irods-rs from Docker's cache. start
@@ -171,6 +172,12 @@ start()
   printf 'Upgrading the configured iRODS servers from %s to %s\n' \
     "$IRODS_UPGRADE_FROM" "$(upgrade_target)"
   data_store_env::upgrade
+
+  if [ -n "${PREPARE_CONTAINERS-}" ]
+  then
+    printf 'Using the containerized resource servers, still on iRODS %s\n' "$IRODS_UPGRADE_FROM"
+    data_store_env::use_mixed_containers
+  fi
 }
 
 
