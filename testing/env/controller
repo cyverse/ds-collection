@@ -20,6 +20,11 @@
 # on the release they start on, with data_store_env::prepare_containers, and
 # leaves them on it.
 #
+# The containerized resource server hosts keep Docker's storage in volumes that
+# outlive the environment, so that they build irods-rs from Docker's cache. start
+# creates them if they're missing, and stop removes the containers those hosts'
+# Docker daemons have but leaves the volumes.
+#
 # snapshot starts the environment upgraded from IRODS_UPGRADE_FROM, saves the
 # configured iRODS servers and DBMS as images tagged with the upgrade, and
 # stops the environment. remove-snapshot deletes those images.
@@ -42,6 +47,11 @@ readonly SnapshotIrodsServices=(consumer_configured_centos provider_configured)
 
 # The services whose containers a snapshot saves
 readonly SnapshotServices=(dbms_configured "${SnapshotIrodsServices[@]}")
+
+# The containerized resource server hosts, whose Docker storage is in volumes that outlive the
+# environment
+readonly ContainerizedServices=(
+  consumer_containerized_alma consumer_containerized_alma9 consumer_containerized_ubuntu )
 
 # Whether snapshot saved all of its images
 SnapshotSaved=''
@@ -91,7 +101,7 @@ main()
       start
       ;;
     stop)
-      compose down --remove-orphans --volumes
+      stop
       ;;
     snapshot)
       snapshot
@@ -113,6 +123,8 @@ start()
 {
   # Starting builds any image that's missing, such as another iRODS release's.
   portability::use_docker_builder
+
+  create_docker_volumes
 
   local upArgs=(up -d --scale dbms_unconfigured=2)
 
@@ -159,6 +171,47 @@ start()
   printf 'Upgrading the configured iRODS servers from %s to %s\n' \
     "$IRODS_UPGRADE_FROM" "$(upgrade_target)"
   data_store_env::upgrade
+}
+
+
+stop()
+{
+  remove_nested_containers
+  compose down --remove-orphans --volumes
+}
+
+
+# Creates the volumes the containerized resource server hosts keep Docker's storage in, unless they
+# already exist.
+create_docker_volumes()
+{
+  local service
+  local store
+  for service in "${ContainerizedServices[@]}"
+  do
+    for store in containerd docker
+    do
+      docker volume create "$ENV_NAME"-"$service"-"$store" > /dev/null
+    done
+  done
+}
+
+
+# Removes the containers and networks the containerized resource server hosts' Docker daemons have,
+# so that only their images and build cache carry over to the next environment. A host that isn't
+# running, or hasn't installed Docker, has none.
+remove_nested_containers()
+{
+  local service
+  for service in "${ContainerizedServices[@]}"
+  do
+    docker exec "$ENV_NAME"-"$service"-1 sh -c '
+        command -v docker > /dev/null || exit 0
+        docker ps --all --quiet | xargs --no-run-if-empty docker rm --force > /dev/null
+        docker network prune --force > /dev/null' \
+      2> /dev/null \
+      || true
+  done
 }
 
 

@@ -156,7 +156,8 @@ services:
     shm_size: 128mb
 
   # The containerized resource server hosts run Docker, which needs systemd and can't keep its or
-  # containerd's storage on the container's own overlay file system.
+  # containerd's storage on the container's own overlay file system. The storage is in volumes that
+  # outlive the environment, so the hosts build irods-rs from Docker's cache after the first time.
   consumer_containerized_alma:
     image: test-env-base:alma10-systemd
     cgroup: private
@@ -168,8 +169,8 @@ services:
       - /run/lock
     tty: true
     volumes:
-      - /var/lib/containerd
-      - /var/lib/docker
+      - consumer_containerized_alma_containerd:/var/lib/containerd
+      - consumer_containerized_alma_docker:/var/lib/docker
 
   consumer_containerized_alma9:
     image: test-env-base:alma9-systemd
@@ -182,8 +183,8 @@ services:
       - /run/lock
     tty: true
     volumes:
-      - /var/lib/containerd
-      - /var/lib/docker
+      - consumer_containerized_alma9_containerd:/var/lib/containerd
+      - consumer_containerized_alma9_docker:/var/lib/docker
 
   consumer_containerized_ubuntu:
     image: test-env-base:ubuntu2404-systemd
@@ -196,8 +197,8 @@ services:
       - /run/lock
     tty: true
     volumes:
-      - /var/lib/containerd
-      - /var/lib/docker
+      - consumer_containerized_ubuntu_containerd:/var/lib/containerd
+      - consumer_containerized_ubuntu_docker:/var/lib/docker
 
   cbuoy:
     image: test-env-base:alma9
@@ -210,3 +211,24 @@ services:
       context: .
       dockerfile: s3/Dockerfile
     platform: linux/amd64
+
+# The controller creates these, and testing/env/clean removes them.
+volumes:
+  consumer_containerized_alma_containerd:
+    external: true
+    name: ${ENV_NAME}-consumer_containerized_alma-containerd
+  consumer_containerized_alma_docker:
+    external: true
+    name: ${ENV_NAME}-consumer_containerized_alma-docker
+  consumer_containerized_alma9_containerd:
+    external: true
+    name: ${ENV_NAME}-consumer_containerized_alma9-containerd
+  consumer_containerized_alma9_docker:
+    external: true
+    name: ${ENV_NAME}-consumer_containerized_alma9-docker
+  consumer_containerized_ubuntu_containerd:
+    external: true
+    name: ${ENV_NAME}-consumer_containerized_ubuntu-containerd
+  consumer_containerized_ubuntu_docker:
+    external: true
+    name: ${ENV_NAME}-consumer_containerized_ubuntu-docker

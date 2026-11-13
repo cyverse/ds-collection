@@ -20,7 +20,7 @@ The test scripts give the tester container a terminal only when they have one, s
 
 ## Building the Harness
 
-There are two convenience scripts for building the docker images for the environment. `build` builds all the required images, and `clean` deletes them.
+There are two convenience scripts for building the docker images for the environment. `build` builds all the required images, and `clean` deletes them. `clean` also deletes the volumes the containerized resource server hosts keep Docker's storage in. They outlive each environment, so that the hosts build the `irods-rs` image from Docker's cache after the first run; the environment controller removes the containers those hosts' Docker daemons have when it stops, but keeps their images and build cache.
 
 The environment's images build `FROM` the `test-env-base` images, which a buildx builder that uses the `docker-container` driver can't see in Docker's image store. So unless `BUILDX_BUILDER` names a builder, the build scripts and `env/controller` use the Docker driver builder of the current Docker context, whatever builder is selected.
 
