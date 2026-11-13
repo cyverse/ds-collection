@@ -827,3 +827,38 @@
       until: resp is succeeded
       retries: 30
       delay: 2
+
+# In check mode, irods_cfg.yml changes nothing even if it misses the mismatch.
+- name: Test irods_cfg.yml refuses a release the containerized servers don't run
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/irods.yml
+  tasks:
+    # Each release with its own rule bases has a directory of them.
+    - name: Find the releases with their own rule bases
+      ansible.builtin.find:
+        paths: "{{ playbook_dir }}/../files/irods/etc/irods"
+        file_type: directory
+      register: release_dirs
+
+    - name: Test irods_cfg.yml fails for another release
+      vars:
+        other_release: >-
+          {{ release_dirs.files | map(attribute='path') | map('basename')
+            | reject('equalto', _irods_version) | first }}
+      ansible.builtin.command:
+        argv:
+          - ansible-playbook
+          - --check
+          - --inventory={{ ansible_inventory_sources | first }}
+          - --limit=irods_resource_container
+          - --extra-vars=irods_version={{ other_release }}
+          - "{{ playbook_dir }}/../irods_cfg.yml"
+      register: resp
+      environment:
+        ANSIBLE_STDOUT_CALLBACK: default
+      changed_when: false
+      failed_when: >-
+        resp.rc == 0
+        or resp.stdout is not search('image is for iRODS ' ~ (_irods_version | regex_escape) ~ ',')

@@ -8,6 +8,10 @@ ENV container=docker
 # table that nftables-only hosts lack, so a Docker daemon in the container couldn't start.
 RUN dnf --assumeyes install iptables-nft && dnf clean all && rm --force --recursive /var/cache/dnf
 
+# A real host keeps its journal here. Without it, the journal is in /run, which an AppArmor host's
+# rsyslogd profile won't let rsyslog read, so nothing would reach rsyslog.
+RUN mkdir --parents /var/log/journal
+
 # The resource server's container takes this host's name, which iRODS has to be able to resolve.
 COPY base/restore-hostname.service /etc/systemd/system/restore-hostname.service
 RUN systemctl enable restore-hostname.service
