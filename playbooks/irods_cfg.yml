@@ -31,26 +31,32 @@
       vars:
         installed: "{{ ansible_facts.packages['irods-server'][0].version | split('-') | first }}"
 
-    # A containerized server runs the release its image was built for, which .env names.
-    - name: Look up a containerized server's .env
-      when: inventory_hostname in groups['irods_resource_container']
+    # A containerized server runs the release its image has. Before irods_resource_container.yml
+    # deploys it, there's no image, or no docker.
+    - name: Look up the release a containerized server's image has
+      when: "'irods_resource_container' in group_names"
       become: true
-      ansible.builtin.stat:
-        path: /var/lib/irods/.env
-        get_attributes: false
-        get_checksum: false
-        get_mime: false
-      register: rs_env_stat
-
-    - name: Read a containerized server's .env
-      when: rs_env_stat.stat.exists | d(false)
-      become: true
-      ansible.builtin.slurp:
-        src: /var/lib/irods/.env
-      register: rs_env
+      ansible.builtin.command:
+        argv:
+          - docker
+          - run
+          - --rm
+          - --pull=never
+          - --entrypoint=dpkg-query
+          - irods-rs
+          - --show
+          - --showformat=${Version}
+          - irods-server
+      check_mode: false
+      register: rs_image_release
+      changed_when: false
+      failed_when: >-
+        rs_image_release.rc != 0
+        and rs_image_release.stderr | d('') is not search('No such image')
+        and rs_image_release.msg | d('') is not search('No such file')
 
     - name: Check the containerized server's release is irods_version
-      when: rs_env is not skipped
+      when: rs_image_release.rc | d(1) == 0
       ansible.builtin.assert:
         that: built_for == _irods_version
         fail_msg: >-
@@ -59,9 +65,7 @@
           irods_resource_container.yml first.
         quiet: true
       vars:
-        built_for: >-
-          {{ rs_env.content | b64decode
-            | regex_search('^IRODS_VERSION=(\S+)$', '\1', multiline=true) | first }}
+        built_for: "{{ rs_image_release.stdout | split('-') | first }}"
 
 # XXX: After upgrading to iRODS 5.1.0, the irods_cfg role can deploy the command scripts again.
 - name: TAR slip workaround | deploy the command scripts

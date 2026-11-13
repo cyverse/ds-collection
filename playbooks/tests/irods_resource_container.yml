@@ -842,11 +842,13 @@
         file_type: directory
       register: release_dirs
 
-    - name: Test irods_cfg.yml fails for another release
+    - name: Test irods_cfg.yml fails for another release on every containerized server
+      when: other_releases | length > 0
       vars:
-        other_release: >-
+        other_releases: >-
           {{ release_dirs.files | map(attribute='path') | map('basename')
-            | reject('equalto', _irods_version) | first }}
+            | reject('equalto', _irods_version) | list }}
+        other_release: "{{ other_releases | first }}"
       ansible.builtin.command:
         argv:
           - ansible-playbook
@@ -861,4 +863,6 @@
       changed_when: false
       failed_when: >-
         resp.rc == 0
-        or resp.stdout is not search('image is for iRODS ' ~ (_irods_version | regex_escape) ~ ',')
+        or resp.stdout
+          | regex_findall('image is for iRODS ' ~ (_irods_version | regex_escape) ~ ',')
+          | length != groups['irods_resource_container'] | length
