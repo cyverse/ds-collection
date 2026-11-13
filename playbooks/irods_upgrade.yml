@@ -2,7 +2,8 @@
 # Upgrades the iRODS servers with an earlier release installed to _irods_version. The catalog
 # service providers start before the consumers, since a provider updates the catalog schema when it
 # starts on a new release. A failure on any server stops the upgrade on all of them, so that no
-# server starts against a provider that wasn't upgraded.
+# server starts against a provider that wasn't upgraded. It leaves the containerized resource
+# servers to irods_resource_container.yml, and reports any whose image has an earlier release.
 
 - name: Upgrade iRODS | find the servers to upgrade
   hosts: irods:!irods_resource_container:!unmanaged_systems
@@ -172,16 +173,30 @@
         state: started
 
 
-# irods_resource_container.yml upgrades the containerized resource servers, after this.
+# irods_resource_container.yml upgrades the containerized resource servers, after this. This only
+# reports on them, so a server it can't check doesn't fail the upgrade.
 - name: Upgrade iRODS | report the containerized servers still to upgrade
   hosts: irods_resource_container
   gather_facts: false
+  ignore_unreachable: true
   tasks:
     - name: Look up the release each one's image has
       ansible.builtin.import_tasks: tasks/irods/container_release.yml
+      ignore_errors: true  # noqa: ignore-errors
 
-    - name: Report a containerized server on another release
-      when: _irods_container_release not in ['', _irods_version]
+    - name: Report a containerized server that couldn't be checked
+      when: container_release_resp is failed or container_release_resp is unreachable
+      ansible.builtin.debug:
+        msg: >-
+          Couldn't look up which iRODS release the containerized server's image has
+          ({{ container_release_resp.msg | d(container_release_resp.stderr | d('')) }}). Make sure
+          it's upgraded with irods_resource_container.yml, with irods_version set to
+          {{ _irods_version }}, before running irods_cfg.yml.
+
+    - name: Report a containerized server on an earlier release
+      when:
+        - _irods_container_deployed | d(false)
+        - _irods_container_release is version(_irods_version, '<')
       ansible.builtin.debug:
         msg: >-
           The containerized iRODS server's image is still for iRODS {{ _irods_container_release }}.

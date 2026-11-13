@@ -36,7 +36,7 @@
       ansible.builtin.import_tasks: tasks/irods/container_release.yml
 
     - name: Check the containerized server's release is irods_version
-      when: _irods_container_release | d('') != ''
+      when: _irods_container_deployed | d(false)
       ansible.builtin.assert:
         that: _irods_container_release == _irods_version
         fail_msg: >-

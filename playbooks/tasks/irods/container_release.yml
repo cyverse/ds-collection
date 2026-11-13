@@ -1,7 +1,7 @@
 ---
 # Looks up the iRODS release a containerized resource server's image has, as _irods_container_release.
-# It's empty before irods_resource_container.yml deploys the server, when there's no image, or no
-# docker.
+# _irods_container_deployed is false before irods_resource_container.yml deploys the server, when
+# there's no image, or no docker.
 - name: Container release | ask the image
   become: true
   ansible.builtin.command:
@@ -25,6 +25,5 @@
 
 - name: Container release | record it
   ansible.builtin.set_fact:
-    _irods_container_release: >-
-      {{ container_release_resp.stdout | split('-') | first
-        if container_release_resp.rc | d(1) == 0 else '' }}
+    _irods_container_deployed: "{{ container_release_resp.rc | d(1) == 0 }}"
+    _irods_container_release: "{{ container_release_resp.stdout | d('') | split('-') | first }}"
