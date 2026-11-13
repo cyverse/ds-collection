@@ -170,3 +170,20 @@
     - name: Start
       cyverse.ds.irods_ctl:
         state: started
+
+
+# irods_resource_container.yml upgrades the containerized resource servers, after this.
+- name: Upgrade iRODS | report the containerized servers still to upgrade
+  hosts: irods_resource_container
+  gather_facts: false
+  tasks:
+    - name: Look up the release each one's image has
+      ansible.builtin.import_tasks: tasks/irods/container_release.yml
+
+    - name: Report a containerized server on another release
+      when: _irods_container_release not in ['', _irods_version]
+      ansible.builtin.debug:
+        msg: >-
+          The containerized iRODS server's image is still for iRODS {{ _irods_container_release }}.
+          Upgrade it with irods_resource_container.yml, with irods_version set to
+          {{ _irods_version }}, before running irods_cfg.yml.

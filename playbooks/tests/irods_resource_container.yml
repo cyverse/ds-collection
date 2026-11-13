@@ -867,11 +867,19 @@
       delay: 2
 
 # In check mode, irods_cfg.yml changes nothing even if it misses the mismatch.
-- name: Test irods_cfg.yml refuses a release the containerized servers don't run
+- name: Test irods_cfg.yml and irods_upgrade.yml check the release the containerized servers run
   hosts: localhost
   gather_facts: false
   vars_files:
     - ../group_vars/all/irods.yml
+  vars:
+    nested_run: [ansible-playbook, --check, "--inventory={{ ansible_inventory_sources | first }}",
+      --limit=irods_resource_container]
+    other_releases: >-
+      {{ release_dirs.files | map(attribute='path') | map('basename')
+        | reject('equalto', _irods_version) | list }}
+    other_release: "{{ other_releases | first }}"
+    server_count: "{{ groups['irods_resource_container'] | length }}"
   tasks:
     # Each release with its own rule bases has a directory of them.
     - name: Find the releases with their own rule bases
@@ -882,19 +890,10 @@
 
     - name: Test irods_cfg.yml fails for another release on every containerized server
       when: other_releases | length > 0
-      vars:
-        other_releases: >-
-          {{ release_dirs.files | map(attribute='path') | map('basename')
-            | reject('equalto', _irods_version) | list }}
-        other_release: "{{ other_releases | first }}"
       ansible.builtin.command:
-        argv:
-          - ansible-playbook
-          - --check
-          - --inventory={{ ansible_inventory_sources | first }}
-          - --limit=irods_resource_container
-          - --extra-vars=irods_version={{ other_release }}
-          - "{{ playbook_dir }}/../irods_cfg.yml"
+        argv: >-
+          {{ nested_run
+            + ['--extra-vars=irods_version=' ~ other_release, playbook_dir ~ '/../irods_cfg.yml'] }}
       register: resp
       environment:
         ANSIBLE_STDOUT_CALLBACK: default
@@ -903,4 +902,31 @@
         resp.rc == 0
         or resp.stdout
           | regex_findall('image is for iRODS ' ~ (_irods_version | regex_escape) ~ ',')
-          | length != groups['irods_resource_container'] | length
+          | length != server_count | int
+
+    - name: Test irods_upgrade.yml reports every containerized server on another release
+      when: other_releases | length > 0
+      ansible.builtin.command:
+        argv: >-
+          {{ nested_run
+            + ['--extra-vars=irods_version=' ~ other_release, playbook_dir ~ '/../irods_upgrade.yml'] }}
+      register: resp
+      environment:
+        ANSIBLE_STDOUT_CALLBACK: default
+      changed_when: false
+      failed_when: >-
+        resp.rc != 0
+        or resp.stdout
+          | regex_findall('image is still for iRODS ' ~ (_irods_version | regex_escape) ~ '[.]')
+          | length != server_count | int
+
+    - name: Test irods_upgrade.yml reports nothing when the containerized servers run its release
+      ansible.builtin.command:
+        argv: >-
+          {{ nested_run
+            + ['--extra-vars=irods_version=' ~ _irods_version, playbook_dir ~ '/../irods_upgrade.yml'] }}
+      register: resp
+      environment:
+        ANSIBLE_STDOUT_CALLBACK: default
+      changed_when: false
+      failed_when: resp.rc != 0 or resp.stdout is search('image is still for iRODS')
