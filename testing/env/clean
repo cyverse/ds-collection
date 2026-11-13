@@ -7,7 +7,8 @@
 #  INC_FILE  The absolute path to a file including the build time environment
 #            variables. See README.md for details.
 #
-# Deletes the four docker images.
+# Deletes the environment's docker images, and the volumes the containerized
+# resource server hosts keep Docker's storage in.
 
 
 main()
@@ -41,6 +42,16 @@ main()
 
   if [[ -n "${bases-}" ]]; then
     docker rmi "${bases[@]}"
+  fi
+
+  # The name filter matches any part of a name, so other environments' volumes could match too.
+  local volumes
+  readarray -t volumes < <(
+    docker volume ls --quiet --filter name="$ENV_NAME"-consumer_containerized_ \
+      | grep --extended-regexp "^$ENV_NAME-consumer_containerized_[^-]+-(containerd|docker)\$" )
+
+  if [[ -n "${volumes-}" ]]; then
+    docker volume rm "${volumes[@]}"
   fi
 }
 

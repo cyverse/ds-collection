@@ -1,0 +1,23 @@
+---
+# cve_version.re refuses physical paths from 4.3.4 on. The client sees the failure of a PEP that cuts
+# the operation, not the rule's message.
+# Variables:
+#  _irods_client_bash  the command that runs bash as an iRODS client of the server, default bash
+- name: Test release rules in force | iput refuses a physical path
+  when: _irods_version is version('4.3.4', '>=')
+  ansible.builtin.command:
+    argv: "{{ _irods_client_bash | d(['bash']) + ['-s', '--', inventory_hostname_short ~ '-physical'] }}"
+    stdin: |
+      set -o errexit -o nounset -o pipefail
+      file="$(mktemp)"
+      trap 'rm --force "$file"' EXIT
+      if resp="$(iput -p /tmp/"$1" "$file" "$1" 2>&1)"; then
+        irm -f "$1"
+        printf 'iput -p was allowed\n' >&2
+        exit 1
+      fi
+      if [[ "$resp" != *CUT_ACTION_PROCESSED_ERR* ]] || ils "$1" &> /dev/null; then
+        printf 'iput -p failed for another reason: %s\n' "$resp" >&2
+        exit 1
+      fi
+  changed_when: false

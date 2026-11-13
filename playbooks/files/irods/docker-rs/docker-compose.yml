@@ -4,11 +4,14 @@ name: cyverse
 services:
   irods-rs:
     image: irods-rs
+    # It passes signals on to the server and reaps the processes the server's children leave.
+    init: true
     env_file: .env
     build:
       context: build
       dockerfile: Dockerfile
       args:
+        IRODS_HOST_GID: ${IRODS_HOST_GID}
         IRODS_HOST_UID: ${IRODS_HOST_UID}
         IRODS_NETCDF_PACKAGES: ${IRODS_NETCDF_PACKAGES}
         IRODS_SERVER_PORT_RANGE_START: ${IRODS_SERVER_PORT_RANGE_START}

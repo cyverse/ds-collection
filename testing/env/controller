@@ -15,7 +15,16 @@
 # of that upgrade instead. If PREPARE_DATA_STORE is set, start deploys the Data
 # Store on the configured servers, with data_store_env::prepare, at the release
 # they start on. When it upgrades them too, it then adds the data the upgrade
-# test checks, and upgrades the deployed Data Store.
+# test checks, and upgrades the deployed Data Store. If PREPARE_CONTAINERS is set
+# when it upgrades them, start first deploys the containerized resource servers
+# on the release they start on, with data_store_env::prepare_containers, and
+# leaves them on it. After the upgrade, it copies data through them while the
+# releases are mixed, with data_store_env::use_mixed_containers.
+#
+# The containerized resource server hosts keep Docker's storage in volumes that
+# outlive the environment, so that they build irods-rs from Docker's cache. start
+# creates them if they're missing, and stop removes the containers those hosts'
+# Docker daemons have but leaves the volumes.
 #
 # snapshot starts the environment upgraded from IRODS_UPGRADE_FROM, saves the
 # configured iRODS servers and DBMS as images tagged with the upgrade, and
@@ -39,6 +48,11 @@ readonly SnapshotIrodsServices=(consumer_configured_centos provider_configured)
 
 # The services whose containers a snapshot saves
 readonly SnapshotServices=(dbms_configured "${SnapshotIrodsServices[@]}")
+
+# The containerized resource server hosts, whose Docker storage is in volumes that outlive the
+# environment
+readonly ContainerizedServices=(
+  consumer_containerized_alma consumer_containerized_alma9 consumer_containerized_ubuntu )
 
 # Whether snapshot saved all of its images
 SnapshotSaved=''
@@ -88,7 +102,7 @@ main()
       start
       ;;
     stop)
-      compose down --remove-orphans --volumes
+      stop
       ;;
     snapshot)
       snapshot
@@ -110,6 +124,8 @@ start()
 {
   # Starting builds any image that's missing, such as another iRODS release's.
   portability::use_docker_builder
+
+  create_docker_volumes
 
   local upArgs=(up -d --scale dbms_unconfigured=2)
 
@@ -142,6 +158,12 @@ start()
 
   IRODS_VERSION="$IRODS_UPGRADE_FROM" prepare_if_asked
 
+  if [ -n "${PREPARE_CONTAINERS-}" ]
+  then
+    printf 'Deploying the containerized resource servers on iRODS %s\n' "$IRODS_UPGRADE_FROM"
+    IRODS_VERSION="$IRODS_UPGRADE_FROM" data_store_env::prepare_containers
+  fi
+
   if [ -n "${PREPARE_DATA_STORE-}" ]
   then
     data_store_env::seed
@@ -150,6 +172,69 @@ start()
   printf 'Upgrading the configured iRODS servers from %s to %s\n' \
     "$IRODS_UPGRADE_FROM" "$(upgrade_target)"
   data_store_env::upgrade
+
+  if [ -n "${PREPARE_CONTAINERS-}" ]
+  then
+    printf 'Using the containerized resource servers, still on iRODS %s\n' "$IRODS_UPGRADE_FROM"
+    data_store_env::use_mixed_containers
+  fi
+}
+
+
+stop()
+{
+  remove_nested_containers
+  compose down --remove-orphans --volumes
+}
+
+
+# Creates the volumes the containerized resource server hosts keep Docker's storage in, unless they
+# already exist.
+create_docker_volumes()
+{
+  local service
+  local store
+  for service in "${ContainerizedServices[@]}"
+  do
+    for store in containerd docker
+    do
+      docker volume create "$ENV_NAME"-"$service"-"$store" > /dev/null
+    done
+  done
+}
+
+
+# Removes the containers and networks the containerized resource server hosts' Docker daemons have,
+# so that only their images and build cache carry over to the next environment. A host that isn't
+# running, or hasn't installed Docker, has none. A failure doesn't stop the environment from
+# stopping, since the next deployment replaces whatever is left.
+remove_nested_containers()
+{
+  local service
+  for service in "${ContainerizedServices[@]}"
+  do
+    local host="$ENV_NAME"-"$service"-1
+
+    if [ "$(docker inspect --format '{{.State.Running}}' "$host" 2> /dev/null)" != true ]
+    then
+      continue
+    fi
+
+    # The host's shell expands the script's variables.
+    # shellcheck disable=SC2016
+    if ! timeout 60 docker exec "$host" sh -c '
+        command -v docker > /dev/null || exit 0
+        ids="$(docker ps --all --quiet)"
+        if [ -n "$ids" ]; then
+          docker rm --force $ids > /dev/null
+        fi
+        docker network prune --force > /dev/null'
+    then
+      printf 'Could not remove the Docker containers on %s, probably because its Docker daemon ' \
+          "$host" >&2
+      printf "didn't respond in time, so they'll be in its storage for the next environment\n" >&2
+    fi
+  done
 }
 
 

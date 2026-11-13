@@ -1,0 +1,13 @@
+---
+# Waits for a containerized resource server to answer requests. Its processes start before it
+# listens for connections.
+# Variables:
+#  in_container  the command that runs a command as irods in the server's container
+- name: Wait for container server | the server answers requests
+  ansible.builtin.command:
+    argv: "{{ in_container + ['ils'] }}"
+  register: resp
+  changed_when: false
+  until: resp is succeeded
+  retries: 30
+  delay: 2

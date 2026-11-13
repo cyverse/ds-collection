@@ -1,0 +1,30 @@
+---
+# Looks up the iRODS release a containerized resource server's image has, as _irods_container_release.
+# _irods_container_deployed is false before irods_resource_container.yml deploys the server, when
+# there's no image, or no docker.
+- name: Container release | ask the image
+  become: true
+  ansible.builtin.command:
+    argv:
+      - docker
+      - run
+      - --rm
+      - --network=none
+      - --pull=never
+      - --entrypoint=dpkg-query
+      - irods-rs
+      - --show
+      - --showformat=${Version}
+      - irods-server
+  check_mode: false
+  register: container_release_resp
+  changed_when: false
+  failed_when: >-
+    container_release_resp.rc != 0
+    and container_release_resp.stderr | d('') is not search('No such image')
+    and container_release_resp.msg | d('') is not search('No such file')
+
+- name: Container release | record it
+  ansible.builtin.set_fact:
+    _irods_container_deployed: "{{ container_release_resp.rc | d(1) == 0 }}"
+    _irods_container_release: "{{ container_release_resp.stdout | d('') | split('-') | first }}"

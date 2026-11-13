@@ -1,6 +1,8 @@
 FROM ubuntu:22.04
 
 ARG IRODS_HOST_UID
+# The GID of the host account's group, by default the account's UID
+ARG IRODS_HOST_GID=${IRODS_HOST_UID}
 ARG IRODS_NETCDF_PACKAGES
 ARG IRODS_SERVER_PORT_RANGE_START
 ARG IRODS_SERVER_PORT_RANGE_END
@@ -34,7 +36,9 @@ RUN <<'EOF'
 		exit 1
 	fi
 
+	# The generate-uuid command script needs uuidgen, which irods_provision.yml installs natively.
 	set -- \
+		uuid-runtime \
 		irods-icommands="$IRODS_VERSION-*" \
 		irods-runtime="$IRODS_VERSION-*" \
 		irods-server="$IRODS_VERSION-*" \
@@ -49,17 +53,17 @@ RUN <<'EOF'
 
 	apt-get install --yes "$@"
 
-	groupadd --non-unique --system --gid="$IRODS_HOST_UID" irods
+	groupadd --non-unique --system --gid="$IRODS_HOST_GID" irods
 
 	useradd --non-unique --system \
 		--uid="$IRODS_HOST_UID" \
-		--gid="$IRODS_HOST_UID" \
+		--gid="$IRODS_HOST_GID" \
 		--comment='iRODS Administrator (host user)' \
 		--home-dir=/var/lib/irods \
 		--shell=/bin/bash \
 		irods
 
-	mkdir --parents /irods_vault /etc/irods /var/lib/irods/.irods
+	mkdir --parents "$IRODS_VAULT_PATH" /etc/irods /var/lib/irods/.irods
 	chown --recursive irods:irods /etc/irods /var/lib/irods
 
 # Clean up packages

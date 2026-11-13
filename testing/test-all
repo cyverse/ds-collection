@@ -29,7 +29,9 @@ Options:
                                 then start each test from a snapshot of it,
                                 except the rule tests and irods_upgrade's,
                                 which upgrade a deployed Data Store of their
-                                own, and the image test, which builds the
+                                own, irods_resource_container's, which
+                                upgrades the containerized resource servers,
+                                and the image test, which builds the
                                 --irods-version release's image
  -v, --irods-version, --to-version <version>
                                 run the configured iRODS servers on iRODS
@@ -88,6 +90,7 @@ declare -A -r PLAYBOOK_INVENTORIES=(
 	[irods_catalog_provider]=hosts-unconfigured-provider
 	[irods_cfg]=hosts-configured
 	[irods_free_space]=hosts-unconfigured-consumer
+	[irods_resource_container]=hosts-containerized
 	[irods_resource_hierarchies]=hosts-configured
 	[irods_resource_server]=hosts-unconfigured-consumer
 	[irods_restart_all]=hosts-configured
@@ -260,14 +263,15 @@ remove_upgrade_snapshot() {
 
 
 # Succeeds when any of the given tests starts from the upgrade snapshot. The
-# rule tests and irods_upgrade's test upgrade their own environments, and the
-# image test doesn't use one.
+# rule tests, irods_upgrade's test and irods_resource_container's test upgrade
+# their own environments, and the image test doesn't use one.
 # Input:
 #  $@  the tests' IDs
 uses_snapshot() {
 	local test
 	for test in "$@"; do
-		if [[ "$test" != playbook/irods_upgrade && "$test" != rules && "$test" != image/* ]]; then
+		if [[ "$test" != playbook/irods_resource_container && "$test" != playbook/irods_upgrade \
+			&& "$test" != rules && "$test" != image/* ]]; then
 			return 0
 		fi
 	done

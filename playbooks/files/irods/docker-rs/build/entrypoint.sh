@@ -13,7 +13,9 @@ main() {
 		> /dev/null
 
 	log $$ 'Starting server ...'
-	su --command='/usr/sbin/irodsServer -u' irods
+	# setpriv becomes the server, which then gets SIGTERM itself. su would kill it 2 s later.
+	exec setpriv --reuid=irods --regid=irods --init-groups \
+		env HOME=/var/lib/irods LOGNAME=irods USER=irods /usr/sbin/irodsServer -u
 }
 
 log() {

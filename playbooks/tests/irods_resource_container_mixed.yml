@@ -1,0 +1,65 @@
+---
+# Copies the data object irods_resource_container_seed.yml added, through each containerized
+# resource server and through the catalog provider, onto the server's resource. The testing
+# environment runs it after upgrading the catalog provider, while the containerized servers still
+# run the earlier release. It records how each copy went, and irods_resource_container.yml's test
+# checks that and the copies, so a failed copy fails the test rather than the environment's start.
+
+- name: Use the containerized resource servers while the releases are mixed
+  hosts: irods_resource_container
+  become: true
+  become_user: irods
+  gather_facts: false
+  vars_files:
+    - vars/irods_resource_container.yml
+  vars:
+    # It gets and puts, rather than copying on the server, so that the data passes through a client
+    # of each server.
+    copy_script: |
+      set -o errexit -o nounset -o pipefail
+      file="$(mktemp)"
+      trap 'rm --force "$file"' EXIT
+      iget -f -K "$1" "$file"
+      iput -K -R "$3" "$file" "$2"
+  tasks:
+    - name: Wait for the server
+      ansible.builtin.import_tasks: tasks/irods/wait_for_container_server.yml
+
+    - name: Wait for the catalog provider  # noqa: run-once[task]
+      delegate_to: "{{ groups['irods_catalog'][0] }}"
+      run_once: true
+      ansible.builtin.command: ils
+      register: resp
+      changed_when: false
+      until: resp is succeeded
+      retries: 30
+      delay: 2
+
+    - name: Copy the seeded data object through the server
+      ansible.builtin.command:
+        argv: "{{ in_container + ['bash', '-s', '--', upgrade_obj, mixed_server_obj, upgrade_resc] }}"
+        stdin: "{{ copy_script }}"
+      register: server_copy
+      changed_when: true
+      failed_when: false
+
+    - name: Copy the seeded data object through the catalog provider
+      delegate_to: "{{ groups['irods_catalog'][0] }}"
+      ansible.builtin.command:
+        argv: [bash, -s, --, "{{ upgrade_obj }}", "{{ mixed_provider_obj }}", "{{ upgrade_resc }}"]
+        stdin: "{{ copy_script }}"
+      register: provider_copy
+      changed_when: true
+      failed_when: false
+
+    - name: Record how the copies went
+      become: true
+      become_user: root
+      ansible.builtin.copy:
+        dest: "{{ mixed_results }}"
+        content: >-
+          {{ {
+            'through the server': {'rc': server_copy.rc, 'stderr': server_copy.stderr},
+            'through the catalog provider': {'rc': provider_copy.rc, 'stderr': provider_copy.stderr}
+          } | to_nice_json }}
+        mode: u+r
