@@ -164,6 +164,8 @@ services:
     hostname: "${ENV_NAME}-consumer_containerized_alma-1.${DOMAIN}"
     platform: linux/amd64
     privileged: true
+    # Docker and containerd keep their storage, so they get time to shut down cleanly.
+    stop_grace_period: 1m
     tmpfs:
       - /run
       - /run/lock
@@ -178,6 +180,8 @@ services:
     hostname: "${ENV_NAME}-consumer_containerized_alma9-1.${DOMAIN}"
     platform: linux/amd64
     privileged: true
+    # Docker and containerd keep their storage, so they get time to shut down cleanly.
+    stop_grace_period: 1m
     tmpfs:
       - /run
       - /run/lock
@@ -192,6 +196,8 @@ services:
     hostname: "${ENV_NAME}-consumer_containerized_ubuntu-1.${DOMAIN}"
     platform: linux/amd64
     privileged: true
+    # Docker and containerd keep their storage, so they get time to shut down cleanly.
+    stop_grace_period: 1m
     tmpfs:
       - /run
       - /run/lock

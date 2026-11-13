@@ -207,7 +207,7 @@
         owner: "{{ _irods_service_account_name }}"
         group: "{{ _irods_service_group_name }}"
         mode: u+r
-      notify: Rebuild docker container
+      register: rs_image_src
       loop:
         - entrypoint.sh
         - Dockerfile
@@ -230,7 +230,7 @@
         owner: "{{ _irods_service_account_name }}"
         group: "{{ _irods_service_group_name }}"
         mode: u+r
-      notify: Rebuild docker container
+      register: rs_dotenv
 
     - name: Copy docker-compose.yml file
       ansible.builtin.copy:
@@ -239,7 +239,7 @@
         owner: "{{ _irods_service_account_name }}"
         group: "{{ _irods_service_group_name }}"
         mode: u+r
-      notify: Rebuild docker container
+      register: rs_compose_file
 
     - name: Configure rsyslog for iRODS
       ansible.builtin.copy:
@@ -267,18 +267,18 @@
         dest: /etc/logrotate.d/irods
         mode: u+r
 
+    # Otherwise, a changed image source, .env or compose file would start the container from the old
+    # image with the new configuration.
     - name: Start docker image
       community.docker.docker_compose_v2:
         project_src: /var/lib/irods
+        build: >-
+          {{ 'always'
+            if rs_image_src is changed or rs_dotenv is changed or rs_compose_file is changed
+            else 'policy' }}
         pull: never
 
   handlers:
-    - name: Rebuild docker container
-      when: _enable_notifications | d(false)
-      community.docker.docker_compose_v2:
-        project_src: /var/lib/irods
-        build: always
-
     - name: Restart docker
       when: _enable_notifications | d(false)
       ansible.builtin.service:

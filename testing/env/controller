@@ -199,18 +199,34 @@ create_docker_volumes()
 
 # Removes the containers and networks the containerized resource server hosts' Docker daemons have,
 # so that only their images and build cache carry over to the next environment. A host that isn't
-# running, or hasn't installed Docker, has none.
+# running, or hasn't installed Docker, has none. A failure doesn't stop the environment from
+# stopping, since the next deployment replaces whatever is left.
 remove_nested_containers()
 {
   local service
   for service in "${ContainerizedServices[@]}"
   do
-    docker exec "$ENV_NAME"-"$service"-1 sh -c '
+    local host="$ENV_NAME"-"$service"-1
+
+    if [ "$(docker inspect --format '{{.State.Running}}' "$host" 2> /dev/null)" != true ]
+    then
+      continue
+    fi
+
+    # The host's shell expands the script's variables.
+    # shellcheck disable=SC2016
+    if ! timeout 60 docker exec "$host" sh -c '
         command -v docker > /dev/null || exit 0
-        docker ps --all --quiet | xargs --no-run-if-empty docker rm --force > /dev/null
-        docker network prune --force > /dev/null' \
-      2> /dev/null \
-      || true
+        ids="$(docker ps --all --quiet)"
+        if [ -n "$ids" ]; then
+          docker rm --force $ids > /dev/null
+        fi
+        docker network prune --force > /dev/null'
+    then
+      printf 'Could not remove the Docker containers on %s, probably because its Docker daemon ' \
+          "$host" >&2
+      printf "didn't respond in time, so they'll be in its storage for the next environment\n" >&2
+    fi
   done
 }
 

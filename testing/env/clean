@@ -44,9 +44,11 @@ main()
     docker rmi "${bases[@]}"
   fi
 
+  # The name filter matches any part of a name, so other environments' volumes could match too.
   local volumes
-  readarray -t volumes \
-    < <(docker volume ls --quiet --filter name="$ENV_NAME"-consumer_containerized_)
+  readarray -t volumes < <(
+    docker volume ls --quiet --filter name="$ENV_NAME"-consumer_containerized_ \
+      | grep --extended-regexp "^$ENV_NAME-consumer_containerized_[^-]+-(containerd|docker)\$" )
 
   if [[ -n "${volumes-}" ]]; then
     docker volume rm "${volumes[@]}"
