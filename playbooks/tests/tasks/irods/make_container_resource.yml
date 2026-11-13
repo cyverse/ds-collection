@@ -4,14 +4,8 @@
 #  _container_resc        the resource's name
 #  _container_resc_vault  its vault, relative to the server's vault
 #  in_container           the command that runs a command as irods in the server's container
-- name: Make container resource | wait for the server to answer requests
-  ansible.builtin.command:
-    argv: "{{ in_container + ['ils'] }}"
-  register: resp
-  changed_when: false
-  until: resp is succeeded
-  retries: 30
-  delay: 2
+- name: Make container resource | wait for the server
+  ansible.builtin.import_tasks: wait_for_container_server.yml
 
 - name: Make container resource | create {{ _container_resc }}
   ansible.builtin.command:

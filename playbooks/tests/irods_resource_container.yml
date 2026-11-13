@@ -752,25 +752,38 @@
 
         # The environment made the copies after upgrading the catalog provider, while the server
         # still ran the earlier release.
-        - name: Test the data from before the upgrade is intact
+        - name: Read how the copies went while the releases were mixed
+          become: true
+          become_user: root
+          ansible.builtin.slurp:
+            src: "{{ mixed_results }}"
+          register: mixed_resp
+
+        - name: Test the copies worked while the releases were mixed
+          ansible.builtin.assert:
+            that: item.value.rc == 0
+            fail_msg: The copy {{ item.key }} failed with {{ item.value.stderr }}
+            quiet: true
+          loop: "{{ mixed_resp.content | b64decode | from_json | dict2items }}"
+          loop_control:
+            label: the copy {{ item.key }}
+
+        - name: Test the data from before the upgrade is intact on the server's resource
           ansible.builtin.command:
-            argv: "{{ in_container + ['bash', '-s', '--', item.obj, upgrade_content] }}"
+            argv: "{{ in_container + ['bash', '-s', '--', item.obj, upgrade_content, upgrade_resc] }}"
             stdin: |
               set -o errexit -o nounset -o pipefail
               dest="$(mktemp)"
               trap 'rm --force "$dest"' EXIT
               iget -f -K "$1" "$dest"
               [[ "$(< "$dest")" == "$2" ]]
+              rescs="$(iquest '%s' \
+                "select DATA_RESC_NAME where COLL_NAME = '${1%/*}' and DATA_NAME = '${1##*/}'")"
+              [[ "$rescs" == "$3" ]]
           changed_when: false
+          loop: "{{ upgrade_objs }}"
           loop_control:
             label: "{{ item.label }}"
-          loop:
-            - label: the seeded data object
-              obj: "{{ upgrade_obj }}"
-            - label: its copy through the server while the releases were mixed
-              obj: "{{ mixed_server_obj }}"
-            - label: its copy through the catalog provider while the releases were mixed
-              obj: "{{ mixed_provider_obj }}"
 
       always:
         # One is missing when the upgrade lost it or a copy failed, and irm fails then.
@@ -780,10 +793,7 @@
           register: resp
           changed_when: resp.rc == 0
           failed_when: false
-          loop:
-            - "{{ upgrade_obj }}"
-            - "{{ mixed_server_obj }}"
-            - "{{ mixed_provider_obj }}"
+          loop: "{{ upgrade_objs | map(attribute='obj') }}"
 
         - name: Remove the upgrade test's resource
           ansible.builtin.command:
