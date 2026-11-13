@@ -63,7 +63,7 @@ RUN <<'EOF'
 		--shell=/bin/bash \
 		irods
 
-	mkdir --parents /irods_vault /etc/irods /var/lib/irods/.irods
+	mkdir --parents "$IRODS_VAULT_PATH" /etc/irods /var/lib/irods/.irods
 	chown --recursive irods:irods /etc/irods /var/lib/irods
 
 # Clean up packages

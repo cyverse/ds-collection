@@ -9,6 +9,7 @@
       - docker
       - run
       - --rm
+      - --network=none
       - --pull=never
       - --entrypoint=dpkg-query
       - irods-rs

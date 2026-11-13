@@ -1,6 +1,6 @@
 ---
 # REQUIREMENTS:
-#  inventory: hosts-all
+#  inventory: hosts-containerized
 
 - name: Test default template expansions
   hosts: localhost
@@ -446,6 +446,11 @@
         database: passwd
         key: irods
 
+    - name: Get the service group's GID
+      ansible.builtin.getent:
+        database: group
+        key: irods
+
     - name: Retrieve encoded .env
       ansible.builtin.slurp:
         src: /var/lib/irods/.env
@@ -460,7 +465,7 @@
             dotenv is search(
               '^IRODS_CATALOG_PROVIDER=' ~ (groups['irods_catalog'][0] | regex_escape) ~ '$',
               multiline=true )
-          - dotenv is search('^IRODS_HOST_GID=' ~ getent_passwd.irods[2] ~ '$', multiline=true)
+          - dotenv is search('^IRODS_HOST_GID=' ~ getent_group.irods[1] ~ '$', multiline=true)
           - dotenv is search('^IRODS_HOST_UID=' ~ getent_passwd.irods[1] ~ '$', multiline=true)
           - dotenv is search('^IRODS_SERVER_PORT_RANGE_START=20000$', multiline=true)
           - dotenv is search('^IRODS_SERVER_PORT_RANGE_END=20009$', multiline=true)
@@ -868,7 +873,7 @@
 
 # In check mode, the playbooks change nothing even if they miss the mismatch. With the limit, the
 # only plays irods_upgrade.yml runs are its report on the containerized servers.
-- name: Test irods_cfg.yml and irods_upgrade.yml check the release the containerized servers run
+- name: Test the playbooks check the release the containerized servers run
   hosts: localhost
   gather_facts: false
   vars_files:
@@ -902,6 +907,25 @@
         resp.rc == 0
         or resp.stdout
           | regex_findall('image is for iRODS ' ~ (_irods_version | regex_escape) ~ ',')
+          | length != groups['irods_resource_container'] | length
+
+    - name: Test irods_resource_container.yml refuses to downgrade every containerized server
+      when: older_releases | length > 0
+      vars:
+        older_releases: "{{ other_releases | select('version', _irods_version, '<') | list }}"
+      ansible.builtin.command:
+        argv: >-
+          {{ nested_run
+            + ['--extra-vars=irods_version=' ~ older_releases | last]
+            + [playbook_dir ~ '/../irods_resource_container.yml'] }}
+      register: resp
+      environment:
+        ANSIBLE_STDOUT_CALLBACK: default
+      changed_when: false
+      failed_when: >-
+        resp.rc == 0
+        or resp.stdout
+          | regex_findall("image is for iRODS " ~ (_irods_version | regex_escape) ~ ", which is later")
           | length != groups['irods_resource_container'] | length
 
     # Only the report needs the release, so these needn't have rule bases.

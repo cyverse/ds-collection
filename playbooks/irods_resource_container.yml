@@ -8,14 +8,6 @@
     - name: Check the release's rule bases
       ansible.builtin.import_tasks: tasks/irods/check_release_rulebases.yml
 
-    - name: Require the service group to be named after the service account
-      ansible.builtin.assert:
-        that:
-          - _irods_service_group_name == _irods_service_account_name
-        fail_msg: >-
-          The resource server image gives its irods group the host account's GID, so the service
-          group must be the account's own group, {{ _irods_service_account_name }}.
-
     - name: Require an absolute vault path
       ansible.builtin.assert:
         that:
@@ -24,9 +16,17 @@
           The resource server's container bind mounts its vault from the host, so irods_default_vault
           must be set to an absolute path.
 
-    - name: Enable notifications
-      ansible.builtin.set_fact:
-        _enable_notifications: true
+    - name: Look up the release the server's image has
+      ansible.builtin.import_tasks: tasks/irods/container_release.yml
+
+    - name: Refuse to downgrade the server
+      when: _irods_container_deployed
+      ansible.builtin.assert:
+        that: _irods_container_release is version(_irods_version, '<=')
+        fail_msg: >-
+          The containerized iRODS server's image is for iRODS {{ _irods_container_release }}, which is
+          later than irods_version, {{ _irods_version }}. iRODS can't be downgraded.
+        quiet: true
 
     - name: Set up Docker repository on AlmaLinux
       when: ansible_distribution == 'AlmaLinux'
@@ -185,12 +185,12 @@
         mode: u+r
 
     # irods_cfg.yml configures these servers too, with the same settings. The running container
-    # only picks up a change when it restarts.
+    # only picks up a change when it restarts, but one compose just started already has it.
     - name: Generate iRODS config files
       ansible.builtin.import_role:
         name: cyverse.ds.irods_cfg
       vars:
-        irods_cfg_restart_allowed: true
+        irods_cfg_restart_allowed: "{{ rs_start | d({}) is not changed }}"
 
     - name: Add build dir
       ansible.builtin.file:
@@ -217,10 +217,15 @@
         database: passwd
         key: "{{ _irods_service_account_name }}"
 
-    # The image gives its irods account these IDs, so it can use what the host account owns.
+    - name: Get service group info
+      ansible.builtin.getent:
+        database: group
+        key: "{{ _irods_service_group_name }}"
+
+    # The image gives its irods account and group these IDs, so it can use what the host's own.
     - name: Set irods user uid and gid
       ansible.builtin.set_fact:
-        _irods_host_gid: "{{ getent_passwd[_irods_service_account_name][2] }}"
+        _irods_host_gid: "{{ getent_group[_irods_service_group_name][1] }}"
         _irods_host_uid: "{{ getent_passwd[_irods_service_account_name][1] }}"
 
     - name: Generate .env file
@@ -268,19 +273,20 @@
         mode: u+r
 
     # Otherwise, a changed image source, .env or compose file would start the container from the old
-    # image with the new configuration.
+    # image with the new configuration, as would a rerun after an upgrade failed before this.
     - name: Start docker image
       community.docker.docker_compose_v2:
         project_src: /var/lib/irods
         build: >-
           {{ 'always'
             if rs_image_src is changed or rs_dotenv is changed or rs_compose_file is changed
+              or (_irods_container_deployed and _irods_container_release != _irods_version)
             else 'policy' }}
         pull: never
+      register: rs_start
 
   handlers:
     - name: Restart docker
-      when: _enable_notifications | d(false)
       ansible.builtin.service:
         name: docker
         state: restarted

@@ -189,7 +189,7 @@
       ansible.builtin.debug:
         msg: >-
           Couldn't look up which iRODS release the containerized server's image has
-          ({{ container_release_resp.msg | d(container_release_resp.stderr | d('')) }}). Make sure
+          ({{ container_release_resp.stderr | d('', true) or container_release_resp.msg | d('') }}). Make sure
           it's upgraded with irods_resource_container.yml, with irods_version set to
           {{ _irods_version }}, before running irods_cfg.yml.
 

@@ -4,6 +4,8 @@ name: cyverse
 services:
   irods-rs:
     image: irods-rs
+    # It passes signals on to the server and reaps the processes the server's children leave.
+    init: true
     env_file: .env
     build:
       context: build
