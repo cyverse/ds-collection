@@ -131,28 +131,46 @@
       failed_when: resp is failed or resp.stdout is search('changed=[1-9]')
 
 
+
 # A run that fails after upgrading some servers' packages leaves them stopped and marked, with the
-# release installed. The first provider and the first native consumer are left that way, and the
-# second native consumer, if there is one, is stopped without the marker.
+# release installed. The first provider is left that way. The first native consumer is marked but
+# running, as a server started by hand after a failed run is, and the second is stopped without the
+# marker.
 - name: Test upgrade iRODS | leave servers as a failed run would
   hosts: irods:!irods_resource_container:!unmanaged_systems
   become: true
   become_user: irods
   gather_facts: false
   vars_files:
+    - ../group_vars/all/irods.yml
     - vars/irods_upgrade.yml
   tasks:
+    - name: Verify the inventory has the servers the test needs
+      run_once: true  # noqa: run-once[task]
+      ansible.builtin.assert:
+        that:
+          - marked_stopped | length == 1
+          - marked_running | length == 1
+          - unmarked_stopped | length == 1
+        fail_msg: The inventory needs a catalog service provider and two native consumers.
+
     - name: Stop the servers
-      when: inventory_hostname in marked + unmarked
+      when: inventory_hostname in marked_stopped + unmarked_stopped
       cyverse.ds.irods_ctl:
         state: stopped
 
-    - name: Mark the servers a failed run would have stopped
-      when: inventory_hostname in marked
+    - name: Mark the servers
+      when: inventory_hostname in marked_stopped + marked_running
       ansible.builtin.file:
-        path: /var/lib/irods/.irods-upgrade-stopped
+        path: "{{ _irods_upgrade_marker }}"
         state: touch
         mode: u+rw
+
+    - name: Record the running marked server's process
+      when: inventory_hostname in marked_running
+      ansible.builtin.command: pgrep --exact --oldest --uid=irods irodsServer
+      register: pid_before
+      changed_when: false
 
 
 - name: Test upgrade iRODS | rerun the upgrade
@@ -178,31 +196,39 @@
   become_user: irods
   gather_facts: false
   vars_files:
+    - ../group_vars/all/irods.yml
     - vars/irods_upgrade.yml
   tasks:
     - name: Verify the marked servers are running
-      when: inventory_hostname in marked
+      when: inventory_hostname in marked_stopped + marked_running
       ansible.builtin.import_tasks: tasks/irods/test_running.yml
 
     - name: Look for the marker
-      when: inventory_hostname in marked
+      when: inventory_hostname in marked_stopped + marked_running
       ansible.builtin.stat:
-        path: /var/lib/irods/.irods-upgrade-stopped
+        path: "{{ _irods_upgrade_marker }}"
       register: marker_resp
 
     - name: Verify the marker was removed
-      when: inventory_hostname in marked
+      when: inventory_hostname in marked_stopped + marked_running
       ansible.builtin.assert:
         that: not marker_resp.stat.exists
 
+    - name: Verify the running marked server wasn't restarted
+      when: inventory_hostname in marked_running
+      ansible.builtin.command: pgrep --exact --oldest --uid=irods irodsServer
+      register: resp
+      changed_when: false
+      failed_when: resp is failed or resp.stdout != pid_before.stdout
+
     - name: Verify the unmarked server is still stopped
-      when: inventory_hostname in unmarked
+      when: inventory_hostname in unmarked_stopped
       ansible.builtin.command: pgrep --exact --uid=irods irodsServer
       register: resp
       changed_when: false
       failed_when: resp.rc != 1
 
     - name: Restart the unmarked server
-      when: inventory_hostname in unmarked
+      when: inventory_hostname in unmarked_stopped
       cyverse.ds.irods_ctl:
         state: started

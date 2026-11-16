@@ -61,9 +61,6 @@ The commands below run from the collection's root directory on the Ansible contr
 
 ## During the maintenance window
 
-1. Back up the ICAT database and each iRODS server's `/etc/irods/` and `/var/lib/irods/`, or take a
-   snapshot of each server. These are the only way back to the earlier release.
-
 1. Stop client access. `proxy_block.yml` terminates every client connection through the proxy and
    blocks new ones, and stopping the WebDAV and SFTP services keeps them from reconnecting to iRODS.
 
@@ -72,6 +69,10 @@ The commands below run from the collection's root directory on the Ansible contr
    ansible-playbook --inventory="$INVENTORY" playbooks/webdav_stop.yml
    ansible-playbook --inventory="$INVENTORY" playbooks/sftp_stop.yml
    ```
+
+1. Back up the ICAT database, and take a snapshot of each iRODS server. Taking them after client
+   access stops keeps clients from changing the data between them. These are the only way back to
+   the earlier release, since the playbooks can't downgrade iRODS.
 
 1. Set `irods_version` to the new release for every host in the `irods` group, e.g., in the
    inventory's `group_vars/irods.yml`.
@@ -141,9 +142,12 @@ upgrade, no server is started, so no consumer runs against a provider that wasn'
 cause and run `irods_upgrade.yml` again.
 
 Each server the playbook stops keeps the marker file `/var/lib/irods/.irods-upgrade-stopped` until
-the playbook starts it again. A rerun upgrades and starts the servers with an earlier release or
-the marker, so it also starts the ones the failed run had already upgraded. It leaves alone a server
-that was stopped for another reason.
+it has started every one of them. A rerun upgrades and starts the servers with an earlier release,
+and the marked servers that are still stopped, so it also starts the ones the failed run had already
+upgraded. It removes the marker from a server that was started since, e.g., by hand, without
+restarting it, and leaves alone a server without the marker that was stopped for another reason.
 
-If the Data Store can't be brought up on the new release, restore the backups taken at the start
-of the window and set `irods_version` back to the earlier release.
+If the Data Store can't be brought up on the new release, restore the server snapshots and the ICAT
+database backup, and set `irods_version` back to the earlier release. Restoring only the
+configuration and the database isn't enough: the new release's packages stay installed, and the
+playbooks refuse to run with an `irods_version` earlier than the installed release.

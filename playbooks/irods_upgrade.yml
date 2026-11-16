@@ -3,7 +3,7 @@
 # service providers start before the consumers, since a provider updates the catalog schema when it
 # starts on a new release. A failure on any server stops the upgrade on all of them, so that no
 # server starts against a provider that wasn't upgraded. A server the upgrade stopped keeps a marker
-# file until it's started again, so a rerun after a failure starts it even if its packages were
+# file until every one is started, so a rerun after a failure starts it even if its packages were
 # already upgraded. It leaves the containerized resource servers to irods_resource_container.yml,
 # and reports any whose image has an earlier release.
 
@@ -69,24 +69,48 @@
           {%- endfor -%}
           {{ stale }}
 
-    - name: Name the marker of a server the upgrade stopped
-      ansible.builtin.set_fact:
-        irods_upgrade_marker: /var/lib/irods/.irods-upgrade-stopped
-
     - name: Look for a server an earlier run stopped
       ansible.builtin.stat:
-        path: "{{ irods_upgrade_marker }}"
+        path: "{{ _irods_upgrade_marker }}"
         get_attributes: false
         get_checksum: false
         get_mime: false
       register: marker_resp
 
+    # A marked server may have been started since, by a run that failed on another server or by
+    # hand.
+    - name: Check whether a marked server is running
+      when: marker_resp.stat.exists
+      ansible.builtin.command: pgrep --exact --uid={{ _irods_service_account_name }} irodsServer
+      check_mode: false
+      register: running_resp
+      changed_when: false
+      failed_when: running_resp.rc not in [0, 1]
+
+    - name: Unmark a running server
+      when: marker_resp.stat.exists and running_resp.rc == 0
+      ansible.builtin.file:
+        path: "{{ _irods_upgrade_marker }}"
+        state: absent
+
     - name: Group the servers to upgrade
       when: >-
-        irods_upgrade_installed is version(_irods_version, '<') or marker_resp.stat.exists
+        irods_upgrade_installed is version(_irods_version, '<')
+        or (marker_resp.stat.exists and running_resp.rc == 1)
       ansible.builtin.group_by:
         key: irods_upgrading
       changed_when: false
+
+    - name: Mark the servers the upgrade stops
+      when: inventory_hostname in groups['irods_upgrading'] | d([])
+      ansible.builtin.file:
+        path: "{{ _irods_upgrade_marker }}"
+        state: touch
+        owner: "{{ _irods_service_account_name }}"
+        group: "{{ _irods_service_group_name }}"
+        mode: u+rw
+        access_time: preserve
+        modification_time: preserve
 
 
 - name: Upgrade iRODS | stop the catalog service consumers
@@ -96,14 +120,6 @@
   any_errors_fatal: true
   gather_facts: false
   tasks:
-    - name: Mark the server as stopped by the upgrade
-      ansible.builtin.file:
-        path: "{{ irods_upgrade_marker }}"
-        state: touch
-        mode: u+rw
-        access_time: preserve
-        modification_time: preserve
-
     - name: Stop
       cyverse.ds.irods_ctl:
         state: stopped
@@ -116,14 +132,6 @@
   any_errors_fatal: true
   gather_facts: false
   tasks:
-    - name: Mark the server as stopped by the upgrade
-      ansible.builtin.file:
-        path: "{{ irods_upgrade_marker }}"
-        state: touch
-        mode: u+rw
-        access_time: preserve
-        modification_time: preserve
-
     - name: Stop
       cyverse.ds.irods_ctl:
         state: stopped
@@ -191,11 +199,6 @@
       cyverse.ds.irods_ctl:
         state: started
 
-    - name: Remove the marker
-      ansible.builtin.file:
-        path: "{{ irods_upgrade_marker }}"
-        state: absent
-
 
 - name: Upgrade iRODS | start the catalog service consumers
   hosts: irods_upgrading:&irods_resource:!irods_catalog
@@ -208,9 +211,16 @@
       cyverse.ds.irods_ctl:
         state: started
 
-    - name: Remove the marker
+
+- name: Upgrade iRODS | unmark the started servers
+  hosts: irods_upgrading
+  become: true
+  any_errors_fatal: true
+  gather_facts: false
+  tasks:
+    - name: Unmark
       ansible.builtin.file:
-        path: "{{ irods_upgrade_marker }}"
+        path: "{{ _irods_upgrade_marker }}"
         state: absent
 
 
