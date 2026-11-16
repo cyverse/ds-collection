@@ -2,8 +2,10 @@
 # Upgrades the iRODS servers with an earlier release installed to _irods_version. The catalog
 # service providers start before the consumers, since a provider updates the catalog schema when it
 # starts on a new release. A failure on any server stops the upgrade on all of them, so that no
-# server starts against a provider that wasn't upgraded. It leaves the containerized resource
-# servers to irods_resource_container.yml, and reports any whose image has an earlier release.
+# server starts against a provider that wasn't upgraded. A server the upgrade stopped keeps a marker
+# file until it's started again, so a rerun after a failure starts it even if its packages were
+# already upgraded. It leaves the containerized resource servers to irods_resource_container.yml,
+# and reports any whose image has an earlier release.
 
 - name: Upgrade iRODS | find the servers to upgrade
   hosts: irods:!irods_resource_container:!unmanaged_systems
@@ -67,8 +69,21 @@
           {%- endfor -%}
           {{ stale }}
 
+    - name: Name the marker of a server the upgrade stopped
+      ansible.builtin.set_fact:
+        irods_upgrade_marker: /var/lib/irods/.irods-upgrade-stopped
+
+    - name: Look for a server an earlier run stopped
+      ansible.builtin.stat:
+        path: "{{ irods_upgrade_marker }}"
+        get_attributes: false
+        get_checksum: false
+        get_mime: false
+      register: marker_resp
+
     - name: Group the servers to upgrade
-      when: irods_upgrade_installed is version(_irods_version, '<')
+      when: >-
+        irods_upgrade_installed is version(_irods_version, '<') or marker_resp.stat.exists
       ansible.builtin.group_by:
         key: irods_upgrading
       changed_when: false
@@ -81,6 +96,14 @@
   any_errors_fatal: true
   gather_facts: false
   tasks:
+    - name: Mark the server as stopped by the upgrade
+      ansible.builtin.file:
+        path: "{{ irods_upgrade_marker }}"
+        state: touch
+        mode: u+rw
+        access_time: preserve
+        modification_time: preserve
+
     - name: Stop
       cyverse.ds.irods_ctl:
         state: stopped
@@ -93,6 +116,14 @@
   any_errors_fatal: true
   gather_facts: false
   tasks:
+    - name: Mark the server as stopped by the upgrade
+      ansible.builtin.file:
+        path: "{{ irods_upgrade_marker }}"
+        state: touch
+        mode: u+rw
+        access_time: preserve
+        modification_time: preserve
+
     - name: Stop
       cyverse.ds.irods_ctl:
         state: stopped
@@ -160,6 +191,11 @@
       cyverse.ds.irods_ctl:
         state: started
 
+    - name: Remove the marker
+      ansible.builtin.file:
+        path: "{{ irods_upgrade_marker }}"
+        state: absent
+
 
 - name: Upgrade iRODS | start the catalog service consumers
   hosts: irods_upgrading:&irods_resource:!irods_catalog
@@ -171,6 +207,11 @@
     - name: Start
       cyverse.ds.irods_ctl:
         state: started
+
+    - name: Remove the marker
+      ansible.builtin.file:
+        path: "{{ irods_upgrade_marker }}"
+        state: absent
 
 
 # irods_resource_container.yml upgrades the containerized resource servers, after this. This only

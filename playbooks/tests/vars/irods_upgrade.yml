@@ -1,0 +1,10 @@
+---
+# The servers the rerun test leaves stopped, with and without the upgrade's marker
+native_consumers: >-
+  {{
+    groups['irods_resource'] | d([])
+      | difference(groups['irods_catalog'] | d([]))
+      | difference(groups['irods_resource_container'] | d([]))
+      | difference(groups['unmanaged_systems'] | d([])) }}
+marked: "{{ groups['irods_catalog'][:1] + native_consumers[:1] }}"
+unmarked: "{{ native_consumers[1:2] }}"
