@@ -1,0 +1,26 @@
+---
+# What the containerized resource server tests and their upgrade seed share
+compose: [docker, compose, --file=/var/lib/irods/docker-compose.yml]
+in_container: "{{ compose + ['exec', '-T', '--user=irods', 'irods-rs'] }}"
+
+# The data object the seed adds before the servers' upgrade, and the resource holding it
+upgrade_content: data {{ inventory_hostname_short }} had before its upgrade
+upgrade_obj: /testing/home/rods/{{ inventory_hostname_short }}-upgrade.dat
+upgrade_resc: "{{ inventory_hostname_short }}-upgrade"
+
+# Copies of that data object made through the server and through the catalog provider after the
+# provider's upgrade, while the server still runs the earlier release
+mixed_provider_obj: /testing/home/rods/{{ inventory_hostname_short }}-mixed-provider.dat
+mixed_server_obj: /testing/home/rods/{{ inventory_hostname_short }}-mixed-server.dat
+
+# Where the environment records how those copies went
+mixed_results: /root/irods-resource-container-mixed.json
+
+# The data objects the upgrade test checks and removes
+upgrade_objs:
+  - label: the seeded data object
+    obj: "{{ upgrade_obj }}"
+  - label: its copy through the server while the releases were mixed
+    obj: "{{ mixed_server_obj }}"
+  - label: its copy through the catalog provider while the releases were mixed
+    obj: "{{ mixed_provider_obj }}"

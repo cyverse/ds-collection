@@ -6,7 +6,7 @@ These folder contains all of the playbooks used to deploy and configure a CyVers
 
 <!-- TODO: document remaining playbooks -->
 
-* `irods_upgrade.yml` upgrades the iRODS servers with an earlier release installed to `irods_version`. It stops them, upgrades their packages, then starts the catalog service providers, which update the catalog schema, before the consumers. It requires iRODS on every server it targets, and when a server fails, it starts none of them.
+* `irods_upgrade.yml` upgrades the iRODS servers with an earlier release installed to `irods_version`. It stops them, upgrades their packages, then starts the catalog service providers, which update the catalog schema, before the consumers. It requires iRODS on every server it targets, and when a server fails, it starts none of them. It doesn't upgrade the containerized resource servers, which `irods_resource_container.yml` upgrades when run with the new `irods_version`; it ends by reporting any whose image has an earlier release.
 * `proxy.yml` completely deploys the proxies
 * `proxy_start.yml` starts HAProxy
 * `proxy_stop.yml` stops HAProxy
