@@ -26,6 +26,10 @@
 
 Information on the set of custom logic and configuration files that are deployed by these playbooks can be found in the [Deployed Artifacts](deployment-artifacts/README.md) document.
 
+## Upgrading iRODS
+
+The [Upgrading iRODS](upgrading-irods.md) document describes how to upgrade a deployed Data Store to a later iRODS release.
+
 ## Testing
 
 <!-- TODO: write this section -->

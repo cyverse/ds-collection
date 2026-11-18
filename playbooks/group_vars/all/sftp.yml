@@ -8,6 +8,9 @@ _sftp_admin_tls_key_file: "{{ sftp_admin_tls_key_file | d('') }}"
 _sftp_admin_ui_port:  "{{ sftp_admin_ui_port | d(18023) }}"
 
 _sftp_auth_cache_time: "{{ sftp_auth_cache_time | d(60) }}"
+_sftp_denied_users: >-
+  {{ sftp_denied_users
+    | d(['root', 'admin', _sftp_irods_admin_username, _sftp_irods_proxy_username] | join(',')) }}
 
 _sftp_irods_admin_password: "{{ sftp_irods_admin_password | mandatory }}"
 _sftp_irods_admin_username: "{{ sftp_irods_admin_username | d('rods') }}"

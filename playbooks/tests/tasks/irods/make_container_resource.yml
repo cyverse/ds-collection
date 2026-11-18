@@ -1,0 +1,16 @@
+---
+# Makes a unixfilesystem resource on a containerized resource server, once the server answers.
+# Variables:
+#  _container_resc        the resource's name
+#  _container_resc_vault  its vault, relative to the server's vault
+#  in_container           the command that runs a command as irods in the server's container
+- name: Make container resource | wait for the server
+  ansible.builtin.import_tasks: wait_for_container_server.yml
+
+- name: Make container resource | create {{ _container_resc }}
+  ansible.builtin.command:
+    argv: >-
+      {{ in_container
+        + ['bash', '-c', 'iadmin mkresc "$1" unixfilesystem "$2:$IRODS_VAULT_PATH/$3"', '_']
+        + [_container_resc, inventory_hostname, _container_resc_vault] }}
+  changed_when: true

@@ -1,0 +1,16 @@
+# systemd drops the underscores in the host names Docker gives the testing environment's
+# containers, and then nothing can resolve a container's own host name. This sets the kernel's host
+# name back to the one Docker wrote to /etc/hostname, which the kernel accepts.
+
+[Unit]
+Description=Restore the host name Docker gave the container
+DefaultDependencies=no
+Before=sysinit.target
+ConditionPathExists=/etc/hostname
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'tr -d "\\n" < /etc/hostname > /proc/sys/kernel/hostname'
+
+[Install]
+WantedBy=sysinit.target

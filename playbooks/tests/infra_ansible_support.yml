@@ -10,8 +10,8 @@
         - dmidecode
         - jq
         # On EL8, python36 is the package that provides python3.
-        - "{{ 'python36' if ansible_os_family == 'RedHat' and ansible_distribution_major_version == '8' else 'python3' }}"
-        - python3-pip
+        - "{{ 'python3.12' if ansible_os_family == 'RedHat' and ansible_distribution_major_version == '8' else 'python3' }}"
+        - "{{ 'python3.12-pip' if ansible_os_family == 'RedHat' and ansible_distribution_major_version == '8' else 'python3-pip' }}"
       loop_control:
         loop_var: pkg
 

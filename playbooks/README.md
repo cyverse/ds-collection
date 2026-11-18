@@ -6,7 +6,7 @@ These folder contains all of the playbooks used to deploy and configure a CyVers
 
 <!-- TODO: document remaining playbooks -->
 
-* `irods_upgrade.yml` upgrades the iRODS servers with an earlier release installed to `irods_version`. It stops them, upgrades their packages, then starts the catalog service providers, which update the catalog schema, before the consumers. It requires iRODS on every server it targets, and when a server fails, it starts none of them.
+* `irods_upgrade.yml` upgrades the iRODS servers with an earlier release installed to `irods_version`. It stops them, upgrades their packages, then starts the catalog service providers, which update the catalog schema, before the consumers. It requires iRODS on every server it targets, and when a server fails, it starts none of them. A server it stopped keeps the marker file `/var/lib/irods/.irods-upgrade-stopped` until every one has started, so rerunning it after a failure starts the marked servers the failed run left stopped. It doesn't upgrade the containerized resource servers, which `irods_resource_container.yml` upgrades when run with the new `irods_version`; it ends by reporting any whose image has an earlier release.
 * `proxy.yml` completely deploys the proxies
 * `proxy_start.yml` starts HAProxy
 * `proxy_stop.yml` stops HAProxy
@@ -153,6 +153,7 @@ Variable                                   | Required | Default                 
 `sftp_admin_ui_port`                       | no       | 18023                                |         | The SFTPGo admin UI service port number
 `sftp_admin_username`                      | no       | admin                                |         | The SFTPGo admin account name
 `sftp_auth_cache_time`                     | no       | 60                                   |         | The number of seconds SFTPGo may reuse a successful iRODS authentication before running sftpgo-auth-irods again
+`sftp_denied_users`                        | no       | root,admin,rods,sftp                 |         | A comma-separated list of user names sftpgo-auth-irods rejects without contacting iRODS. Names are compared case-insensitively. The default also follows `sftp_irods_admin_username` and `sftp_irods_proxy_username`
 `sftp_irods_admin_password`                | yes      |                                      |         | The password for the rodsadmin user that creates the iRODS user for SFTP
 `sftp_irods_admin_username`                | no       | rods                                 |         | The rodsadmin user that creates tbe iRODS user for SFTP
 `sftp_irods_auth_scheme`                   | no       | native                               |         | The auth scheme of irods. 'pam' and 'pam_for_users' are also available.
