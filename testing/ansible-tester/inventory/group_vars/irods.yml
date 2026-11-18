@@ -28,7 +28,7 @@ irods_federation:
     zone_key: FAKE_zone_key_1
     zone_name: cyverse.dev
   - catalog_provider_hosts:
-      - data.cyverse.rocks
+      - data-dev.cyverse.org
     negotiation_key: FAKE___32_byte_negotiation_key_2
     zone_key: FAKE_zone_key_2
     zone_name: cyverse

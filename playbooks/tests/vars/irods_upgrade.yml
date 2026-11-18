@@ -1,0 +1,12 @@
+---
+# The servers the rerun test leaves as a failed run would
+native_consumers: >-
+  {{
+    groups['irods_resource'] | d([])
+      | difference(groups['irods_catalog'] | d([]))
+      | difference(groups['irods_resource_container'] | d([]))
+      | difference(groups['unmanaged_systems'] | d([]))
+      | sort }}
+marked_running: "{{ native_consumers[:1] }}"
+marked_stopped: "{{ (groups['irods_catalog'] | d([]))[:1] }}"
+unmarked_stopped: "{{ native_consumers[1:2] }}"

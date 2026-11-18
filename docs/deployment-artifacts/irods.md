@@ -144,7 +144,7 @@ The ansible variable `irods_default_number_of_transfer_threads` is used to set t
 
 ### Federation
 
-The production zone is federated with the two zones. It is federated with UAT zone `cyverse` hosted on `data.cyverse.rocks`. It is also federated with the TACC zone `corralZ` hosted on `c3-dtn04.corral.tacc.utexas.edu`. Ths is configured in the `federation` array of `/etc/irods/server_config.json`.
+The production zone is federated with the two zones. It is federated with UAT zone `cyverse` hosted on `data-uat.cyverse.org`. Ths is configured in the `federation` array of `/etc/irods/server_config.json`.
 
 The ansible variable `irods_federation` controls this configuration.
 
