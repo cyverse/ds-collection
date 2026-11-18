@@ -35,13 +35,27 @@
         name: "{{ 'powertools' if ansible_distribution_major_version == '8' else 'crb' }}"
         state: enabled
 
-    - name: Install packages
+    - name: Install python EL8
+      when: ansible_os_family == 'RedHat' and ansible_distribution_major_version == '8'
+      ansible.builtin.package:
+        name:
+          - python3.12
+          - python3.12-pip
+        state: present
+
+    - name: Install python not EL8
+      when: ansible_os_family == 'RedHat' and ansible_distribution_major_version != '8'
+      ansible.builtin.package:
+        name:
+          - python3
+          - python3-pip
+        state: present
+
+    - name: Install other packages
       ansible.builtin.package:
         name:
           - acl
           - jq
-          - python3
-          - python3-pip
         state: present
 
     - name: Install packages on Ubuntu machines
