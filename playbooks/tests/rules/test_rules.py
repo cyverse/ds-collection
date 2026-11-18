@@ -8,6 +8,7 @@
 
 import enum
 from enum import Enum
+from functools import cache
 from os import environ, path
 import pprint
 import subprocess
@@ -51,6 +52,19 @@ def tearDownModule():  # pylint: disable=invalid-name
     global _Setup  # pylint: disable=global-statement
     _Setup = False
     _remove_mocks()
+
+
+@cache
+def irods_release_before(release: Tuple[int, int, int]) -> bool:
+    """Returns whether the iRODS server under test runs a release earlier than the given one"""
+    with iRODSSession(
+        host=_IRODS_HOST,
+        port=_IRODS_PORT,
+        zone=_IRODS_ZONE_NAME,
+        user=_IRODS_USER_NAME,
+        password=IRODS_PASSWORD
+    ) as sess:
+        return sess.server_version < release
 
 
 def clear_rods_log():

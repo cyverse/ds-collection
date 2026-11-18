@@ -10,42 +10,47 @@
     former_user: former
     former_user_data: data
   pre_tasks:
-    - name: Create test users
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: iadmin mkuser '{{ item }}' rodsuser
-      changed_when: true
-      loop:
-        - "{{ existing_user }}"
-        - "{{ former_user }}"
-        - "{{ former_user_data }}"
+    # These fail once the test has run, since the users exist or the data user is gone, so the
+    # idempotency check skips them.
+    - name: Create the test users and their data
       tags: non_idempotent
+      block:
+        - name: Create test users
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: iadmin mkuser '{{ item }}' rodsuser
+          changed_when: true
+          loop:
+            - "{{ existing_user }}"
+            - "{{ former_user }}"
+            - "{{ former_user_data }}"
 
-    - name: Create collections for data user
-      environment:
-        clientUserName: "{{ former_user_data }}"
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: imkdir -p /testing/home/'{{ former_user_data }}'/'{{ item }}'
-      changed_when: true
-      loop:
-        - coll1
-        - coll2/sub_coll1
-        - coll2/sub_coll2
-        - coll3
+        - name: Create collections for data user
+          environment:
+            clientUserName: "{{ former_user_data }}"
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: imkdir -p /testing/home/'{{ former_user_data }}'/'{{ item }}'
+          changed_when: true
+          loop:
+            - coll1
+            - coll2/sub_coll1
+            - coll2/sub_coll2
+            - coll3
 
-    - name: Upload data for data user
-      environment:
-        clientUserName: "{{ former_user_data }}"
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: |
-          truncate --size=1 /tmp/junk
-          for d in data1 data2 coll1/data coll2/data coll2/sub_coll1/data; do
-            iput /tmp/junk /testing/home/'{{ former_user_data }}'/"$d"
-          done
-          iput /tmp/junk /testing/trash/home/'{{ former_user_data }}'/data
-      changed_when: true
+        - name: Upload data for data user
+          environment:
+            clientUserName: "{{ former_user_data }}"
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o errexit
+              truncate --size=1 /tmp/junk
+              for d in data1 data2 coll1/data coll2/data coll2/sub_coll1/data; do
+                iput /tmp/junk /testing/home/'{{ former_user_data }}'/"$d"
+              done
+              iput /tmp/junk /testing/trash/home/'{{ former_user_data }}'/data
+          changed_when: true
 
   tasks:
     - name: Create user
@@ -156,7 +161,7 @@
       ansible.builtin.shell:
         executable: /bin/bash
         cmd: |
-          set -o pipefail
+          set -o errexit -o pipefail
           iadmin lu '{{ former_user }}' | grep --quiet 'No rows found'
           iadmin lu '{{ former_user_data }}' | grep --quiet 'No rows found'
       changed_when: false

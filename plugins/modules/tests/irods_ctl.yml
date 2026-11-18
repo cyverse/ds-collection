@@ -6,7 +6,7 @@
   pre_tasks:
     - name: Ensure stopped
       ansible.builtin.shell:
-        executable:  /bin/bash
+        executable: /bin/bash
         cmd: /var/lib/irods/irodsctl stop
       changed_when: true
       tags: non_idempotent
@@ -42,7 +42,7 @@
 
         - name: Stop service again
           ansible.builtin.shell:
-            executable:  /bin/bash
+            executable: /bin/bash
             cmd: /var/lib/irods/irodsctl stop
           changed_when: true
 
@@ -72,7 +72,7 @@
 
         - name: Stop service again
           ansible.builtin.shell:
-            executable:  /bin/bash
+            executable: /bin/bash
             cmd: /var/lib/irods/irodsctl stop
           changed_when: true
 
@@ -97,25 +97,62 @@
               /var/lib/irods/irodsctl status | grep --quiet 'No iRODS servers running'
           changed_when: false
 
-    - name: Start stopped service without test log
-      cyverse.ds.irods_ctl:
-        state: started
+    - name: Test start without test log when not running
+      tags: non_idempotent
+      block:
+        - name: Start stopped service without test log
+          cyverse.ds.irods_ctl:
+            state: started
+          register: resp
+          failed_when: resp is not changed
 
-    - name: Verify service is started
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: |
-          set -o pipefail
-          /var/lib/irods/irodsctl status | grep --quiet irodsServer
-      changed_when: false
+        - name: Verify service is started
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o pipefail
+              /var/lib/irods/irodsctl status | grep --quiet irodsServer
+          changed_when: false
 
-    - name: Verify there is no test log
-      ansible.builtin.shell:
-        executable: /bin/bash
-        cmd: test ! -f /var/lib/irods/log/test_mode_output.log
-      changed_when: false
+        - name: Verify there is no test log
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: test ! -f /var/lib/irods/log/test_mode_output.log
+          changed_when: false
 
-    # TODO: test start stopped service with test log
+        - name: Stop service again
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: /var/lib/irods/irodsctl stop
+          changed_when: true
+
+    - name: Test start with test log when not running
+      tags: non_idempotent
+      block:
+        - name: Start stopped service with test log
+          cyverse.ds.irods_ctl:
+            state: started
+            test_log: true
+          register: resp
+          failed_when: resp is not changed
+
+        - name: Verify service is started
+          ansible.builtin.debug:
+            msg: "TODO: implement"
+
+        - name: Verify there is a test log
+          ansible.builtin.debug:
+            msg: "TODO: implement"
+
+        - name: Stop service again
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: /var/lib/irods/irodsctl stop
+          changed_when: true
+
+        - name: Remove test log
+          ansible.builtin.command: rm --force /var/lib/irods/log/test_mode_output.log
+          changed_when: true
 
     - name: Restart service without test log
       tags: non_idempotent
@@ -187,7 +224,7 @@
 
         - name: Verify service is running
           ansible.builtin.shell:
-            executable:  /bin/bash
+            executable: /bin/bash
             cmd: |
               set -o pipefail
               /var/lib/irods/irodsctl status | grep --quiet irodsServer
@@ -211,7 +248,7 @@
 
         - name: Verify service is running
           ansible.builtin.shell:
-            executable:  /bin/bash
+            executable: /bin/bash
             cmd: |
               set -o pipefail
               /var/lib/irods/irodsctl status | grep --quiet irodsServer
@@ -243,7 +280,7 @@
   pre_tasks:
     - name: Ensure stopped
       ansible.builtin.shell:
-        executable:  /bin/bash
+        executable: /bin/bash
         cmd: /var/lib/irods/irodsctl stop
       changed_when: true
       tags: non_idempotent

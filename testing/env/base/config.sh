@@ -45,6 +45,12 @@ main() {
 	# Remove root's password
 	passwd -d root
 
+	# On an AppArmor host, the host's unix-chkpwd profile confines an unconfined container's
+	# unix_chkpwd, which then can't read a mode 0000 /etc/shadow, so PAM rejects root.
+	if [[ "$os" == alma ]]; then
+		chmod 0400 /etc/shadow
+	fi
+
 	# Configure root ssh access without password
 	ssh-keygen -q -f /etc/ssh/ssh_host_key -N '' -t rsa
 

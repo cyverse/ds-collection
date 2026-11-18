@@ -3,6 +3,9 @@
   hosts: irods:!irods_resource_container:!unmanaged_systems
   become: true
   tasks:
+    - name: Check the release's rule bases
+      ansible.builtin.import_tasks: tasks/irods/check_release_rulebases.yml
+
     - name: Provision RedHat family
       when: ansible_os_family == 'RedHat'
       block:

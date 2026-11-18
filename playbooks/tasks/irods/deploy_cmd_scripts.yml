@@ -1,0 +1,16 @@
+---
+# XXX: This is to prevent TAR slip. After upgrading to iRODS 5.1.0, the irods_cfg role can deploy the
+# command scripts again, through irods_cfg_cmd_scripts.
+# Deploys the command scripts as root, so that the service account can run them but not modify them.
+- name: Deploy command scripts | install
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: /var/lib/irods/msiExecCmd_bin/{{ item | basename }}
+    owner: root
+    group: "{{ _irods_service_group_name }}"
+    mode: u+rx,g+rx,go-w
+  with_fileglob: files/irods/var/lib/irods/msiExecCmd_bin/*
+
+- name: Deploy command scripts | protect
+  ansible.builtin.import_tasks: protect_cmd_scripts.yml
+# XXX: ^^^

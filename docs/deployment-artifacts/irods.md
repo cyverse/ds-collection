@@ -39,6 +39,13 @@ The following files contain the policy that is independent of deployment environ
 
 The template [cyverse-env.re](../../playbooks/templates/irods/etc/irods/cyverse-env.re.j2) is for environment-dependent constants.
 
+### Release-Specific Rule Files
+
+Some policy depends on the iRODS release, e.g., a PEP that leaks memory before a given release. That policy is in rule bases that have a version for each supported release, in a directory named for the release, e.g., [4.3.4](../../playbooks/files/irods/etc/irods/4.3.4). The playbooks deploy the version for `irods_version`, and they fail before changing anything if there is no directory for it. Supporting a new release means adding its directory, even when its rule bases are the same as an earlier release's.
+
+* `cve_version.re` holds the workarounds in cve.re that depend on the release. cve.re includes it.
+* `cyverse_core_version.re` holds the PEPs in cyverse_core.re that depend on the release. cyverse_core.re includes it.
+
 ### AVRA Rule Files
 
 Two rule bases implement the AVRA project's Data Store policy. The file [avra.re](../../playbooks/files/irods/etc/irods/avra.re) contains the AVRA policy that is independent of the deployment environment. The template [avra-env.re](../../playbooks/templates/irods/etc/irods/avra-env.re.j2) contains the environment-dependent AVRA constants.

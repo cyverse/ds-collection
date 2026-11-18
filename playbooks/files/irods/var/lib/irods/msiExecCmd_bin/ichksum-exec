@@ -17,10 +17,17 @@
 
 set -o errexit -o nounset -o pipefail
 
-main() {
-	if ! ichksum "$@"; then
-		printf 'failed: ichksum %s\n' "$*" >&2
+readonly ARGS="$@"
+
+disp_call_on_err() {
+	local rc=$?
+
+	if (( rc != 0 )); then
+		printf 'failed: ichksum %s\n' "$ARGS" >&2
 	fi
+
+	exit $rc
 }
 
-main "$@"
+trap disp_call_on_err EXIT
+ichksum "$@"

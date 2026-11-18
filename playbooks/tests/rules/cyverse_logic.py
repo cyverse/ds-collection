@@ -179,8 +179,24 @@ class TestGetnewavusetting(IrodsTestCase):
 
 
 @test_rules.unimplemented
+class TestChksumrepl(IrodsTestCase):
+    """Tests of cyverse_logic_chksumRepl"""
+
+
 class TestChecksums(IrodsTestCase):
     """Tests of checksum logic"""
+
+    @unittest.skip("not implemented")
+    def test_needschecksum(self):
+        """Test _cyverse_logic_needsChecksum"""
+
+    @unittest.skip("not implemented")
+    def test_schedchksumrepl(self):
+        """Test _cyverse_logic_schedChksumRepl"""
+
+    @unittest.skip("not implemented")
+    def test_ensurereplicachecksum(self):
+        """Test _cyverse_logic_ensureReplicaChecksum"""
 
 
 class TestPrivateCyVerseLogic(IrodsTestCase):

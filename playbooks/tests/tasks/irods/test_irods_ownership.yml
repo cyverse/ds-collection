@@ -2,10 +2,13 @@
 # vars:
 #   dir  the directory to verify irods ownership
 
+# The command scripts are protected from irods. See test_cmd_scripts_protected.yml.
 - name: Test iRODS ownership | irods owns {{ dir }}
   ansible.builtin.shell:
     executable: /bin/bash
-    cmd: 'test -z "$(find {{ dir }} -not -user irods -print -quit)"'
+    cmd: >-
+      test -z "$(find {{ dir }} -path /var/lib/irods/msiExecCmd_bin -prune
+      -o -not -user irods -print -quit)"
   changed_when: false
 
 - name: Test iRODS ownership | correct account group for {{ dir }}

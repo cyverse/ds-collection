@@ -10,7 +10,12 @@ irodsctl version $VERSION
 
 Usage:
  irodsctl -h|--help
- irodsctl restart|start|status|stop
+ irodsctl [--test] restart|start|status|stop
+
+Options:
+ -h, --help  show help and exit
+ --test      accepted, since irodsctl takes it, but the containerized server
+             doesn't start in iRODS's test mode
 
 This is an implementation of \`irodsctl\` that can manage a containerized iRODS
 server.
@@ -26,7 +31,7 @@ readonly EXEC_DIR
 
 main() {
 	local opts
-	if ! opts="$(getopt --name irodsctl --longoptions help --options h -- "$@")"; then
+	if ! opts="$(getopt --name irodsctl --longoptions help,test --options h -- "$@")"; then
 		show_help >&2
 		return 1
 	fi
@@ -38,6 +43,9 @@ main() {
 		case "$1" in
 			-h|--help)
 				help=help
+				shift
+				;;
+			--test)
 				shift
 				;;
 			--)
