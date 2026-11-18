@@ -72,4 +72,6 @@ _irods_netcdf_packages:
 # iRODS dropped the NetCDF modules in 4.3.2.
 _irods_netcdf_supported: "{{ _irods_version is version('4.3.2', '<') }}"
 _irods_server_control_plane_port: 1248
+# irods_upgrade.yml keeps this on a server it stopped until it starts the server again.
+_irods_upgrade_marker: /var/lib/irods/.irods-upgrade-stopped
 _irods_zone_port: 1247
