@@ -45,6 +45,11 @@ The irods_upgrade playbook is tested on a deployed Data Store. The environment
 deploys it before any upgrade, and with --upgrade-from, adds the data the test
 checks survives the upgrade.
 
+With --upgrade-from, the irods_resource_container playbook's test upgrades the
+containerized resource servers. Before upgrading the others, the environment
+deploys them on the earlier release and adds the data the test checks survives,
+so the playbook under test upgrades them.
+
 Environment Variables:
  IRODS_UPGRADE_FROM  the iRODS release to upgrade from, as with
                      --upgrade-from, which takes precedence
@@ -138,6 +143,12 @@ main() {
 		if [[ "$playbook" == irods_upgrade.yml ]]
 		then
 			export PREPARE_DATA_STORE=1 IRODS_UPGRADE_SNAPSHOT=''
+		fi
+
+		# The container test upgrades the containerized servers, which a snapshot doesn't hold.
+		if [[ "$playbook" == irods_resource_container.yml ]]
+		then
+			export PREPARE_CONTAINERS=1 IRODS_UPGRADE_SNAPSHOT=''
 		fi
 	fi
 

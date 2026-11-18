@@ -1,6 +1,6 @@
 ---
 # REQUIREMENTS:
-#  inventory: hosts-all
+#  inventory: hosts-containerized
 
 - name: Test default template expansions
   hosts: localhost
@@ -8,6 +8,7 @@
   vars_files:
     - ../group_vars/all/irods.yml
   vars:
+    _irods_host_gid: 999
     _irods_host_uid: 999
     core: "{{ lookup('template', '../templates/irods/docker-rs/run/etc/irods/core.re.j2') }}"
     env: "{{ lookup('template', '../templates/irods/docker-rs/env.j2') }}"
@@ -28,6 +29,7 @@
             env is search(
               '^IRODS_CATALOG_PROVIDER=' ~ (groups['irods_catalog'][0] | regex_escape) ~ '$',
               multiline=true )
+          - env is search('^IRODS_HOST_GID=999$', multiline=true)
           - env is search('^IRODS_HOST_UID=999$', multiline=true)
           - >-
             env is search(
@@ -64,6 +66,7 @@
     irods_server_port_range_end: 30099
     irods_server_port_range_start: 30000
     irods_zone_name: customZone
+    _irods_host_gid: 4321
     _irods_host_uid: 1234
     core: "{{ lookup('template', '../templates/irods/docker-rs/run/etc/irods/core.re.j2') }}"
     env: "{{ lookup('template', '../templates/irods/docker-rs/env.j2') }}"
@@ -78,6 +81,7 @@
     - name: Test .env expansion
       ansible.builtin.assert:
         that:
+          - env is search('^IRODS_HOST_GID=4321$', multiline=true)
           - env is search('^IRODS_HOST_UID=1234$', multiline=true)
           - env is search('^IRODS_SERVER_PORT_RANGE_START=30000$', multiline=true)
           - env is search('^IRODS_SERVER_PORT_RANGE_END=30099$', multiline=true)
@@ -236,9 +240,12 @@
         or not (resp.stat.rusr and resp.stat.wusr and resp.stat.xusr)
       loop:
         - /etc/irods
+        - "{{ irods_default_vault }}"
         - /var/lib/irods
         - /var/lib/irods/.irods
-        - /var/lib/irods/msiExecCmd_bin
+
+    - name: Test the command scripts are protected
+      ansible.builtin.import_tasks: tasks/irods/test_cmd_scripts_protected.yml
 
     - name: Test add irodsctl adapter
       ansible.builtin.stat:
@@ -289,9 +296,9 @@
       ansible.builtin.copy:
         src: "{{ item }}"
         dest: /var/lib/irods/msiExecCmd_bin/{{ item | basename }}
-        owner: irods
+        owner: root
         group: irods
-        mode: u+rx
+        mode: u+rx,g+rx,go-w
       check_mode: true
       register: resp
       failed_when: resp is changed or resp is failed
@@ -363,15 +370,9 @@
       ansible.builtin.assert:
         that:
           - server_config.advanced_settings.default_number_of_transfer_threads == 4
+          - server_config.advanced_settings.number_of_concurrent_delay_rule_executors == 4
           - server_config.advanced_settings.transfer_buffer_size_for_parallel_transfer_in_megabytes == 4
-          - >-
-            server_config.catalog_provider_hosts
-              | symmetric_difference(
-                [
-                  'dstesting-provider_configured-1.dstesting_default',
-                  'dstesting-provider_unconfigured-1.dstesting_default' ] )
-              | length
-            == 0
+          - server_config.catalog_provider_hosts == groups['irods_catalog']
           - server_config.catalog_service_role == 'consumer'
           - server_config.default_dir_mode == '0750'
           - server_config.default_file_mode == '0600'
@@ -390,7 +391,7 @@
           - >-
             server_config.plugin_configuration.rule_engines[1].plugin_name
             == 'irods_rule_engine_plugin-cpp_default_policy'
-          - server_config.schema_validation_base_uri == 'off'
+          - server_config.schema_validation_base_uri == 'file:///var/lib/irods/configuration_schemas'
           - server_config.server_control_plane_key == 'TEMPORARY__32byte_ctrl_plane_key'
           - server_config.server_port_range_end == 20009
           - server_config.server_port_range_start == 20000
@@ -408,7 +409,7 @@
         irods_env: "{{ env_encoded.content | b64decode | from_json }}"
       ansible.builtin.assert:
         that:
-          - irods_env.irods_authentication_file == '/var/lib/irods/.irods/.irodsA'
+          - irods_env.irods_authentication_file is undefined
           - irods_env.irods_default_resource == 'ingestRes'
           - irods_env.irods_host == inventory_hostname
           - irods_env.irods_port == 1247
@@ -445,6 +446,11 @@
         database: passwd
         key: irods
 
+    - name: Get the service group's GID
+      ansible.builtin.getent:
+        database: group
+        key: irods
+
     - name: Retrieve encoded .env
       ansible.builtin.slurp:
         src: /var/lib/irods/.env
@@ -459,6 +465,7 @@
             dotenv is search(
               '^IRODS_CATALOG_PROVIDER=' ~ (groups['irods_catalog'][0] | regex_escape) ~ '$',
               multiline=true )
+          - dotenv is search('^IRODS_HOST_GID=' ~ getent_group.irods[1] ~ '$', multiline=true)
           - dotenv is search('^IRODS_HOST_UID=' ~ getent_passwd.irods[1] ~ '$', multiline=true)
           - dotenv is search('^IRODS_SERVER_PORT_RANGE_START=20000$', multiline=true)
           - dotenv is search('^IRODS_SERVER_PORT_RANGE_END=20009$', multiline=true)
@@ -596,3 +603,353 @@
           ansible.builtin.file:
             path: "{{ fake_dir.path }}"
             state: absent
+
+- name: Test the running resource server
+  hosts: irods_resource_container
+  become: true
+  become_user: irods
+  gather_facts: false
+  vars_files:
+    - vars/irods_resource_container.yml
+  vars:
+    test_obj: /testing/home/rods/{{ inventory_hostname_short }}-test.dat
+    test_resc: "{{ inventory_hostname_short }}-test"
+  tasks:
+    - name: Test the container is running
+      ansible.builtin.command:
+        argv: "{{ compose + ['ps', '--status=running', '--quiet', 'irods-rs'] }}"
+      register: resp
+      changed_when: false
+      failed_when: resp is failed or resp.stdout == ''
+
+    - name: Count the lines already in the host's iRODS log
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: "{ wc --lines < /var/log/irods/irods.log; } 2> /dev/null || echo 0"
+      register: log_lines
+      changed_when: false
+
+    - name: Restart the server through the adapter
+      ansible.builtin.command: /var/lib/irods/irodsctl restart
+      changed_when: true
+
+    # The entrypoint logs this each time the container starts. grep stops at the first match, which
+    # can kill tail with SIGPIPE, so tail isn't in a pipeline whose status counts.
+    - name: Test the restarted server logs to the host's iRODS log
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: >-
+          grep --quiet 'Starting server'
+          <(tail --lines=+{{ log_lines.stdout | int + 1 }} /var/log/irods/irods.log)
+      register: resp
+      changed_when: false
+      until: resp is succeeded
+      retries: 15
+      delay: 2
+
+    # A server Docker has to kill after it ignores SIGTERM never logs this.
+    - name: Test the server shut down cleanly for the restart
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: >-
+          grep --quiet 'iRODS Server is done'
+          <(tail --lines=+{{ log_lines.stdout | int + 1 }} /var/log/irods/irods.log)
+      changed_when: false
+
+    - name: Test the adapter reports the server running
+      ansible.builtin.command: /var/lib/irods/irodsctl status
+      register: resp
+      changed_when: false
+      until: resp.stdout is search('irodsServer')
+      retries: 30
+      delay: 2
+
+    # The scripts are root's, so the container's irods account runs them through its group.
+    # Unlike the rule below, which hides it, this shows the script's own error.
+    - name: Test the server's account can run the command scripts
+      ansible.builtin.command:
+        argv: "{{ in_container + ['/var/lib/irods/msiExecCmd_bin/generate-uuid'] }}"
+      register: resp
+      changed_when: false
+      failed_when: resp is failed or resp.stdout is not match('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+
+    - name: Test putting and getting data through a resource on the server
+      block:
+        # The server's processes start before it listens for connections.
+        - name: Create a resource on the server once it answers
+          ansible.builtin.import_tasks: tasks/irods/make_container_resource.yml
+          vars:
+            _container_resc: "{{ test_resc }}"
+            _container_resc_vault: test
+
+        - name: Test a put and a get through the server
+          ansible.builtin.command:
+            argv: "{{ in_container + ['bash', '-s', '--', test_resc, test_obj] }}"
+            stdin: |
+              set -o errexit -o nounset -o pipefail
+              src="$(mktemp)"
+              dest="$(mktemp)"
+              trap 'rm --force "$src" "$dest"' EXIT
+              head --bytes=100000 /dev/urandom > "$src"
+              iput -K -R "$1" "$src" "$2"
+              iget -f -K "$2" "$dest"
+              cmp "$src" "$dest"
+          changed_when: true
+
+        # The container bind mounts the vault, so the data should be on the host, owned by irods.
+        - name: Test the data is in the host's vault
+          ansible.builtin.find:
+            paths: "{{ irods_default_vault }}/test"
+            patterns: "{{ test_obj | basename }}"
+            recurse: true
+          register: resp
+          failed_when: resp.matched != 1 or resp.files[0].pw_name != 'irods'
+
+        - name: Test the catalog provider can get the data from the server
+          delegate_to: "{{ groups['irods_catalog'][0] }}"
+          ansible.builtin.shell:
+            executable: /bin/bash
+            cmd: |
+              set -o errexit -o nounset
+              dest="$(mktemp)"
+              trap 'rm --force "$dest"' EXIT
+              iget -f -K {{ test_obj | quote }} "$dest"
+          changed_when: false
+
+      always:
+        # A failed put leaves no data object, and irm fails then.
+        - name: Remove the test data object
+          ansible.builtin.command:
+            argv: "{{ in_container + ['irm', '-f', test_obj] }}"
+          register: resp
+          changed_when: resp.rc == 0
+          failed_when: false
+
+        - name: Remove the test resource
+          ansible.builtin.command:
+            argv: "{{ in_container + ['iadmin', 'rmresc', test_resc] }}"
+          changed_when: true
+
+    # irule runs the rule, and so its msiExecCmd of generate-uuid, on the server it connects to.
+    - name: Test a Data Store rule on the server runs a command script
+      ansible.builtin.command:
+        argv: >-
+          {{ compose
+            + ['exec', '-T', '--user=irods', '--env=IRODS_HOST=' ~ inventory_hostname, 'irods-rs']
+            + ['irule', '-r', 'irods_rule_engine_plugin-irods_rule_language-instance']
+            + ['writeLine("stdout", _cyverse_logic_genUUID())', 'null', 'ruleExecOut'] }}
+      register: resp
+      changed_when: false
+      failed_when: resp is failed or resp.stdout is not match('^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$')
+
+- name: Test the containerized resource servers' upgrade
+  hosts: irods_resource_container
+  become: true
+  become_user: irods
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/irods.yml
+    - vars/irods_resource_container.yml
+  tasks:
+    # With --upgrade-from, the environment deploys these servers on that release and seeds them
+    # before upgrading the others, so the playbook under test upgrades them.
+    - name: Test the upgrade
+      when: irods_upgrade_from is defined
+      block:
+        - name: Test the server runs the release it was upgraded to
+          ansible.builtin.command:
+            argv: "{{ in_container + ['dpkg-query', '--show', '--showformat=${Version}', 'irods-server'] }}"
+          register: resp
+          changed_when: false
+          failed_when: resp is failed or resp.stdout is not match((_irods_version | regex_escape) ~ '-')
+
+        - name: Test the release's own rule bases are in force
+          ansible.builtin.import_tasks: tasks/irods/test_release_rules_in_force.yml
+          vars:
+            _irods_client_bash: "{{ in_container + ['bash'] }}"
+
+        # The environment made the copies after upgrading the catalog provider, while the server
+        # still ran the earlier release.
+        - name: Read how the copies went while the releases were mixed
+          become: true
+          become_user: root
+          ansible.builtin.slurp:
+            src: "{{ mixed_results }}"
+          register: mixed_resp
+
+        - name: Test the copies worked while the releases were mixed
+          ansible.builtin.assert:
+            that: item.value.rc == 0
+            fail_msg: The copy {{ item.key }} failed with {{ item.value.stderr }}
+            quiet: true
+          loop: "{{ mixed_resp.content | b64decode | from_json | dict2items }}"
+          loop_control:
+            label: the copy {{ item.key }}
+
+        - name: Test the data from before the upgrade is intact on the server's resource
+          ansible.builtin.command:
+            argv: "{{ in_container + ['bash', '-s', '--', item.obj, upgrade_content, upgrade_resc] }}"
+            stdin: |
+              set -o errexit -o nounset -o pipefail
+              dest="$(mktemp)"
+              trap 'rm --force "$dest"' EXIT
+              iget -f -K "$1" "$dest"
+              [[ "$(< "$dest")" == "$2" ]]
+              rescs="$(iquest '%s' \
+                "select DATA_RESC_NAME where COLL_NAME = '${1%/*}' and DATA_NAME = '${1##*/}'")"
+              [[ "$rescs" == "$3" ]]
+          changed_when: false
+          loop: "{{ upgrade_objs }}"
+          loop_control:
+            label: "{{ item.label }}"
+
+      always:
+        # One is missing when the upgrade lost it or a copy failed, and irm fails then.
+        - name: Remove the upgrade test's data objects
+          ansible.builtin.command:
+            argv: "{{ in_container + ['irm', '-f', item] }}"
+          register: resp
+          changed_when: resp.rc == 0
+          failed_when: false
+          loop: "{{ upgrade_objs | map(attribute='obj') }}"
+
+        - name: Remove the upgrade test's resource
+          ansible.builtin.command:
+            argv: "{{ in_container + ['iadmin', 'rmresc', upgrade_resc] }}"
+          changed_when: true
+
+- name: Record the iRODS configuration irods_resource_container.yml left
+  hosts: irods_resource_container
+  become: true
+  gather_facts: false
+  tasks:
+    - name: Record the configuration files' and directories' owners, modes and contents
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: &record_cfg |
+          set -o errexit -o pipefail
+          dirs=(/etc/irods /var/lib/irods/.irods /var/lib/irods/msiExecCmd_bin)
+          find "${dirs[@]}" -exec stat --format='%n %F %U:%G %a' {} + | sort
+          find "${dirs[@]}" -type f -exec sha1sum {} + | sort
+      register: cfg_before
+      changed_when: false
+
+# irods_cfg.yml configures every resource server, including the containerized ones.
+- name: Configure the iRODS servers with irods_cfg.yml
+  ansible.builtin.import_playbook: ../irods_cfg.yml
+
+- name: Test irods_cfg.yml agrees with irods_resource_container.yml
+  hosts: irods_resource_container
+  become: true
+  gather_facts: false
+  vars_files:
+    - vars/irods_resource_container.yml
+  tasks:
+    - name: Record the configuration files again
+      ansible.builtin.shell:
+        executable: /bin/bash
+        cmd: *record_cfg
+      register: cfg_after
+      changed_when: false
+
+    - name: Test irods_cfg.yml left the configuration as it was
+      ansible.builtin.assert:
+        that: cfg_after.stdout == cfg_before.stdout
+        fail_msg: >-
+          irods_cfg.yml changed these files' or directories' owners, modes or contents:
+          {{ cfg_before.stdout_lines | symmetric_difference(cfg_after.stdout_lines) }}
+        quiet: true
+
+    - name: Test the server still answers requests
+      become: true
+      become_user: irods
+      ansible.builtin.command:
+        argv: "{{ in_container + ['ils'] }}"
+      register: resp
+      changed_when: false
+      until: resp is succeeded
+      retries: 30
+      delay: 2
+
+# In check mode, the playbooks change nothing even if they miss the mismatch. With the limit, the
+# only plays irods_upgrade.yml runs are its report on the containerized servers.
+- name: Test the playbooks check the release the containerized servers run
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/irods.yml
+  vars:
+    nested_run: [ansible-playbook, --check, "--inventory={{ ansible_inventory_sources | first }}",
+      --limit=irods_resource_container, --skip-tags=no_testing]
+    other_releases: >-
+      {{ release_dirs.files | map(attribute='path') | map('basename')
+        | reject('equalto', _irods_version) | sort | list }}
+  tasks:
+    # Each release with its own rule bases has a directory of them.
+    - name: Find the releases with their own rule bases
+      ansible.builtin.find:
+        paths: "{{ playbook_dir }}/../files/irods/etc/irods"
+        file_type: directory
+      register: release_dirs
+
+    - name: Test irods_cfg.yml fails for another release on every containerized server
+      when: other_releases | length > 0
+      ansible.builtin.command:
+        argv: >-
+          {{ nested_run
+            + ['--extra-vars=irods_version=' ~ other_releases | first]
+            + [playbook_dir ~ '/../irods_cfg.yml'] }}
+      register: resp
+      environment:
+        ANSIBLE_STDOUT_CALLBACK: default
+      changed_when: false
+      failed_when: >-
+        resp.rc == 0
+        or resp.stdout
+          | regex_findall('image is for iRODS ' ~ (_irods_version | regex_escape) ~ ',')
+          | length != groups['irods_resource_container'] | length
+
+    - name: Test irods_resource_container.yml refuses to downgrade every containerized server
+      when: older_releases | length > 0
+      vars:
+        older_releases: "{{ other_releases | select('version', _irods_version, '<') | list }}"
+      ansible.builtin.command:
+        argv: >-
+          {{ nested_run
+            + ['--extra-vars=irods_version=' ~ older_releases | last]
+            + [playbook_dir ~ '/../irods_resource_container.yml'] }}
+      register: resp
+      environment:
+        ANSIBLE_STDOUT_CALLBACK: default
+      changed_when: false
+      failed_when: >-
+        resp.rc == 0
+        or resp.stdout
+          | regex_findall("image is for iRODS " ~ (_irods_version | regex_escape) ~ ", which is later")
+          | length != groups['irods_resource_container'] | length
+
+    # Only the report needs the release, so these needn't have rule bases.
+    - name: Test irods_upgrade.yml reports every containerized server on an earlier release
+      ansible.builtin.command:
+        argv: "{{ nested_run + ['--extra-vars=irods_version=999.0.0', playbook_dir ~ '/../irods_upgrade.yml'] }}"
+      register: resp
+      environment:
+        ANSIBLE_STDOUT_CALLBACK: default
+      changed_when: false
+      failed_when: >-
+        resp.rc != 0
+        or resp.stdout
+          | regex_findall('image is still for iRODS ' ~ (_irods_version | regex_escape) ~ '[.]')
+          | length != groups['irods_resource_container'] | length
+
+    - name: Test irods_upgrade.yml reports nothing when the containerized servers are on its release or later
+      ansible.builtin.command:
+        argv: "{{ nested_run + ['--extra-vars=irods_version=' ~ item, playbook_dir ~ '/../irods_upgrade.yml'] }}"
+      register: resp
+      environment:
+        ANSIBLE_STDOUT_CALLBACK: default
+      changed_when: false
+      failed_when: resp.rc != 0 or resp.stdout is search("image is still for iRODS|Couldn't look up")
+      loop:
+        - "{{ _irods_version }}"
+        - 0.0.1
