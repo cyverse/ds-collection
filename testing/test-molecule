@@ -119,7 +119,7 @@ main() {
 	local collection="$workDir"/ansible_collections/cyverse/ds
 	copy_collection "$collection"
 
-	export ANSIBLE_COLLECTIONS_PATH="$workDir":"$GALAXY_DIR"
+	export ANSIBLE_COLLECTIONS_PATH="$GALAXY_DIR"
 	export ANSIBLE_ROLES_PATH="$collection"/roles
 
 	# Molecule installs the collection under test and the scenarios' Galaxy roles
