@@ -5,6 +5,7 @@
 **/__pycache__
 docker-compose.override.yml
 leak-check-results
+test-results
 
 # --- Claude Code local settings & MCP configs (may contain secrets) ---
 # See the claude-project-template repo ("Claude Project Gitignore").
