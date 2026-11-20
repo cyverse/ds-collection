@@ -44,7 +44,7 @@ readonly ExecName COLLECTION_DIR
 . "$(dirname "$ExecName")"/../irods_version.sh
 
 # The configured iRODS services a snapshot saves, in the order they're stopped
-readonly SnapshotIrodsServices=(consumer_configured_centos provider_configured)
+readonly SnapshotIrodsServices=(consumer_configured provider_configured)
 
 # The services whose containers a snapshot saves
 readonly SnapshotServices=(dbms_configured "${SnapshotIrodsServices[@]}")

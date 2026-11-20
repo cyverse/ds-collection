@@ -75,7 +75,7 @@ main()
     # Images from before the version tags are tagged latest.
     if [[ "$tag" =~ ^[0-9]+(\.[0-9]+)+$ && "$tag" != "${IRODS_VERSION:-4.3.1}" ]]; then
       IRODS_VERSION="$tag" portability::compose "${composeArgs[@]}" \
-        provider_configured consumer_configured_centos
+        provider_configured consumer_configured
     fi
   done
 }
