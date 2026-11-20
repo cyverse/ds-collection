@@ -710,7 +710,7 @@ class TestPepApiRegDataObjDirectConsumerPut(IrodsTestCase):
             with NamedTemporaryFile(delete=False) as file:
                 file.close()
                 csc_env = {
-                    "IRODS_HOST": "dstesting-consumer_configured_centos-1.dstesting_default",
+                    "IRODS_HOST": "dstesting-consumer_configured-1.dstesting_default",
                     "IRODS_PORT": "1247",
                     "IRODS_ZONE_NAME": self.irods.zone,
                     "IRODS_USER_NAME": username,

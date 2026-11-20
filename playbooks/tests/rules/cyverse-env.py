@@ -60,7 +60,7 @@ class CyverseEnvTest(IrodsTestCase):
         """test cyverse_IS_CATALOG_PROVIDER is true for a catalog consumer"""
         rule = f"""
             remote(
-                "dstesting-consumer_configured_centos-1.dstesting_default", "{self.irods.zone}"
+                "dstesting-consumer_configured-1.dstesting_default", "{self.irods.zone}"
             ) {"{"}
                 writeLine('stdout', if cyverse_IS_CATALOG_PROVIDER then 'true' else 'false');
             {"}"}
