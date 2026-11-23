@@ -1,6 +1,6 @@
 ---
 - name: Test irods_unixfilesystem_resource module
-  hosts: dstesting-consumer_configured_centos-1.dstesting_default
+  hosts: dstesting-consumer_configured-1.dstesting_default
   become: true
   become_user: irods
   vars:

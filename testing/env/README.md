@@ -2,7 +2,7 @@
 
 This folder contains the source for a set of Docker images that are intended to create a iRODS grid to be used for testing the ansible playbooks that configure an iRODS grid.
 
-The environment consists of a set of containers. The `amqp` container hosts a RabbitMQ broker that in turn hosts the `irods` exchange, where the Data Store publishes messages to. The `dbms_configured` container hosts the PostgreSQL server that in turn hosts the ICAT DB. The iRODS servers all run on AlmaLinux 9, except the containerized resource servers, whose image is based on Ubuntu 22.04. The `webdav_configured` and `webdav_unconfigured` containers run AlmaLinux 8, because davrods 4.3.0_1.5.0, the release the WebDAV hosts use, doesn't install on AlmaLinux 9. They, the `amqp` and `sftp` containers, the `dbms_configured` and `dbms_unconfigured` containers, and the containerized resource server hosts boot systemd, so playbooks can start, stop and enable their services; the other containers run only sshd and the services their images start. The `provider_configured` container hosts a configured iRODS catalog service provider. The `provider_unconfigured` container hosts an unconfigured service provider. The `consumer_configured_centos` container hosts a configured catalog service consumer acting as a resource server for `replRes` and `ingestRes`; it keeps its old name, though it no longer runs CentOS. The `consumer_unconfigured` container hosts an unconfigured service consumer. Finally, `consumer_containerized_alma` holds an unconfigured AlmaLinux 10 host, `consumer_containerized_alma9` an unconfigured AlmaLinux 9 host, and `consumer_containerized_ubuntu` an unconfigured Ubuntu 24.04 host. Each runs its own Docker daemon, so `irods_resource_container.yml` can build and start the `irods-rs` container on it. The `s3` container runs a [moto](https://github.com/getmoto/moto) S3 server on AlmaLinux 10 for the S3 resource tests, which reach it by its service name, `s3`.
+The environment consists of a set of containers. The `amqp` container hosts a RabbitMQ broker that in turn hosts the `irods` exchange, where the Data Store publishes messages to. The `dbms_configured` container hosts the PostgreSQL server that in turn hosts the ICAT DB. The iRODS servers all run on AlmaLinux 9, except the containerized resource servers, whose image is based on Ubuntu 22.04. The `webdav_configured` and `webdav_unconfigured` containers run AlmaLinux 8, because davrods 4.3.0_1.5.0, the release the WebDAV hosts use, doesn't install on AlmaLinux 9. They, the `amqp` and `sftp` containers, the `dbms_configured` and `dbms_unconfigured` containers, and the containerized resource server hosts boot systemd, so playbooks can start, stop and enable their services; the other containers run only sshd and the services their images start. The `provider_configured` container hosts a configured iRODS catalog service provider. The `provider_unconfigured` container hosts an unconfigured service provider. The `consumer_configured` container hosts a configured catalog service consumer acting as a resource server for `replRes` and `ingestRes`. The `consumer_unconfigured` container hosts an unconfigured service consumer. Finally, `consumer_containerized_alma` holds an unconfigured AlmaLinux 10 host, `consumer_containerized_alma9` an unconfigured AlmaLinux 9 host, and `consumer_containerized_ubuntu` an unconfigured Ubuntu 24.04 host. Each runs its own Docker daemon, so `irods_resource_container.yml` can build and start the `irods-rs` container on it. The `s3` container runs a [moto](https://github.com/getmoto/moto) S3 server on AlmaLinux 10 for the S3 resource tests, which reach it by its service name, `s3`.
 
 The environment is controlled by docker-compose, but there are three programs that simplify the usage of docker-compose. The containerized resource server hosts keep their Docker storage in external volumes, which `controller start` creates, so `docker compose up` alone fails until they exist. `build` can be used to create all of the images. `clean` can be used to delete all of the images. Finally, `controller` can be used to bring up or tear down the grid. After its action, `controller` accepts compose files to apply over `docker-compose.yml`; pass the same files to `stop` as to `start`. Setting `IRODS_VERSION` builds and runs the configured catalog service provider on that iRODS release instead of 4.3.1. `build` also rebuilds the images of any other release already built, and `clean` deletes them. Setting `IRODS_UPGRADE_FROM` makes `start` run the configured servers on that release and upgrade them to `IRODS_VERSION` with `irods_upgrade.yml`. `controller snapshot` does the same, then saves the configured iRODS servers and DBMS as images tagged `<from>-to-<to>` and tears the grid down; with `IRODS_UPGRADE_SNAPSHOT` set too, `start` runs those images instead of upgrading. `controller remove-snapshot` deletes them.
 
@@ -35,12 +35,12 @@ export IRODS_PROVIDER_SYSTEM_GROUP=irods_provider
 # configured resource server
 export IRODS_INGEST_VAULT=/var/lib/irods/ingest_vault
 
-# The name of the default storage resource on the configured resource server
-export IRODS_RES_CONF_CENTOS_NAME=replRes
-
 # The name of the second storage resource on the configured resource server,
 # which is the zone's default resource
 export IRODS_RES_CONF_INGEST_NAME=ingestRes
+
+# The name of the default storage resource on the configured resource server
+export IRODS_RES_CONF_REPL_NAME=replRes
 
 # The URI for the schema used to validate the configuration files or 'off'
 export IRODS_SCHEMA_VALIDATION=off
@@ -52,7 +52,7 @@ export IRODS_VAULT=/var/lib/irods/Vault
 export IRODS_ZONE_NAME=testing
 
 # The host name of the configured catalog service consumer
-export IRODS_CONSUMER_CONF_CENTOS_HOST="$ENV_NAME"_consumer_configured_centos_1."$DOMAIN"
+export IRODS_CONSUMER_CONF_HOST="$ENV_NAME"_consumer_configured_1."$DOMAIN"
 
 # The name of the default resource to use
 export IRODS_DEFAULT_RESOURCE="$IRODS_RES_CONF_INGEST_NAME"

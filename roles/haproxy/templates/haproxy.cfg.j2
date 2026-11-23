@@ -96,6 +96,8 @@ frontend irods_main
   acl                        is-conn        capture.req.hdr(0) -m str RODS_CONNECT
   acl                        is-ping        capture.req.hdr(0) -m str HEARTBEAT
   acl                        vip-src        src -f /etc/haproxy/vip.lst
+  acl                        allowed        src -f /etc/haproxy/allow.lst
+  acl                        blocked         src -f /etc/haproxy/block.lst
   acl                        throttle-conn  sc1_conn_cur gt 1
   acl                        block-conn     sc1_conn_cur gt 10
   tcp-request inspect-delay  5s
@@ -103,7 +105,7 @@ frontend irods_main
   tcp-request content        accept if is-ping or is-conn vip-src
   tcp-request content        reject if !is-conn
   tcp-request content        track-sc1 src table concurrency_st if !vip-src
-  tcp-request content        reject if block-conn
+  tcp-request content        reject if !allowed blocked or block-conn
   use_backend                irods_throttled if throttle-conn
   default_backend            irods_direct
 
@@ -138,10 +140,12 @@ backend irods_direct
 listen sftp
   bind                    :{{ haproxy_sftp_port }}
   acl                     vip-src     src -f /etc/haproxy/vip.lst
+  acl                     allowed     src -f /etc/haproxy/allow.lst
+  acl                     blocked     src -f /etc/haproxy/block.lst
   acl                     block-conn  sc1_conn_cur gt 10
   tcp-request connection  accept if vip-src
-  tcp-request connection  track-sc1 src table concurrency_st
-  tcp-request connection  reject if block-conn
+  tcp-request connection  track-sc1 src table concurrency_st if !vip-src
+  tcp-request connection  reject if !allowed blocked or block-conn
   server                  sftp {{ haproxy_sftp_hosts[0] if haproxy_sftp_hosts[0]|ansible.utils.ipaddr else lookup('dig', haproxy_sftp_hosts[0]) }}:{{ haproxy_sftp_backend_port }} send-proxy-v2
 
 
@@ -159,7 +163,7 @@ listen webdav
   acl             blocked     src -f /etc/haproxy/block.lst
   acl             block-conn  sc1_conn_cur gt 10
   http-request    track-sc1 src table concurrency_st if !vip-src
-  http-request    deny if !vip-src !allowed blocked or block-conn
+  http-request    redirect code 307 location https://unblockme.cyverse.org/ if !allowed blocked or block-conn
 {% if haproxy_tls_crt %}
   http-request    redirect scheme https
 {% else %}
@@ -177,6 +181,6 @@ listen webdavs
   acl             blocked     src -f /etc/haproxy/block.lst
   acl             block-conn  sc1_conn_cur gt 10
   http-request    track-sc1 src table concurrency_st if !vip-src
-  http-request    redirect code 307 location https://unblockme.cyverse.org/ if !vip-src !allowed blocked or block-conn
+  http-request    redirect code 307 location https://unblockme.cyverse.org/ if !allowed blocked or block-conn
   server          dav {{ haproxy_webdav_hosts[0] if haproxy_webdav_hosts[0]|ansible.utils.ipaddr else lookup('dig', haproxy_webdav_hosts[0]) }} ssl crt {{ haproxy_tls_crt }} ca-file {{ haproxy_tls_crt }} maxconn 500
 {% endif %}
