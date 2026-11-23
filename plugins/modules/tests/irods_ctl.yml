@@ -274,7 +274,7 @@
 
 
 - name: Test irods_ctl start with test log
-  hosts: dstesting-consumer_configured_centos-1.dstesting_default
+  hosts: dstesting-consumer_configured-1.dstesting_default
   become: true
   become_user: irods
   pre_tasks:
@@ -314,7 +314,7 @@
 # The start play above tests the same server, so this play restarts it afterward to leave the
 # idempotency check the running server the start play expects.
 - name: Test irods_ctl stop
-  hosts: dstesting-consumer_configured_centos-1.dstesting_default
+  hosts: dstesting-consumer_configured-1.dstesting_default
   become: true
   become_user: irods
   tasks:
