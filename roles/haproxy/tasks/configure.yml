@@ -49,8 +49,8 @@
     mode: a+r
   no_log: true
   when:
-    - haproxy_tls_crt | d(False)
-    - haproxy_tls_crt_content | d(False)
+    - haproxy_tls_crt is truthy
+    - haproxy_tls_crt_content is truthy
   notify:
     - Reload haproxy
 

@@ -3,6 +3,7 @@ haproxy_default_max_conn: 1
 
 haproxy_irods_port: 2
 haproxy_irods_reconn_ports: 3-4
+haproxy_irods_throttled_max_conn: 5
 
 haproxy_num_threads: 2
 

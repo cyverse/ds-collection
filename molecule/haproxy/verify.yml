@@ -125,11 +125,14 @@
       ansible.builtin.assert:
         that: haproxy is search('\nfrontend irods_reconn\n(  [^\n]*\n)*  bind +:3-4\n')
 
+    - name: Verify haproxy config irods_throttled backend
+      ansible.builtin.assert:
+        that: haproxy is search('\nbackend irods_throttled\n(  [^\n]*\n)*  server .* maxconn 5\n')
+
     - name: Verify haproxy config irods section
       ansible.builtin.debug:
         msg: "TODO: implement for {{ item }}"
       loop:
-        - irods_throttled
         - irods_indirect
         - irods_direct
 
